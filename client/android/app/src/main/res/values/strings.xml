@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pasta SKT</string>
+    <string name="title_activity_main">Pasta SKT</string>
+    <string name="package_name">com.skt.pastatakip</string>
+    <string name="custom_url_scheme">com.skt.pastatakip</string>
+</resources>
