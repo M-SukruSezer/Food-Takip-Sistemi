@@ -1,10 +1,10 @@
-const { db } = require('./db');
+const { queryAll, queryOne, execute } = require('./db');
 
-function logActivity(user, action, entityType, entityId, details, storeId) {
+async function logActivity(user, action, entityType, entityId, details, storeId) {
   const sid = storeId !== undefined ? storeId : (user && user.store_id) || null;
-  db.prepare(
+  await execute(
     'INSERT INTO activity_logs (store_id, user_id, username, action, entity_type, entity_id, details) VALUES (?,?,?,?,?,?,?)'
-  ).run(sid, user ? user.id : null, user ? user.username : 'sistem', action, entityType, entityId, details || null);
+  ,sid, user ? user.id : null, user ? user.username : 'sistem', action, entityType, entityId, details || null);
 }
 
 const STATUS_LABELS = {

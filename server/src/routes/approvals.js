@@ -1,5 +1,5 @@
 const express = require('express');
-const { db, nowISO, addDays } = require('../db');
+const { queryAll, queryOne, execute, nowISO, addDays } = require('../db');
 const { requireAuth, requireRole } = require('../auth');
 const { logActivity } = require('../utils');
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 // Onay listesi: mağaza yöneticisi kendi mağazası, super_admin tümü (?storeId=)
-router.get('/', requireRole('super_admin', 'store_manager'), (req, res) => {
+router.get('/', requireRole('super_admin', 'store_manager'), async (req, res) => {
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   if (req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
     return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
@@ -28,7 +28,7 @@ router.get('/', requireRole('super_admin', 'store_manager'), (req, res) => {
     }
   }
 
-  const rows = db.prepare(`
+  const rows = await queryAll(`
     SELECT a.*,
       b.batch_code, b.remaining, b.quantity, b.status AS batch_status, b.thawing_finish_at,
       pt.name AS product_name, pt.skt_days,
@@ -44,7 +44,7 @@ router.get('/', requireRole('super_admin', 'store_manager'), (req, res) => {
     ${where}
     ORDER BY a.requested_at DESC
     LIMIT 300
-  `).all(...params);
+  `,...params);
 
   const now = Date.now();
   res.json(rows.map((r) => ({
@@ -56,54 +56,54 @@ router.get('/', requireRole('super_admin', 'store_manager'), (req, res) => {
 });
 
 // Onayla -> çözünmeden çıkar, food dolabına al (SKT başlar)
-router.post('/:id/approve', requireRole('super_admin', 'store_manager'), (req, res) => {
-  const ap = db.prepare('SELECT * FROM transfer_approvals WHERE id = ?').get(Number(req.params.id));
+router.post('/:id/approve', requireRole('super_admin', 'store_manager'), async (req, res) => {
+  const ap = await queryOne('SELECT * FROM transfer_approvals WHERE id = ?',Number(req.params.id));
   if (!ap) return res.status(404).json({ error: 'Onay isteği bulunamadı' });
   if (req.user.role !== 'super_admin' && ap.store_id !== req.user.store_id) {
     return res.status(403).json({ error: 'Bu isteğe erişim yetkiniz yok' });
   }
   if (ap.status !== 'pending') return res.status(400).json({ error: 'Bu istek zaten karara bağlanmış' });
 
-  const batch = db.prepare('SELECT * FROM batches WHERE id = ?').get(ap.batch_id);
+  const batch = await queryOne('SELECT * FROM batches WHERE id = ?',ap.batch_id);
   if (!batch) return res.status(404).json({ error: 'Ürün bulunamadı' });
   if (batch.status !== 'thawing') {
-    db.prepare("UPDATE transfer_approvals SET status = 'cancelled', decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ?").run(
+    await execute("UPDATE transfer_approvals SET status = 'cancelled', decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ?",
       req.user.id, nowISO(), 'Ürün artık çözülme sürecinde değil', ap.id
     );
     return res.status(400).json({ error: 'Ürün artık çözülme sürecinde değil, istek iptal edildi' });
   }
 
-  const type = db.prepare('SELECT * FROM product_types WHERE id = ?').get(batch.product_type_id);
+  const type = await queryOne('SELECT * FROM product_types WHERE id = ?',batch.product_type_id);
   const cabinetAt = nowISO();
   const sktEnd = addDays(cabinetAt, type.skt_days);
-  db.prepare(`
+  await execute(`
     UPDATE batches SET status = 'food_cabinet', food_cabinet_entered_at = ?, skt_end = ? WHERE id = ?
-  `).run(cabinetAt, sktEnd, batch.id);
-  db.prepare(`
+  `,cabinetAt, sktEnd, batch.id);
+  await execute(`
     UPDATE transfer_approvals SET status = 'approved', decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ?
-  `).run(req.user.id, nowISO(), req.body.note || null, ap.id);
+  `,req.user.id, nowISO(), req.body.note || null, ap.id);
 
-  logActivity(req.user, 'TRANSFER_ONAY', 'batch', batch.id,
+  await logActivity(req.user, 'TRANSFER_ONAY', 'batch', batch.id,
     `${type.name} erken aktarım onayı verildi, food dolabına alındı`, batch.store_id);
   res.json({ id: batch.id, skt_end: sktEnd });
 });
 
 // Reddet -> ürün çözülmede kalır
-router.post('/:id/reject', requireRole('super_admin', 'store_manager'), (req, res) => {
-  const ap = db.prepare('SELECT * FROM transfer_approvals WHERE id = ?').get(Number(req.params.id));
+router.post('/:id/reject', requireRole('super_admin', 'store_manager'), async (req, res) => {
+  const ap = await queryOne('SELECT * FROM transfer_approvals WHERE id = ?',Number(req.params.id));
   if (!ap) return res.status(404).json({ error: 'Onay isteği bulunamadı' });
   if (req.user.role !== 'super_admin' && ap.store_id !== req.user.store_id) {
     return res.status(403).json({ error: 'Bu isteğe erişim yetkiniz yok' });
   }
   if (ap.status !== 'pending') return res.status(400).json({ error: 'Bu istek zaten karara bağlanmış' });
 
-  db.prepare(`
+  await execute(`
     UPDATE transfer_approvals SET status = 'rejected', decided_by = ?, decided_at = ?, decision_note = ? WHERE id = ?
-  `).run(req.user.id, nowISO(), req.body.note || null, ap.id);
+  `,req.user.id, nowISO(), req.body.note || null, ap.id);
 
-  const batch = db.prepare('SELECT * FROM batches WHERE id = ?').get(ap.batch_id);
-  const type = batch ? db.prepare('SELECT name FROM product_types WHERE id = ?').get(batch.product_type_id) : null;
-  logActivity(req.user, 'TRANSFER_RED', 'batch', ap.batch_id,
+  const batch = await queryOne('SELECT * FROM batches WHERE id = ?',ap.batch_id);
+  const type = batch ? await queryOne('SELECT name FROM product_types WHERE id = ?',batch.product_type_id) : null;
+  await logActivity(req.user, 'TRANSFER_RED', 'batch', ap.batch_id,
     `${type ? type.name : 'Ürün'} erken aktarım isteği reddedildi${req.body.note ? `: ${req.body.note}` : ''}`, ap.store_id);
   res.json({ ok: true });
 });

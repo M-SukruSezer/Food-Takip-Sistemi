@@ -1,5 +1,5 @@
 const express = require('express');
-const { db } = require('../db');
+const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth } = require('../auth');
 const { batchRow } = require('../utils');
 
@@ -9,7 +9,7 @@ router.use(requireAuth);
 
 // Öneri satış listesi: food dolabında olan ve SKT'ye son 48 saat (2 gün) kalan ürünler.
 // Sıralama: en acil (en erken dolan) önce.
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   const all = !storeId && req.user.role === 'super_admin';
 
@@ -18,14 +18,14 @@ router.get('/', (req, res) => {
     : " WHERE b.status = 'food_cabinet' AND b.store_id = ?";
   const params = all ? [] : [storeId];
 
-  const rows = db.prepare(`
+  const rows = await queryAll(`
     SELECT b.*, pt.name AS product_name, pt.skt_days, s.name AS store_name
     FROM batches b
     JOIN product_types pt ON pt.id = b.product_type_id
     LEFT JOIN stores s ON s.id = b.store_id
     ${where} AND b.skt_end IS NOT NULL
     ORDER BY b.skt_end ASC
-  `).all(...params);
+  `,...params);
 
   const now = Date.now();
   const list = rows

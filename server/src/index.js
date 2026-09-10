@@ -1,9 +1,11 @@
 require('dotenv').config();
+require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const routes = require('./routes');
+const { initialize } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,6 +33,11 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message || 'Sunucu hatası' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Food Takip API ${PORT} portunda çalışıyor`);
+initialize().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Food Takip API ${PORT} portunda çalışıyor`);
+  });
+}).catch((error) => {
+  console.error('Veritabanı başlatılamadı:', error);
+  process.exit(1);
 });

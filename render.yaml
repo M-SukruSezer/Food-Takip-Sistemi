@@ -11,6 +11,8 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
+      - key: DATABASE_URL
+        sync: false
       - key: SEED_DEMO_DATA
         value: false
       - key: BOOTSTRAP_ADMIN_USERNAME
@@ -19,7 +21,3 @@ services:
         sync: false
       - key: BOOTSTRAP_ADMIN_NAME
         value: Ana Yonetici
-    disk:
-      name: food-takip-data
-      mountPath: /opt/render/project/src/server/data
-      sizeGB: 1
