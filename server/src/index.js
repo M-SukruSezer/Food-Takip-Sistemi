@@ -33,11 +33,15 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message || 'Sunucu hatası' });
 });
 
-initialize().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Food Takip API ${PORT} portunda çalışıyor`);
+if (require.main === module) {
+  initialize().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Food Takip API ${PORT} portunda çalışıyor`);
+    });
+  }).catch((error) => {
+    console.error('Veritabanı başlatılamadı:', error);
+    process.exit(1);
   });
-}).catch((error) => {
-  console.error('Veritabanı başlatılamadı:', error);
-  process.exit(1);
-});
+}
+
+module.exports = { app, initialize };
