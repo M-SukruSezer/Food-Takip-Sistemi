@@ -17,8 +17,10 @@ app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISO
 app.use('/api', routes);
 
 // production: client build klasörünü servis et
+// Vercel'de frontend ayrı bir projede yayınlanıyor; API deploy'u içindeki
+// eski client/dist kopyasını servis etmemek için atlanır.
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
-if (fs.existsSync(clientDist)) {
+if (!process.env.VERCEL && fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
