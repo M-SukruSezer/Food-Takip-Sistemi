@@ -23,7 +23,7 @@ router.get('/summary', async (req, res) => {
         SELECT COALESCE(SUM(quantity),0) AS qty, COALESCE(SUM(quantity * unit_price),0) AS revenue,
                COUNT(*) AS count FROM sales WHERE store_id = ?
       `,s.id);
-      const productCount = Number((await queryOne('SELECT COUNT(*) AS c FROM product_types WHERE store_id = ?', s.id)).c);
+      const productCount = Number((await queryOne('SELECT COUNT(*) AS c FROM product_types WHERE store_id = ? AND active = 1', s.id)).c);
       return {
         id: s.id, name: s.name,
         frozen_qty: active.frozen_qty || 0,
@@ -52,7 +52,7 @@ router.get('/summary', async (req, res) => {
   const sold = await queryOne(
     'SELECT COALESCE(SUM(quantity),0) AS qty, COALESCE(SUM(quantity * unit_price),0) AS revenue, COUNT(*) AS count FROM sales WHERE store_id = ?'
   ,sid);
-  const productCount = Number((await queryOne('SELECT COUNT(*) AS c FROM product_types WHERE store_id = ?', sid)).c);
+  const productCount = Number((await queryOne('SELECT COUNT(*) AS c FROM product_types WHERE store_id = ? AND active = 1', sid)).c);
 
   res.json({
     type: 'single',
@@ -89,6 +89,35 @@ router.get('/sales7', async (req, res) => {
     return { date: day, qty: row.qty, revenue: row.revenue || 0 };
   }));
   res.json(data);
+});
+
+// Stok dagilimi (durum bazinda kalan adet)
+router.get('/status', async (req, res) => {
+  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
+  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
+    return res.status(403).json({ error: 'Bu magazaya erisim yetkiniz yok' });
+  }
+  const rows = await queryAll(`
+    SELECT status, COALESCE(SUM(remaining),0) AS quantity
+    FROM batches ${storeId ? 'WHERE store_id = ?' : ''}
+    GROUP BY status ORDER BY quantity DESC
+  `, ...(storeId ? [storeId] : []));
+  res.json(rows);
+});
+
+// Son hareketler akisi
+router.get('/activity', async (req, res) => {
+  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
+  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
+    return res.status(403).json({ error: 'Bu magazaya erisim yetkiniz yok' });
+  }
+  const rows = await queryAll(`
+    SELECT l.action, l.details, l.created_at, s.name AS store_name
+    FROM activity_logs l LEFT JOIN stores s ON s.id = l.store_id
+    ${storeId ? 'WHERE l.store_id = ?' : ''}
+    ORDER BY l.created_at DESC LIMIT 20
+  `, ...(storeId ? [storeId] : []));
+  res.json(rows);
 });
 
 module.exports = router;

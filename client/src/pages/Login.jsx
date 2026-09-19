@@ -41,17 +41,6 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-col">
-        <div className="login-top">
-          <div className="brand">
-            <img className="brand-mark" src="/logo.png" alt="Food Takip Sistemi" />
-            <span>
-              <div className="brand-name">Food<b>Takip</b></div>
-              <div className="brand-sub">DONUK • SKT • TAKİP</div>
-            </span>
-          </div>
-          <span className="login-ver">v1.0</span>
-        </div>
-
         <div className="login-main">
         <img className="login-logo" src="/logo.png" alt="Food Takip Sistemi" />
         <h1 className="login-title">Giriş Yap</h1>
@@ -119,7 +108,7 @@ export default function Login() {
         </form>
 
         </div>
-        <div className="login-foot">Food Takip Sistemi</div>
+        <div className="login-foot">Telif hakkı ©2026 Colombia Plus Kurumsal.</div>
       </div>
     </div>
   );

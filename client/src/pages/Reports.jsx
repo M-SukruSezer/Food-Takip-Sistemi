@@ -15,13 +15,15 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { fmtDate } from '../format';
+import { fmtDate, fmtDateTime } from '../format';
 
 export default function Reports() {
   const { user } = useAuth();
   const isSuper = user.role === 'super_admin';
   const [summary, setSummary] = useState(null);
   const [chart, setChart] = useState([]);
+  const [statusChart, setStatusChart] = useState([]);
+  const [activityFeed, setActivityFeed] = useState([]);
   const [storeId, setStoreId] = useState('');
   const [stores, setStores] = useState([]);
 
@@ -29,6 +31,8 @@ export default function Reports() {
     api.get('/reports/summary').then((r) => setSummary(r.data)).catch(() => {});
     const q = storeId ? `?storeId=${storeId}` : '';
     api.get('/reports/sales7' + q).then((r) => setChart(r.data)).catch(() => {});
+    api.get('/reports/status' + q).then((r) => setStatusChart(r.data)).catch(() => {});
+    api.get('/reports/activity' + q).then((r) => setActivityFeed(r.data)).catch(() => {});
   }, [storeId]);
 
   useEffect(() => { load(); }, [load]);
@@ -40,13 +44,28 @@ export default function Reports() {
 
   const maxQty = Math.max(1, ...chart.map((d) => d.qty));
   const maxRevenue = Math.max(1, ...chart.map((d) => d.revenue));
+  const maxStatus = Math.max(1, ...statusChart.map((d) => d.quantity));
+  const totalRevenue = summary.type === 'multi'
+    ? summary.stores.reduce((sum, store) => sum + Number(store.revenue || 0), 0)
+    : Number(summary.revenue || 0);
 
-  const trend = chart.length > 1 ? Math.round(((chart[chart.length - 1].revenue - chart[0].revenue) / Math.max(chart[0].revenue, 1)) * 100) : 0;
-  const activityFeed = [
-    { label: 'Yeni satış kaydı', time: '2 saat önce', tone: 'up', text: 'Food Dolabı satışları %12 arttı.' },
-    { label: 'İmha uyarısı', time: '4 saat önce', tone: 'down', text: '3 ürünün SKT süresi dolmak üzere.' },
-    { label: 'Stok eşitleme', time: 'Bugün', tone: 'up', text: 'Donuk depo stok seviyesi normal.' },
-  ];
+  const firstHalf = chart.slice(0, Math.ceil(chart.length / 2)).reduce((sum, day) => sum + day.revenue, 0);
+  const secondHalf = chart.slice(Math.ceil(chart.length / 2)).reduce((sum, day) => sum + day.revenue, 0);
+  const trend = firstHalf > 0 ? Math.round(((secondHalf - firstHalf) / firstHalf) * 100) : (secondHalf > 0 ? 100 : 0);
+  const statusLabels = {
+    frozen: 'Donuk Depo',
+    thawing: 'Çözülme',
+    food_cabinet: 'Food Dolabı',
+    sold: 'Satıldı',
+    discarded: 'İmha',
+  };
+  const statusTone = {
+    frozen: 'frozen',
+    thawing: 'thawing',
+    food_cabinet: 'cabinet',
+    sold: 'sold',
+    discarded: 'discarded',
+  };
 
   return (
     <div className="analytics-shell">
@@ -133,8 +152,8 @@ export default function Reports() {
                 <div className="panel-kicker">Trend</div>
                 <h3>Son 7 Günlük Satış</h3>
               </div>
-              <div className="panel-trend up">
-                <TrendingUp size={16} /> {trend > 0 ? '+' : ''}{trend}%
+              <div className={`panel-trend ${trend >= 0 ? 'up' : 'down'}`}>
+                {trend >= 0 ? <TrendingUp size={16} /> : <ArrowDownRight size={16} />} {trend > 0 ? '+' : ''}{trend}%
               </div>
             </div>
 
@@ -164,6 +183,22 @@ export default function Reports() {
                   ))}
                 </div>
               </div>
+
+              <div className="chart-block">
+                <div className="muted chart-label">Stok Dağılımı</div>
+                <div className="status-chart">
+                  {statusChart.length === 0 && <p className="empty">Stok verisi bulunamadı</p>}
+                  {statusChart.map((item) => (
+                    <div className="status-bar-row" key={item.status}>
+                      <span>{statusLabels[item.status] || item.status}</span>
+                      <div className="status-bar-track">
+                        <div className={`status-bar ${statusTone[item.status] || ''}`} style={{ width: `${Math.max(4, (item.quantity / maxStatus) * 100)}%` }} />
+                      </div>
+                      <strong>{item.quantity}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -179,7 +214,7 @@ export default function Reports() {
             </div>
             <div className="sidebar-metric">
               <span>Toplam Ciro</span>
-              <strong>{(summary.revenue || 0).toLocaleString('tr-TR')} TL</strong>
+              <strong>{totalRevenue.toLocaleString('tr-TR')} TL</strong>
             </div>
             <div className="sidebar-metric">
               <span>Son 7 Gün Satış</span>
@@ -204,14 +239,14 @@ export default function Reports() {
                 <span className="trend-icon"><ArrowUpRight size={14} /></span>
                 <div>
                   <strong>Satış</strong>
-                  <small>+12% bu hafta</small>
+                  <small>{trend > 0 ? '+' : ''}{trend}% son 7 gün</small>
                 </div>
               </div>
               <div className="trend-row down">
                 <span className="trend-icon"><ArrowDownRight size={14} /></span>
                 <div>
-                  <strong>İmha</strong>
-                  <small>-4% son hafta</small>
+                  <strong>Stok</strong>
+                  <small>{statusChart.reduce((sum, item) => sum + item.quantity, 0)} adet toplam</small>
                 </div>
               </div>
             </div>
@@ -226,13 +261,14 @@ export default function Reports() {
               <Bell size={18} />
             </div>
             <div className="activity-list">
-              {activityFeed.map((item, index) => (
-                <div key={index} className={`activity-item ${item.tone}`}>
+              {activityFeed.length === 0 && <p className="empty">Henüz hareket kaydı bulunamadı</p>}
+              {activityFeed.map((item) => (
+                <div key={`${item.created_at}-${item.action}`} className={`activity-item ${item.action === 'IMHA' ? 'down' : 'up'}`}>
                   <span className="dot" />
                   <div>
-                    <strong>{item.label}</strong>
-                    <small>{item.time}</small>
-                    <p>{item.text}</p>
+                    <strong>{item.action}</strong>
+                    <small>{fmtDateTime(item.created_at)}{item.store_name ? ` · ${item.store_name}` : ''}</small>
+                    <p>{item.details || 'İşlem kaydı oluşturuldu.'}</p>
                   </div>
                 </div>
               ))}
