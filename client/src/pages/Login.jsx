@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Globe, Eye, EyeOff } from 'lucide-react';import { useAuth } from '../auth';
 import { errorMessage } from '../format';
-import { isNative, setApiBaseUrl } from '../api';
+import { isNative, setApiBaseUrl, hasFixedApiUrl } from '../api';
 import { toast } from '../components/ui';
 
 export default function Login() {
@@ -15,12 +15,13 @@ export default function Login() {
   const [server, setServer] = useState(localStorage.getItem('apiUrl') || '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const native = isNative();
+  // Sunucu adresi yalnizca derlemede sabit bir API adresi yoksa sorulur.
+  const askServer = isNative() && !hasFixedApiUrl();
 
   async function submit(e) {
     e.preventDefault();
     setError('');
-    if (native && server.trim()) setApiBaseUrl(server);
+    if (askServer && server.trim()) setApiBaseUrl(server);
     setBusy(true);
     try {
       await login(username, password);
@@ -78,7 +79,7 @@ export default function Login() {
             </button>
           </div>
 
-          {native && (
+          {askServer && (
             <>
               <label className="login-label">Sunucu Adresi <i>*</i></label>
               <div className="input-wrap">

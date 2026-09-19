@@ -4,10 +4,19 @@ export function isNative() {
   return typeof window !== 'undefined' && !!window.Capacitor && window.Capacitor.isNativePlatform();
 }
 
+const configuredApiUrl = import.meta.env.VITE_API_URL || '';
+
+// Derlemede sabit bir API adresi verilmisse kullanicidan sunucu adresi istenmez.
+export function hasFixedApiUrl() {
+  return !!configuredApiUrl;
+}
+
 export function getApiBaseUrl() {
+  // Sabit adres varsa, eski kurulumlardan kalan kayitli adres yok sayilir.
+  if (configuredApiUrl) return configuredApiUrl;
   const stored = localStorage.getItem('apiUrl');
   if (stored) return stored;
-  return import.meta.env.VITE_API_URL || '/api';
+  return '/api';
 }
 
 export function setApiBaseUrl(url) {
