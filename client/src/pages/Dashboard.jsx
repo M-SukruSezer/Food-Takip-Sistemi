@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Flame, PartyPopper, TriangleAlert, Snowflake, Hourglass, Refrigerator, Banknote, ShoppingBag,
   Clock, ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight,
+  ChartColumn, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -42,6 +43,9 @@ export default function Dashboard() {
   const [statusChart, setStatusChart] = useState([]);
   const [storeId, setStoreId] = useState('');
   const [stores, setStores] = useState([]);
+  const [showReports, setShowReports] = useState(
+    () => typeof window === 'undefined' || window.matchMedia('(min-width: 900px)').matches
+  );
 
   const load = useCallback(() => {
     const q = storeId ? `?storeId=${storeId}` : '';
@@ -226,6 +230,18 @@ export default function Dashboard() {
       </div>
 
       {summary && (
+        <>
+          <button
+            type="button"
+            className="section-toggle"
+            aria-expanded={showReports}
+            onClick={() => setShowReports((v) => !v)}
+          >
+            <span><ChartColumn size={18} /> Raporlar</span>
+            {showReports ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {showReports && (
         <div className="analytics-layout">
           <div className="analytics-main">
             {summary.type === 'multi' ? (
@@ -386,6 +402,8 @@ export default function Dashboard() {
 
           </aside>
         </div>
+          )}
+        </>
       )}
 
       {sellBatch && (
