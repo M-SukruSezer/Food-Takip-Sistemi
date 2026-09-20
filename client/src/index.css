@@ -1826,3 +1826,32 @@ tr:hover td { background: rgba(148,163,184,0.04); }
      yiginlamaktan 39px daha kisa cikiyor (185px'e karsi 224px). */
   .stock-page table.responsive td[data-label="SKT"] { font-size: 13px; }
 }
+
+/* ---------- Oneri Satis Listesi: telefon yogunlugu ---------- */
+@media (max-width: 640px) {
+  /* Baslik altindaki uzun aciklama telefonda 2-3 satira yayiliyordu;
+     basligin kendisi zaten ne oldugunu soyluyor. */
+  .page-shell > .page-head > .muted { display: none; }
+
+  /* Uc kademe ozeti: tam boy istatistik kartlari yerine tek satirlik serit.
+     .grid.stats'in mobil 2-sutun kurali !important oldugu icin burada da gerekli. */
+  .surface-panel .grid.stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px; }
+  .surface-panel .grid.stats .stat-card {
+    min-height: 0;
+    padding: 9px 8px;
+    text-align: center;
+  }
+  .surface-panel .grid.stats .stat .label { font-size: 10px; justify-content: center; line-height: 1.25; }
+  .surface-panel .grid.stats .stat .label span { gap: 3px; }
+  .surface-panel .grid.stats .stat .value { font-size: 20px; margin-top: 2px; }
+  .surface-panel .grid.stats .stat .sub { display: none; }
+  .surface-panel .grid.stats .dot { width: 8px; height: 8px; margin-right: 0; }
+
+  /* Oneri kartlari */
+  .recommendation-card { padding: 11px; gap: 8px; }
+  .recommendation-meta { margin-top: 5px; gap: 4px 10px; }
+
+  /* Satis en cok kullanilan islem; parmak boyutunu pointer:coarse sorgusuna
+     birakmak yerine burada acikca garanti ediyoruz. */
+  .recommendation-actions .btn { min-height: var(--tap); }
+}
