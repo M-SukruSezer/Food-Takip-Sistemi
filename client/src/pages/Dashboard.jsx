@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Flame, PartyPopper, TriangleAlert, Snowflake, Hourglass, Refrigerator, Banknote, ShoppingBag,
-  Clock, ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight, Bell,
+  Clock, ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -40,7 +40,6 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [chart, setChart] = useState([]);
   const [statusChart, setStatusChart] = useState([]);
-  const [activityFeed, setActivityFeed] = useState([]);
   const [storeId, setStoreId] = useState('');
   const [stores, setStores] = useState([]);
 
@@ -51,7 +50,6 @@ export default function Dashboard() {
     api.get('/reports/summary' + q).then((r) => setSummary(r.data)).catch(() => {});
     api.get('/reports/sales7' + q).then((r) => setChart(r.data)).catch(() => {});
     api.get('/reports/status' + q).then((r) => setStatusChart(r.data)).catch(() => {});
-    api.get('/reports/activity' + q).then((r) => setActivityFeed(r.data)).catch(() => {});
     if (['super_admin', 'store_manager'].includes(user.role)) {
       api.get('/approvals?status=pending').then((r) => setPendingApprovals(r.data.length)).catch(() => {});
     }
@@ -386,28 +384,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="mini-panel activity-panel dark-card">
-              <div className="panel-header compact">
-                <div>
-                  <div className="panel-kicker">Feed</div>
-                  <h3>Etkinlik</h3>
-                </div>
-                <Bell size={18} />
-              </div>
-              <div className="activity-list">
-                {activityFeed.length === 0 && <p className="empty">Henüz hareket kaydı bulunamadı</p>}
-                {activityFeed.map((item) => (
-                  <div key={`${item.created_at}-${item.action}`} className={`activity-item ${item.action === 'IMHA' ? 'down' : 'up'}`}>
-                    <span className="dot" />
-                    <div>
-                      <strong>{item.action}</strong>
-                      <small>{fmtDateTime(item.created_at)}{item.store_name ? ` · ${item.store_name}` : ''}</small>
-                      <p>{item.details || 'İşlem kaydı oluşturuldu.'}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </aside>
         </div>
       )}
