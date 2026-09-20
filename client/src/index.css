@@ -679,6 +679,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .dot-red { background: var(--danger); }
 .dot-orange { background: var(--warning); }
+.dot-green { background: var(--success); }
 
 .log-line { display: inline-flex; align-items: center; gap: 6px; }
 .log-line svg { flex-shrink: 0; }
@@ -1392,11 +1393,13 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .rec-card.critical { border-left-color: var(--danger); background: #fffafa; }
 .rec-card.expired { border-left-color: #7f1d1d; background: var(--danger-light); }
 .rec-card.warning { border-left-color: var(--warning); }
+.rec-card.normal { border-left-color: var(--success); }
 
 .rec-card .info { flex: 1; min-width: 0; }
 
 .rec-countdown { font-weight: 700; font-size: 14px; margin-top: 4px; color: var(--danger); display: flex; align-items: center; gap: 5px; }
 .rec-card.warning .rec-countdown { color: var(--warning); }
+.rec-card.normal .rec-countdown { color: var(--success); }
 
 .rec-side { text-align: right; flex-shrink: 0; }
 .rec-side .qty { font-size: 24px; font-weight: 800; line-height: 1; }
@@ -1427,6 +1430,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 
 .recommendation-card.critical { border-left-color: var(--danger); }
+.recommendation-card.normal { border-left-color: var(--success); }
 .recommendation-card.expired { border-left-color: #7f1d1d; background: var(--danger-soft); }
 :root[data-theme='dark'] .recommendation-card { background: rgba(15,23,42,0.78); }
 .recommendation-main { min-width: 0; flex: 1; }

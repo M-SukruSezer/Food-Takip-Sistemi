@@ -21,41 +21,48 @@ export default function Recommendations() {
   const grouped = useMemo(() => {
     const critical = items.filter((i) => i.urgency === 'critical' || i.urgency === 'expired');
     const warning = items.filter((i) => i.urgency === 'warning');
-    return { critical, warning };
+    const normal = items.filter((i) => i.urgency === 'normal');
+    return { critical, warning, normal };
   }, [items]);
 
   const expired = items.filter((i) => i.urgency === 'expired');
+  const sum = (list) => list.reduce((s, i) => s + i.remaining, 0);
 
   return (
     <div className="page-shell">
       <div className="page-head">
         <h2><Flame size={20} /> Öneri Satış Listesi</h2>
-        <span className="muted">SKT'ye son 2 gün kalan ürünler</span>
+        <span className="muted">Food dolabındaki tüm ürünler, SKT'si en yakın olan en üstte</span>
       </div>
 
       {expired.length > 0 && (
         <div className="alert error">
-          <strong>{expired.reduce((s, i) => s + i.remaining, 0)} adet</strong> ürünün SKT'si doldu. Lütfen imha edin veya satışı durdurun.
+          <strong>{sum(expired)} adet</strong> ürünün SKT'si doldu. Lütfen imha edin veya satışı durdurun.
         </div>
       )}
 
       <div className="surface-panel">
-        <div className="grid stats" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        <div className="grid stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="stat stat-card">
             <div className="label"><span><span className="dot dot-red" />Son Gün (0-24 saat)</span></div>
-            <div className="value" style={{ color: 'var(--danger)' }}>{grouped.critical.reduce((s, i) => s + i.remaining, 0)}</div>
+            <div className="value" style={{ color: 'var(--danger)' }}>{sum(grouped.critical)}</div>
             <div className="sub">{grouped.critical.length} kayıt öncelikli</div>
           </div>
           <div className="stat stat-card">
             <div className="label"><span><span className="dot dot-orange" />1-2 Gün Kalan</span></div>
-            <div className="value" style={{ color: 'var(--warning)' }}>{grouped.warning.reduce((s, i) => s + i.remaining, 0)}</div>
+            <div className="value" style={{ color: 'var(--warning)' }}>{sum(grouped.warning)}</div>
             <div className="sub">{grouped.warning.length} kayıt</div>
+          </div>
+          <div className="stat stat-card">
+            <div className="label"><span><span className="dot dot-green" />2 Günden Fazla</span></div>
+            <div className="value" style={{ color: 'var(--success)' }}>{sum(grouped.normal)}</div>
+            <div className="sub">{grouped.normal.length} kayıt</div>
           </div>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <div className="card"><p className="empty">Öneri listesi boş. Food dolabında SKT'ye 2 günden az kalan ürün yok.</p></div>
+        <div className="card"><p className="empty">Food dolabında satışa hazır ürün bulunmuyor.</p></div>
       ) : (
         <div className="recommendation-list">
           {items.map((b) => (
@@ -67,7 +74,9 @@ export default function Recommendations() {
                     ? <span className="badge expired">SKT Geçti</span>
                     : b.urgency === 'critical'
                       ? <span className="badge critical">SON GÜN</span>
-                      : <span className="badge warning">Son 2 Gün</span>}
+                      : b.urgency === 'warning'
+                        ? <span className="badge warning">Son 2 Gün</span>
+                        : <span className="badge food_cabinet">Food Dolabı</span>}
                 </div>
                 <div className="recommendation-meta">
                   <span>{b.remaining} adet</span>

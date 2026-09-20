@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ChartColumn, ScrollText, Users, Store,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store,
   Menu, MoreVertical, LogOut, ClipboardCheck, SunMedium, MoonStar,
 } from 'lucide-react';
 import { useAuth } from '../auth';
-import { ROLE_LABELS } from '../format';
+import { ROLE_LABELS, isUrgentBatch, sumRemaining } from '../format';
 import api from '../api';
 
 const LINKS = (user) => [
@@ -14,7 +14,6 @@ const LINKS = (user) => [
   { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ['super_admin', 'store_manager', 'staff'] },
   { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: ['super_admin', 'store_manager'] },
   { to: '/sales', label: 'Satış Geçmişi', ico: Banknote, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/reports', label: 'Raporlar', ico: ChartColumn, roles: ['super_admin', 'store_manager', 'staff'] },
   { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ['super_admin', 'store_manager', 'staff'] },
   { to: '/users', label: 'Kullanıcılar', ico: Users, roles: ['super_admin', 'store_manager'] },
   { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
@@ -41,16 +40,14 @@ export default function Layout() {
   }, [theme]);
 
   useEffect(() => {
-    api
-      .get('/recommendations')
-      .then((r) => setRecCount(r.data.reduce((s, i) => s + (i.remaining || 0), 0)))
-      .catch(() => {});
-    const t = setInterval(() => {
+    const loadCount = () => {
       api
         .get('/recommendations')
-        .then((r) => setRecCount(r.data.reduce((s, i) => s + (i.remaining || 0), 0)))
+        .then((r) => setRecCount(sumRemaining(r.data.filter(isUrgentBatch))))
         .catch(() => {});
-    }, 60000);
+    };
+    loadCount();
+    const t = setInterval(loadCount, 60000);
     return () => clearInterval(t);
   }, []);
 

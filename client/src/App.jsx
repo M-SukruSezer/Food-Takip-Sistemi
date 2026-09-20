@@ -9,7 +9,6 @@ import ProductTypes from './pages/ProductTypes';
 import Sales from './pages/Sales';
 import Users from './pages/Users';
 import Stores from './pages/Stores';
-import Reports from './pages/Reports';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
 import Approvals from './pages/Approvals';
@@ -47,7 +46,6 @@ export default function App() {
         <Route path="recommendations" element={<Recommendations />} />
         <Route path="product-types" element={<ProductTypes />} />
         <Route path="sales" element={<Sales />} />
-        <Route path="reports" element={<Reports />} />
         <Route path="logs" element={<Logs />} />
         <Route path="profile" element={<Profile />} />
         <Route path="users" element={<Guard roles={['super_admin', 'store_manager']}><Users /></Guard>} />

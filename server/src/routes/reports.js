@@ -8,7 +8,13 @@ router.use(requireAuth);
 
 // Rapor: süper admin için tüm mağazaların özeti
 router.get('/summary', async (req, res) => {
-  if (req.user.role === 'super_admin') {
+  const requested = req.query.storeId ? Number(req.query.storeId) : null;
+  if (requested && req.user.role !== 'super_admin' && requested !== req.user.store_id) {
+    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
+  }
+
+  // Ana yönetici mağaza seçmediyse tüm mağazaların karşılaştırmalı özeti döner.
+  if (req.user.role === 'super_admin' && !requested) {
     const stores = await queryAll('SELECT id, name FROM stores WHERE active = 1 ORDER BY name');
     const summary = await Promise.all(stores.map(async (s) => {
       const active = await queryOne(`
@@ -37,8 +43,8 @@ router.get('/summary', async (req, res) => {
     return res.json({ type: 'multi', stores: summary });
   }
 
-  // mağaza kullanıcısı: kendi özeti
-  const sid = req.user.store_id;
+  // tek mağaza özeti: seçilen mağaza ya da kullanıcının kendi mağazası
+  const sid = requested || req.user.store_id;
   const store = await queryOne('SELECT id, name FROM stores WHERE id = ?',sid);
   const active = await queryOne(`
     SELECT

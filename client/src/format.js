@@ -28,6 +28,16 @@ export function formatHours(hours) {
   return h > 0 ? `${d} gün ${h} saat` : `${d} gün`;
 }
 
+// Öneri listesi food dolabındaki her ürünü döner; "acil" olanlar SKT'ye 48
+// saatten az kalanlardır. Bildirim sayacı ve ana sayfa kuyruğu bunları kullanır.
+export function isUrgentBatch(b) {
+  return !!b && ['expired', 'critical', 'warning'].includes(b.urgency);
+}
+
+export function sumRemaining(list) {
+  return (list || []).reduce((s, b) => s + (b.remaining || 0), 0);
+}
+
 export const ROLE_LABELS = {
   super_admin: 'Ana Yönetici',
   store_manager: 'Mağaza Yöneticisi',

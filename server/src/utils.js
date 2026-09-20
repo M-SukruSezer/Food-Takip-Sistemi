@@ -25,6 +25,7 @@ function batchRow(row) {
     if (remainingHours <= 0) urgency = 'expired';
     else if (remainingHours <= 24) urgency = 'critical';
     else if (remainingHours <= 48) urgency = 'warning';
+    else urgency = 'normal';
   }
   let thawRemainingHours = null;
   if (row.status === 'thawing' && row.thawing_finish_at) {

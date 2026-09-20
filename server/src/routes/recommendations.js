@@ -7,8 +7,9 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-// Öneri satış listesi: food dolabında olan ve SKT'ye son 48 saat (2 gün) kalan ürünler.
-// Sıralama: en acil (en erken dolan) önce.
+// Öneri satış listesi: food dolabındaki tüm ürünler, SKT'si en yakın olan en üstte.
+// Aciliyet kademesi batchRow içinde hesaplanır: expired / critical (0-24 sa) /
+// warning (24-48 sa) / normal (48 saatten fazla).
 router.get('/', async (req, res) => {
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   const all = !storeId && req.user.role === 'super_admin';
@@ -23,14 +24,13 @@ router.get('/', async (req, res) => {
     FROM batches b
     JOIN product_types pt ON pt.id = b.product_type_id
     LEFT JOIN stores s ON s.id = b.store_id
-    ${where} AND b.skt_end IS NOT NULL
+    ${where} AND b.skt_end IS NOT NULL AND b.remaining > 0
     ORDER BY b.skt_end ASC
   `,...params);
 
-  const now = Date.now();
   const list = rows
     .map(batchRow)
-    .filter(b => b.remaining_hours !== null && b.remaining_hours <= 48)
+    .filter(b => b.remaining_hours !== null)
     .map(b => ({
       ...b,
       remaining_hours: Math.max(0, b.remaining_hours),
