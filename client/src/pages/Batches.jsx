@@ -3,7 +3,7 @@ import { Snowflake, Hourglass, Refrigerator, History } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, StatusBadge, Confirm, toast } from '../components/ui';
-import { fmtDateTime, formatHours, errorMessage } from '../format';
+import { fmtDateTime, formatHours, errorMessage, fmtMoney, hasPrice } from '../format';
 
 const TABS = [
   { id: 'frozen', label: 'Donuk Depo', ico: Snowflake },
@@ -388,13 +388,12 @@ function StockAddModal({ batch, onClose, onDone }) {  const [quantity, setQuanti
 
 function SellModal({ batch, onClose, onDone }) {
   const [quantity, setQuantity] = useState(1);
-  const [unit_price, setUnitPrice] = useState('');
   const [err, setErr] = useState('');
   async function submit(e) {
     e.preventDefault();
     setErr('');
     try {
-      await api.post(`/batches/${batch.id}/sell`, { quantity, unit_price });
+      await api.post(`/batches/${batch.id}/sell`, { quantity });
       toast('Satış işaretlendi, liste güncellendi');
       onDone();
     } catch (er) {
@@ -410,10 +409,20 @@ function SellModal({ batch, onClose, onDone }) {
           <label>Satılan Adet</label>
           <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
         </div>
-        <div className="field">
-          <label>Birim Fiyat (TL, opsiyonel)</label>
-          <input type="number" min="0" step="0.01" value={unit_price} onChange={(e) => setUnitPrice(e.target.value)} placeholder="0,00" />
-        </div>
+        {hasPrice(batch.product_unit_price) ? (
+          <div className="field">
+            <label>Tutar</label>
+            <p style={{ margin: 0 }}>
+              {fmtMoney(batch.product_unit_price)} × {Number(quantity) || 0} adet ={' '}
+              <strong>{fmtMoney((Number(batch.product_unit_price) || 0) * (Number(quantity) || 0))}</strong>
+            </p>
+            <small className="muted">Birim fiyat pasta çeşidinde tanımlıdır, ciro otomatik hesaplanır.</small>
+          </div>
+        ) : (
+          <div className="alert warning">
+            Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak. Pasta Çeşitleri ekranından fiyat tanımlayabilirsiniz.
+          </div>
+        )}
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
           <button type="submit" className="btn btn-success">Satışı Kaydet</button>

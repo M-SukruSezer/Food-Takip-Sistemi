@@ -3,7 +3,7 @@ import { Cake } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
-import { errorMessage } from '../format';
+import { errorMessage, fmtMoney, hasPrice } from '../format';
 
 export default function ProductTypes() {
   const { user } = useAuth();
@@ -22,12 +22,21 @@ export default function ProductTypes() {
 
   useEffect(() => { load(); }, [load, reload]);
 
+  const missingPrice = types.filter((t) => t.active === 1 && !hasPrice(t.unit_price));
+
   return (
     <div className="page-shell">
       <div className="page-head">
         <h2><Cake size={20} /> Pasta Çeşitleri ve SKT Süreleri</h2>
         {canManage && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Yeni Çeşit</button>}
       </div>
+      {canManage && missingPrice.length > 0 && (
+        <div className="alert warning">
+          <strong>{missingPrice.length} aktif çeşidin</strong> satış fiyatı tanımlı değil. Bu çeşitler satıldığında ciroya 0 TL yazılır:{' '}
+          {missingPrice.slice(0, 5).map((t) => t.name).join(', ')}{missingPrice.length > 5 ? ` ve ${missingPrice.length - 5} çeşit daha` : ''}.
+        </div>
+      )}
+
       {!canManage && (
         <div className="surface-panel">
           <p className="muted" style={{ fontSize: 13, margin: 0 }}>
@@ -48,6 +57,9 @@ export default function ProductTypes() {
             </div>
             <div>
               <span className={`pill ${t.skt_days === 3 ? 'o' : 'g'}`}>SKT: {t.skt_days} gün</span>
+              {hasPrice(t.unit_price)
+                ? <span className="pill g">{fmtMoney(t.unit_price)}</span>
+                : <span className="pill r">Fiyat yok</span>}
               {!t.store_id
                 ? <span className="pill g">Genel</span>
                 : (user.role === 'super_admin' && <span className="pill g">{t.store_name}</span>)}
@@ -106,6 +118,7 @@ function TypeModal({ type, stores, defaultStore, onClose, onDone }) {
   const { user } = useAuth();
   const [name, setName] = useState(type?.name || '');
   const [skt_days, setSkt] = useState(type?.skt_days || 3);
+  const [unit_price, setUnitPrice] = useState(type?.unit_price ?? '');
   const [description, setDesc] = useState(type?.description || '');
   const [active, setActive] = useState(type ? type.active === 1 : true);
   const [store_id, setStoreId] = useState(type?.store_id || defaultStore || '');
@@ -114,7 +127,13 @@ function TypeModal({ type, stores, defaultStore, onClose, onDone }) {
   async function submit(e) {
     e.preventDefault();
     setErr('');
-    const payload = { name, skt_days: Number(skt_days), description, active };
+    const payload = {
+      name,
+      skt_days: Number(skt_days),
+      unit_price: unit_price === '' ? null : Number(unit_price),
+      description,
+      active,
+    };
     if (user.role === 'super_admin') payload.store_id = store_id === '' ? null : Number(store_id);
     try {
       if (type) {
@@ -155,6 +174,18 @@ function TypeModal({ type, stores, defaultStore, onClose, onDone }) {
           <div className="field" style={{ marginTop: 8 }}>
             <input type="number" min="1" max="14" value={skt_days} onChange={(e) => setSkt(e.target.value)} />
           </div>
+        </div>
+        <div className="field">
+          <label>Satış Fiyatı (TL)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={unit_price}
+            onChange={(e) => setUnitPrice(e.target.value)}
+            placeholder="0,00"
+          />
+          <small className="muted">Satış yapıldığında ciro bu fiyattan otomatik hesaplanır. Boş bırakılırsa ciroya 0 TL yazılır.</small>
         </div>
         <div className="field">
           <label>Açıklama (opsiyonel)</label>

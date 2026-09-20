@@ -28,6 +28,17 @@ export function formatHours(hours) {
   return h > 0 ? `${d} gün ${h} saat` : `${d} gün`;
 }
 
+export function fmtMoney(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '-';
+  return `${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+}
+
+export function hasPrice(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+}
+
 // Öneri listesi food dolabındaki her ürünü döner; "acil" olanlar SKT'ye 48
 // saatten az kalanlardır. Bildirim sayacı ve ana sayfa kuyruğu bunları kullanır.
 export function isUrgentBatch(b) {

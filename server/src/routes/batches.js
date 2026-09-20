@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
   }
 
   const rows = await queryAll(`
-    SELECT b.*, pt.name AS product_name, pt.skt_days, s.name AS store_name,
+    SELECT b.*, pt.name AS product_name, pt.skt_days, pt.unit_price AS product_unit_price, s.name AS store_name,
       (SELECT a.id FROM transfer_approvals a WHERE a.batch_id = b.id AND a.status = 'pending' LIMIT 1) AS pending_approval_id
     FROM batches b
     JOIN product_types pt ON pt.id = b.product_type_id
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const row = await queryOne(`
-    SELECT b.*, pt.name AS product_name, pt.skt_days, s.name AS store_name,
+    SELECT b.*, pt.name AS product_name, pt.skt_days, pt.unit_price AS product_unit_price, s.name AS store_name,
       (SELECT a.id FROM transfer_approvals a WHERE a.batch_id = b.id AND a.status = 'pending' LIMIT 1) AS pending_approval_id
     FROM batches b JOIN product_types pt ON pt.id = b.product_type_id LEFT JOIN stores s ON s.id = b.store_id
     WHERE b.id = ?
@@ -245,7 +245,10 @@ router.post('/:id/sell', async (req, res) => {
   if (!Number.isInteger(qty) || qty < 1) return res.status(400).json({ error: 'Miktar en az 1 olmalıdır' });
   if (qty > row.remaining) return res.status(400).json({ error: `Yeterli stok yok. Kalan: ${row.remaining}` });
 
-  const unitPrice = req.body.unit_price !== undefined && req.body.unit_price !== '' ? Number(req.body.unit_price) : null;
+  // Birim fiyat pasta cesidinden gelir; satirda anlik goruntusu saklanir ki
+  // sonradan yapilan fiyat degisiklikleri gecmis ciroyu bozmasin.
+  const type = await queryOne('SELECT name, unit_price FROM product_types WHERE id = ?',row.product_type_id);
+  const unitPrice = type && type.unit_price !== null && type.unit_price !== undefined ? Number(type.unit_price) : null;
 
   const newRemaining = row.remaining - qty;
   const newStatus = newRemaining === 0 ? 'sold' : row.status;
@@ -259,9 +262,12 @@ router.post('/:id/sell', async (req, res) => {
     newRemaining, newStatus, newStatus === 'sold' ? soldAt : row.sold_at, row.id
   );
 
-  const type = await queryOne('SELECT name FROM product_types WHERE id = ?',row.product_type_id);
-  await logActivity(req.user, 'SATIS', 'batch', row.id, `${type.name} ${qty} adet satıldı${unitPrice ? ` (birim: ${unitPrice} TL)` : ''}`, row.store_id);
-  res.status(201).json({ id: Number(r.lastInsertRowid), remaining: newRemaining, status: newStatus });
+  await logActivity(req.user, 'SATIS', 'batch', row.id,
+    `${type.name} ${qty} adet satıldı${unitPrice !== null ? ` (birim: ${unitPrice} TL, tutar: ${qty * unitPrice} TL)` : ' (fiyat tanımlı değil)'}`, row.store_id);
+  res.status(201).json({
+    id: Number(r.lastInsertRowid), remaining: newRemaining, status: newStatus,
+    unit_price: unitPrice, total: unitPrice !== null ? qty * unitPrice : null,
+  });
 });
 
 module.exports = router;

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS product_types (
   store_id BIGINT REFERENCES stores(id),
   name TEXT NOT NULL,
   skt_days INTEGER NOT NULL DEFAULT 3 CHECK (skt_days BETWEEN 1 AND 14),
+  unit_price DOUBLE PRECISION,
   description TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -83,6 +84,9 @@ CREATE TABLE IF NOT EXISTS transfer_approvals (
   decided_at TEXT,
   decision_note TEXT
 );
+
+-- Mevcut kurulumlar icin kolon eklemeleri (initialize her soguk baslatmada calistirir)
+ALTER TABLE product_types ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION;
 
 CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
 CREATE INDEX IF NOT EXISTS idx_batches_store ON batches(store_id);

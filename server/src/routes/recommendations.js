@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
   const params = all ? [] : [storeId];
 
   const rows = await queryAll(`
-    SELECT b.*, pt.name AS product_name, pt.skt_days, s.name AS store_name
+    SELECT b.*, pt.name AS product_name, pt.skt_days, pt.unit_price AS product_unit_price, s.name AS store_name
     FROM batches b
     JOIN product_types pt ON pt.id = b.product_type_id
     LEFT JOIN stores s ON s.id = b.store_id

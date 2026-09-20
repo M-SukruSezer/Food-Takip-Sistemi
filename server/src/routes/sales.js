@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', requireRole('super_admin', 'store_manager', 'staff'), async (req, res) => {
-  const { batch_id, quantity, unit_price } = req.body || {};
+  const { batch_id, quantity } = req.body || {};
   const batch = await queryOne('SELECT * FROM batches WHERE id = ?',Number(batch_id));
   if (!batch) return res.status(404).json({ error: 'Ürün bulunamadı' });
   if (req.user.role !== 'super_admin' && batch.store_id !== req.user.store_id) {
@@ -45,16 +45,23 @@ router.post('/', requireRole('super_admin', 'store_manager', 'staff'), async (re
   if (!Number.isInteger(qty) || qty < 1 || qty > batch.remaining) {
     return res.status(400).json({ error: `Geçersiz miktar. Kalan: ${batch.remaining}` });
   }
+  // Birim fiyat pasta cesidinden gelir; satirda anlik goruntusu saklanir.
+  const type = await queryOne('SELECT name, unit_price FROM product_types WHERE id = ?',batch.product_type_id);
+  const unitPrice = type && type.unit_price !== null && type.unit_price !== undefined ? Number(type.unit_price) : null;
+
   const r = await execute(
     'INSERT INTO sales (store_id, batch_id, quantity, unit_price, sold_by) VALUES (?,?,?,?,?) RETURNING id'
-  ,batch.store_id, batch.id, qty, unit_price || null, req.user.id);
+  ,batch.store_id, batch.id, qty, unitPrice, req.user.id);
   const remaining = batch.remaining - qty;
   await execute('UPDATE batches SET remaining = ?, status = ? WHERE id = ?',
     remaining, remaining === 0 ? 'sold' : 'food_cabinet', batch.id
   );
-  const type = await queryOne('SELECT name FROM product_types WHERE id = ?',batch.product_type_id);
-  await logActivity(req.user, 'SATIS', 'batch', batch.id, `${type.name} ${qty} adet satıldı`, batch.store_id);
-  res.status(201).json({ id: Number(r.lastInsertRowid), remaining, status: remaining === 0 ? 'sold' : 'food_cabinet' });
+  await logActivity(req.user, 'SATIS', 'batch', batch.id,
+    `${type.name} ${qty} adet satıldı${unitPrice !== null ? ` (birim: ${unitPrice} TL, tutar: ${qty * unitPrice} TL)` : ' (fiyat tanımlı değil)'}`, batch.store_id);
+  res.status(201).json({
+    id: Number(r.lastInsertRowid), remaining, status: remaining === 0 ? 'sold' : 'food_cabinet',
+    unit_price: unitPrice, total: unitPrice !== null ? qty * unitPrice : null,
+  });
 });
 
 module.exports = router;

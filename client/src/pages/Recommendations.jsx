@@ -3,7 +3,7 @@ import { Flame } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Confirm, Modal, toast } from '../components/ui';
-import { fmtDateTime, errorMessage } from '../format';
+import { fmtDateTime, errorMessage, fmtMoney, hasPrice } from '../format';
 
 export default function Recommendations() {
   const { user } = useAuth();
@@ -153,6 +153,20 @@ function RecSellModal({ batch, onClose, onDone }) {
           <label>Satılan Adet</label>
           <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
         </div>
+        {hasPrice(batch.product_unit_price) ? (
+          <div className="field">
+            <label>Tutar</label>
+            <p style={{ margin: 0 }}>
+              {fmtMoney(batch.product_unit_price)} × {Number(quantity) || 0} adet ={' '}
+              <strong>{fmtMoney((Number(batch.product_unit_price) || 0) * (Number(quantity) || 0))}</strong>
+            </p>
+            <small className="muted">Birim fiyat pasta çeşidinde tanımlıdır, ciro otomatik hesaplanır.</small>
+          </div>
+        ) : (
+          <div className="alert warning">
+            Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak. Pasta Çeşitleri ekranından fiyat tanımlayabilirsiniz.
+          </div>
+        )}
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
           <button type="submit" className="btn btn-success">Satışı Kaydet</button>
