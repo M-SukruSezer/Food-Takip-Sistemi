@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store,
   Menu, MoreVertical, LogOut, ClipboardCheck, SunMedium, MoonStar,
+  PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import { ROLE_LABELS, isUrgentBatch, sumRemaining } from '../format';
@@ -33,11 +34,16 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const [recCount, setRecCount] = useState(0);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === '1');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+  }, [collapsed]);
 
   useEffect(() => {
     const loadCount = () => {
@@ -56,12 +62,21 @@ export default function Layout() {
   const links = LINKS(user).filter((l) => l.roles.includes(user.role));
 
   return (
-    <div className={`app ${theme === 'dark' ? 'theme-dark' : ''}`}>
+    <div className={`app ${theme === 'dark' ? 'theme-dark' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
       {open && <div className="overlay" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <img className="logo" src="/logo.png" alt="Food Takip Sistemi" />
-          Food Takip Sistemi
+          <span className="brand-text">Food Takip Sistemi</span>
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+            title={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
         <nav>
           {links.map((l) => (
@@ -70,20 +85,24 @@ export default function Layout() {
               to={l.to}
               className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
               onClick={() => setOpen(false)}
+              title={l.label}
             >
-              <span className="ico"><l.ico size={20} /></span> {l.label}
+              <span className="ico"><l.ico size={20} /></span>
+              <span className="side-label">{l.label}</span>
             </NavLink>
           ))}
         </nav>
         <div className="side-footer">
-          <div className="user-name">{user.full_name}</div>
-          <div className="muted" style={{ color: '#9ca3af' }}>{ROLE_LABELS[user.role]} {user.store_name ? `• ${user.store_name}` : ''}</div>
+          <div className="side-user">
+            <div className="user-name">{user.full_name}</div>
+            <div className="muted" style={{ color: '#9ca3af' }}>{ROLE_LABELS[user.role]} {user.store_name ? `• ${user.store_name}` : ''}</div>
+          </div>
           <button
-            className="btn btn-sm btn-secondary"
-            style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', borderColor: 'rgba(255,255,255,0.15)' }}
+            className="btn btn-sm side-logout"
             onClick={() => { logout(); navigate('/login'); }}
+            title="Çıkış Yap"
           >
-            <LogOut size={14} /> Çıkış Yap
+            <LogOut size={16} /> <span className="side-label">Çıkış Yap</span>
           </button>
         </div>
       </aside>
