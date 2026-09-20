@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Confirm, Modal, toast } from '../components/ui';
+import { Confirm, toast } from '../components/ui';
 import { fmtDateTime, errorMessage, fmtMoney, hasPrice } from '../format';
 
 export default function Recommendations() {
@@ -101,10 +101,22 @@ export default function Recommendations() {
       </p>
 
       {sellBatch && (
-        <RecSellModal
-          batch={sellBatch}
-          onClose={() => setSellBatch(null)}
-          onDone={() => { setSellBatch(null); setReload((n) => n + 1); }}
+        <Confirm
+          title="Satışı Onayla"
+          danger={false}
+          confirmLabel="1 Adet Sat"
+          message={sellMessage(sellBatch)}
+          onCancel={() => setSellBatch(null)}
+          onConfirm={async () => {
+            try {
+              await api.post(`/batches/${sellBatch.id}/sell`, { quantity: 1 });
+              toast(`${sellBatch.product_name} — 1 adet satıldı`);
+            } catch (e) {
+              toast(errorMessage(e));
+            }
+            setSellBatch(null);
+            setReload((n) => n + 1);
+          }}
         />
       )}
 
@@ -130,48 +142,16 @@ export default function Recommendations() {
   );
 }
 
-function RecSellModal({ batch, onClose, onDone }) {
-  const [quantity, setQuantity] = useState(batch.remaining);
-  const [err, setErr] = useState('');
-  async function submit(e) {
-    e.preventDefault();
-    setErr('');
-    try {
-      await api.post(`/batches/${batch.id}/sell`, { quantity });
-      toast('Satış işaretlendi');
-      onDone();
-    } catch (er) {
-      setErr(errorMessage(er));
-    }
-  }
+// Satis onay metni: her zaman tam 1 adet dusulur.
+function sellMessage(b) {
   return (
-    <Modal title="Satış İşaretle" onClose={onClose}>
-      <form onSubmit={submit}>
-        <p><strong>{batch.product_name}</strong> — SKT: {fmtDateTime(batch.skt_end)} · Kalan: {batch.remaining} adet</p>
-        {err && <div className="alert error">{err}</div>}
-        <div className="field">
-          <label>Satılan Adet</label>
-          <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
-        </div>
-        {hasPrice(batch.product_unit_price) ? (
-          <div className="field">
-            <label>Tutar</label>
-            <p style={{ margin: 0 }}>
-              {fmtMoney(batch.product_unit_price)} × {Number(quantity) || 0} adet ={' '}
-              <strong>{fmtMoney((Number(batch.product_unit_price) || 0) * (Number(quantity) || 0))}</strong>
-            </p>
-            <small className="muted">Birim fiyat pasta çeşidinde tanımlıdır, ciro otomatik hesaplanır.</small>
-          </div>
-        ) : (
-          <div className="alert warning">
-            Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak. Pasta Çeşitleri ekranından fiyat tanımlayabilirsiniz.
-          </div>
-        )}
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="submit" className="btn btn-success">Satışı Kaydet</button>
-        </div>
-      </form>
-    </Modal>
+    <>
+      <strong>{b.product_name}</strong> ürününden <strong>1 adet</strong> satılacak.
+      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
+      <br />
+      {hasPrice(b.product_unit_price)
+        ? <>Ciroya <strong>{fmtMoney(b.product_unit_price)}</strong> eklenecek.</>
+        : <>Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.</>}
+    </>
   );
 }
