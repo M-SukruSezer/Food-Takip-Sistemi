@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, nowISO, addHours, addDays } = require('../db');
-const { requireAuth } = require('../auth');
+const { requireAuth, requireRole } = require('../auth');
 const { logActivity, batchRow, requireStoreAccessForBatch } = require('../utils');
 
 const router = express.Router();
@@ -268,6 +268,93 @@ router.post('/:id/sell', async (req, res) => {
     id: Number(r.lastInsertRowid), remaining: newRemaining, status: newStatus,
     unit_price: unitPrice, total: unitPrice !== null ? qty * unitPrice : null,
   });
+});
+
+// Yonetici duzeltmesi: yanlis girilen tarih/saat ve adetleri duzeltir.
+// Durum gecisleri buradan yapilmaz; yalnizca mevcut kaydin verisi duzeltilir.
+const TIMESTAMP_LABELS = {
+  entered_frozen_at: 'Donuk depoya giriş',
+  thawing_started_at: 'Çözülme başlangıcı',
+  thawing_finish_at: 'Çözülme bitişi',
+  food_cabinet_entered_at: 'Food dolabına giriş',
+  skt_end: 'SKT bitiş',
+};
+
+router.put('/:id/adjust', requireRole('super_admin'), async (req, res) => {
+  const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
+  const body = req.body || {};
+
+  let quantity = row.quantity;
+  if (body.quantity !== undefined && body.quantity !== '' && body.quantity !== null) {
+    quantity = Number(body.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ error: 'Toplam adet en az 1 olmalıdır' });
+    }
+  }
+  let remaining = row.remaining;
+  if (body.remaining !== undefined && body.remaining !== '' && body.remaining !== null) {
+    remaining = Number(body.remaining);
+    if (!Number.isInteger(remaining) || remaining < 0) {
+      return res.status(400).json({ error: 'Kalan adet 0 veya daha büyük olmalıdır' });
+    }
+  }
+  if (remaining > quantity) {
+    return res.status(400).json({ error: `Kalan adet toplam adetten büyük olamaz (toplam: ${quantity})` });
+  }
+
+  const stamps = {};
+  for (const key of Object.keys(TIMESTAMP_LABELS)) {
+    if (body[key] === undefined) { stamps[key] = row[key]; continue; }
+    if (body[key] === null || body[key] === '') { stamps[key] = null; continue; }
+    const parsed = new Date(body[key]);
+    if (Number.isNaN(parsed.getTime())) {
+      return res.status(400).json({ error: `Geçersiz tarih: ${TIMESTAMP_LABELS[key]}` });
+    }
+    stamps[key] = parsed.toISOString();
+  }
+  if (!stamps.entered_frozen_at) {
+    return res.status(400).json({ error: 'Donuk depoya giriş tarihi zorunludur' });
+  }
+
+  // Erken aktarimda food dolabina giris cozulme bitisinden once olabilir,
+  // bu yuzden yalnizca kesin olan siralamalar dogrulanir.
+  const ordered = [
+    ['entered_frozen_at', 'thawing_started_at'],
+    ['thawing_started_at', 'thawing_finish_at'],
+    ['food_cabinet_entered_at', 'skt_end'],
+  ];
+  for (const [earlier, later] of ordered) {
+    if (stamps[earlier] && stamps[later] && new Date(stamps[earlier]) > new Date(stamps[later])) {
+      return res.status(400).json({
+        error: `${TIMESTAMP_LABELS[earlier]}, ${TIMESTAMP_LABELS[later]} tarihinden sonra olamaz`,
+      });
+    }
+  }
+
+  const changes = [];
+  if (quantity !== row.quantity) changes.push(`toplam adet ${row.quantity} -> ${quantity}`);
+  if (remaining !== row.remaining) changes.push(`kalan adet ${row.remaining} -> ${remaining}`);
+  for (const [key, label] of Object.entries(TIMESTAMP_LABELS)) {
+    const before = row[key] ? new Date(row[key]).getTime() : null;
+    const after = stamps[key] ? new Date(stamps[key]).getTime() : null;
+    if (before !== after) {
+      changes.push(`${label}: ${row[key] || 'yok'} -> ${stamps[key] || 'yok'}`);
+    }
+  }
+  if (changes.length === 0) return res.json({ ok: true, changes: [] });
+
+  await execute(`
+    UPDATE batches SET quantity = ?, remaining = ?, entered_frozen_at = ?, thawing_started_at = ?,
+      thawing_finish_at = ?, food_cabinet_entered_at = ?, skt_end = ? WHERE id = ?
+  `,quantity, remaining, stamps.entered_frozen_at, stamps.thawing_started_at,
+    stamps.thawing_finish_at, stamps.food_cabinet_entered_at, stamps.skt_end, row.id);
+
+  const type = await queryOne('SELECT name FROM product_types WHERE id = ?',row.product_type_id);
+  await logActivity(req.user, 'KAYIT_DUZELT', 'batch', row.id,
+    `${type.name} kaydı düzeltildi — ${changes.join('; ')}`, row.store_id);
+
+  res.json({ ok: true, changes });
 });
 
 module.exports = router;

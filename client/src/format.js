@@ -28,6 +28,29 @@ export function formatHours(hours) {
   return h > 0 ? `${d} gün ${h} saat` : `${d} gün`;
 }
 
+// datetime-local girdileri yerel saat, veritabani ise UTC ISO tutar.
+export function toLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fromLocalInput(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+export function addDaysIso(iso, days) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return new Date(d.getTime() + days * 24 * 3600 * 1000).toISOString();
+}
+
 export function fmtMoney(value) {
   if (value === null || value === undefined || value === '') return '-';
   const n = Number(value);

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Snowflake, Hourglass, Refrigerator, History } from 'lucide-react';
+import { Snowflake, Hourglass, Refrigerator, History, PencilLine } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, StatusBadge, Confirm, toast } from '../components/ui';
-import { fmtDateTime, formatHours, errorMessage, fmtMoney, hasPrice } from '../format';
+import {
+  fmtDateTime, formatHours, errorMessage, fmtMoney, hasPrice,
+  toLocalInput, fromLocalInput, addDaysIso,
+} from '../format';
 
 const TABS = [
   { id: 'frozen', label: 'Donuk Depo', ico: Snowflake },
@@ -26,6 +29,7 @@ export default function Batches() {
   const [sellBatch, setSellBatch] = useState(null);
   const [earlyRequest, setEarlyRequest] = useState(null);
   const [stockBatch, setStockBatch] = useState(null);
+  const [adjustBatch, setAdjustBatch] = useState(null);
   const [reload, setReload] = useState(0);
 
   const load = useCallback(() => {
@@ -106,6 +110,11 @@ export default function Batches() {
                   <td data-label="İşlemler">
                     <div className="actions stock-actions">
                       <button className="btn btn-sm btn-secondary" onClick={() => setShowDetail(b)}>Detay</button>
+                      {user.role === 'super_admin' && (
+                        <button className="btn btn-sm btn-secondary" onClick={() => setAdjustBatch(b)} title="Tarih/saat ve adet düzelt">
+                          <PencilLine size={14} /> Düzelt
+                        </button>
+                      )}
                       {b.status === 'frozen' && (
                         <>
                           <button className="btn btn-sm btn-secondary" onClick={() => setStockBatch(b)}>Stok Ekle</button>
@@ -186,6 +195,14 @@ export default function Batches() {
           batch={earlyRequest}
           onClose={() => setEarlyRequest(null)}
           onDone={() => { setEarlyRequest(null); setReload((n) => n + 1); }}
+        />
+      )}
+
+      {adjustBatch && (
+        <AdjustModal
+          batch={adjustBatch}
+          onClose={() => setAdjustBatch(null)}
+          onDone={() => { setAdjustBatch(null); setReload((n) => n + 1); }}
         />
       )}
 
@@ -502,6 +519,104 @@ function BatchDetail({ batch, onClose }) {  const [sales, setSales] = useState([
         </table>
       )}
       <div className="form-actions"><button className="btn btn-secondary" onClick={onClose}>Kapat</button></div>
+    </Modal>
+  );
+}
+
+// Ana Yonetici duzeltmesi: yanlis girilen tarih/saat ve adetleri duzeltir.
+function AdjustModal({ batch, onClose, onDone }) {
+  const [quantity, setQuantity] = useState(batch.quantity);
+  const [remaining, setRemaining] = useState(batch.remaining);
+  const [stamps, setStamps] = useState({
+    entered_frozen_at: toLocalInput(batch.entered_frozen_at),
+    thawing_started_at: toLocalInput(batch.thawing_started_at),
+    thawing_finish_at: toLocalInput(batch.thawing_finish_at),
+    food_cabinet_entered_at: toLocalInput(batch.food_cabinet_entered_at),
+    skt_end: toLocalInput(batch.skt_end),
+  });
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Kaydin gectigi asamalara ait alanlar gosterilir; donuk depo girisi her zaman var.
+  const fields = [
+    { key: 'entered_frozen_at', label: 'Donuk Depoya Giriş', always: true },
+    { key: 'thawing_started_at', label: 'Çözülme Başlangıcı' },
+    { key: 'thawing_finish_at', label: 'Çözülme Bitişi' },
+    { key: 'food_cabinet_entered_at', label: 'Food Dolabına Giriş' },
+    { key: 'skt_end', label: 'SKT Bitiş' },
+  ].filter((f) => f.always || batch[f.key]);
+
+  function setStamp(key, value) {
+    setStamps((prev) => {
+      const next = { ...prev, [key]: value };
+      // Food dolabina giris degisince SKT bitisi cesidin SKT gunune gore yeniden
+      // hesaplanir; yonetici isterse asagidaki alandan yine elle degistirebilir.
+      if (key === 'food_cabinet_entered_at' && prev.skt_end && batch.skt_days) {
+        const recomputed = addDaysIso(fromLocalInput(value), Number(batch.skt_days));
+        if (recomputed) next.skt_end = toLocalInput(recomputed);
+      }
+      return next;
+    });
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    const payload = { quantity: Number(quantity), remaining: Number(remaining) };
+    for (const f of fields) payload[f.key] = fromLocalInput(stamps[f.key]);
+    try {
+      const r = await api.put(`/batches/${batch.id}/adjust`, payload);
+      toast(r.data.changes && r.data.changes.length ? 'Kayıt düzeltildi' : 'Değişiklik yapılmadı');
+      onDone();
+    } catch (er) {
+      setErr(errorMessage(er));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Kaydı Düzelt — ${batch.product_name}`} onClose={onClose}>
+      <form onSubmit={submit}>
+        {err && <div className="alert error">{err}</div>}
+        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+          Yanlış girilen tarih/saat ve adetleri düzeltir. Ürünün durumu değişmez ve
+          yapılan düzeltme hareket kayıtlarına yazılır.
+        </p>
+
+        <div className="field">
+          <label>Toplam Adet</label>
+          <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Kalan Adet</label>
+          <input type="number" min="0" value={remaining} onChange={(e) => setRemaining(e.target.value)} required />
+          <small className="muted">Kalan adet toplam adetten büyük olamaz.</small>
+        </div>
+
+        {fields.map((f) => (
+          <div className="field" key={f.key}>
+            <label>{f.label}</label>
+            <input
+              type="datetime-local"
+              value={stamps[f.key]}
+              onChange={(e) => setStamp(f.key, e.target.value)}
+              required={f.key === 'entered_frozen_at'}
+            />
+            {f.key === 'food_cabinet_entered_at' && batch.skt_days ? (
+              <small className="muted">Bu tarih değişince SKT bitişi {batch.skt_days} güne göre yeniden hesaplanır.</small>
+            ) : null}
+          </div>
+        ))}
+
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Kaydediliyor...' : 'Düzeltmeyi Kaydet'}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }
