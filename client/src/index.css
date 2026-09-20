@@ -1787,3 +1787,42 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   td { font-size: 15px; padding: 12px 12px; }
   .content { padding: 16px; }
 }
+
+/* ---------- Telefon yogunlugu (<=640px) ---------- */
+@media (max-width: 640px) {
+  /* Hero paneli ekranin %62'sini kapliyordu ve icindeki 3 KPI zaten
+     asagidaki istatistik kartlarinda tekrar ediyor. Telefonda gizlenir;
+     icindeki iki kisayol da alt sekme cubugunda mevcut. */
+  .hero-panel { display: none; }
+
+  /* Bloklar arasi bosluklar */
+  .dashboard-shell { gap: 12px; }
+  .page-shell { gap: 12px; }
+  .card { padding: 14px; margin-bottom: 12px; }
+  .rec-hero { padding: 12px; }
+
+  /* Istatistik kartlari: daha da kompakt */
+  .stat-card { min-height: 84px; padding: 11px; }
+  .stat .value { font-size: 20px; margin-top: 2px; }
+  .stat .sub { font-size: 11px; }
+
+  /* Oneri kartlari */
+  .rec-card { padding: 12px; gap: 8px; }
+  .recommendation-card { padding: 12px; }
+
+  /* Urunler / Stok kartlari: her alan ayri satir yerine iki sutun.
+     Urun adi ve islem dugmeleri tam genislik kalir. */
+  .stock-page table.responsive tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 10px;
+    padding: 6px 2px;
+  }
+  .stock-page table.responsive td { padding: 5px 10px; }
+  .stock-page table.responsive td[data-label="Ürün"],
+  .stock-page table.responsive td[data-label="İşlemler"] { grid-column: 1 / -1; }
+
+  /* Etiket solda, deger sagda kalir: olctugumuzde bu, etiketi ustte
+     yiginlamaktan 39px daha kisa cikiyor (185px'e karsi 224px). */
+  .stock-page table.responsive td[data-label="SKT"] { font-size: 13px; }
+}
