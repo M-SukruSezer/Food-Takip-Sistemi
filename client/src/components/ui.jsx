@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { MoreVertical } from 'lucide-react';
 import { fmtMoney, hasPrice } from '../format';
 
 let pushFn = null;
@@ -71,6 +72,57 @@ export function sellConfirmMessage(b) {
       {hasPrice(b.product_unit_price)
         ? <>Ciroya <strong>{fmtMoney(b.product_unit_price)}</strong> eklenecek.</>
         : <>Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.</>}
+    </>
+  );
+}
+
+// Tablo satirlarindaki ikincil islemleri tek dugmede toplar.
+// Menu portal ile body'ye basilir: .table-wrap'in overflow'u onu kirpamaz.
+export function ActionMenu({ children, label = 'Diğer işlemler' }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = () => setOpen(false);
+    document.addEventListener('click', close);
+    document.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  function toggle(e) {
+    e.stopPropagation();
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: Math.round(r.bottom + 6), right: Math.max(8, Math.round(window.innerWidth - r.right)) });
+    setOpen((v) => !v);
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className="btn btn-sm btn-secondary action-menu-btn"
+        onClick={toggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open && pos && createPortal(
+        <div className="action-menu" style={{ top: pos.top, right: pos.right }} role="menu">
+          {children}
+        </div>,
+        document.body
+      )}
     </>
   );
 }

@@ -34,7 +34,13 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const [recCount, setRecCount] = useState(0);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === '1');
+  const [collapsed, setCollapsed] = useState(() => {
+    const stored = localStorage.getItem('sidebarCollapsed');
+    if (stored !== null) return stored === '1';
+    // Ilk acilis: 1200px altinda (yatay tablet dahil) genis menu ekranin dortte birini
+    // yiyor, o yuzden serit modu varsayilan. Kullanici acarsa tercihi saklanir.
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 1199px)').matches;
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

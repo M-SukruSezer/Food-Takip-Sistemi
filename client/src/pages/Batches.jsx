@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Snowflake, Hourglass, Refrigerator, History, PencilLine } from 'lucide-react';
+import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Modal, StatusBadge, Confirm, toast, sellConfirmMessage } from '../components/ui';
+import { Modal, StatusBadge, Confirm, toast, sellConfirmMessage, ActionMenu } from '../components/ui';
 import {
   fmtDateTime, formatHours, errorMessage,
   toLocalInput, fromLocalInput, addDaysIso,
@@ -109,27 +109,13 @@ export default function Batches() {
                   </td>
                   <td data-label="İşlemler">
                     <div className="actions stock-actions">
-                      <button className="btn btn-sm btn-secondary" onClick={() => setShowDetail(b)}>Detay</button>
-                      {user.role === 'super_admin' && (
-                        <button className="btn btn-sm btn-secondary" onClick={() => setAdjustBatch(b)} title="Tarih/saat ve adet düzelt">
-                          <PencilLine size={14} /> Düzelt
-                        </button>
-                      )}
+                      {/* Ana islem gorunur kalir, gerisi menuye toplanir: satirlar alcak,
+                          tablet ve telefonda tablo cok daha kisa olur. */}
                       {b.status === 'frozen' && (
-                        <>
-                          <button className="btn btn-sm btn-secondary" onClick={() => setStockBatch(b)}>Stok Ekle</button>
-                          <button className="btn btn-sm btn-primary" onClick={() => setConfirmThaw(b)}>Çözülmeye Al</button>
-                        </>
+                        <button className="btn btn-sm btn-primary" onClick={() => setConfirmThaw(b)}>Çözülmeye Al</button>
                       )}
                       {b.status === 'thawing' && b.thaw_ready && (
-                        <button className="btn btn-sm btn-success" onClick={() => setConfirmComplete(b)}>
-                          Food Dolabına Al
-                        </button>
-                      )}
-                      {b.status === 'thawing' && !b.thaw_ready && !b.pending_approval_id && (
-                        <button className="btn btn-sm btn-secondary" onClick={() => setEarlyRequest(b)}>
-                          Erken Aktarım İste ({formatHours(b.thaw_remaining_hours)})
-                        </button>
+                        <button className="btn btn-sm btn-success" onClick={() => setConfirmComplete(b)}>Food Dolabına Al</button>
                       )}
                       {b.status === 'thawing' && !b.thaw_ready && b.pending_approval_id && (
                         <span className="badge warning">Onay Bekliyor</span>
@@ -137,9 +123,24 @@ export default function Batches() {
                       {b.status === 'food_cabinet' && b.urgency !== 'expired' && (
                         <button className="btn btn-sm btn-primary" onClick={() => setSellBatch(b)}>Satış</button>
                       )}
-                      {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && (
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmDiscard(b)}>İmha</button>
-                      )}
+
+                      <ActionMenu>
+                        <button onClick={() => setShowDetail(b)}><Info size={16} /> Detay</button>
+                        {user.role === 'super_admin' && (
+                          <button onClick={() => setAdjustBatch(b)}><PencilLine size={16} /> Tarih / Adet Düzelt</button>
+                        )}
+                        {b.status === 'frozen' && (
+                          <button onClick={() => setStockBatch(b)}><PackagePlus size={16} /> Stok Ekle</button>
+                        )}
+                        {b.status === 'thawing' && !b.thaw_ready && !b.pending_approval_id && (
+                          <button onClick={() => setEarlyRequest(b)}>
+                            <Hourglass size={16} /> Erken Aktarım İste ({formatHours(b.thaw_remaining_hours)})
+                          </button>
+                        )}
+                        {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && (
+                          <button className="danger" onClick={() => setConfirmDiscard(b)}><Trash2 size={16} /> İmha Et</button>
+                        )}
+                      </ActionMenu>
                     </div>
                   </td>
                 </tr>

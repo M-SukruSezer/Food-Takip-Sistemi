@@ -324,7 +324,7 @@ a { color: inherit; }
 
 .theme-toggle:hover { border-color: var(--primary-600); background: var(--primary-soft); }
 
-.content { padding: 18px; max-width: 1200px; width: 100%; margin: 0 auto; }
+.content { padding: 18px; max-width: 1440px; width: 100%; margin: 0 auto; }
 
 @media (max-width: 560px) {
   .top-brand .txt { display: none; }
@@ -912,9 +912,11 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   table.responsive td[data-label="İşlemler"] .stock-actions .btn {
     width: 100%;
     min-width: 0;
-    min-height: 38px;
-    padding: 8px 6px;
-    font-size: 12px;
+    /* Bu kural ozgullugu yuksek oldugu icin pointer:coarse tabanini ezerdi;
+       artik satirda iki dugme var, parmak boyutunu burada da koruyoruz. */
+    min-height: var(--tap);
+    padding: 8px 10px;
+    font-size: 13px;
     line-height: 1.2;
     white-space: normal;
     text-align: center;
@@ -1740,4 +1742,48 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   .sidebar-collapsed .side-footer { padding: 12px 8px; text-align: center; }
   .sidebar-collapsed .side-user { display: none; }
   .sidebar-collapsed .side-logout { margin-top: 0; padding: 0; }
+}
+
+/* ---------- Satir islem menusu ---------- */
+.action-menu-btn { padding-left: 10px; padding-right: 10px; }
+
+.action-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 196px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+.action-menu button:hover { background: var(--bg); }
+.action-menu button.danger { color: var(--danger); }
+.action-menu button.danger:hover { background: var(--danger-soft); }
+
+/* ---------- Yatay tablet / dar masaustu (900-1279px) ---------- */
+@media (min-width: 900px) and (max-width: 1279px) {
+  /* Bu genislikte tablo alani dar; yazi biraz buyur ki kol mesafesinden okunsun. */
+  th { font-size: 12px; }
+  td { font-size: 15px; padding: 12px 12px; }
+  .content { padding: 16px; }
 }
