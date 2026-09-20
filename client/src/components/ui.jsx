@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { fmtMoney, hasPrice } from '../format';
 
 let pushFn = null;
 
@@ -57,5 +58,19 @@ export function Confirm({ title, message, onCancel, onConfirm, confirmLabel = 'O
         <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
       </div>
     </Modal>
+  );
+}
+
+// Satis onay metni. Uc ekranda da ayni: her zaman tam 1 adet dusulur.
+export function sellConfirmMessage(b) {
+  return (
+    <>
+      <strong>{b.product_name}</strong> ürününden <strong>1 adet</strong> satılacak.
+      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
+      <br />
+      {hasPrice(b.product_unit_price)
+        ? <>Ciroya <strong>{fmtMoney(b.product_unit_price)}</strong> eklenecek.</>
+        : <>Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.</>}
+    </>
   );
 }

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Snowflake, Hourglass, Refrigerator, History, PencilLine } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Modal, StatusBadge, Confirm, toast } from '../components/ui';
+import { Modal, StatusBadge, Confirm, toast, sellConfirmMessage } from '../components/ui';
 import {
-  fmtDateTime, formatHours, errorMessage, fmtMoney, hasPrice,
+  fmtDateTime, formatHours, errorMessage,
   toLocalInput, fromLocalInput, addDaysIso,
 } from '../format';
 
@@ -183,10 +183,22 @@ export default function Batches() {
       )}
 
       {sellBatch && (
-        <SellModal
-          batch={sellBatch}
-          onClose={() => setSellBatch(null)}
-          onDone={() => { setSellBatch(null); setReload((n) => n + 1); }}
+        <Confirm
+          title="Satışı Onayla"
+          danger={false}
+          confirmLabel="1 Adet Sat"
+          message={sellConfirmMessage(sellBatch)}
+          onCancel={() => setSellBatch(null)}
+          onConfirm={async () => {
+            try {
+              await api.post(`/batches/${sellBatch.id}/sell`, { quantity: 1 });
+              toast(`${sellBatch.product_name} — 1 adet satıldı`);
+            } catch (e) {
+              toast(errorMessage(e));
+            }
+            setSellBatch(null);
+            setReload((n) => n + 1);
+          }}
         />
       )}
 
@@ -403,51 +415,6 @@ function StockAddModal({ batch, onClose, onDone }) {  const [quantity, setQuanti
   );
 }
 
-function SellModal({ batch, onClose, onDone }) {
-  const [quantity, setQuantity] = useState(1);
-  const [err, setErr] = useState('');
-  async function submit(e) {
-    e.preventDefault();
-    setErr('');
-    try {
-      await api.post(`/batches/${batch.id}/sell`, { quantity });
-      toast('Satış işaretlendi, liste güncellendi');
-      onDone();
-    } catch (er) {
-      setErr(errorMessage(er));
-    }
-  }
-  return (
-    <Modal title="Satış İşaretle" onClose={onClose}>
-      <form onSubmit={submit}>
-        <p><strong>{batch.product_name}</strong> — SKT: {fmtDateTime(batch.skt_end)} · Kalan: {batch.remaining} adet</p>
-        {err && <div className="alert error">{err}</div>}
-        <div className="field">
-          <label>Satılan Adet</label>
-          <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
-        </div>
-        {hasPrice(batch.product_unit_price) ? (
-          <div className="field">
-            <label>Tutar</label>
-            <p style={{ margin: 0 }}>
-              {fmtMoney(batch.product_unit_price)} × {Number(quantity) || 0} adet ={' '}
-              <strong>{fmtMoney((Number(batch.product_unit_price) || 0) * (Number(quantity) || 0))}</strong>
-            </p>
-            <small className="muted">Birim fiyat pasta çeşidinde tanımlıdır, ciro otomatik hesaplanır.</small>
-          </div>
-        ) : (
-          <div className="alert warning">
-            Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak. Pasta Çeşitleri ekranından fiyat tanımlayabilirsiniz.
-          </div>
-        )}
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="submit" className="btn btn-success">Satışı Kaydet</button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
 
 function EarlyRequestModal({ batch, onClose, onDone }) {
   const [reason, setReason] = useState('');

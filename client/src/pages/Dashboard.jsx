@@ -7,8 +7,8 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Confirm, StatusBadge, toast } from '../components/ui';
-import { fmtDate, fmtDateTime, formatHours, errorMessage, fmtMoney, hasPrice, isUrgentBatch, sumRemaining } from '../format';
+import { Confirm, StatusBadge, toast, sellConfirmMessage } from '../components/ui';
+import { fmtDate, fmtDateTime, formatHours, errorMessage, isUrgentBatch, sumRemaining } from '../format';
 
 const STATUS_CHART_LABELS = {
   frozen: 'Donuk Depo',
@@ -411,7 +411,7 @@ export default function Dashboard() {
           title="Satışı Onayla"
           danger={false}
           confirmLabel="1 Adet Sat"
-          message={sellMessage(sellBatch)}
+          message={sellConfirmMessage(sellBatch)}
           onCancel={() => setSellBatch(null)}
           onConfirm={async () => {
             try {
@@ -455,19 +455,5 @@ function Stat({ icon: Icon, label, value, sub, color }) {
       <div className="value" style={color ? { color } : undefined}>{value}</div>
       <div className="sub">{sub}</div>
     </div>
-  );
-}
-
-// Satis onay metni: her zaman tam 1 adet dusulur.
-function sellMessage(b) {
-  return (
-    <>
-      <strong>{b.product_name}</strong> ürününden <strong>1 adet</strong> satılacak.
-      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
-      <br />
-      {hasPrice(b.product_unit_price)
-        ? <>Ciroya <strong>{fmtMoney(b.product_unit_price)}</strong> eklenecek.</>
-        : <>Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.</>}
-    </>
   );
 }
