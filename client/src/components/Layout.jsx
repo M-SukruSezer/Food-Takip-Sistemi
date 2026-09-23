@@ -8,11 +8,11 @@ import {
 import { useAuth } from '../auth';
 import { ROLE_LABELS, sumRemaining } from '../format';
 import api from '../api';
-import { Avatar } from './ui';
+import { Avatar, Confirm } from './ui';
 
 const LINKS = (user) => [
   { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/batches', label: 'Ürünler / Stok', ico: Package, roles: ['super_admin', 'store_manager', 'staff'] },
+  { to: '/batches', label: 'Ürünler', ico: Package, roles: ['super_admin', 'store_manager', 'staff'] },
   { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ['super_admin', 'store_manager', 'staff'] },
   { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: ['super_admin', 'store_manager'] },
   { to: '/sales', label: 'Hareket Raporu', ico: Banknote, roles: ['super_admin', 'store_manager', 'staff'] },
@@ -34,6 +34,8 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  // Oturum yanlislikla kapanmasin diye once onay istenir.
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [recCount, setRecCount] = useState(0);
   const [collapsed, setCollapsed] = useState(() => {
     const stored = localStorage.getItem('sidebarCollapsed');
@@ -105,7 +107,7 @@ export default function Layout() {
           </div>
           <button
             className="btn btn-sm side-logout"
-            onClick={() => { logout(); navigate('/login'); }}
+            onClick={() => { setOpen(false); setConfirmLogout(true); }}
             title="Çıkış Yap"
           >
             <LogOut size={16} /> <span className="side-label">Çıkış Yap</span>
@@ -136,7 +138,7 @@ export default function Layout() {
           <button
             type="button"
             className="topbar-logout"
-            onClick={() => { logout(); navigate('/login'); }}
+            onClick={() => { setOpen(false); setConfirmLogout(true); }}
             aria-label="Çıkış yap"
             title="Çıkış yap"
           >
@@ -170,6 +172,18 @@ export default function Layout() {
           <span>Profil</span>
         </NavLink>
       </nav>
+
+      {confirmLogout && (
+        <Confirm
+          title="Çıkış Yap"
+          confirmLabel="Çıkış Yap"
+          message={user
+            ? `${user.full_name} oturumu kapatılacak. Devam etmek istiyor musunuz?`
+            : 'Oturumunuz kapatılacak. Devam etmek istiyor musunuz?'}
+          onCancel={() => setConfirmLogout(false)}
+          onConfirm={() => { setConfirmLogout(false); logout(); navigate('/login'); }}
+        />
+      )}
     </div>
   );
 }

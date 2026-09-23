@@ -61,12 +61,12 @@ export default function Recommendations() {
             <div className="sub">{grouped.critical.length} kayıt öncelikli</div>
           </div>
           <div className="stat stat-card">
-            <div className="label"><span><span className="dot dot-orange" />1-2 Gün Kalan</span></div>
+            <div className="label"><span><span className="dot dot-orange" />2 Gün</span></div>
             <div className="value" style={{ color: 'var(--warning)' }}>{sum(grouped.warning)}</div>
             <div className="sub">{grouped.warning.length} kayıt</div>
           </div>
           <div className="stat stat-card">
-            <div className="label"><span><span className="dot dot-green" />2 Günden Fazla</span></div>
+            <div className="label"><span><span className="dot dot-green" />3 Gün</span></div>
             <div className="value" style={{ color: 'var(--success)' }}>{sum(grouped.normal)}</div>
             <div className="sub">{grouped.normal.length} kayıt</div>
           </div>

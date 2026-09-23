@@ -21,6 +21,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.bg,
     required this.card,
     required this.sidebar,
+    required this.sidebarInk,
+    required this.sidebarMuted,
+    required this.sidebarBorder,
   });
 
   final Color primary;
@@ -39,6 +42,12 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color bg;
   final Color card;
   final Color sidebar;
+
+  /// Kenar menu artik temayla degisiyor: acik temada acik zemin + koyu yazi,
+  /// koyu temada koyu zemin + acik yazi. Yazi renkleri sabit beyaz kalamazdi.
+  final Color sidebarInk;
+  final Color sidebarMuted;
+  final Color sidebarBorder;
 
   /// Giris ekraninin panel rengi. Temaya gore degismez: koyu temanin nane
   /// yesili tum ekrani kaplayinca goz aliyor, marka yesili ise iki temada da
@@ -68,7 +77,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     borderStrong: Color(0xFFD1D5DB),
     bg: Color(0xFFF5F6F8),
     card: Color(0xFFFFFFFF),
-    sidebar: Color(0xFF111827),
+    sidebar: Color(0xFFFFFFFF),
+    sidebarInk: Color(0xFF111827),
+    sidebarMuted: Color(0xFF4B5563),
+    sidebarBorder: Color(0xFFE5E7EB),
   );
 
   static const AppTokens dark = AppTokens(
@@ -88,6 +100,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
     bg: Color(0xFF0B1220),
     card: Color(0xFF131C2E),
     sidebar: Color(0xFF070D18),
+    sidebarInk: Color(0xFFFFFFFF),
+    sidebarMuted: Color(0xFFCBD5E1),
+    sidebarBorder: Color(0x2E94A3B8),
   );
 
   @override
@@ -108,6 +123,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
     Color? bg,
     Color? card,
     Color? sidebar,
+    Color? sidebarInk,
+    Color? sidebarMuted,
+    Color? sidebarBorder,
   }) {
     return AppTokens(
       primary: primary ?? this.primary,
@@ -126,6 +144,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
       bg: bg ?? this.bg,
       card: card ?? this.card,
       sidebar: sidebar ?? this.sidebar,
+      sidebarInk: sidebarInk ?? this.sidebarInk,
+      sidebarMuted: sidebarMuted ?? this.sidebarMuted,
+      sidebarBorder: sidebarBorder ?? this.sidebarBorder,
     );
   }
 
@@ -149,6 +170,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
       bg: Color.lerp(bg, other.bg, t)!,
       card: Color.lerp(card, other.card, t)!,
       sidebar: Color.lerp(sidebar, other.sidebar, t)!,
+      sidebarInk: Color.lerp(sidebarInk, other.sidebarInk, t)!,
+      sidebarMuted: Color.lerp(sidebarMuted, other.sidebarMuted, t)!,
+      sidebarBorder: Color.lerp(sidebarBorder, other.sidebarBorder, t)!,
     );
   }
 }

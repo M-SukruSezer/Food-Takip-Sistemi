@@ -6,6 +6,7 @@ import '../core/api_client.dart';
 import '../core/avatar_image.dart';
 import '../core/busy.dart';
 import '../core/format.dart';
+import '../core/logout.dart';
 import '../core/image_pick.dart';
 import '../core/notify.dart';
 import '../core/repository.dart';
@@ -290,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _SectionTitle('Oturum'),
               FilledButton.icon(
                 style: FilledButton.styleFrom(backgroundColor: t.danger),
-                onPressed: () => session.signOut(),
+                onPressed: () => confirmSignOut(context),
                 icon: const Icon(Icons.logout, size: 18),
                 label: const Text('Çıkış Yap'),
               ),

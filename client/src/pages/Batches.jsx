@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2 } from 'lucide-react';
+import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -64,7 +64,7 @@ export default function Batches() {
   return (
     <div className="page-shell stock-page">
       <div className="page-head">
-        <h2>Ürünler / Stok</h2>
+        <h2>Ürünler</h2>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Yeni Ürün</button>
       </div>
 
@@ -77,8 +77,20 @@ export default function Batches() {
           ))}
         </div>
 
-        <div className="filters">
-          <input placeholder="Ara (ürün)..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1 }} />
+        {/* Öneri Satış Listesi'ndeki arama kutusuyla aynı biçim */}
+        <div className="filters" style={{ marginBottom: 0 }}>
+          <div className="input-wrap search" style={{ flex: 1 }}>
+            <span className="in-ico"><Search size={17} /></span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Ürün ara..."
+              aria-label="Ürünler arasında ara"
+            />
+          </div>
+          {search.trim() && (
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => setSearch('')}>Temizle</button>
+          )}
         </div>
       </div>
 

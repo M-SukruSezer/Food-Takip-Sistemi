@@ -7,6 +7,7 @@ import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/batch.dart';
 import '../widgets/panels.dart';
+import '../widgets/search_field.dart';
 
 /// Food dolabindaki tum urunler, SKT'si en yakin olan en ustte.
 /// Arama listeyi ve kademe sayaclarini birlikte filtreler (ekranda gorunen ile
@@ -293,7 +294,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                   normalCount: normal.length,
                 ),
                 const SizedBox(height: AppTokens.gap),
-                _SearchField(
+                ProductSearchField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _search = v),
                   onClear: () {
@@ -351,47 +352,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   }
 }
 
-class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onClear,
-    required this.filtering,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-  final bool filtering;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            onChanged: onChanged,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: 'Ürün ara...',
-              // Beyaz panel uzerinde beyaz kutu gorunmuyordu: alan gomulu
-              // zeminle ayrisir, ikon marka renginde.
-              fillColor: t.bg,
-              prefixIcon: Icon(Icons.search, color: t.primary),
-            ),
-          ),
-        ),
-        if (filtering) ...[
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onClear, child: const Text('Temizle')),
-        ],
-      ],
-    );
-  }
-}
-
 class _TierRow extends StatelessWidget {
   const _TierRow({
     required this.critical,
@@ -414,8 +374,8 @@ class _TierRow extends StatelessWidget {
     final t = context.tokens;
     final tiles = [
       _Tier(color: t.danger, label: 'Son Gün', value: critical, count: criticalCount),
-      _Tier(color: t.warning, label: '1-2 Gün Kalan', value: warning, count: warningCount),
-      _Tier(color: t.success, label: '2 Günden Fazla', value: normal, count: normalCount),
+      _Tier(color: t.warning, label: '2 Gün', value: warning, count: warningCount),
+      _Tier(color: t.success, label: '3 Gün', value: normal, count: normalCount),
     ];
     return Row(
       children: [

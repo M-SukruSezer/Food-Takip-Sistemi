@@ -11,6 +11,7 @@ import '../models/dashboard.dart';
 import '../models/product_type.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
+import '../widgets/search_field.dart';
 import 'batch_dialogs.dart';
 
 /// Urunler / Stok. Dort sekme, satir basina bir ana islem + tasma menusu.
@@ -124,7 +125,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Ürünler / Stok',
+                    child: Text('Ürünler',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.ink)),
                   ),
                   FilledButton.icon(
@@ -150,15 +151,14 @@ class _BatchesScreenState extends State<BatchesScreen> {
                 },
               ),
               const SizedBox(height: AppTokens.gap),
-              TextField(
+              ProductSearchField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _search = v),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                decoration: InputDecoration(
-                  hintText: 'Ara (ürün)...',
-                  fillColor: t.bg,
-                  prefixIcon: Icon(Icons.search, color: t.primary),
-                ),
+                onClear: () {
+                  _searchController.clear();
+                  setState(() => _search = '');
+                },
+                filtering: _search.trim().isNotEmpty,
               ),
             ],
           ),

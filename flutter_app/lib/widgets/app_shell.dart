@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
+import '../core/logout.dart';
 import '../core/nav.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
@@ -141,7 +142,11 @@ class _SideNav extends StatelessWidget {
     final user = session.user;
     return Container(
       width: rail ? 76 : 280,
-      color: t.sidebar,
+      decoration: BoxDecoration(
+        color: t.sidebar,
+        // Acik temada menu de acik; govdeden ince bir cizgiyle ayrisir.
+        border: Border(right: BorderSide(color: t.sidebarBorder)),
+      ),
       // Cekmece olarak acildiginda menu ekranin en ustunden basliyor ve marka
       // yazisi telefonun durum cubugu simgelerinin altina giriyordu. Renk
       // Container'da kaldigi icin zemin durum cubugunun altina uzanmaya devam
@@ -159,11 +164,11 @@ class _SideNav extends StatelessWidget {
                   mainAxisAlignment: rail ? MainAxisAlignment.center : MainAxisAlignment.start,
                   children: [
                     if (!rail)
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Food Takip Sistemi',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: t.sidebarInk,
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
                           ),
@@ -175,7 +180,7 @@ class _SideNav extends StatelessWidget {
                         tooltip: rail ? 'Menüyü genişlet' : 'Menüyü daralt',
                         onPressed: onToggleRail,
                         icon: Icon(rail ? Icons.chevron_right : Icons.chevron_left),
-                        color: const Color(0xFFCBD5E1),
+                        color: t.sidebarMuted,
                         constraints: const BoxConstraints(
                           minWidth: AppTokens.tap,
                           minHeight: AppTokens.tap,
@@ -185,7 +190,7 @@ class _SideNav extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1, color: Color(0x2E94A3B8)),
+            Divider(height: 1, color: t.sidebarBorder),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 12, vertical: 12),
@@ -205,7 +210,9 @@ class _SideNav extends StatelessWidget {
                           constraints: const BoxConstraints(minHeight: AppTokens.tap),
                           padding: EdgeInsets.symmetric(horizontal: rail ? 0 : 14),
                           decoration: BoxDecoration(
-                            color: active ? t.primary600 : null,
+                            // primary600 uzerinde beyaz yazi 3.3 kontrast
+                            // veriyordu (AA siniri 4.5); primary ile 5.02.
+                            color: active ? t.primary : null,
                             borderRadius: BorderRadius.circular(AppTokens.radiusSm),
                           ),
                           child: Row(
@@ -216,7 +223,7 @@ class _SideNav extends StatelessWidget {
                               Icon(
                                 item.icon,
                                 size: 20,
-                                color: active ? Colors.white : const Color(0xFFCBD5E1),
+                                color: active ? t.card : t.sidebarMuted,
                               ),
                               if (!rail) ...[
                                 const SizedBox(width: 12),
@@ -225,7 +232,7 @@ class _SideNav extends StatelessWidget {
                                     item.label,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: active ? Colors.white : const Color(0xFFCBD5E1),
+                                      color: active ? t.card : t.sidebarMuted,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
                                     ),
@@ -241,7 +248,7 @@ class _SideNav extends StatelessWidget {
                 }).toList(),
               ),
             ),
-            const Divider(height: 1, color: Color(0x2E94A3B8)),
+            Divider(height: 1, color: t.sidebarBorder),
             Padding(
               padding: EdgeInsets.all(rail ? 8 : 16),
               child: rail
@@ -257,8 +264,8 @@ class _SideNav extends StatelessWidget {
                               Text(
                                 user?.fullName ?? '',
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: t.sidebarInk,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                 ),
@@ -266,7 +273,7 @@ class _SideNav extends StatelessWidget {
                               Text(
                                 roleLabels[user?.role] ?? '',
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                                style: TextStyle(color: t.sidebarMuted, fontSize: 12),
                               ),
                             ],
                           ),
@@ -362,7 +369,7 @@ class _TopBar extends StatelessWidget {
           IconButton(
             tooltip: 'Çıkış yap',
             color: t.danger,
-            onPressed: session.signOut,
+            onPressed: () => confirmSignOut(context),
             icon: const Icon(Icons.logout),
             style: IconButton.styleFrom(
               side: BorderSide(color: t.danger),

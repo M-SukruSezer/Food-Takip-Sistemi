@@ -26,7 +26,7 @@ const managerRoles = ['super_admin', 'store_manager'];
 /// React tarafindaki LINKS/TABS dizilerinin karsiligi.
 const navItems = <NavItem>[
   NavItem(path: '/dashboard', label: 'Ana Sayfa', shortLabel: 'Ana Sayfa', icon: Icons.home_outlined, roles: allRoles, inBottomBar: true),
-  NavItem(path: '/batches', label: 'Ürünler / Stok', shortLabel: 'Ürünler', icon: Icons.inventory_2_outlined, roles: allRoles, inBottomBar: true),
+  NavItem(path: '/batches', label: 'Ürünler', shortLabel: 'Ürünler', icon: Icons.inventory_2_outlined, roles: allRoles, inBottomBar: true),
   NavItem(path: '/recommendations', label: 'Öneri Satış Listesi', shortLabel: 'Öneri', icon: Icons.local_fire_department_outlined, roles: allRoles, inBottomBar: true),
   NavItem(path: '/sales', label: 'Hareket Raporu', shortLabel: 'Rapor', icon: Icons.payments_outlined, roles: allRoles, inBottomBar: true),
   NavItem(path: '/product-types', label: 'Pasta Çeşitleri', shortLabel: 'Çeşitler', icon: Icons.cake_outlined, roles: managerRoles),
