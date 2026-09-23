@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Flutter sablonu bu izni yalnizca debug ve profile manifestlerine
+         koyuyor; release derlemesi aga cikamiyor ve her istek
+         "Sunucuya ulasilamiyor" hatasi veriyordu. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="foodtakip"
+        android:label="Food Takip"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
