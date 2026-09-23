@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Acilis ekrani zemini. Ikonun kendi zemini beyaz oldugu icin acik
+         temada beyaz secildi: ikon zemine karisir, kenar cizgisi gorunmez. -->
+    <color name="splash_background">#FFFFFFFF</color>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Koyu temada uygulamanin koyu tema zemin rengi. Ikonun beyaz zemini bu koyu
+         zeminde yuvarlak bir plaka olarak okunur; giris ekranindaki daireyle
+         ayni dil. -->
+    <color name="splash_background">#FF0B1220</color>
+</resources>
