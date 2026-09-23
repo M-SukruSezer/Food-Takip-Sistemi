@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 import { fmtMoney, hasPrice } from '../format';
+import { subscribeBusy } from '../busy';
 
 let pushFn = null;
 
@@ -76,6 +77,22 @@ export function sellConfirmMessage(b) {
   );
 }
 
+// Ikram stoktan duser ama satis sayilmaz: ciroya girmez, satis adedine
+// yazilmaz. Personel ikisini karistirmasin diye onay metni bunu soyler.
+export function ikramConfirmMessage(b) {
+  return (
+    <>
+      <strong>{b.product_name}</strong> ürününden <strong>1 adet ikram</strong> edilecek.
+      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
+      <br />
+      Ciroya <strong>eklenmez</strong> ve satış adedine sayılmaz.
+      {hasPrice(b.product_unit_price)
+        ? <> İkram değeri olarak {fmtMoney(b.product_unit_price)} kaydedilir.</>
+        : <> Bu çeşit için fiyat tanımlı olmadığı için ikram değeri kaydedilemez.</>}
+    </>
+  );
+}
+
 // Tablo satirlarindaki ikincil islemleri tek dugmede toplar.
 // Menu portal ile body'ye basilir: .table-wrap'in overflow'u onu kirpamaz.
 export function ActionMenu({ children, label = 'Diğer işlemler' }) {
@@ -124,5 +141,48 @@ export function ActionMenu({ children, label = 'Diğer işlemler' }) {
         document.body
       )}
     </>
+  );
+}
+
+// Tam ekran yukleme katmani. Portal ile body'ye basilir ve tum ekrani ortuger,
+// boylece yukleme bitene kadar hicbir dugmeye basilamaz.
+export function LoadingOverlay({ message = 'Yükleniyor...' }) {
+  return createPortal(
+    <div className="loading-overlay" role="status" aria-live="polite" aria-busy="true">
+      <div className="loading-box">
+        <span className="spinner" aria-hidden="true" />
+        <span>{message}</span>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// Uygulamada bir kez monte edilir; API katmanindaki acik istek sayacini dinler.
+// Veri okunurken veya kaydedilirken katmani otomatik acar, islem bitince kapatir.
+export function BusyHost() {
+  const [busy, setBusy] = useState(false);
+  useEffect(() => subscribeBusy(setBusy), []);
+  if (!busy) return null;
+  return <LoadingOverlay />;
+}
+
+// Profil fotosu yoksa ad-soyad bas harfleri gosterilir.
+export function Avatar({ user, size = 32, className = '' }) {
+  const initials = String(user && user.full_name || '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] || '')
+    .join('')
+    .toLocaleUpperCase('tr');
+  const style = { width: size, height: size };
+  if (user && user.avatar) {
+    return <img className={`avatar ${className}`} style={style} src={user.avatar} alt="" />;
+  }
+  return (
+    <span className={`avatar avatar-initials ${className}`} style={{ ...style, fontSize: Math.round(size * 0.4) }}>
+      {initials || '?'}
+    </span>
   );
 }

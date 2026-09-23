@@ -12,11 +12,12 @@ import Stores from './pages/Stores';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
 import Approvals from './pages/Approvals';
-import { ToastHost } from './components/ui';
+import { ToastHost, BusyHost } from './components/ui';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="content"><p className="muted">Yükleniyor...</p></div>;
+  // Oturum kontrolu de bir API cagrisi; katmani global BusyHost gosterir.
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
@@ -54,6 +55,7 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <BusyHost />
       <ToastHost />
     </>
   );

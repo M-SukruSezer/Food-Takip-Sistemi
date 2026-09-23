@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   full_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('super_admin', 'store_manager', 'staff')),
+  avatar TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
@@ -56,6 +57,10 @@ CREATE TABLE IF NOT EXISTS sales (
   batch_id BIGINT NOT NULL REFERENCES batches(id),
   quantity INTEGER NOT NULL CHECK (quantity >= 1),
   unit_price DOUBLE PRECISION,
+  -- 'sale' satis, 'ikram' bedelsiz verilen urun. Ikram stoktan duser ama
+  -- ciroya ve satis adetlerine girmez; degeri bilinsin diye unit_price yine
+  -- yazilir.
+  kind TEXT NOT NULL DEFAULT 'sale',
   sold_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   sold_by BIGINT
 );
@@ -85,8 +90,28 @@ CREATE TABLE IF NOT EXISTS transfer_approvals (
   decision_note TEXT
 );
 
+CREATE TABLE IF NOT EXISTS discards (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT NOT NULL REFERENCES stores(id),
+  batch_id BIGINT NOT NULL REFERENCES batches(id),
+  quantity INTEGER NOT NULL CHECK (quantity >= 1),
+  reason TEXT,
+  discarded_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  discarded_by BIGINT
+);
+
 -- Mevcut kurulumlar icin kolon eklemeleri (initialize her soguk baslatmada calistirir)
 ALTER TABLE product_types ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;
+-- Yetki sistemi gelmeden once her kullanici imha ve ikram yapabiliyordu;
+-- mevcut hesaplar bu yetkileri kaybetmesin diye bir kez doldurulur.
+-- NULL kosulu sayesinde sonradan yetkisi elinden alinan kullanici (ornegin
+-- '["discard"]') tekrar doldurulmaz.
+UPDATE users SET permissions = '["discard","ikram"]'
+WHERE permissions IS NULL AND role <> 'super_admin';
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'sale';
+CREATE INDEX IF NOT EXISTS idx_sales_kind ON sales(kind);
 
 CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
 CREATE INDEX IF NOT EXISTS idx_batches_store ON batches(store_id);
@@ -96,3 +121,24 @@ CREATE INDEX IF NOT EXISTS idx_sales_store ON sales(store_id);
 CREATE INDEX IF NOT EXISTS idx_logs_store ON activity_logs(store_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_batch ON transfer_approvals(batch_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_status ON transfer_approvals(status);
+
+-- Imhalar adetli olarak discards tablosunda tutulur. Eskiden kismi imhalarin
+-- adedi hicbir yerde saklanmiyordu ve tam imhalar remaining'i 0'a cektigi icin
+-- raporlardaki imha toplami her zaman 0 cikiyordu.
+-- Asagidaki aktarim, gecmis TAM imhalari (adet = parti adedi - satilan) bir
+-- kereye mahsus tasir; NOT EXISTS sayesinde her acilista tekrar calissa da
+-- yeniden eklemez. Gecmis KISMI imhalar yalnizca hareket kayitlarinda
+-- oldugu icin kurtarilamaz.
+INSERT INTO discards (store_id, batch_id, quantity, reason, discarded_at)
+SELECT b.store_id, b.id,
+       b.quantity - COALESCE((SELECT SUM(s.quantity) FROM sales s WHERE s.batch_id = b.id), 0),
+       COALESCE(b.discard_reason, 'Gecmis kayittan aktarildi'),
+       COALESCE(b.discarded_at, b.created_at)
+FROM batches b
+WHERE b.status = 'discarded'
+  AND b.quantity - COALESCE((SELECT SUM(s.quantity) FROM sales s WHERE s.batch_id = b.id), 0) > 0
+  AND NOT EXISTS (SELECT 1 FROM discards d WHERE d.batch_id = b.id);
+
+CREATE INDEX IF NOT EXISTS idx_discards_store ON discards(store_id);
+CREATE INDEX IF NOT EXISTS idx_discards_batch ON discards(batch_id);
+CREATE INDEX IF NOT EXISTS idx_discards_at ON discards(discarded_at);

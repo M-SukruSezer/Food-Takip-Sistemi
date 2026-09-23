@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './auth';
 import './index.css';
+// Kayitli tema tercihini ilk render'dan once uygular.
+import './theme';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

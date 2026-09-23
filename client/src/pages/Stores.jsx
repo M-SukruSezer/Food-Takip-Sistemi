@@ -61,10 +61,9 @@ export default function Stores() {
           onCancel={() => setDel(null)}
           onConfirm={async () => {
             try {
-              await api.delete(`/stores/${del.id}`);
-              toast('Mağaza silindi');
-            } catch (e) {
-              toast(errorMessage(e));
+              await api.delete(`/stores/${del.id}`, { successMessage: 'Mağaza silindi' });
+            } catch {
+              // Bildirim API katmaninda gosterilir.
             }
             setDel(null);
             setReload((n) => n + 1);
@@ -87,10 +86,10 @@ function StoreModal({ store, onClose, onDone }) {
     setErr('');
     try {
       if (store) {
-        await api.put(`/stores/${store.id}`, { name, address, phone, active });
+        await api.put(`/stores/${store.id}`, { name, address, phone, active }, { noToast: true });
         toast('Mağaza güncellendi');
       } else {
-        await api.post('/stores', { name, address, phone });
+        await api.post('/stores', { name, address, phone }, { noToast: true });
         toast('Mağaza oluşturuldu');
       }
       onDone();

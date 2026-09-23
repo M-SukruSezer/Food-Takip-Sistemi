@@ -94,7 +94,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 /* Dokunmatik cihazlarda her etkilesim hedefi parmak boyutuna cikar. */
 @media (pointer: coarse) {
   .btn, .btn-sm, .bottom-nav a, .bottom-nav button,
-  .theme-toggle, .burger, .tabs button, .stock-tabs button {
+  .topbar-logout, .burger, .tabs button, .stock-tabs button {
     min-height: var(--tap);
   }
   .eye-btn { min-width: var(--tap); min-height: var(--tap); }
@@ -143,8 +143,8 @@ a { color: inherit; }
   display: none;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: var(--tap);
+  height: var(--tap);
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -308,21 +308,6 @@ a { color: inherit; }
   white-space: nowrap;
   border: 1px solid var(--border);
 }
-
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--tap);
-  height: var(--tap);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--ink);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.theme-toggle:hover { border-color: var(--primary-600); background: var(--primary-soft); }
 
 .content { padding: 18px; max-width: 1440px; width: 100%; margin: 0 auto; }
 
@@ -592,66 +577,168 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 
 /* ---------- Giriş ---------- */
+/* Düzen referans tasarımdan: üstte yuvarlak köşe beyaz kart (marka +
+   illüstrasyon), altta marka renginde panel (başlık, beyaz hap alanlar,
+   siyah hap düğme). Renkler uygulamanın paletinden gelir. */
 .login-page {
   min-height: 100vh;
+  /* Zemin temayla gelir: açık temada açık gri, koyu temada lacivert. */
   background: var(--bg);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .login-col {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   display: flex;
   flex-direction: column;
-  min-height: min(92vh, 760px);
-  background: var(--card);
-  border: 1px solid rgba(148,163,184,0.18);
-  border-radius: 28px;
-  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
-  overflow: hidden;
 }
 
-.login-main { margin: auto 0; display: flex; flex-direction: column; padding: 18px 24px 8px; }
-
-.login-top { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 0; }
-
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { width: 42px; height: 42px; border-radius: 14px; object-fit: cover; box-shadow: 0 8px 20px rgba(20, 83, 45, 0.18); }
-.brand-name { font-weight: 900; font-size: 20px; color: #14532d; line-height: 1.1; }
-.brand-name b { color: var(--primary); }
-.brand-sub { font-size: 9px; letter-spacing: 2px; color: var(--primary); font-weight: 800; margin-top: 2px; }
-
-.login-ver {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid rgba(148,163,184,0.2);
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--card);
+.login-art-card {
+  /* İllüstrasyon sabit renkli bir raster (beyaz eller, siyah kontur); koyu
+     kartta konturları kaybolurdu, bu yüzden kart temaya göre değişmez.
+     Açık temada zemin de açık olduğu için ince bir çerçeveyle ayrışır. */
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 28px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
 }
 
-.login-logo {
-  width: 122px;
-  height: 122px;
-  border-radius: 28px;
-  object-fit: cover;
-  margin: 12px auto 16px;
+.login-art {
   display: block;
-  box-shadow: 0 18px 34px rgba(20, 83, 45, 0.18);
-  border: 3px solid rgba(22,163,74,0.08);
+  width: 100%;
+  height: 100%;
+  max-height: 230px;
+  margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  /* Görsel kare ve kendi içinde boşluğu var; büyütüp kırpmak kolları
+     kesiyordu, olduğu gibi sığdırılır. */
+  object-fit: contain;
 }
 
-.login-title { text-align: center; color: #14532d; font-size: 28px; font-weight: 800; margin: 0; }
-.login-sub { text-align: center; color: #64748b; font-size: 14px; margin: 8px 0 10px; }
+.login-panel { padding: 26px 8px 8px; }
 
-.login-label { display: block; font-size: 13px; font-weight: 700; color: var(--ink); margin: 14px 0 6px; }
-.login-label i { color: var(--primary); font-style: normal; }
+/* Panel koyu yeşil; üzerindeki yazı beyaz. Koyu temada panel nane yeşiline
+   döndüğü için yazı koyuya çevrilir. */
+.login-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
 
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  /* Giriş ekranının yumuşak dili: kart ve haplar 28, hata kutusu da aynı
+     aileden olsun (çok satırlı olabildiği için tam hap yapılmadı). */
+  border-radius: 20px;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+.login-error svg { flex: none; }
+
+.login-panel form { margin-top: 22px; }
+
+/* Beyaz hap şeklinde alan: ikon solda, göz düğmesi sağda */
+.pill-field { position: relative; margin-bottom: 12px; }
+.pill-field .pill-ico {
+  position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+  color: var(--primary); pointer-events: none; display: inline-flex;
+}
+.pill-field input {
+  width: 100%;
+  height: 56px;
+  padding: 0 56px 0 50px;
+  /* Açık temada zemin de açık; çerçeve olmadan hap kayboluyor. */
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  outline: none;
+}
+.pill-field input::placeholder { color: var(--muted); font-weight: 500; }
+.pill-field input:focus { border-color: var(--primary-600); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+.pill-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: var(--tap); height: var(--tap);
+  background: none; border: none; color: var(--muted);
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+
+.login-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 10px 0 14px; flex-wrap: wrap;
+}
+.remember {
+  display: flex; align-items: center; gap: 8px;
+  min-height: var(--tap);
+  font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;
+}
+.remember input { width: 18px; height: 18px; accent-color: var(--primary); }
+
+.login-forgot {
+  min-height: var(--tap);
+  background: none; border: none; padding: 0 4px;
+  color: var(--primary-dark); font-size: 14px; font-weight: 700;
+  text-decoration: underline; cursor: pointer;
+}
+
+/* Siyah hap düğme */
+.btn-login {
+  width: 100%;
+  height: 56px;
+  background: var(--ink);
+  color: var(--card);
+  border: none;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.btn-login:hover:not(:disabled) { filter: brightness(1.15); }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-hint { font-size: 12px; color: var(--muted); margin: -4px 0 10px; padding: 0 4px; }
+
+/* Telefonda kart kısalır, başlık küçülür */
+@media (max-width: 640px) {
+  .login-art-card { min-height: 170px; padding: 16px 18px; }
+  .login-art { max-height: 190px; }
+  .login-title { font-size: 30px; }
+  .login-panel { padding: 22px 6px 6px; }
+}
+
+/* Kısa ekranlarda (yatay telefon) illüstrasyon yer kaplamasın */
+@media (max-height: 620px) {
+  .login-art-card { min-height: 120px; }
+  .login-art { max-height: 120px; }
+}
+
+/* ---------- Paylaşılan ikonlu giriş alanı (öneri listesi araması) ---------- */
 .input-wrap { position: relative; }
-.input-wrap .in-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; display: inline-flex; }
+.input-wrap .in-ico {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; pointer-events: none; display: inline-flex;
+}
 .input-wrap .in-ico svg { width: 17px; height: 17px; display: block; }
 .input-wrap input {
   width: 100%;
@@ -666,47 +753,6 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 .input-wrap input::placeholder { color: #b4bcc8; }
 .input-wrap input:focus { border-color: var(--primary-600); box-shadow: 0 0 0 3px var(--primary-soft); }
-
-.eye-btn {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--tap);
-  height: var(--tap);
-  background: none;
-  border: none;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-}
-.eye-btn svg { width: 18px; height: 18px; display: block; }
-
-.login-row { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 18px; }
-.remember { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; cursor: pointer; }
-.remember input { width: 17px; height: 17px; accent-color: var(--primary); }
-
-.link-red { background: none; border: none; color: var(--primary-dark); font-size: 13px; font-weight: 700; padding: 0; }
-
-.btn-login {
-  width: 100%;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  min-height: 52px;
-  padding: 14px;
-  font-size: 16px;
-  font-weight: 700;
-}
-.btn-login:hover:not(:disabled) { filter: brightness(0.98); }
-.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.login-hint { font-size: 12px; color: #94a3b8; margin: 4px 0 0; }
-.login-demo { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 18px; }
-.login-foot { text-align: center; color: #94a3b8; font-size: 12px; padding: 24px 18px 22px; }
 
 /* ---------- Çeşitli ikonlar ---------- */
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
@@ -1537,8 +1583,9 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   background: rgba(51, 65, 85, 0.9);
 }
 
-:root[data-theme='dark'] .field label,
-:root[data-theme='dark'] .remember {
+/* .remember artik yalnizca giris panelinde kullaniliyor; panel temadan
+   bagimsiz marka yesili oldugu icin yazisi iki temada da beyaz kalmali. */
+:root[data-theme='dark'] .field label {
   color: #cbd5e1;
 }
 
@@ -1597,26 +1644,10 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   background: #1e293b;
 }
 
-:root[data-theme='dark'] .login-page {
-  background: var(--bg);
-}
-
-:root[data-theme='dark'] .login-col,
-:root[data-theme='dark'] .login-ver {
-  background: rgba(15, 23, 42, 0.86);
-  border-color: rgba(148, 163, 184, 0.16);
-}
-
-:root[data-theme='dark'] .brand-name,
-:root[data-theme='dark'] .login-title,
-:root[data-theme='dark'] .login-label {
-  color: #d1fae5;
-}
-
-:root[data-theme='dark'] .login-sub,
-:root[data-theme='dark'] .login-ver,
-:root[data-theme='dark'] .remember {
-  color: #aebbd0;
+/* Giriş panelinin rengi temadan bağımsız; üzerindeki yazı iki temada da
+   beyaz kalır. Kart, hap alanlar ve düğme tema renklerini kullanır. */
+:root[data-theme='dark'] .pill-field input:focus {
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
 }
 
 :root[data-theme='dark'] .input-wrap input {
@@ -1677,8 +1708,8 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   .chart-block { padding: 10px 8px 0; }
   .bar-chart { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; min-height: 142px; }
   .bar-col { min-height: 132px; gap: 4px; }
-  .bar-value { font-size: 9px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .bar-date { font-size: 9px; }
+  .bar-value { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .bar-date { font-size: 10px; }
 
   .analytics-sidebar { grid-template-columns: 1fr; gap: 10px; }
   .activity-panel { grid-column: auto; }
@@ -1699,25 +1730,6 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 
 /* Ana sayfada katlanabilir bolum basligi */
-.section-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  min-height: var(--tap);
-  padding: 12px 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
-}
-.section-toggle span { display: inline-flex; align-items: center; gap: 8px; }
-.section-toggle:hover { border-color: var(--border-strong); }
-
 /* ---------- Kenar menu: daraltilabilir serit (>=900px) ---------- */
 @media (min-width: 900px) {
   .sidebar-toggle { display: inline-flex; }
@@ -1835,17 +1847,17 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 
   /* Uc kademe ozeti: tam boy istatistik kartlari yerine tek satirlik serit.
      .grid.stats'in mobil 2-sutun kurali !important oldugu icin burada da gerekli. */
-  .surface-panel .grid.stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px; }
-  .surface-panel .grid.stats .stat-card {
+  .tier-summary .grid.stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px; }
+  .tier-summary .grid.stats .stat-card {
     min-height: 0;
     padding: 9px 8px;
     text-align: center;
   }
-  .surface-panel .grid.stats .stat .label { font-size: 10px; justify-content: center; line-height: 1.25; }
-  .surface-panel .grid.stats .stat .label span { gap: 3px; }
-  .surface-panel .grid.stats .stat .value { font-size: 20px; margin-top: 2px; }
-  .surface-panel .grid.stats .stat .sub { display: none; }
-  .surface-panel .grid.stats .dot { width: 8px; height: 8px; margin-right: 0; }
+  .tier-summary .grid.stats .stat .label { font-size: 11px; justify-content: center; line-height: 1.25; }
+  .tier-summary .grid.stats .stat .label span { gap: 3px; }
+  .tier-summary .grid.stats .stat .value { font-size: 20px; margin-top: 2px; }
+  .tier-summary .grid.stats .stat .sub { display: none; }
+  .tier-summary .grid.stats .dot { width: 8px; height: 8px; margin-right: 0; }
 
   /* Oneri kartlari */
   .recommendation-card { padding: 11px; gap: 8px; }
@@ -1855,3 +1867,394 @@ tr:hover td { background: rgba(148,163,184,0.04); }
      birakmak yerine burada acikca garanti ediyoruz. */
   .recommendation-actions .btn { min-height: var(--tap); }
 }
+
+/* ---------- Yukleme katmani ---------- */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  /* Modal (60) ustunde, toast (100) altinda: yukleme sirasinda arkadaki
+     hicbir kontrole erisilemez. */
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* Buzlu cam: arkadaki sayfa bulanik gorunur. backdrop-filter desteklenmeyen
+     tarayicida asagidaki yari saydam zemin tek basina okunabilirligi saglar. */
+  background: rgba(17, 24, 39, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+:root[data-theme='dark'] .loading-overlay {
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.loading-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  /* Flutter istemcisiyle ayni yumusaklik. */
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 3px solid var(--border-strong);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2s; }
+}
+
+/* ---------- Urun performansi siralamalari ---------- */
+.period-tabs { display: flex; gap: 6px; margin: 0; overflow: visible; }
+.period-tabs button { min-width: 64px; padding: 8px 14px; font-size: 13px; }
+
+.rank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.rank-block { min-width: 0; }
+
+.rank-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.rank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: rank; }
+
+.rank-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.rank-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rank-bar-track {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.rank-bar { display: block; height: 100%; border-radius: 999px; }
+.rank-bar.up { background: var(--success); }
+.rank-bar.down { background: var(--warning); }
+.rank-bar.waste { background: var(--danger); }
+
+.rank-qty { text-align: right; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 899px) {
+  .rank-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+}
+
+@media (max-width: 640px) {
+  .period-tabs button { min-width: 0; flex: 1; }
+  .rank-list li { grid-template-columns: minmax(0, 1fr) 48px 30px; font-size: 12px; }
+}
+
+/* Arama girdisi: .filters input kurali dosyada daha sonra geldigi icin
+   .input-wrap input'u eziyordu ve yazi arama ikonunun ustune biniyordu.
+   Sarmalayiciya gore ozgullestirilmis kural ikona yer birakir.
+   Beyaz panel uzerinde beyaz zemin + acik gri cerceve neredeyse gorunmuyordu;
+   alan artik iceri gomulu bir yuzey gibi duruyor ve ikon marka renginde. */
+.filters .input-wrap.search input {
+  min-height: 52px;
+  padding: 14px 14px 14px 42px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  /* Zemin + ice golge alani "gomulu" gosterir; beyaz panel uzerinde beyaz
+     kutu neredeyse gorunmuyordu. 1.5px cerceve tarayicida 1px'e yuvarlandigi
+     icin belirginligi golge sagliyor. */
+  background: var(--bg);
+  box-shadow: inset 0 1px 3px rgba(17, 24, 39, 0.08);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .filters .input-wrap.search input {
+  box-shadow: inset 0 1px 3px rgba(2, 6, 23, 0.5);
+}
+
+.filters .input-wrap.search input::placeholder { color: var(--muted); font-weight: 500; }
+.filters .input-wrap.search input:focus {
+  border-color: var(--primary-600);
+  background: var(--card);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.filters .input-wrap.search .in-ico { color: var(--primary); left: 14px; }
+
+/* Ozet kutucuklari ile arama cubugu bitisikti (0px); ayni bosluk ritmi. */
+.tier-summary .filters { margin-top: 12px; }
+
+/* ---------- Ust barda kullanici blogu ---------- */
+.topbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: var(--tap);
+  max-width: 230px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+}
+.topbar-user:hover { border-color: var(--primary-600); background: var(--primary-soft); }
+.topbar-user.active { border-color: var(--primary-600); }
+
+.topbar-user-ico { display: inline-flex; flex-shrink: 0; color: var(--primary); }
+
+.topbar-user-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+
+.topbar-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-user-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Telefonda da isim ve yetki gorunur kalir. Yer acmak icin dekoratif logo ve
+   magaza adi gizlenir; olctugumuzde bu haliyle yetki tam sigiyor. */
+@media (max-width: 560px) {
+  .mobile-header-logo { display: none; }
+  .topbar-user { max-width: 204px; padding: 4px 10px 4px 6px; }
+  .topbar-user-name { font-size: 12.5px; }
+  .topbar-user-role { font-size: 10.5px; }
+  .topbar-user-store { display: none; }
+}
+
+/* ---------- Profil fotosu ---------- */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--border);
+}
+
+.avatar-initials { letter-spacing: 0.02em; }
+
+.avatar-edit { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.avatar-edit-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.avatar-hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+
+/* ---------- Mobil ve tablette esit bosluk / esit kutucuk ---------- */
+/* Onceden bloklar arasi 12px, izgara ici 14px, kart alt boslugu 18px gibi
+   farkli degerler vardi; bu bantta hepsi tek degere cekilir. */
+@media (max-width: 899px) {
+  .dashboard-shell,
+  .page-shell,
+  .analytics-main,
+  .analytics-sidebar,
+  .analytics-layout { gap: 12px; }
+
+  .grid,
+  .grid.stats,
+  .grid.products,
+  .rec-list,
+  .recommendation-list { gap: 12px; }
+
+  .card { margin-bottom: 12px; }
+  .surface-panel { padding: 12px; }
+  .chart-stack { gap: 12px; }
+
+  /* Tum istatistik kutucuklari ayni yukseklikte kalsin */
+  .grid.stats .stat-card { min-height: 96px; }
+}
+
+/* Tablette alti kutucuk 3x2 olarak tam oturur.
+   .dashboard-shell .grid.stats kurali daha ozgul oldugu icin burada da
+   ayni ozgullukle yazilmasi gerekiyor. */
+@media (min-width: 641px) and (max-width: 899px) {
+  .grid.stats,
+  .dashboard-shell .grid.stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- Ust barda cikis dugmesi ---------- */
+.topbar-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--tap);
+  height: var(--tap);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.topbar-logout:hover { background: var(--danger); color: #fff; }
+.topbar-logout:focus-visible { outline: 2px solid var(--danger); outline-offset: 2px; }
+
+/* ---------- Profil ekraninda tema secimi ---------- */
+.theme-choice { display: flex; gap: 10px; flex-wrap: wrap; }
+.theme-choice .btn { flex: 1 1 160px; }
+
+/* ---------- Mobil/tablet dokunma tabani ve okunabilirlik ---------- */
+/* pointer: coarse bazi Android WebView'larinda ve fare takili tabletlerde
+   "fine" bildirdigi icin dokunma tabanini genislige gore de garanti ediyoruz. */
+@media (max-width: 899px) {
+  .btn-sm { min-height: var(--tap); }
+  .filters input,
+  .filters select,
+  .page-head select { min-height: var(--tap); }
+  .panel-kicker { font-size: 11px; }
+}
+
+/* Tablette cesit/magaza kartlari da ucer sutun */
+@media (min-width: 641px) and (max-width: 899px) {
+  .grid.products { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- Profil ekrani ---------- */
+/* Bilgiler metin; sayi icin tasarlanmis .stat-card kullanildiginda uzun adlar
+   kutudan tasiyordu. Etiket-deger duzeni metne gore olceklenir. */
+.profile-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.profile-info > div {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.profile-info dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.profile-info dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.profile-photo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.profile-photo-side { min-width: 0; flex: 1 1 200px; }
+
+/* Telefonda etiket solda / deger sagda: olctugumuzde bu duzen tum satirlari
+   birebir 44px'e esitliyor (tek sutun yiginda 349px, iki sutunda esitsiz
+   95/72px cikiyordu; bu haliyle 226px ve hepsi esit). */
+@media (max-width: 480px) {
+  .profile-info { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .profile-info > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: var(--tap);
+    padding: 8px 12px;
+  }
+  .profile-info dt { margin: 0; flex: 0 0 auto; }
+  .profile-info dd { text-align: right; min-width: 0; }
+
+  .profile-photo { gap: 12px; }
+  .profile-photo .avatar { width: 68px !important; height: 68px !important; font-size: 26px !important; }
+}
+
+@media (max-width: 640px) {
+  .theme-choice .btn { flex: 1 1 100%; }
+}
+
+/* Kullanıcı penceresindeki yetki onay kutuları: 44px dokunma hedefi korunur */
+.permission-list { display: grid; gap: 2px; }
+.permission-row {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--tap); padding: 0 2px;
+  font-weight: 500; font-size: 14px; cursor: pointer;
+}
+.permission-row input { width: auto; margin: 0; flex: none; }
+.permission-row:has(input:disabled) { color: var(--muted); cursor: not-allowed; }
+
+/* Hareket raporu filtreleri: chip'ler 44px dokunma hedefini korur */
+.report-filter { display: grid; gap: 12px; margin-bottom: 14px; }
+.report-filter-group { display: grid; gap: 6px; }
+.report-filter-label { font-size: 13px; font-weight: 700; color: var(--ink); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: var(--tap); padding: 0 14px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg); color: var(--ink);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.chip:hover { border-color: var(--border-strong); }
+.chip-on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-dark); }
+.chip-row input[type="date"] { min-height: var(--tap); width: auto; }
+
+/* Ana sayfadaki tıklanabilir özet kutuları: ilgili ekrana götürür */
+.stat-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-link:hover {
+  border-color: var(--primary-600);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.stat-link:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; }

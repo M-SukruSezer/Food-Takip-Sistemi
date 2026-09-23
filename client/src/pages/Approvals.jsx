@@ -30,12 +30,13 @@ export default function Approvals() {
 
   async function approve(item) {
     try {
-      const r = await api.post(`/approvals/${item.id}/approve`);
-      toast(`${item.product_name} food dolabına alındı, SKT başladı`);
+      const r = await api.post(`/approvals/${item.id}/approve`, undefined, {
+        successMessage: `${item.product_name} food dolabına alındı, SKT başladı`,
+      });
       setReload((n) => n + 1);
       return r;
-    } catch (e) {
-      toast(errorMessage(e));
+    } catch {
+      // Bildirim API katmaninda gosterilir.
       setReload((n) => n + 1);
     }
   }
@@ -132,7 +133,7 @@ function RejectModal({ item, onClose, onDone }) {
     e.preventDefault();
     setErr('');
     try {
-      await api.post(`/approvals/${item.id}/reject`, { note });
+      await api.post(`/approvals/${item.id}/reject`, { note }, { noToast: true });
       toast('İstek reddedildi, ürün çözülmede kaldı');
       onDone();
     } catch (er) {

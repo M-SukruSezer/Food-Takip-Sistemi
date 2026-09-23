@@ -14,14 +14,14 @@ export function AuthProvider({ children }) {
       return;
     }
     api
-      .get('/auth/me')
+      .get('/auth/me', { noToast: true })
       .then((r) => setUser(r.data))
       .catch(() => localStorage.removeItem('token'))
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (username, password) => {
-    const r = await api.post('/auth/login', { username, password });
+    const r = await api.post('/auth/login', { username, password }, { noToast: true });
     localStorage.setItem('token', r.data.token);
     setUser(r.data.user);
     return r.data.user;

@@ -1,13 +1,14 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth } = require('../auth');
-const { batchRow } = require('../utils');
+const { batchRow, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
+  await promoteReadyThawing();
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
     return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
@@ -50,9 +51,15 @@ router.get('/', async (req, res) => {
   const expiringCount = mapped.filter(b => b.urgency === 'critical' || b.urgency === 'warning').length;
 
   const today = new Date().toISOString().slice(0, 10);
+  // kind = 'sale' filtresi: ikram stoktan duser ama ciroya ve satis adedine
+  // girmez, ayri sayilir.
   const soldToday = await queryOne(
     `SELECT COUNT(*) AS c, COALESCE(SUM(sl.quantity),0) AS qty, COALESCE(SUM(sl.quantity * sl.unit_price),0) AS revenue
-     FROM sales sl WHERE sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}`
+     FROM sales sl WHERE sl.kind = 'sale' AND sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}`
+  ,today + 'T00:00:00.000Z', ...(storeId ? [storeId] : []));
+  const ikramToday = await queryOne(
+    `SELECT COUNT(*) AS c, COALESCE(SUM(sl.quantity),0) AS qty, COALESCE(SUM(sl.quantity * sl.unit_price),0) AS value
+     FROM sales sl WHERE sl.kind = 'ikram' AND sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}`
   ,today + 'T00:00:00.000Z', ...(storeId ? [storeId] : []));
 
   res.json({
@@ -65,6 +72,7 @@ router.get('/', async (req, res) => {
       expiring_count: expiringCount,
     },
     soldToday: { count: soldToday.c, qty: soldToday.qty, revenue: soldToday.revenue || 0 },
+    ikramToday: { count: ikramToday.c, qty: ikramToday.qty, value: ikramToday.value || 0 },
   });
 });
 

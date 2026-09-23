@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth, requireRole } = require('../auth');
+const { requireAuth, requirePermission } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
@@ -21,8 +21,10 @@ function parseUnitPrice(value, fallback) {
   return price;
 }
 
-// Ürün çeşitleri: mağaza kullanıcıları genel çeşitler + kendi mağazasının çeşitlerini görür.
-// Yazma (ekle/düzenle/sil) yalnızca Ana Yöneticiye aittir.
+// Ürün çeşitleri: mağaza kullanıcıları genel çeşitler + kendi mağazasının
+// çeşitlerini görür. Yazma için Ana Yönetici ya da "Pasta çeşidi yönetimi"
+// yetkisi verilmiş bir kullanıcı olmak gerekir; yetkili kullanıcı yalnızca
+// kendi mağazasının çeşitlerine dokunabilir, genel çeşitlere dokunamaz.
 router.get('/', async (req, res) => {
   if (req.user.role === 'super_admin' && !req.query.storeId) {
     const rows = await queryAll(`
@@ -45,7 +47,7 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
-router.post('/', requireRole('super_admin'), async (req, res) => {
+router.post('/', requirePermission('manage_product_types'), async (req, res) => {
   const { name, skt_days, description, store_id } = req.body || {};
   const unitPrice = parseUnitPrice(req.body && req.body.unit_price, null);
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'Ürün adı zorunludur' });
@@ -53,8 +55,13 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
   if (!Number.isInteger(days) || days < 1 || days > 14) {
     return res.status(400).json({ error: 'SKT süresi 1-14 gün arasında olmalıdır' });
   }
-  // store_id boşsa genel çeşit (tüm mağazalar kullanabilir)
-  const sid = store_id ? Number(store_id) : null;
+  // store_id boşsa genel çeşit (tüm mağazalar kullanabilir). Genel çeşit
+  // yalnızca Ana Yöneticinin işi: yetki verilmiş müdür kendi mağazasına yazar.
+  let sid = store_id ? Number(store_id) : null;
+  if (req.user.role !== 'super_admin') {
+    if (!req.user.store_id) return res.status(403).json({ error: 'Size mağaza atanmamış' });
+    sid = req.user.store_id;
+  }
   if (sid) {
     const store = await queryOne('SELECT id FROM stores WHERE id = ?',sid);
     if (!store) return res.status(404).json({ error: 'Mağaza bulunamadı' });
@@ -68,16 +75,25 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
   res.status(201).json({ id: Number(r.lastInsertRowid) });
 });
 
-router.put('/:id', requireRole('super_admin'), async (req, res) => {
+router.put('/:id', requirePermission('manage_product_types'), async (req, res) => {
   const existing = await queryOne('SELECT * FROM product_types WHERE id = ?',Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Ürün çeşidi bulunamadı' });
+  if (req.user.role !== 'super_admin' && existing.store_id !== req.user.store_id) {
+    return res.status(403).json({
+      error: existing.store_id === null
+        ? 'Genel çeşitleri yalnızca Ana Yönetici düzenleyebilir'
+        : 'Bu çeşit başka mağazaya ait',
+    });
+  }
   const { name, skt_days, description, active, store_id } = req.body || {};
   const unitPrice = parseUnitPrice(req.body && req.body.unit_price, existing.unit_price);
   const days = skt_days !== undefined ? Number(skt_days) : existing.skt_days;
   if (!Number.isInteger(days) || days < 1 || days > 14) {
     return res.status(400).json({ error: 'SKT süresi 1-14 gün arasında olmalıdır' });
   }
-  const sid = store_id === undefined ? existing.store_id : (store_id ? Number(store_id) : null);
+  let sid = store_id === undefined ? existing.store_id : (store_id ? Number(store_id) : null);
+  // Yetkili müdür çeşidi başka mağazaya ya da genele taşıyamaz.
+  if (req.user.role !== 'super_admin') sid = existing.store_id;
   if (sid) {
     const store = await queryOne('SELECT id FROM stores WHERE id = ?',sid);
     if (!store) return res.status(404).json({ error: 'Mağaza bulunamadı' });
@@ -95,9 +111,16 @@ router.put('/:id', requireRole('super_admin'), async (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/:id', requireRole('super_admin'), async (req, res) => {
+router.delete('/:id', requirePermission('manage_product_types'), async (req, res) => {
   const existing = await queryOne('SELECT * FROM product_types WHERE id = ?',Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Ürün çeşidi bulunamadı' });
+  if (req.user.role !== 'super_admin' && existing.store_id !== req.user.store_id) {
+    return res.status(403).json({
+      error: existing.store_id === null
+        ? 'Genel çeşitleri yalnızca Ana Yönetici silebilir'
+        : 'Bu çeşit başka mağazaya ait',
+    });
+  }
   const used = Number((await queryOne('SELECT COUNT(*) AS c FROM batches WHERE product_type_id = ?', existing.id)).c);
   if (used > 0) {
     return res.status(400).json({ error: 'Bu çeşide ait ürün kayıtları var, silinemez. Pasife alabilirsiniz.' });

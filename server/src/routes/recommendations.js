@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth } = require('../auth');
-const { batchRow } = require('../utils');
+const { batchRow, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ router.use(requireAuth);
 // Aciliyet kademesi batchRow içinde hesaplanır: expired / critical (0-24 sa) /
 // warning (24-48 sa) / normal (48 saatten fazla).
 router.get('/', async (req, res) => {
+  await promoteReadyThawing();
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   const all = !storeId && req.user.role === 'super_admin';
 

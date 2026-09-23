@@ -1,20 +1,19 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Flame, PartyPopper, TriangleAlert, Snowflake, Hourglass, Refrigerator, Banknote, ShoppingBag,
-  Clock, ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight,
-  ChartColumn, ChevronDown, ChevronUp,
+  TriangleAlert, Snowflake, Hourglass, Refrigerator, Banknote, ShoppingBag,
+  ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight, Award, TrendingDown,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Confirm, StatusBadge, toast, sellConfirmMessage } from '../components/ui';
-import { fmtDate, fmtDateTime, formatHours, errorMessage, isUrgentBatch, sumRemaining } from '../format';
+import { fmtDate } from '../format';
 
 const STATUS_CHART_LABELS = {
   frozen: 'Donuk Depo',
   thawing: 'Çözülme',
   food_cabinet: 'Food Dolabı',
   sold: 'Satıldı',
+  ikram: 'İkram',
   discarded: 'İmha',
 };
 
@@ -23,6 +22,7 @@ const STATUS_CHART_TONE = {
   thawing: 'thawing',
   food_cabinet: 'cabinet',
   sold: 'sold',
+  ikram: 'warning',
   discarded: 'discarded',
 };
 
@@ -31,38 +31,39 @@ export default function Dashboard() {
   const isSuper = user.role === 'super_admin';
 
   const [data, setData] = useState(null);
-  const [recs, setRecs] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState(0);
-  const [sellBatch, setSellBatch] = useState(null);
-  const [discardBatch, setDiscardBatch] = useState(null);
   const [reload, setReload] = useState(0);
+  const [loadError, setLoadError] = useState(false);
 
   // rapor verileri
   const [summary, setSummary] = useState(null);
   const [chart, setChart] = useState([]);
   const [statusChart, setStatusChart] = useState([]);
+  const [products, setProducts] = useState(null);
+  const [period, setPeriod] = useState('week');
   const [storeId, setStoreId] = useState('');
   const [stores, setStores] = useState([]);
-  const [showReports, setShowReports] = useState(
-    () => typeof window === 'undefined' || window.matchMedia('(min-width: 900px)').matches
-  );
-
-  const load = useCallback(() => {
+  // silent: 60 saniyelik otomatik yenileme kullanicinin basladigi bir islem
+  // degil; ekrani her dakika kilitlememesi icin katman ve bildirim olmadan doner.
+  const load = useCallback((silent = false) => {
     const q = storeId ? `?storeId=${storeId}` : '';
-    api.get('/dashboard' + q).then((r) => setData(r.data)).catch(() => {});
-    api.get('/recommendations' + q).then((r) => setRecs(r.data)).catch(() => {});
-    api.get('/reports/summary' + q).then((r) => setSummary(r.data)).catch(() => {});
-    api.get('/reports/sales7' + q).then((r) => setChart(r.data)).catch(() => {});
-    api.get('/reports/status' + q).then((r) => setStatusChart(r.data)).catch(() => {});
+    const opts = { silent };
+    api.get('/dashboard' + q, opts)
+      .then((r) => { setData(r.data); setLoadError(false); })
+      .catch(() => setLoadError(true));
+    api.get('/reports/summary' + q, opts).then((r) => setSummary(r.data)).catch(() => {});
+    api.get('/reports/sales7' + q, opts).then((r) => setChart(r.data)).catch(() => {});
+    api.get('/reports/status' + q, opts).then((r) => setStatusChart(r.data)).catch(() => {});
+    api.get('/reports/products' + q, opts).then((r) => setProducts(r.data)).catch(() => {});
     if (['super_admin', 'store_manager'].includes(user.role)) {
-      api.get('/approvals?status=pending').then((r) => setPendingApprovals(r.data.length)).catch(() => {});
+      api.get('/approvals?status=pending', opts).then((r) => setPendingApprovals(r.data.length)).catch(() => {});
     }
   }, [user.role, storeId]);
 
   useEffect(() => { load(); }, [load, reload]);
 
   useEffect(() => {
-    const t = setInterval(load, 60000);
+    const t = setInterval(() => load(true), 60000);
     return () => clearInterval(t);
   }, [load]);
 
@@ -71,9 +72,6 @@ export default function Dashboard() {
   }, [isSuper]);
 
   const refresh = () => setReload((n) => n + 1);
-
-  // SKT'ye 48 saatten az kalanlar; food dolabındaki geri kalan stok öneri listesinde.
-  const urgent = useMemo(() => recs.filter(isUrgentBatch), [recs]);
 
   const derived = useMemo(() => {
     const maxQty = Math.max(1, ...chart.map((d) => d.qty));
@@ -93,10 +91,39 @@ export default function Dashboard() {
     return { maxQty, maxRevenue, maxStatus, trend, totalRevenue, sold7 };
   }, [chart, statusChart, summary]);
 
-  if (!data) return <div className="card"><p className="muted">Yükleniyor...</p></div>;
+  const perf = useMemo(() => {
+    const p = products && products[period];
+    if (!p) return null;
+    const sold = p.sold || [];
+    const wasted = p.wasted || [];
+    const sum = (list) => list.reduce((a, x) => a + Number(x.qty || 0), 0);
+    return {
+      best: sold.slice(0, 5),
+      // sold zaten azalan sirada; tersleyip ilk 5 en az satanlari verir
+      worst: sold.slice().reverse().slice(0, 5),
+      wasted: wasted.slice(0, 5),
+      soldTotal: sum(sold),
+      wastedTotal: sum(wasted),
+      kinds: sold.length,
+    };
+  }, [products, period]);
+
+  if (!data) {
+    // Engelleyici katmanin kalici kilide donusmemesi icin hatada cikis yolu birakilir.
+    if (loadError) {
+      return (
+        <div className="card">
+          <div className="alert error">Veriler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.</div>
+          <button className="btn btn-primary" onClick={() => { setLoadError(false); refresh(); }}>Tekrar Dene</button>
+        </div>
+      );
+    }
+    // Yukleme katmanini global BusyHost gosterir.
+    return null;
+  }
 
   const c = data.counts;
-  const expiredCount = sumRemaining(recs.filter((r) => r.urgency === 'expired'));
+  const expiredCount = c.expired_qty || 0;
 
   return (
     <div className="dashboard-shell">
@@ -131,11 +158,10 @@ export default function Dashboard() {
 
       <section className="hero-panel">
         <div className="hero-copy">
-          <div className="eyebrow">Operasyon Özeti</div>
           <h2>Bugün için en kritik operasyonlar hazır.</h2>
           <p>
-            {urgent.length > 0
-              ? `${sumRemaining(urgent)} adet ürün, SKT süresi yaklaşan kuyruğa dahil.`
+            {c.expiring_count > 0
+              ? `${c.expiring_qty || 0} adet ürün son 24 saatte, ${c.expiring_count} kayıt SKT kuyruğunda.`
               : 'Acil satış bekleyen ürün bulunmuyor. Operasyon akışı stabil.'}
           </p>
           <div className="hero-actions">
@@ -163,85 +189,16 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <div className="card rec-hero">
-        <div className="page-head" style={{ marginBottom: urgent.length ? 12 : 0 }}>
-          <h2><Flame size={21} /> Öncelikle Satılması Gerekenler</h2>
-          <Link to="/recommendations" className="btn btn-sm btn-secondary">Tüm Liste</Link>
-        </div>
-
-        {urgent.length === 0 ? (
-          <div className="rec-empty">
-            <span style={{ display: 'inline-flex' }}><PartyPopper size={30} /></span>
-            <div>
-              <strong>Acil satış bekleyen ürün yok.</strong>
-              <div className="muted">
-                Food dolabında SKT'ye 2 günden az kalan ürün bulunmuyor
-                {recs.length > 0 ? `; dolapta ${sumRemaining(recs)} adet ürün satışa hazır.` : '.'}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <p className="muted" style={{ fontSize: 13, margin: '0 0 10px' }}>
-              SKT'ye son 2 gün kalan <strong>{sumRemaining(urgent)} adet</strong> ({urgent.length} kayıt) ürün — en acil en üstte.
-            </p>
-            <div className="rec-list">
-              {urgent.map((b) => (
-                <div key={b.id} className={`rec-card ${b.urgency}`}>
-                  <div className="info">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: 16 }}>{b.product_name}</strong>
-                      <StatusBadge status={b.status} urgency={b.urgency} />
-                    </div>
-                    <div className="muted" style={{ fontSize: 13 }}>
-                      SKT: {fmtDateTime(b.skt_end)}
-                    </div>
-                    <div className="rec-countdown">
-                      <Clock size={14} /> {b.urgency === 'expired' ? 'Süre doldu' : `${formatHours(b.remaining_hours)} kaldı`}
-                    </div>
-                  </div>
-                  <div className="rec-side">
-                    <div className="qty">{b.remaining}<span> adet</span></div>
-                    <div className="rec-actions">
-                      {b.urgency !== 'expired' ? (
-                        <button className="btn btn-success" onClick={() => setSellBatch(b)}><Banknote size={17} /> Sat</button>
-                      ) : (
-                        <button className="btn btn-danger" onClick={() => setDiscardBatch(b)}><Trash2 size={17} /> İmha</button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
       <div className="grid stats kpi-grid">
-        <Stat icon={Snowflake} label="Donuk Depo" value={c.frozen_qty} sub={`${c.frozen} kayıt`} color="var(--info)" />
-        <Stat icon={Hourglass} label="Çözülme" value={c.thawing_qty} sub={`${c.thawing} kayıt`} color="var(--warning)" />
-        <Stat icon={Refrigerator} label="Food Dolabı" value={c.food_cabinet_qty} sub={`${c.food_cabinet} kayıt`} color="var(--success)" />
-        <Stat icon={TriangleAlert} label="SKT Geçen" value={c.expired_qty} sub="imha edilmeli" color="var(--danger)" />
-      </div>
-
-      <div className="grid stats kpi-grid" style={{ marginTop: 12 }}>
-        <Stat icon={Banknote} label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} />
-        <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" />
+        <Stat icon={Snowflake} label="Donuk Depo" value={c.frozen_qty} sub={`${c.frozen} kayıt`} color="var(--info)" to="/batches?tab=frozen" />
+        <Stat icon={Hourglass} label="Çözülme" value={c.thawing_qty} sub={`${c.thawing} kayıt`} color="var(--warning)" to="/batches?tab=thawing" />
+        <Stat icon={Refrigerator} label="Food Dolabı" value={c.food_cabinet_qty} sub={`${c.food_cabinet} kayıt`} color="var(--success)" to="/batches?tab=food_cabinet" />
+        <Stat icon={TriangleAlert} label="SKT Geçen" value={c.expired_qty} sub="imha edilmeli" color="var(--danger)" to="/recommendations" />
+        <Stat icon={Banknote} label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} to="/sales?range=today&kind=sale" />
+        <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
       </div>
 
       {summary && (
-        <>
-          <button
-            type="button"
-            className="section-toggle"
-            aria-expanded={showReports}
-            onClick={() => setShowReports((v) => !v)}
-          >
-            <span><ChartColumn size={18} /> Raporlar</span>
-            {showReports ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
-
-          {showReports && (
         <div className="analytics-layout">
           <div className="analytics-main">
             {summary.type === 'multi' ? (
@@ -276,21 +233,16 @@ export default function Dashboard() {
               </>
             ) : (
               <div className="grid stats kpi-grid">
-                <div className="stat stat-card">
-                  <div className="label"><span><Store size={15} /> {summary.store?.name}</span></div>
-                  <div className="value">{summary.product_count}</div>
-                  <div className="sub">aktif ürün çeşidi</div>
-                </div>
-                <div className="stat stat-card">
+                <Link to="/sales?kind=sale" className="stat stat-card stat-link">
                   <div className="label"><span><Banknote size={15} /> Toplam Satış</span></div>
                   <div className="value">{summary.sold_qty} adet</div>
                   <div className="sub">{summary.revenue.toLocaleString('tr-TR')} TL ciro</div>
-                </div>
-                <div className="stat stat-card">
+                </Link>
+                <Link to="/sales?kind=discard" className="stat stat-card stat-link">
                   <div className="label"><span><Trash2 size={15} /> İmha</span></div>
                   <div className="value">{summary.discarded_qty}</div>
                   <div className="sub">adet</div>
-                </div>
+                </Link>
               </div>
             )}
 
@@ -333,9 +285,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="chart-block">
-                  <div className="muted chart-label">Stok Dağılımı</div>
+                  <div className="muted chart-label">Durum Dağılımı</div>
                   <div className="status-chart">
-                    {statusChart.length === 0 && <p className="empty">Stok verisi bulunamadı</p>}
+                    {statusChart.length === 0 && <p className="empty">Veri bulunamadı</p>}
                     {statusChart.map((item) => (
                       <div className="status-bar-row" key={item.status}>
                         <span>{STATUS_CHART_LABELS[item.status] || item.status}</span>
@@ -349,6 +301,42 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {products && perf && (
+              <div className="card chart-panel">
+                <div className="panel-header">
+                  <div>
+                    <div className="panel-kicker">Ürün Performansı</div>
+                    <h3>{period === 'week' ? 'Son 7 Gün' : 'Son 30 Gün'}</h3>
+                  </div>
+                  <div className="tabs period-tabs">
+                    <button
+                      type="button"
+                      className={period === 'week' ? 'active' : ''}
+                      onClick={() => setPeriod('week')}
+                    >Hafta</button>
+                    <button
+                      type="button"
+                      className={period === 'month' ? 'active' : ''}
+                      onClick={() => setPeriod('month')}
+                    >Ay</button>
+                  </div>
+                </div>
+
+                <div className="rank-grid">
+                  <RankList title="En Çok Satan" icon={Award} tone="up" rows={perf.best} empty="Bu dönemde satış yok" />
+                  <RankList title="En Az Satan" icon={TrendingDown} tone="down" rows={perf.worst} empty="Bu dönemde satış yok" />
+                  <RankList title="En Çok Zayi" icon={Trash2} tone="waste" rows={perf.wasted} empty="Bu dönemde zayi yok" />
+                </div>
+
+                <p className="muted" style={{ fontSize: 12, margin: '12px 0 0' }}>
+                  Dönemde {perf.kinds} çeşitten toplam {perf.soldTotal} adet satıldı, {perf.wastedTotal} adet zayi verildi.
+                  {perf.kinds > 0 && perf.kinds <= 5
+                    ? ' Satılan çeşit sayısı 5 veya altında olduğu için en çok ve en az satan listeleri aynı ürünleri içerir.'
+                    : ''}
+                </p>
+              </div>
+            )}
           </div>
 
           <aside className="analytics-sidebar">
@@ -402,58 +390,48 @@ export default function Dashboard() {
 
           </aside>
         </div>
-          )}
-        </>
       )}
 
-      {sellBatch && (
-        <Confirm
-          title="Satışı Onayla"
-          danger={false}
-          confirmLabel="1 Adet Sat"
-          message={sellConfirmMessage(sellBatch)}
-          onCancel={() => setSellBatch(null)}
-          onConfirm={async () => {
-            try {
-              await api.post(`/batches/${sellBatch.id}/sell`, { quantity: 1 });
-              toast(`${sellBatch.product_name} — 1 adet satıldı`);
-            } catch (e) {
-              toast(errorMessage(e));
-            }
-            setSellBatch(null);
-            refresh();
-          }}
-        />
-      )}
+    </div>
+  );
+}
 
-      {discardBatch && (
-        <Confirm
-          title="İmha Et"
-          message={`${discardBatch.product_name} (${discardBatch.remaining} adet) SKT'si dolduğu için imha edilecek. Onaylıyor musunuz?`}
-          confirmLabel="İmha Et"
-          onCancel={() => setDiscardBatch(null)}
-          onConfirm={async () => {
-            try {
-              await api.post(`/batches/${discardBatch.id}/discard`, { reason: 'SKT süresi doldu' });
-              toast('Ürün imha edildi');
-            } catch (e) {
-              toast(errorMessage(e));
-            }
-            setDiscardBatch(null);
-            refresh();
-          }}
-        />
+function RankList({ title, icon: Icon, rows, tone, empty }) {
+  const max = Math.max(1, ...rows.map((r) => Number(r.qty) || 0));
+  return (
+    <div className="rank-block">
+      <div className="rank-head">{Icon && <Icon size={15} />} {title}</div>
+      {rows.length === 0 ? (
+        <p className="empty">{empty}</p>
+      ) : (
+        <ol className="rank-list">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <span className="rank-name" title={r.name}>{r.name}</span>
+              <span className="rank-bar-track">
+                <span
+                  className={`rank-bar ${tone}`}
+                  style={{ width: `${Math.max(6, (Number(r.qty) / max) * 100)}%` }}
+                />
+              </span>
+              <strong className="rank-qty">{r.qty}</strong>
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );
 }
 
-function Stat({ icon: Icon, label, value, sub, color }) {
-  return (
-    <div className="stat stat-card">
+// to verilirse kutu tiklanabilir olur ve ilgili ekrani acar.
+function Stat({ icon: Icon, label, value, sub, color, to }) {
+  const inner = (
+    <>
       <div className="label"><span>{Icon && <Icon size={15} />} {label}</span></div>
       <div className="value" style={color ? { color } : undefined}>{value}</div>
       <div className="sub">{sub}</div>
-    </div>
+    </>
   );
+  if (!to) return <div className="stat stat-card">{inner}</div>;
+  return <Link to={to} className="stat stat-card stat-link">{inner}</Link>;
 }

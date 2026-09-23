@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Modal, StatusBadge, Confirm, toast, sellConfirmMessage, ActionMenu } from '../components/ui';
-import {
-  fmtDateTime, formatHours, errorMessage,
-  toLocalInput, fromLocalInput, addDaysIso,
-} from '../format';
+import { Modal, StatusBadge, Confirm, toast, ActionMenu } from '../components/ui';
+import { fmtDateTime, formatHours, errorMessage, toLocalInput, fromLocalInput, addDaysIso, can } from '../format';
 
 const TABS = [
   { id: 'frozen', label: 'Donuk Depo', ico: Snowflake },
@@ -19,14 +17,18 @@ export default function Batches() {
   const { user } = useAuth();
   const [batches, setBatches] = useState([]);
   const [types, setTypes] = useState([]);
-  const [tab, setTab] = useState('frozen');
+  // Ana sayfadaki ozet kutulari ?tab= ile dogrudan ilgili sekmeyi aciyor.
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const [tab, setTab] = useState(
+    () => (['frozen', 'thawing', 'food_cabinet', 'history'].includes(requestedTab) ? requestedTab : 'frozen')
+  );
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [confirmThaw, setConfirmThaw] = useState(null);
   const [confirmComplete, setConfirmComplete] = useState(null);
   const [confirmDiscard, setConfirmDiscard] = useState(null);
-  const [sellBatch, setSellBatch] = useState(null);
   const [earlyRequest, setEarlyRequest] = useState(null);
   const [stockBatch, setStockBatch] = useState(null);
   const [adjustBatch, setAdjustBatch] = useState(null);
@@ -52,10 +54,9 @@ export default function Batches() {
 
   async function run(action, payload) {
     try {
-      await api.post(`/batches/${action.id}/${action.op}`, payload || {});
-      toast(action.msg);
-    } catch (err) {
-      toast(errorMessage(err));
+      await api.post(`/batches/${action.id}/${action.op}`, payload || {}, { successMessage: action.msg });
+    } catch {
+      // Bildirim API katmaninda gosterilir.
     }
     setReload((n) => n + 1);
   }
@@ -120,13 +121,10 @@ export default function Batches() {
                       {b.status === 'thawing' && !b.thaw_ready && b.pending_approval_id && (
                         <span className="badge warning">Onay Bekliyor</span>
                       )}
-                      {b.status === 'food_cabinet' && b.urgency !== 'expired' && (
-                        <button className="btn btn-sm btn-primary" onClick={() => setSellBatch(b)}>Satış</button>
-                      )}
 
                       <ActionMenu>
                         <button onClick={() => setShowDetail(b)}><Info size={16} /> Detay</button>
-                        {user.role === 'super_admin' && (
+                        {can(user, 'adjust_batches') && (
                           <button onClick={() => setAdjustBatch(b)}><PencilLine size={16} /> Tarih / Adet Düzelt</button>
                         )}
                         {b.status === 'frozen' && (
@@ -137,7 +135,7 @@ export default function Batches() {
                             <Hourglass size={16} /> Erken Aktarım İste ({formatHours(b.thaw_remaining_hours)})
                           </button>
                         )}
-                        {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && (
+                        {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && can(user, 'discard') && (
                           <button className="danger" onClick={() => setConfirmDiscard(b)}><Trash2 size={16} /> İmha Et</button>
                         )}
                       </ActionMenu>
@@ -180,26 +178,6 @@ export default function Batches() {
           batch={confirmDiscard}
           onClose={() => setConfirmDiscard(null)}
           onDone={() => { setConfirmDiscard(null); setReload((n) => n + 1); }}
-        />
-      )}
-
-      {sellBatch && (
-        <Confirm
-          title="Satışı Onayla"
-          danger={false}
-          confirmLabel="1 Adet Sat"
-          message={sellConfirmMessage(sellBatch)}
-          onCancel={() => setSellBatch(null)}
-          onConfirm={async () => {
-            try {
-              await api.post(`/batches/${sellBatch.id}/sell`, { quantity: 1 });
-              toast(`${sellBatch.product_name} — 1 adet satıldı`);
-            } catch (e) {
-              toast(errorMessage(e));
-            }
-            setSellBatch(null);
-            setReload((n) => n + 1);
-          }}
         />
       )}
 
@@ -256,7 +234,7 @@ function AddBatchModal({ types, onClose, onDone }) {
     try {
       const payload = { product_type_id, quantity, notes };
       if (user.role === 'super_admin' && store_id) payload.store_id = Number(store_id);
-      await api.post('/batches', payload);
+      await api.post('/batches', payload, { noToast: true });
       toast('Ürün donuk depoya eklendi');
       onDone();
     } catch (er) {
@@ -311,7 +289,7 @@ function DiscardModal({ batch, onClose, onDone }) {
     e.preventDefault();
     setErr('');
     try {
-      const r = await api.post(`/batches/${batch.id}/discard`, { reason, quantity });
+      const r = await api.post(`/batches/${batch.id}/discard`, { reason, quantity }, { noToast: true });
       toast(Number(quantity) >= batch.remaining ? 'Ürün tamamen imha edildi' : `${quantity} adet imha edildi, kalan: ${r.data.remaining}`);
       onDone();
     } catch (er) {
@@ -355,7 +333,7 @@ function ThawModal({ batch, onClose, onDone }) {
     e.preventDefault();
     setErr('');
     try {
-      const r = await api.post(`/batches/${batch.id}/thaw`, { quantity });
+      const r = await api.post(`/batches/${batch.id}/thaw`, { quantity }, { noToast: true });
       toast(partial || r.data.split
         ? `${quantity} adet çözünmeye alındı, kalan ${batch.remaining - Number(quantity)} adet donukta`
         : 'Ürün çözülmeye alındı (+4°C, 8 saat)');
@@ -391,7 +369,7 @@ function StockAddModal({ batch, onClose, onDone }) {  const [quantity, setQuanti
     e.preventDefault();
     setErr('');
     try {
-      await api.post(`/batches/${batch.id}/add-stock`, { quantity });
+      await api.post(`/batches/${batch.id}/add-stock`, { quantity }, { noToast: true });
       toast(`${quantity} adet donuk stoka eklendi`);
       onDone();
     } catch (er) {
@@ -424,7 +402,7 @@ function EarlyRequestModal({ batch, onClose, onDone }) {
     e.preventDefault();
     setErr('');
     try {
-      await api.post(`/batches/${batch.id}/request-early-transfer`, { reason });
+      await api.post(`/batches/${batch.id}/request-early-transfer`, { reason }, { noToast: true });
       toast('Erken aktarım isteği yönetici onayına gönderildi');
       onDone();
     } catch (er) {
@@ -534,7 +512,7 @@ function AdjustModal({ batch, onClose, onDone }) {
     const payload = { quantity: Number(quantity), remaining: Number(remaining) };
     for (const f of fields) payload[f.key] = fromLocalInput(stamps[f.key]);
     try {
-      const r = await api.put(`/batches/${batch.id}/adjust`, payload);
+      const r = await api.put(`/batches/${batch.id}/adjust`, payload, { noToast: true });
       toast(r.data.changes && r.data.changes.length ? 'Kayıt düzeltildi' : 'Değişiklik yapılmadı');
       onDone();
     } catch (er) {

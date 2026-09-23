@@ -1,13 +1,14 @@
 const express = require('express');
-const { queryAll, queryOne, execute, nowISO, addHours, addDays } = require('../db');
-const { requireAuth, requireRole } = require('../auth');
-const { logActivity, batchRow, requireStoreAccessForBatch } = require('../utils');
+const { queryAll, queryOne, execute, transaction, nowISO, addHours, addDays } = require('../db');
+const { requireAuth, requirePermission, permissionsOf } = require('../auth');
+const { logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
+  await promoteReadyThawing();
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   if (!storeId) {
     if (req.user.role !== 'super_admin') return res.status(403).json({ error: 'Mağaza atanmamış' });
@@ -39,6 +40,7 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
+  await promoteReadyThawing();
   const row = await queryOne(`
     SELECT b.*, pt.name AS product_name, pt.skt_days, pt.unit_price AS product_unit_price, s.name AS store_name,
       (SELECT a.id FROM transfer_approvals a WHERE a.batch_id = b.id AND a.status = 'pending' LIMIT 1) AS pending_approval_id
@@ -144,7 +146,8 @@ router.post('/:id/complete-thaw', async (req, res) => {
   }
 
   const type = await queryOne('SELECT * FROM product_types WHERE id = ?',row.product_type_id);
-  const cabinetAt = nowISO();
+  // SKT, dugmeye basildigi an degil cozulmenin bittigi an baslar.
+  const cabinetAt = row.thawing_finish_at;
   const sktEnd = addDays(cabinetAt, type.skt_days);
   await execute(`
     UPDATE batches SET status = 'food_cabinet', food_cabinet_entered_at = ?, skt_end = ? WHERE id = ?
@@ -186,7 +189,7 @@ router.post('/:id/request-early-transfer', async (req, res) => {
 });
 
 // İmha / atma
-router.post('/:id/discard', async (req, res) => {
+router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
   requireStoreAccessForBatch(row.store_id, req.user);
@@ -202,19 +205,41 @@ router.post('/:id/discard', async (req, res) => {
   if (qty > row.remaining) return res.status(400).json({ error: `Yeterli stok yok. Kalan: ${row.remaining}` });
 
   const type = await queryOne('SELECT name FROM product_types WHERE id = ?',row.product_type_id);
-  if (qty >= row.remaining) {
-    await execute(`
-      UPDATE batches SET status = 'discarded', discarded_at = ?, discard_reason = ?, remaining = 0 WHERE id = ?
-    `,nowISO(), reason || 'Belirtilmedi', row.id);
-    await logActivity(req.user, 'IMHA', 'batch', row.id, `${type.name} tamamen imha edildi (${qty} adet, ${reason || 'sebep belirtilmedi'})`, row.store_id);
-    await execute("UPDATE transfer_approvals SET status = 'cancelled', decided_at = ?, decision_note = ? WHERE batch_id = ? AND status = 'pending'",
-      nowISO(), 'Ürün imha edildi', row.id
+  const full = qty >= row.remaining;
+  const at = nowISO();
+
+  // Imha adedi discards tablosuna yazilir; parti guncellemesiyle ayni islemde
+  // olmasi gerekir, yoksa biri basarisiz olunca zayi raporu stokla tutmaz.
+  await transaction(async (client) => {
+    await execute(
+      'INSERT INTO discards (store_id, batch_id, quantity, reason, discarded_at, discarded_by) VALUES (?,?,?,?,?,?)',
+      [row.store_id, row.id, qty, reason || 'Belirtilmedi', at, req.user.id], client
     );
-    return res.json({ ok: true, remaining: 0, status: 'discarded' });
-  }
-  await execute('UPDATE batches SET remaining = remaining - ? WHERE id = ?',qty, row.id);
-  await logActivity(req.user, 'IMHA', 'batch', row.id, `${type.name} kısmi imha: ${qty} adet (${reason || 'sebep belirtilmedi'})`, row.store_id);
-  res.json({ ok: true, remaining: row.remaining - qty, status: row.status });
+    if (full) {
+      await execute(
+        "UPDATE batches SET status = 'discarded', discarded_at = ?, discard_reason = ?, remaining = 0 WHERE id = ?",
+        [at, reason || 'Belirtilmedi', row.id], client
+      );
+      await execute(
+        "UPDATE transfer_approvals SET status = 'cancelled', decided_at = ?, decision_note = ? WHERE batch_id = ? AND status = 'pending'",
+        [at, 'Ürün imha edildi', row.id], client
+      );
+    } else {
+      await execute('UPDATE batches SET remaining = remaining - ? WHERE id = ?', [qty, row.id], client);
+    }
+  });
+
+  await logActivity(req.user, 'IMHA', 'batch', row.id,
+    full
+      ? `${type.name} tamamen imha edildi (${qty} adet, ${reason || 'sebep belirtilmedi'})`
+      : `${type.name} kısmi imha: ${qty} adet (${reason || 'sebep belirtilmedi'})`,
+    row.store_id);
+
+  res.json({
+    ok: true,
+    remaining: full ? 0 : row.remaining - qty,
+    status: full ? 'discarded' : row.status,
+  });
 });
 
 // Donuk depodaki ürüne stok ekle (adetli)
@@ -232,13 +257,32 @@ router.post('/:id/add-stock', async (req, res) => {
 });
 
 // Satış işaretleme
+// Satis ve ikram ayni akisi paylasir: ikisi de stoktan duser ve ayni kurallara
+// (food dolabinda olmak, SKT dolmamis olmak) tabidir. Fark kaydin turunde:
+// ikram ciroya ve satis adetlerine girmez.
 router.post('/:id/sell', async (req, res) => {
+  const kind = req.body.kind === 'ikram' ? 'ikram' : 'sale';
+  const isIkram = kind === 'ikram';
+  const verb = isIkram ? 'ikram edilebilir' : 'satılabilir';
+
+  // Satis ve ikram ayni uc noktada oldugu icin yetki middleware ile degil
+  // gövdedeki kind'a gore burada kontrol edilir.
+  if (isIkram && req.user.role !== 'super_admin') {
+    const me = await queryOne('SELECT role, permissions FROM users WHERE id = ?', req.user.id);
+    if (!permissionsOf(me).includes('ikram')) {
+      return res.status(403).json({ error: 'İkram yetkiniz yok' });
+    }
+  }
+
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
   requireStoreAccessForBatch(row.store_id, req.user);
-  if (row.status !== 'food_cabinet') return res.status(400).json({ error: 'Yalnızca food dolabındaki ürünler satılabilir' });
+  if (row.status !== 'food_cabinet') return res.status(400).json({ error: `Yalnızca food dolabındaki ürünler ${verb}` });
   if (row.skt_end && Date.now() > new Date(row.skt_end).getTime()) {
-    return res.status(400).json({ error: 'Bu ürünün SKT süresi doldu, satış yapılamaz. İmha edilmelidir.' });
+    // SKT dolan urun ikram da edilemez; gida guvenligi kurali ayni.
+    return res.status(400).json({
+      error: `Bu ürünün SKT süresi doldu, ${isIkram ? 'ikram edilemez' : 'satış yapılamaz'}. İmha edilmelidir.`,
+    });
   }
 
   const qty = Number(req.body.quantity);
@@ -246,7 +290,8 @@ router.post('/:id/sell', async (req, res) => {
   if (qty > row.remaining) return res.status(400).json({ error: `Yeterli stok yok. Kalan: ${row.remaining}` });
 
   // Birim fiyat pasta cesidinden gelir; satirda anlik goruntusu saklanir ki
-  // sonradan yapilan fiyat degisiklikleri gecmis ciroyu bozmasin.
+  // sonradan yapilan fiyat degisiklikleri gecmis ciroyu bozmasin. Ikramda da
+  // yazilir: bedelsiz verilenin degeri raporlanabilsin.
   const type = await queryOne('SELECT name, unit_price FROM product_types WHERE id = ?',row.product_type_id);
   const unitPrice = type && type.unit_price !== null && type.unit_price !== undefined ? Number(type.unit_price) : null;
 
@@ -255,17 +300,21 @@ router.post('/:id/sell', async (req, res) => {
   const soldAt = nowISO();
 
   const r = await execute(
-    'INSERT INTO sales (store_id, batch_id, quantity, unit_price, sold_at, sold_by) VALUES (?,?,?,?,?,?) RETURNING id'
-  ,row.store_id, row.id, qty, unitPrice, soldAt, req.user.id);
+    'INSERT INTO sales (store_id, batch_id, quantity, unit_price, kind, sold_at, sold_by) VALUES (?,?,?,?,?,?,?) RETURNING id'
+  ,row.store_id, row.id, qty, unitPrice, kind, soldAt, req.user.id);
 
   await execute('UPDATE batches SET remaining = ?, status = ?, sold_at = ? WHERE id = ?',
     newRemaining, newStatus, newStatus === 'sold' ? soldAt : row.sold_at, row.id
   );
 
-  await logActivity(req.user, 'SATIS', 'batch', row.id,
-    `${type.name} ${qty} adet satıldı${unitPrice !== null ? ` (birim: ${unitPrice} TL, tutar: ${qty * unitPrice} TL)` : ' (fiyat tanımlı değil)'}`, row.store_id);
+  const valueNote = unitPrice !== null ? ` (birim: ${unitPrice} TL, tutar: ${qty * unitPrice} TL)` : ' (fiyat tanımlı değil)';
+  await logActivity(req.user, isIkram ? 'IKRAM' : 'SATIS', 'batch', row.id,
+    isIkram
+      ? `${type.name} ${qty} adet ikram edildi${valueNote}`
+      : `${type.name} ${qty} adet satıldı${valueNote}`,
+    row.store_id);
   res.status(201).json({
-    id: Number(r.lastInsertRowid), remaining: newRemaining, status: newStatus,
+    id: Number(r.lastInsertRowid), remaining: newRemaining, status: newStatus, kind,
     unit_price: unitPrice, total: unitPrice !== null ? qty * unitPrice : null,
   });
 });
@@ -280,7 +329,7 @@ const TIMESTAMP_LABELS = {
   skt_end: 'SKT bitiş',
 };
 
-router.put('/:id/adjust', requireRole('super_admin'), async (req, res) => {
+router.put('/:id/adjust', requirePermission('adjust_batches'), async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
   const body = req.body || {};

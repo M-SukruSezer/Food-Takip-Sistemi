@@ -78,6 +78,34 @@ export const ROLE_LABELS = {
   staff: 'Personel',
 };
 
+// Ana Yoneticinin devredebildigi yetkiler; sunucudaki ALL_PERMISSIONS ile ayni.
+export const ALL_PERMISSIONS = ['manage_product_types', 'adjust_batches', 'discard', 'ikram'];
+
+export const PERMISSION_LABELS = {
+  manage_product_types: 'Pasta çeşidi yönetimi',
+  adjust_batches: 'Parti düzeltme (tarih/adet)',
+  discard: 'İmha',
+  ikram: 'İkram',
+};
+
+// Yeni kullanici imha ve ikram ile gelir: yetki sistemi oncesi davranis buydu.
+export const DEFAULT_PERMISSIONS = ['discard', 'ikram'];
+
+// Arayuz yetkisiz dugmeleri gizler; son sozu sunucu soyler. Ana Yonetici her
+// yetkiye sahiptir, listesi bos gelse bile.
+export function can(user, permission) {
+  if (!user) return false;
+  if (user.role === 'super_admin') return true;
+  return Array.isArray(user.permissions) && user.permissions.includes(permission);
+}
+
+// Bir kullanicinin devredebilecegi yetkiler: kendi sahip olduklari kadar.
+export function grantablePermissions(user) {
+  if (!user) return [];
+  if (user.role === 'super_admin') return [...ALL_PERMISSIONS];
+  return ALL_PERMISSIONS.filter((p) => can(user, p));
+}
+
 export const STATUS_LABELS = {
   frozen: 'Donuk Depo',
   thawing: 'Çözülme (+4°C)',
@@ -85,6 +113,18 @@ export const STATUS_LABELS = {
   sold: 'Satıldı',
   discarded: 'İmha Edildi',
 };
+
+// Arama icin Turkce duyarsizlastirma: personel telefonda Turkce karakter
+// yazmadan da bulabilsin ("cikolata" -> "ÇİKOLATA", "pogaca" -> "POĞAÇA").
+// ı harfinin NFD ayrisimi olmadigi icin once elle cevrilir, kalan isaretler
+// (ş, ğ, ç, ö, ü ve İ'nin noktasi) NFD ile ayiklanip atilir.
+export function normalizeSearch(value) {
+  return String(value || '')
+    .toLocaleLowerCase('tr')
+    .replace(/ı/g, 'i')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
 
 export function errorMessage(err) {
   return (err.response && err.response.data && err.response.data.error) || 'Bir hata oluştu';

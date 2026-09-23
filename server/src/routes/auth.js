@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { sign, verifyPassword, requireAuth } = require('../auth');
+const { sign, verifyPassword, requireAuth, permissionsOf } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
@@ -34,6 +34,9 @@ router.post('/login', async (req, res) => {
       role: user.role,
       store_id: user.store_id,
       store_name: store ? store.name : null,
+      avatar: user.avatar || null,
+      // Arayuz yetkisiz dugmeleri bastan gizlesin; son soz sunucuda.
+      permissions: permissionsOf(user),
     },
   });
 });
@@ -49,6 +52,8 @@ router.get('/me', requireAuth, async (req, res) => {
     role: user.role,
     store_id: user.store_id,
     store_name: store ? store.name : null,
+    avatar: user.avatar || null,
+    permissions: permissionsOf(user),
   });
 });
 
@@ -68,6 +73,33 @@ router.post('/password', requireAuth, async (req, res) => {
   await execute('UPDATE users SET password_hash = ? WHERE id = ?',hashPassword(String(newPassword)), req.user.id);
   await logActivity(req.user, 'SIFRE_DEGISTIR', 'user', req.user.id, 'Kendi şifresini değiştirdi');
   res.json({ ok: true });
+});
+
+// Profil fotosu. Istemci gorseli 256px'e kucultup JPEG veri URL'si olarak
+// gonderir; burada yalnizca bicim ve boyut dogrulanir. Sunucusuz ortamda
+// dosya sistemi kalici olmadigi icin gorsel satirda saklanir.
+const AVATAR_MAX_CHARS = 400000; // ~300 KB ikili veri
+const AVATAR_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+
+router.post('/avatar', requireAuth, async (req, res) => {
+  const { avatar } = req.body || {};
+
+  if (avatar === null || avatar === '') {
+    await execute('UPDATE users SET avatar = NULL WHERE id = ?', req.user.id);
+    await logActivity(req.user, 'PROFIL_FOTO', 'user', req.user.id, 'Profil fotoğrafı kaldırıldı');
+    return res.json({ ok: true, avatar: null });
+  }
+
+  if (typeof avatar !== 'string' || !AVATAR_PATTERN.test(avatar)) {
+    return res.status(400).json({ error: 'Geçersiz görsel biçimi. PNG, JPEG veya WEBP olmalıdır.' });
+  }
+  if (avatar.length > AVATAR_MAX_CHARS) {
+    return res.status(400).json({ error: 'Görsel çok büyük. Lütfen daha küçük bir fotoğraf seçin.' });
+  }
+
+  await execute('UPDATE users SET avatar = ? WHERE id = ?', avatar, req.user.id);
+  await logActivity(req.user, 'PROFIL_FOTO', 'user', req.user.id, 'Profil fotoğrafı güncellendi');
+  res.json({ ok: true, avatar });
 });
 
 module.exports = router;

@@ -16,6 +16,12 @@ router.get('/', async (req, res) => {
   const params = [];
   let where = '';
   if (storeId) { where = ' WHERE sl.store_id = ?'; params.push(storeId); }
+  // ?kind=sale|ikram ile tek tur listelenebilir; verilmezse ikisi de gelir.
+  if (req.query.kind === 'sale' || req.query.kind === 'ikram') {
+    where += where ? ' AND' : ' WHERE';
+    where += ' sl.kind = ?';
+    params.push(req.query.kind);
+  }
   if (req.query.from) { where += where ? ' AND' : ' WHERE'; where += ' sl.sold_at >= ?'; params.push(req.query.from); }
   if (req.query.to) { where += where ? ' AND' : ' WHERE'; where += ' sl.sold_at <= ?'; params.push(req.query.to); }
 

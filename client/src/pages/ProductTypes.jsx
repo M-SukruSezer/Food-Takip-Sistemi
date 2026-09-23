@@ -3,7 +3,7 @@ import { Cake } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
-import { errorMessage, fmtMoney, hasPrice } from '../format';
+import { errorMessage, fmtMoney, hasPrice, can } from '../format';
 
 export default function ProductTypes() {
   const { user } = useAuth();
@@ -13,7 +13,8 @@ export default function ProductTypes() {
   const [showAdd, setShowAdd] = useState(false);
   const [edit, setEdit] = useState(null);
   const [del, setDel] = useState(null);
-  const canManage = user.role === 'super_admin';
+  // Ana Yonetici ya da "Pasta cesidi yonetimi" yetkisi verilmis kullanici.
+  const canManage = can(user, 'manage_product_types');
 
   const load = useCallback(() => {
     api.get('/product-types').then((r) => setTypes(r.data)).catch(() => {});
@@ -100,10 +101,9 @@ export default function ProductTypes() {
           onCancel={() => setDel(null)}
           onConfirm={async () => {
             try {
-              await api.delete(`/product-types/${del.id}`);
-              toast('Çeşit silindi');
-            } catch (e) {
-              toast(errorMessage(e));
+              await api.delete(`/product-types/${del.id}`, { successMessage: 'Çeşit silindi' });
+            } catch {
+              // Bildirim API katmaninda gosterilir.
             }
             setDel(null);
             setReload((n) => n + 1);
@@ -137,10 +137,10 @@ function TypeModal({ type, stores, defaultStore, onClose, onDone }) {
     if (user.role === 'super_admin') payload.store_id = store_id === '' ? null : Number(store_id);
     try {
       if (type) {
-        await api.put(`/product-types/${type.id}`, payload);
+        await api.put(`/product-types/${type.id}`, payload, { noToast: true });
         toast('Çeşit güncellendi');
       } else {
-        await api.post('/product-types', payload);
+        await api.post('/product-types', payload, { noToast: true });
         toast('Çeşit eklendi');
       }
       onDone();

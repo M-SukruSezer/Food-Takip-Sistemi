@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, Globe, Eye, EyeOff } from 'lucide-react';import { useAuth } from '../auth';
+import { User, Lock, Globe, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '../auth';
 import { errorMessage } from '../format';
 import { isNative, setApiBaseUrl, hasFixedApiUrl } from '../api';
 import { toast } from '../components/ui';
+import LoginArt from '../components/LoginArt';
 
 export default function Login() {
   const { login } = useAuth();
@@ -20,6 +22,7 @@ export default function Login() {
 
   async function submit(e) {
     e.preventDefault();
+    if (busy) return;
     setError('');
     if (askServer && server.trim()) setApiBaseUrl(server);
     setBusy(true);
@@ -42,74 +45,81 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-col">
-        <div className="login-main">
-        <img className="login-logo" src="/logo.png" alt="Food Takip Sistemi" />
-        <h1 className="login-title">Giriş Yap</h1>
-        <p className="login-sub">Hesabına erişmek için bilgilerini gir.</p>
+        {/* Üstte beyaz kart: illüstrasyon */}
+        <div className="login-art-card">
+          <LoginArt />
+        </div>
 
-        {error && <div className="alert error">{error}</div>}
+        {/* Altta marka renginde panel */}
+        <div className="login-panel">
+          <h1 className="login-title">Hoş geldin!</h1>
 
-        <form onSubmit={submit}>
-          <label className="login-label">Kullanıcı Adı <i>*</i></label>
-          <div className="input-wrap">
-            <span className="in-ico"><User size={17} /></span>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="kullaniciadi"
-              autoFocus
-              autoComplete="username"
-              required
-            />
-          </div>
-
-          <label className="login-label">Şifre <i>*</i></label>
-          <div className="input-wrap">
-            <span className="in-ico"><Lock size={17} /></span>
-            <input
-              type={show ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-            />
-            <button type="button" className="eye-btn" onClick={() => setShow((s) => !s)} aria-label="Şifreyi göster">
-              {show ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {askServer && (
-            <>
-              <label className="login-label">Sunucu Adresi <i>*</i></label>
-              <div className="input-wrap">
-                <span className="in-ico"><Globe size={17} /></span>
-                <input
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  placeholder="örn: 192.168.1.10:4000"
-                  inputMode="url"
-                />
-              </div>
-              <p className="login-hint">Sistemin çalıştığı bilgisayarın IP adresi ve portu</p>
-            </>
+          {error && (
+            <div className="login-error">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
           )}
 
-          <div className="login-row">
-            <label className="remember">
-              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-              Beni hatırla
-            </label>
-            <button type="button" className="link-red" onClick={forgot}>Şifremi unuttum</button>
-          </div>
+          <form onSubmit={submit}>
+            <div className="pill-field">
+              <span className="pill-ico"><User size={19} /></span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Kullanıcı adı"
+                aria-label="Kullanıcı adı"
+                autoFocus
+                autoComplete="username"
+                required
+              />
+            </div>
 
-          <button className="btn-login" type="submit" disabled={busy}>
-            {busy ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-          </button>
-        </form>
+            <div className="pill-field">
+              <span className="pill-ico"><Lock size={19} /></span>
+              <input
+                type={show ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Şifre"
+                aria-label="Şifre"
+                autoComplete="current-password"
+                required
+              />
+              <button type="button" className="pill-eye" onClick={() => setShow((s) => !s)} aria-label="Şifreyi göster">
+                {show ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
+            </div>
 
+            {askServer && (
+              <>
+                <div className="pill-field">
+                  <span className="pill-ico"><Globe size={19} /></span>
+                  <input
+                    value={server}
+                    onChange={(e) => setServer(e.target.value)}
+                    placeholder="Sunucu adresi — örn: 192.168.1.10:4000"
+                    aria-label="Sunucu adresi"
+                    inputMode="url"
+                  />
+                </div>
+                <p className="login-hint">Sistemin çalıştığı bilgisayarın IP adresi ve portu</p>
+              </>
+            )}
+
+            <div className="login-row">
+              <label className="remember">
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                Beni hatırla
+              </label>
+              <button type="button" className="login-forgot" onClick={forgot}>Şifremi unuttum?</button>
+            </div>
+
+            <button className="btn-login" type="submit" disabled={busy}>
+              {busy ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </button>
+          </form>
         </div>
-        <div className="login-foot">Telif hakkı ©2026 Colombia Plus Kurumsal.</div>
       </div>
     </div>
   );
