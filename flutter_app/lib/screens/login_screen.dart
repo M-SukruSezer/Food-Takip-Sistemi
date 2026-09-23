@@ -247,15 +247,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
 /// Ustteki illustrasyon. Kart yok: gorsel dogrudan sayfa zemini uzerinde
 /// duruyor.
+///
+/// Koyu temada gorselin siyah konturlari lacivert zeminle birlesiyordu; bu
+/// yuzden yalnizca koyu temada arkasina acik bir daire konur. Acik temada
+/// zemin zaten aciktir, daireye gerek yok.
 class _Art extends StatelessWidget {
   const _Art();
 
+  /// Daire, gorselin kare kutusu kadar; gorsel biraz iceri alinir ki en
+  /// distaki parmak uclari dairenin kenarina dayanmasin.
+  static const double _inset = 0.045;
+
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final height = (MediaQuery.sizeOf(context).height * 0.30).clamp(170.0, 280.0);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: SizedBox(height: height, child: const LoginArt()),
+      child: SizedBox(
+        height: height,
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              padding: dark ? EdgeInsets.all(height * _inset) : EdgeInsets.zero,
+              decoration: dark
+                  ? const BoxDecoration(color: Color(0xFFFFFFFF), shape: BoxShape.circle)
+                  : null,
+              child: const LoginArt(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

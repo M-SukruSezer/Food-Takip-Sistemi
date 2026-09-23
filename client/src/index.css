@@ -597,14 +597,30 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   flex-direction: column;
 }
 
+/* Kare kutu: koyu temada arkasına açık daire konur. */
+.login-art-wrap {
+  width: 230px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: 8px auto 0;
+}
+
 .login-art {
   display: block;
   width: 100%;
-  max-height: 230px;
-  margin: 8px auto 0;
+  height: 100%;
   /* Görsel kare ve kendi içinde boşluğu var; büyütüp kırpmak kolları
      kesiyordu, olduğu gibi sığdırılır. */
   object-fit: contain;
+}
+
+/* Koyu temada görselin siyah konturları lacivert zeminle birleşiyordu.
+   Görsel biraz içeri alınır ki en dıştaki parmak uçları dairenin kenarına
+   dayanmasın. */
+:root[data-theme='dark'] .login-art-wrap {
+  background: #fff;
+  border-radius: 50%;
+  padding: 4.5%;
 }
 
 .login-panel { padding: 26px 8px 8px; }
@@ -705,14 +721,14 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 
 /* Telefonda kart kısalır, başlık küçülür */
 @media (max-width: 640px) {
-  .login-art { max-height: 190px; }
+  .login-art-wrap { width: 190px; }
   .login-title { font-size: 30px; }
   .login-panel { padding: 22px 6px 6px; }
 }
 
 /* Kısa ekranlarda (yatay telefon) illüstrasyon yer kaplamasın */
 @media (max-height: 620px) {
-  .login-art { max-height: 120px; }
+  .login-art-wrap { width: 120px; }
 }
 
 /* ---------- Paylaşılan ikonlu giriş alanı (öneri listesi araması) ---------- */

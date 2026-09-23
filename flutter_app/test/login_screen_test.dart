@@ -195,4 +195,29 @@ void main() {
     expect(zeminler[1], AppTokens.dark.bg);
   });
 
+  testWidgets('koyu temada görselin arkasında açık daire var', (tester) async {
+    BoxDecoration? arkaPlan(WidgetTester t) {
+      final kaplar = find
+          .ancestor(of: find.byType(LoginArt), matching: find.byType(Container))
+          .evaluate()
+          .map((e) => (e.widget as Container).decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.color != null);
+      return kaplar.isEmpty ? null : kaplar.first;
+    }
+
+    // Acik temada zemin zaten acik; daireye gerek yok.
+    await tester.pumpWidget(_app(Brightness.light));
+    await tester.pumpAndSettle();
+    expect(arkaPlan(tester), isNull);
+
+    // Koyu temada gorselin siyah konturlari lacivert zeminle birlesiyordu.
+    await tester.pumpWidget(_app(Brightness.dark));
+    await tester.pumpAndSettle();
+    final daire = arkaPlan(tester);
+    expect(daire, isNotNull, reason: 'koyu temada daire yok');
+    expect(daire!.shape, BoxShape.circle);
+    expect(daire.color, const Color(0xFFFFFFFF));
+  });
+
 }
