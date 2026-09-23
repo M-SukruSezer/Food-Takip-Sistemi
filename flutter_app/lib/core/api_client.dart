@@ -16,6 +16,7 @@ const _tokenKey = 'token';
 ///   silent: true          -> katman ve bildirim yok (arka plan yenilemeleri)
 ///   noToast: true         -> katman var, bildirim yok (hatayi kendi gosteren ekranlar)
 ///   successMessage: '...' -> basari bildiriminde genel metin yerine bu kullanilir
+///   busyMessage: '...'    -> yukleme katmaninda genel metin yerine bu yazar
 class ApiClient {
   ApiClient() {
     _dio = Dio(BaseOptions(
@@ -69,7 +70,7 @@ class ApiClient {
     }
     if (!_flag(options, 'silent')) {
       options.extra['__busy'] = true;
-      busy.begin();
+      busy.begin(message: options.extra['busyMessage'] as String?);
     }
     handler.next(options);
   }

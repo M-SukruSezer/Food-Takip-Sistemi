@@ -43,13 +43,14 @@ function isMutation(config) {
 //   silent: true          -> katman ve bildirim yok (arka plan yenilemeleri)
 //   noToast: true         -> katman var, bildirim yok (hatayi kendi gosteren ekranlar)
 //   successMessage: '...' -> basari bildiriminde genel metin yerine bu kullanilir
+//   busyMessage: '...'    -> yukleme katmaninda genel metin yerine bu yazar
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBaseUrl();
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (!config.silent) {
     config.__busy = true;
-    beginBusy();
+    beginBusy(config.busyMessage);
   }
   return config;
 });

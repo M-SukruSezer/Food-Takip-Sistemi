@@ -1,17 +1,21 @@
 // Acik istek sayaci. API katmani her istekte artirir, bittiginde azaltir;
 // sayac sifira dustugunde yukleme katmani kapanir.
+export const DEFAULT_BUSY_MESSAGE = 'Yükleniyor...';
+
 let count = 0;
 let hideTimer = null;
 let visible = false;
+let message = null;
 const listeners = new Set();
 
 function emit() {
-  listeners.forEach((fn) => fn(visible));
+  listeners.forEach((fn) => fn(visible ? (message || DEFAULT_BUSY_MESSAGE) : null));
 }
 
-function show() {
+function show(nextMessage) {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-  if (!visible) { visible = true; emit(); }
+  if (nextMessage) message = nextMessage;
+  if (!visible || nextMessage) { visible = true; emit(); }
 }
 
 // Zincirlenen istekler (ornegin satis + listeyi yenileme) arasinda katmanin
@@ -22,13 +26,16 @@ function scheduleHide() {
   hideTimer = setTimeout(() => {
     hideTimer = null;
     visible = false;
+    // Sonraki istek kendi metnini vermezse genel metne donulsun.
+    message = null;
     emit();
   }, 180);
 }
 
-export function beginBusy() {
+// busyMessage verilirse katmanda genel metin yerine o yazar.
+export function beginBusy(busyMessage) {
   count += 1;
-  show();
+  show(busyMessage);
 }
 
 export function endBusy() {
@@ -36,8 +43,9 @@ export function endBusy() {
   if (count === 0) scheduleHide();
 }
 
+// Dinleyici, katman kapaliyken null, acikken gosterilecek metni alir.
 export function subscribeBusy(fn) {
   listeners.add(fn);
-  fn(visible);
+  fn(visible ? (message || DEFAULT_BUSY_MESSAGE) : null);
   return () => listeners.delete(fn);
 }

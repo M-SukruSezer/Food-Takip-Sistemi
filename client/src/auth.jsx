@@ -21,7 +21,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (username, password) => {
-    const r = await api.post('/auth/login', { username, password }, { noToast: true });
+    const r = await api.post('/auth/login', { username, password }, {
+      noToast: true,
+      busyMessage: 'Giriş yapılıyor...',
+    });
     localStorage.setItem('token', r.data.token);
     setUser(r.data.user);
     return r.data.user;

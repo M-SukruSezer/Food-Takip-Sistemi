@@ -75,7 +75,11 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: t.bg,
-      drawer: wide ? null : Drawer(child: _SideNav(items: items, location: location, rail: false)),
+      drawer: wide
+          ? null
+          : Drawer(
+              child: _SideNav(items: items, location: location, rail: false),
+            ),
       bottomNavigationBar: wide
           ? null
           : _BottomBar(location: location, recommendationCount: _recommendationCount),
@@ -138,118 +142,140 @@ class _SideNav extends StatelessWidget {
     return Container(
       width: rail ? 76 : 280,
       color: t.sidebar,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 64,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 16),
-              child: Row(
-                mainAxisAlignment: rail ? MainAxisAlignment.center : MainAxisAlignment.start,
-                children: [
-                  if (!rail)
-                    const Expanded(
-                      child: Text(
-                        'Food Takip Sistemi',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
-                        overflow: TextOverflow.ellipsis,
+      // Cekmece olarak acildiginda menu ekranin en ustunden basliyor ve marka
+      // yazisi telefonun durum cubugu simgelerinin altina giriyordu. Renk
+      // Container'da kaldigi icin zemin durum cubugunun altina uzanmaya devam
+      // eder, yalnizca icerik asagi iner. Genis ekranda govde zaten SafeArea
+      // icinde oldugu icin burasi etkisiz kalir.
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 64,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 16),
+                child: Row(
+                  mainAxisAlignment: rail ? MainAxisAlignment.center : MainAxisAlignment.start,
+                  children: [
+                    if (!rail)
+                      const Expanded(
+                        child: Text(
+                          'Food Takip Sistemi',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  if (onToggleRail != null)
-                    IconButton(
-                      tooltip: rail ? 'Menüyü genişlet' : 'Menüyü daralt',
-                      onPressed: onToggleRail,
-                      icon: Icon(rail ? Icons.chevron_right : Icons.chevron_left),
-                      color: const Color(0xFFCBD5E1),
-                      constraints: const BoxConstraints(
-                        minWidth: AppTokens.tap,
-                        minHeight: AppTokens.tap,
+                    if (onToggleRail != null)
+                      IconButton(
+                        tooltip: rail ? 'Menüyü genişlet' : 'Menüyü daralt',
+                        onPressed: onToggleRail,
+                        icon: Icon(rail ? Icons.chevron_right : Icons.chevron_left),
+                        color: const Color(0xFFCBD5E1),
+                        constraints: const BoxConstraints(
+                          minWidth: AppTokens.tap,
+                          minHeight: AppTokens.tap,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const Divider(height: 1, color: Color(0x2E94A3B8)),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 12, vertical: 12),
-              children: items.map((item) {
-                final active = location == item.path;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Tooltip(
-                    message: rail ? item.label : '',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-                      onTap: () {
-                        if (Scaffold.of(context).hasDrawer) Navigator.of(context).pop();
-                        context.go(item.path);
-                      },
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: AppTokens.tap),
-                        padding: EdgeInsets.symmetric(horizontal: rail ? 0 : 14),
-                        decoration: BoxDecoration(
-                          color: active ? t.primary600 : null,
-                          borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: rail ? MainAxisAlignment.center : MainAxisAlignment.start,
-                          children: [
-                            Icon(item.icon, size: 20, color: active ? Colors.white : const Color(0xFFCBD5E1)),
-                            if (!rail) ...[
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  item.label,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: active ? Colors.white : const Color(0xFFCBD5E1),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+            const Divider(height: 1, color: Color(0x2E94A3B8)),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 12, vertical: 12),
+                children: items.map((item) {
+                  final active = location == item.path;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Tooltip(
+                      message: rail ? item.label : '',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+                        onTap: () {
+                          if (Scaffold.of(context).hasDrawer) Navigator.of(context).pop();
+                          context.go(item.path);
+                        },
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: AppTokens.tap),
+                          padding: EdgeInsets.symmetric(horizontal: rail ? 0 : 14),
+                          decoration: BoxDecoration(
+                            color: active ? t.primary600 : null,
+                            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: rail
+                                ? MainAxisAlignment.center
+                                : MainAxisAlignment.start,
+                            children: [
+                              Icon(
+                                item.icon,
+                                size: 20,
+                                color: active ? Colors.white : const Color(0xFFCBD5E1),
+                              ),
+                              if (!rail) ...[
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    item.label,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: active ? Colors.white : const Color(0xFFCBD5E1),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          const Divider(height: 1, color: Color(0x2E94A3B8)),
-          Padding(
-            padding: EdgeInsets.all(rail ? 8 : 16),
-            child: rail
-                ? Avatar(user: user, size: 36)
-                : Row(
-                    children: [
-                      Avatar(user: user, size: 36),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.fullName ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
-                            ),
-                            Text(
-                              roleLabels[user?.role] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                            ),
-                          ],
+            const Divider(height: 1, color: Color(0x2E94A3B8)),
+            Padding(
+              padding: EdgeInsets.all(rail ? 8 : 16),
+              child: rail
+                  ? Avatar(user: user, size: 36)
+                  : Row(
+                      children: [
+                        Avatar(user: user, size: 36),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.fullName ?? '',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                roleLabels[user?.role] ?? '',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -307,7 +333,11 @@ class _TopBar extends StatelessWidget {
                         Text(
                           user?.fullName ?? '',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: t.ink, fontSize: narrow ? 12.5 : 13, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: t.ink,
+                            fontSize: narrow ? 12.5 : 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         Text(
                           // Telefonda yer acmak icin magaza adi gizlenir.
@@ -315,7 +345,11 @@ class _TopBar extends StatelessWidget {
                               ? (roleLabels[user?.role] ?? '')
                               : '${roleLabels[user?.role] ?? ''}${user?.storeName != null ? ' • ${user!.storeName}' : ''}',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: t.muted, fontSize: narrow ? 10.5 : 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: t.muted,
+                            fontSize: narrow ? 10.5 : 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -332,7 +366,9 @@ class _TopBar extends StatelessWidget {
             icon: const Icon(Icons.logout),
             style: IconButton.styleFrom(
               side: BorderSide(color: t.danger),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusSm)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+              ),
               minimumSize: const Size(AppTokens.tap, AppTokens.tap),
             ),
           ),
@@ -424,12 +460,7 @@ class _BottomTab extends StatelessWidget {
                     Avatar(user: session.user, size: 24)
                   else
                     Icon(item.icon, size: 24, color: color),
-                  if (badge > 0)
-                    Positioned(
-                      top: -8,
-                      left: 12,
-                      child: _NavBadge(count: badge),
-                    ),
+                  if (badge > 0) Positioned(top: -8, left: 12, child: _NavBadge(count: badge)),
                 ],
               ),
             ),
@@ -460,10 +491,7 @@ class _NavBadge extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minWidth: 18),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: t.danger,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: t.danger, borderRadius: BorderRadius.circular(12)),
       child: Text(
         count > 99 ? '99+' : '$count',
         textAlign: TextAlign.center,

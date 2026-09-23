@@ -21,7 +21,9 @@ class BusyOverlay extends StatelessWidget {
           animation: busy,
           builder: (context, _) {
             if (!busy.visible) return const SizedBox.shrink();
-            return const _Overlay();
+            // Mesaj parametre olarak gecirilir: const _Overlay() ayni ornek
+            // oldugu icin metin degisse de yeniden cizilmiyordu.
+            return _Overlay(message: busy.message);
           },
         ),
       ],
@@ -30,7 +32,9 @@ class BusyOverlay extends StatelessWidget {
 }
 
 class _Overlay extends StatelessWidget {
-  const _Overlay();
+  const _Overlay({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +107,7 @@ class _Overlay extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Yükleniyor...',
+                        message,
                         style: TextStyle(color: t.ink, fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ],

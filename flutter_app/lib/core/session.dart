@@ -42,7 +42,7 @@ class Session extends ChangeNotifier {
       '/auth/login',
       data: {'username': username, 'password': password},
       // Giris hatasi formun icinde gosterilir; ayrica bildirim verilmez.
-      options: apiOptions(noToast: true),
+      options: apiOptions(noToast: true, busyMessage: 'Giriş yapılıyor...'),
     );
     final data = r.data!;
     await api.setToken(data['token'] as String);

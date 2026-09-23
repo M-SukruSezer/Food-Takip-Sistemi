@@ -45,10 +45,8 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-col">
-        {/* Üstte beyaz kart: illüstrasyon */}
-        <div className="login-art-card">
-          <LoginArt />
-        </div>
+        {/* İllüstrasyon doğrudan zemin üzerinde; kart yok */}
+        <LoginArt />
 
         {/* Altta marka renginde panel */}
         <div className="login-panel">

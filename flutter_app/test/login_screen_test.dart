@@ -170,19 +170,18 @@ void main() {
     expect(pill().boxShadow, isNotNull);
   });
 
-  testWidgets('illüstrasyon kartı her iki temada açık kalır', (tester) async {
-    // Görsel sabit renkli bir raster (beyaz eller, siyah kontur); koyu kartta
-    // konturlar kaybolurdu, bu yüzden kart temadan bağımsız.
-    for (final b in [Brightness.light, Brightness.dark]) {
-      await tester.pumpWidget(_app(b));
-      await tester.pumpAndSettle();
+  testWidgets('illüstrasyon kart içinde değil, doğrudan zemin üzerinde', (tester) async {
+    await tester.pumpWidget(_app(Brightness.light));
+    await tester.pumpAndSettle();
 
-      final card = tester.widget<Container>(
-        find.ancestor(of: find.byType(LoginArt), matching: find.byType(Container)).last,
-      );
-      expect((card.decoration! as BoxDecoration).color, const Color(0xFFFFFFFF),
-          reason: '$b temasinda kart beyaz degil');
-    }
+    // Gorselin ustunde arka plani olan bir kap kalmamali.
+    final kaplar = find
+        .ancestor(of: find.byType(LoginArt), matching: find.byType(Container))
+        .evaluate()
+        .map((e) => (e.widget as Container).decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.color != null);
+    expect(kaplar, isEmpty, reason: 'illüstrasyonun etrafında hâlâ bir kart var');
   });
 
   testWidgets('sayfa zemini temaya göre değişir', (tester) async {

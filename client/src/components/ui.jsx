@@ -161,10 +161,11 @@ export function LoadingOverlay({ message = 'Yükleniyor...' }) {
 // Uygulamada bir kez monte edilir; API katmanindaki acik istek sayacini dinler.
 // Veri okunurken veya kaydedilirken katmani otomatik acar, islem bitince kapatir.
 export function BusyHost() {
-  const [busy, setBusy] = useState(false);
-  useEffect(() => subscribeBusy(setBusy), []);
-  if (!busy) return null;
-  return <LoadingOverlay />;
+  // Dinleyici katman kapaliyken null, acikken gosterilecek metni doner.
+  const [message, setMessage] = useState(null);
+  useEffect(() => subscribeBusy(setMessage), []);
+  if (!message) return null;
+  return <LoadingOverlay message={message} />;
 }
 
 // Profil fotosu yoksa ad-soyad bas harfleri gosterilir.

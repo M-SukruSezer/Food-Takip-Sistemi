@@ -5,17 +5,24 @@ import 'package:flutter/foundation.dart';
 /// API katmani her istekte artirir, bittiginde azaltir; sifira dusunce
 /// yukleme katmani kapanir.
 class BusyState extends ChangeNotifier {
+  static const defaultMessage = 'Yükleniyor...';
+
   int _count = 0;
   Timer? _hideTimer;
   bool _visible = false;
+  String? _message;
 
   bool get visible => _visible;
 
-  void begin() {
+  /// Katmanda yazan metin. Istek kendi metnini vermediyse genel metin kullanilir.
+  String get message => _message ?? defaultMessage;
+
+  void begin({String? message}) {
     _count += 1;
+    if (message != null) _message = message;
     _hideTimer?.cancel();
     _hideTimer = null;
-    if (!_visible) {
+    if (!_visible || message != null) {
       _visible = true;
       notifyListeners();
     }
@@ -30,6 +37,8 @@ class BusyState extends ChangeNotifier {
     _hideTimer = Timer(const Duration(milliseconds: 180), () {
       _hideTimer = null;
       _visible = false;
+      // Sonraki istek kendi metnini vermezse genel metne donulsun.
+      _message = null;
       notifyListeners();
     });
   }

@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _ArtCard(),
+                  const _Art(),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
                     child: Column(
@@ -245,31 +245,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// Ustteki beyaz kart: sol ustte marka, ortada illustrasyon.
-///
-/// Illustrasyon sabit renkli bir raster oldugu icin kart ve marka yazisi
-/// temaya gore degismez: koyu temada lacivert kart uzerinde gorselin siyah
-/// konturlari kaybolurdu.
-class _ArtCard extends StatelessWidget {
-  const _ArtCard();
-
-  static const Color _cardColor = Color(0xFFFFFFFF);
+/// Ustteki illustrasyon. Kart yok: gorsel dogrudan sayfa zemini uzerinde
+/// duruyor.
+class _Art extends StatelessWidget {
+  const _Art();
 
   @override
   Widget build(BuildContext context) {
-    final height = (MediaQuery.sizeOf(context).height * 0.34).clamp(190.0, 300.0);
-    return Container(
-      height: height,
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        // Kart sabit beyaz; acik temada zemin de acik oldugu icin ince bir
-        // cerceve olmadan sinirlari kayboluyor.
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: const Center(child: LoginArt()),
+    final height = (MediaQuery.sizeOf(context).height * 0.30).clamp(170.0, 280.0);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: SizedBox(height: height, child: const LoginArt()),
     );
   }
 }
