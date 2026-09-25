@@ -17,6 +17,7 @@ const managerOverviewRoutes = require('./managerOverview');
 const pdksRoutes = require('./pdks');
 const pdksAdminRoutes = require('./pdksAdmin');
 const pdksRequestRoutes = require('./pdksRequests');
+const pdksTimesheetRoutes = require('./pdksTimesheet');
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.use('/pdks', pdksRoutes);
 // Ayni on ek: Express eslesmeyen yolda sonraki yonlendiriciyi dener.
 router.use('/pdks', pdksAdminRoutes);
 router.use('/pdks', pdksRequestRoutes);
+router.use('/pdks', pdksTimesheetRoutes);
 
 module.exports = router;
