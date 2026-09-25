@@ -62,6 +62,23 @@ export default function Batches() {
     setReload((n) => n + 1);
   }
 
+  // Silme geri alinamaz: bagli satis ve zayi kayitlari da gider. Onay metni
+  // bunu acikca yaziyor ve adet duzeltmesine yonlendiriyor.
+  async function removeBatch(b) {
+    const ok = window.confirm(
+      `${b.product_name} (${STATUS_LABELS[b.status] || b.status}, ${b.remaining} adet kalan) `
+      + `kaydı silinecek.\n\nBu partiye ait satış, ikram ve zayi kayıtları da silinir. `
+      + `İşlem geri alınamaz.\n\nYalnızca adet yanlışsa silmek yerine `
+      + `"Tarih / Adet Düzelt" kullanın.`
+    );
+    if (!ok) return;
+    try {
+      await api.delete(`/batches/${b.id}`, { successMessage: 'Kayıt silindi' });
+      setReload((n) => n + 1);
+    } catch {
+      // Bildirim api katmanindan gelir.
+    }
+  }
   return (
     <div className="page-shell stock-page">
       <div className="page-head">
