@@ -15,6 +15,8 @@ const pettyCashRoutes = require('./pettyCash');
 const dailyReportRoutes = require('./dailyReports');
 const managerOverviewRoutes = require('./managerOverview');
 const pdksRoutes = require('./pdks');
+const pdksAdminRoutes = require('./pdksAdmin');
+const pdksRequestRoutes = require('./pdksRequests');
 
 const router = express.Router();
 
@@ -34,5 +36,8 @@ router.use('/petty-cash', pettyCashRoutes);
 router.use('/daily-reports', dailyReportRoutes);
 router.use('/manager-overview', managerOverviewRoutes);
 router.use('/pdks', pdksRoutes);
+// Ayni on ek: Express eslesmeyen yolda sonraki yonlendiriciyi dener.
+router.use('/pdks', pdksAdminRoutes);
+router.use('/pdks', pdksRequestRoutes);
 
 module.exports = router;
