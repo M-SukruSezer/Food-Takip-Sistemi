@@ -10,6 +10,7 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import 'avatar.dart';
+import 'shortcut_fab.dart';
 
 /// Kirilma noktalari React tarafiyla ayni:
 ///   < 900   -> cekmece + alt cubuk
@@ -90,6 +91,9 @@ class _AppShellState extends State<AppShell> {
               location: location,
               recommendationCount: _recommendationCount,
             ),
+      // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez. Menudeki ogeler
+      // alt cubugun uzerinde kalsin diye cubuk yuksekligi gecirilir.
+      floatingActionButton: ShortcutFab(bottomInset: wide ? 0 : 64),
       body: SafeArea(
         child: Row(
           children: [

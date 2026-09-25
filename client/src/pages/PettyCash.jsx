@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Receipt, Camera, Image as ImageIcon, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
@@ -54,6 +55,7 @@ export default function PettyCash() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showAdd, setShowAdd] = useState(false);
   const [showLimits, setShowLimits] = useState(false);
   const [del, setDel] = useState(null);
@@ -68,6 +70,16 @@ export default function PettyCash() {
       .then((r) => { setItems(r.data.items || []); setStatus(r.data.status || null); })
       .catch(() => {});
   }, []);
+
+  // Kisayol dugmesinden ?new=1 ile gelindiginde form kendiliginden acilir.
+  // Parametre hemen temizlenir, yoksa yenilemede form tekrar aciliyor.
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+    setShowAdd(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('new');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => { load(); }, [load, reload]);
 

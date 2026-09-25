@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, FileSpreadsheet, FileText, Pencil, Sparkles, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
@@ -54,6 +55,7 @@ export default function DailyReport() {
   const [page, setPage] = useState(null);
   const [fields, setFields] = useState({ entry: [], system: [], derived: [] });
   const [period, setPeriod] = useState('week');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showAdd, setShowAdd] = useState(false);
   const [detail, setDetail] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -68,6 +70,16 @@ export default function DailyReport() {
       .then((r) => setPage(r.data))
       .catch(() => {});
   }, [period]);
+
+  // Kisayol dugmesinden ?new=1 ile gelindiginde form kendiliginden acilir.
+  // Parametre hemen temizlenir, yoksa yenilemede form tekrar aciliyor.
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+    setShowAdd(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('new');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => { load(); }, [load, reload]);
   useEffect(() => {

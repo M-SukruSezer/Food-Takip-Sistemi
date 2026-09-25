@@ -2488,3 +2488,112 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 .sidebar-collapsed .side-group-rule { display: none; }
 
+/* --- Kisayol dugmesi --- */
+.fab {
+  position: fixed;
+  right: 20px;
+  /* Mobilde alt sekme cubugunun uzerinde durur. */
+  bottom: calc(20px + var(--fab-bottom, 0px));
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.28);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.fab:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(17, 24, 39, 0.34); }
+.fab:active { transform: scale(.96); }
+.fab-close {
+  position: static;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+/* Perde: yukleme katmaniyla ayni zemin ve bulanti. Tek tanim olmasi ikisinin
+   zamanla ayrismasini engelliyor. */
+.app-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+:root[data-theme='dark'] .app-scrim {
+  background: rgba(2, 6, 23, 0.45);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .app-scrim {
+    background: rgba(2, 6, 23, 0.45);
+  }
+}
+
+/* Kisayol menusu, acan dugmenin bulundugu koseye hizalanir. */
+.shortcut-scrim { z-index: 80; }
+.shortcut-list {
+  position: absolute;
+  right: 20px;
+  bottom: calc(20px + var(--fab-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  /* Ogeler alttan yukari dogru sirayla giriyor. */
+  animation: shortcut-in .18s ease-out both;
+}
+.shortcut-label {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
+}
+.shortcut-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.22);
+}
+.shortcut-item:hover .shortcut-ico { filter: brightness(1.08); }
+
+@keyframes shortcut-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-item { animation: none; }
+}
+
+/* Alt sekme cubugu varsayilan olarak var; dugme onun uzerine cikar. Sifirlama
+   .bottom-nav'in gizlendigi kirilma noktasiyla BIREBIR ayni yonu kullaniyor
+   (min-width: 900px), yoksa iki kural zamanla ayrisir. */
+:root { --fab-bottom: 68px; }
+@media (min-width: 900px) {
+  :root { --fab-bottom: 0px; }
+}
+

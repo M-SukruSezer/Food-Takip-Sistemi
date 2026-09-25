@@ -18,7 +18,7 @@ export default function Batches() {
   const [batches, setBatches] = useState([]);
   const [types, setTypes] = useState([]);
   // Ana sayfadaki ozet kutulari ?tab= ile dogrudan ilgili sekmeyi aciyor.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   const [tab, setTab] = useState(
     () => (['frozen', 'thawing', 'food_cabinet', 'history'].includes(requestedTab) ? requestedTab : 'frozen')
@@ -40,6 +40,16 @@ export default function Batches() {
     api.get(`/batches?status=${status}`).then((r) => setBatches(r.data)).catch(() => {});
     api.get('/product-types').then((r) => setTypes(r.data.filter((t) => t.active === 1))).catch(() => {});
   }, [tab]);
+
+  // Kisayol dugmesinden ?new=1 ile gelindiginde form kendiliginden acilir.
+  // Parametre hemen temizlenir, yoksa yenilemede form tekrar aciliyor.
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+    setShowAdd(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('new');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => { load(); }, [load, reload]);
 

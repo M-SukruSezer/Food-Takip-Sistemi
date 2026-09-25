@@ -9,6 +9,7 @@ import {
 } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
+import ShortcutFab from './ShortcutFab';
 
 // Yan menu mantiksal gruplara ayrildi: gunluk operasyon, para ve raporlar,
 // kurulum. Bir grupta kullanicinin rolune acik oge kalmazsa baslik da
@@ -183,6 +184,7 @@ export default function Layout() {
         </header>
         <div className="content">
           <Outlet />
+          
         </div>
       </div>
 
@@ -220,6 +222,8 @@ export default function Layout() {
           onConfirm={() => { setConfirmLogout(false); logout(); navigate('/login'); }}
         />
       )}
+      <ShortcutFab role={user.role} />
+
     </div>
   );
 }
