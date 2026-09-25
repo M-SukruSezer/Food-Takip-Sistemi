@@ -1,0 +1,32 @@
+# .vercelignore varsa Vercel CLI .gitignore'u kullanmaz; bu yuzden buranin
+# .gitignore'un ustune yazmasi degil, onu kapsamasi gerekiyor.
+
+# Flutter: CLI ic ice .gitignore dosyalarini okumuyor, bu yuzden
+# flutter_app/build (1,5 GB) ve .dart_tool yukleniyordu. API projesinin
+# Root Directory'si server/ oldugu icin Flutter kaynagi hic gerekmiyor.
+flutter_app
+
+# Web istemci ayri bir Vercel projesi olarak client/ dizininden deploy ediliyor.
+client
+
+node_modules
+**/node_modules
+
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+
+.env
+.env.*
+!.env.example
+
+*.apk
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+.vscode
+.idea
+.DS_Store
+.git
+.github
