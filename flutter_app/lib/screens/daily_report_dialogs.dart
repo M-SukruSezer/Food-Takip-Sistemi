@@ -18,45 +18,58 @@ String formatReportValue(num? value, String type) {
   };
 }
 
-/// Gunluk veri girisi. Yalnizca ham alanlar sorulur; oranlar sunucuda
-/// hesaplandigi icin forma konmaz.
-Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields fields}) async {
+String dayKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}'
+    '-${d.month.toString().padLeft(2, '0')}'
+    '-${d.day.toString().padLeft(2, '0')}';
+
+/// Gunluk veri girisi ve duzenlemesi.
+///
+/// Formda yalnizca elle girilen alanlar var. Food alanlari sistemdeki pasta
+/// satis ve imha kayitlarindan hesaplandigi icin girilmez; okunur bilgi
+/// olarak gosterilir. Oranlar da sunucuda hesaplanir.
+///
+/// [existing] verilirse kayitli gun duzenlenir ve tarih degistirilemez —
+/// tarihi degistirmek ayni gune ikinci kayit cakismasi olusturuyor. Gun
+/// degisecekse kayit silinip yeniden girilir.
+Future<bool?> showDailyReportDialog(
+  BuildContext context, {
+  required ReportFields fields,
+  DailyReport? existing,
+}) async {
   if (fields.entry.isEmpty) return null;
 
-  var date = DateTime.now();
+  final editing = existing != null;
+  var date = editing ? DateTime.parse(existing.date) : DateTime.now();
   final controllers = {for (final f in fields.entry) f.key: TextEditingController()};
   var loadedFor = '';
   var system = SystemFoodValues.empty;
 
-  String dayKey(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   String textFor(ReportField f, num v) => f.isInt ? v.toInt().toString() : v.toString();
 
-  /// Secilen gun icin formu hazirlar.
-  ///
-  /// Food alanlari (FOOD USD, FOOD USD ₺, FOOD MO ₺) sistemdeki satis ve imha
-  /// kayitlarindan otomatik dolar. Gune ait kayit varsa onceki degerler
-  /// kullanilir — kullanici duzeltmisse kaybolmasin.
-  Future<void> loadExisting(VoidCallback rebuild) async {
+  if (editing) {
+    for (final f in fields.entry) {
+      controllers[f.key]!.text = textFor(f, existing.values[f.key] ?? 0);
+    }
+  }
+
+  /// Secilen gun icin kayitli degerleri ve sistemin food rakamlarini yukler.
+  Future<void> loadDay(VoidCallback rebuild) async {
     final key = dayKey(date);
     if (loadedFor == key) return;
     loadedFor = key;
     try {
       final day = await repo.dailyReportFor(key);
       system = day.suggested;
-      for (final f in fields.entry) {
-        final saved = day.report?.values[f.key];
-        if (saved != null) {
-          controllers[f.key]!.text = textFor(f, saved);
-        } else if (SystemFoodValues.keys.contains(f.key)) {
-          controllers[f.key]!.text = textFor(f, system[f.key] ?? 0);
-        } else {
-          controllers[f.key]!.text = '';
+      // Duzenlemede alanlar zaten dolu; ustune yazilmaz.
+      if (!editing) {
+        for (final f in fields.entry) {
+          final saved = day.report?.values[f.key];
+          controllers[f.key]!.text = saved == null ? '' : textFor(f, saved);
         }
       }
     } catch (_) {
-      // Sistem degerleri alinamazsa alanlar bos kalir, elle girilebilir.
+      // Sistem rakamlari alinamazsa form calismaya devam eder; food degerleri
+      // kaydederken sunucu tarafinda yine hesaplanir.
     }
     rebuild();
   }
@@ -64,68 +77,99 @@ Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields
   return showDialog<bool>(
     context: context,
     builder: (ctx) => FormDialog(
-      title: 'Günlük Rapor',
-      submitLabel: 'Kaydet',
+      title: editing ? 'Günlük Raporu Düzenle' : 'Günlük Rapor',
+      submitLabel: editing ? 'Güncelle' : 'Kaydet',
       fields: (context, rebuild) {
-        // Ilk acilista ve tarih degisince mevcut kaydi yukle.
-        loadExisting(rebuild);
+        loadDay(rebuild);
+        final t = context.tokens;
         return [
           LabeledField(
             label: 'Tarih',
-            hint: 'Aynı gün için tekrar giriş mevcut kaydı günceller.',
-            child: DateTimeField(
-              value: date,
-              onChanged: (v) {
-                date = v;
-                rebuild();
-              },
-            ),
-          ),
-          ...fields.entry.map((f) {
-            final fromSystem = SystemFoodValues.keys.contains(f.key);
-            final systemValue = system[f.key];
-            return LabeledField(
-              label: f.label,
-              hint: fromSystem
-                  ? 'Sistemdeki satış ve imha kayıtlarından: '
-                      '${formatReportValue(systemValue, f.type)}'
-                  : null,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controllers[f.key],
-                      keyboardType: TextInputType.numberWithOptions(decimal: !f.isInt),
-                      style: const TextStyle(fontSize: 16),
-                      decoration: InputDecoration(
-                        suffixText: f.type == 'money' ? 'TL' : null,
-                        hintText: f.isInt ? 'adet' : null,
-                      ),
-                    ),
+            hint: editing
+                ? 'Tarih değiştirilemez. Farklı bir gün için kaydı silip yeniden girin.'
+                : 'Aynı gün için tekrar giriş mevcut kaydı günceller.',
+            child: editing
+                ? InputDecorator(
+                    decoration: const InputDecoration(),
+                    child: Text(fmtDate(existing.date),
+                        style: const TextStyle(fontSize: 16)),
+                  )
+                : DateTimeField(
+                    value: date,
+                    onChanged: (v) {
+                      date = v;
+                      rebuild();
+                    },
                   ),
-                  // Kullanici elle degistirdiyse sistem degerine donebilsin.
-                  if (fromSystem) ...[
-                    const SizedBox(width: 6),
-                    IconButton(
-                      tooltip: 'Sistemden doldur',
-                      onPressed: () {
-                        controllers[f.key]!.text = textFor(f, systemValue ?? 0);
-                        rebuild();
-                      },
-                      icon: const Icon(Icons.sync, size: 20),
-                    ),
-                  ],
+          ),
+          ...fields.entry.map((f) => LabeledField(
+                label: f.label,
+                child: TextField(
+                  controller: controllers[f.key],
+                  keyboardType: TextInputType.numberWithOptions(decimal: !f.isInt),
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    suffixText: f.type == 'money' ? 'TL' : null,
+                    hintText: f.isInt ? 'adet' : null,
+                  ),
+                ),
+              )),
+          // Sistemden gelen food alanlari: okunur, girilmez.
+          if (fields.system.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: t.primarySoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: t.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 15, color: t.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Sistemden gelen değerler',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: t.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ...fields.system.map((f) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(f.label,
+                                  style: TextStyle(fontSize: 13, color: t.muted)),
+                            ),
+                            Text(
+                              formatReportValue(system[f.key], f.type),
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.ink),
+                            ),
+                          ],
+                        ),
+                      )),
                 ],
               ),
-            );
-          }),
+            ),
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'FOOD alanları sistemdeki pasta satış ve imha kayıtlarından '
-              'otomatik dolar; gerekirse değiştirebilirsiniz. '
-              'AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% '
-              'girilen değerlerden otomatik hesaplanır.',
+              'FOOD alanları o günün pasta satış ve imha kayıtlarından '
+              'hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, '
+              'MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
               style: TextStyle(fontSize: 12, color: context.tokens.muted),
             ),
           ),
@@ -142,7 +186,11 @@ Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields
           values[f.key] = f.isInt ? n.toInt() : n;
         }
         try {
-          await repo.saveDailyReport(dayKey(date), values);
+          if (editing) {
+            await repo.updateDailyReport(existing, values);
+          } else {
+            await repo.saveDailyReport(dayKey(date), values);
+          }
           return null;
         } catch (e) {
           return errorMessage(e);
@@ -152,7 +200,7 @@ Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields
   );
 }
 
-/// Tek gunun tum kalemleri.
+/// Tek gunun tum kalemleri: elle girilenler, sistemden gelenler ve turetilenler.
 Future<void> showDailyReportDetail(
   BuildContext context,
   DailyReport report,
@@ -174,6 +222,13 @@ Future<void> showDailyReportDetail(
         ),
       );
 
+  Widget heading(String text) => Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 2),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700, color: t.muted, letterSpacing: .4)),
+      );
+
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -187,6 +242,11 @@ Future<void> showDailyReportDetail(
             children: [
               ...fields.entry
                   .map((f) => row(f.label, formatReportValue(report.values[f.key], f.type))),
+              if (fields.system.isNotEmpty) ...[
+                heading('SİSTEMDEN'),
+                ...fields.system
+                    .map((f) => row(f.label, formatReportValue(report.values[f.key], f.type))),
+              ],
               const Divider(height: 20),
               ...fields.derived.map((f) => Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

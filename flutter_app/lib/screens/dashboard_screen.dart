@@ -5,13 +5,17 @@ import 'package:go_router/go_router.dart';
 
 import '../core/api_client.dart';
 import '../core/format.dart';
+import '../core/nav.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../models/daily_report.dart';
 import '../models/dashboard.dart';
+import '../models/manager_overview.dart';
 import '../widgets/mini_bar_chart.dart';
 import '../widgets/panels.dart';
 import '../widgets/rank_list.dart';
+import 'manager_overview_block.dart';
 
 /// Operasyon ozeti ve raporlar her ekran boyutunda acik. Ozet kutulari
 /// tiklanabilir; her biri ilgili ekrani acar.
@@ -31,15 +35,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<StoreOption> _stores = const [];
   int _pendingApprovals = 0;
 
+  // Ana sayfadaki genel rapor: yalnizca magaza muduru ve vardiya muduru.
+  ManagerOverview? _overview;
+  ReportFields _reportFields = ReportFields.empty;
+  int _stockWindow = 14;
+
   int? _storeId;
   bool _monthly = false;
   String? _error;
   Timer? _timer;
 
+  bool get _showOverview => reportPanelRoles.contains(session.user?.role);
+
   @override
   void initState() {
     super.initState();
     _load();
+    if (_showOverview) {
+      // Olcu etiketleri kritik degil: gelmezse blok yalnizca rakamlari gosterir.
+      repo.reportFields().then((f) {
+        if (mounted) setState(() => _reportFields = f);
+      }).onError((Object _, StackTrace _) {});
+    }
     if (session.user?.isSuperAdmin ?? false) {
       // Magaza listesi kritik degil: gelmezse secici gizli kalir.
       repo.stores(silent: true).then((s) {
@@ -67,6 +84,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         repo.productPerformance(storeId: _storeId, silent: silent),
         if (session.user?.canManage ?? false) repo.pendingApprovalCount(silent: silent),
       ]);
+      // Genel rapor ayri alinir: hata verirse ana sayfanin geri kalani
+      // yine gorunsun.
+      if (_showOverview) {
+        repo
+            .managerOverview(days: _stockWindow, storeId: _storeId, silent: true)
+            .then((o) {
+          if (mounted) setState(() => _overview = o);
+        }).onError((Object _, StackTrace _) {});
+      }
       if (!mounted) return;
       setState(() {
         _data = results[0] as DashboardData;
@@ -142,6 +168,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           _StatGrid(counts: c, soldToday: data.soldToday),
           const SizedBox(height: AppTokens.gap),
+          if (_showOverview && _overview != null) ...[
+            ManagerOverviewBlock(
+              overview: _overview!,
+              fields: _reportFields,
+              windowDays: _stockWindow,
+              onWindowChanged: (v) {
+                setState(() => _stockWindow = v);
+                _load(silent: true);
+              },
+            ),
+            const SizedBox(height: AppTokens.gap),
+          ],
           if (_summary != null) ...[
             _SummaryBlock(summary: _summary!),
             const SizedBox(height: AppTokens.gap),

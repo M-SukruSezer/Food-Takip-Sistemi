@@ -38,21 +38,32 @@ class ReportField {
 }
 
 class ReportFields {
-  const ReportFields({required this.entry, required this.derived});
+  const ReportFields({
+    required this.entry,
+    required this.system,
+    required this.derived,
+  });
 
+  /// Kullanicinin elle girdigi alanlar — form yalnizca bunlari gosterir.
   final List<ReportField> entry;
+
+  /// Sistemin satis ve imha kayitlarindan hesapladigi alanlar. Formda yer
+  /// almaz; tabloda ve ozette okunur olarak gosterilir.
+  final List<ReportField> system;
+
   final List<ReportField> derived;
 
+  static List<ReportField> _list(dynamic v) => ((v as List<dynamic>?) ?? [])
+      .map((e) => ReportField.fromJson(e as Map<String, dynamic>))
+      .toList();
+
   factory ReportFields.fromJson(Map<String, dynamic> j) => ReportFields(
-        entry: ((j['entry'] as List<dynamic>?) ?? [])
-            .map((e) => ReportField.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        derived: ((j['derived'] as List<dynamic>?) ?? [])
-            .map((e) => ReportField.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        entry: _list(j['entry']),
+        system: _list(j['system']),
+        derived: _list(j['derived']),
       );
 
-  static const empty = ReportFields(entry: [], derived: []);
+  static const empty = ReportFields(entry: [], system: [], derived: []);
 }
 
 /// Turetilen olculer. Payda sifirsa null gelir; arayuz "-" gosterir.
@@ -191,8 +202,8 @@ class DailyReportPage {
   );
 }
 
-/// Sistemin o gun icin hesapladigi food rakamlari. Satis ve imha kayitlarindan
-/// gelir; form bu degerlerle on dolar.
+/// Sistemin o gun icin hesapladigi food rakamlari. Satis ve imha
+/// kayitlarindan gelir; kullanici bunlari elle girmez ve degistiremez.
 class SystemFoodValues {
   const SystemFoodValues({
     required this.foodUsd,
@@ -213,7 +224,7 @@ class SystemFoodValues {
         _ => null,
       };
 
-  /// Sistemden doldurulan alanlar; arayuz bunlari isaretler.
+  /// Sistemden gelen alanlar; arayuz bunlari okunur gosterir.
   static const keys = ['food_usd', 'food_usd_try', 'food_mo_try'];
 
   bool get isEmpty => foodUsd == 0 && foodUsdTry == 0 && foodMoTry == 0;

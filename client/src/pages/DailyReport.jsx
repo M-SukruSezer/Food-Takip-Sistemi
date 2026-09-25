@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, FileSpreadsheet, FileText, RefreshCw } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, FileText, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
@@ -7,8 +7,6 @@ import { fmtDate, fmtMoney, errorMessage } from '../format';
 
 const ENTRY_ROLES = ['store_manager', 'shift_supervisor'];
 
-// Bu alanlar sistemdeki pasta satis ve imha kayitlarindan otomatik dolar.
-const SYSTEM_FIELDS = ['food_usd', 'food_usd_try', 'food_mo_try'];
 
 // Degerleri turune gore bicimler. Paydasi sifir olan oran sunucudan null
 // gelir; ekranda "-" gosterilir.
@@ -26,18 +24,21 @@ function buildTable(page, fields, showStore) {
     'Tarih',
     ...(showStore ? ['Mağaza'] : []),
     ...fields.entry.map((f) => f.label),
+    ...fields.system.map((f) => f.label),
     ...fields.derived.map((f) => f.label),
   ];
   const rows = page.items.map((item) => [
     fmtDate(item.report_date),
     ...(showStore ? [item.store_name || '-'] : []),
     ...fields.entry.map((f) => formatValue(item[f.key], f.type)),
+    ...fields.system.map((f) => formatValue(item[f.key], f.type)),
     ...fields.derived.map((f) => formatValue(item.metrics[f.key], f.type)),
   ]);
   const summary = [
     `TOPLAM (${page.summary.days} gün)`,
     ...(showStore ? [''] : []),
     ...fields.entry.map((f) => formatValue(page.summary.totals[f.key], f.type)),
+    ...fields.system.map((f) => formatValue(page.summary.totals[f.key], f.type)),
     ...fields.derived.map((f) => formatValue(page.summary.metrics[f.key], f.type)),
   ];
   return { headers, rows, summary };
@@ -51,10 +52,11 @@ function fileName(page, ext) {
 export default function DailyReport() {
   const { user } = useAuth();
   const [page, setPage] = useState(null);
-  const [fields, setFields] = useState({ entry: [], derived: [] });
+  const [fields, setFields] = useState({ entry: [], system: [], derived: [] });
   const [period, setPeriod] = useState('week');
   const [showAdd, setShowAdd] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [reload, setReload] = useState(0);
   const [exporting, setExporting] = useState(false);
 
@@ -70,7 +72,7 @@ export default function DailyReport() {
   useEffect(() => { load(); }, [load, reload]);
   useEffect(() => {
     api.get('/daily-reports/fields', { silent: true })
-      .then((r) => setFields(r.data))
+      .then((r) => setFields({ entry: [], system: [], derived: [], ...r.data }))
       .catch(() => {});
   }, []);
 
@@ -121,6 +123,19 @@ export default function DailyReport() {
     }
   }
 
+  async function remove(item) {
+    const ok = window.confirm(
+      `${fmtDate(item.report_date)} — ${fmtMoney(item.net_sales)}\n\nBu günün raporu silinecek.`
+    );
+    if (!ok) return;
+    try {
+      await api.delete(`/daily-reports/${item.id}`, { successMessage: 'Rapor silindi' });
+      setReload((n) => n + 1);
+    } catch {
+      // Bildirim api katmanindan gelir.
+    }
+  }
+
   const summary = page && page.summary;
 
   return (
@@ -159,7 +174,7 @@ export default function DailyReport() {
             Oranlar günlerin ortalaması değil, toplam veriden hesaplanır.
           </p>
           <div className="report-grid">
-            {fields.entry.map((f) => (
+            {[...fields.entry, ...fields.system].map((f) => (
               <div className="report-cell" key={f.key}>
                 <span>{f.label}</span>
                 <strong>{formatValue(summary.totals[f.key], f.type)}</strong>
@@ -183,12 +198,12 @@ export default function DailyReport() {
                 <th>Tarih</th>
                 {showStore && <th>Mağaza</th>}
                 <th>NET SALES</th><th>ADT</th><th>AT</th><th>IPT</th>
-                <th>FOOD MARKOUT %</th><th>APP%</th><th>Detay</th>
+                <th>FOOD MARKOUT %</th><th>APP%</th><th>İşlem</th>
               </tr>
             </thead>
             <tbody>
               {(!page || page.items.length === 0) && (
-                <tr><td data-label="" colSpan="9"><p className="empty">Bu dönemde rapor kaydı yok.</p></td></tr>
+                <tr><td data-label="" colSpan={showStore ? 10 : 9}><p className="empty">Bu dönemde rapor kaydı yok.</p></td></tr>
               )}
               {page && page.items.map((item) => (
                 <tr key={item.id}>
@@ -200,8 +215,20 @@ export default function DailyReport() {
                   <td data-label="IPT">{formatValue(item.metrics.ipt, 'number')}</td>
                   <td data-label="FOOD MARKOUT %">{formatValue(item.metrics.food_markout_pct, 'percent')}</td>
                   <td data-label="APP%">{formatValue(item.metrics.app_pct, 'percent')}</td>
-                  <td data-label="Detay">
-                    <button className="btn btn-sm btn-secondary" onClick={() => setDetail(item)}>Detay</button>
+                  <td data-label="İşlem">
+                    <div className="row-actions">
+                      <button className="btn btn-sm btn-secondary" onClick={() => setDetail(item)}>Detay</button>
+                      {canEnter && (
+                        <>
+                          <button className="btn btn-sm btn-secondary" title="Düzenle" onClick={() => setEditing(item)}>
+                            <Pencil size={14} />
+                          </button>
+                          <button className="btn btn-sm btn-danger" title="Sil" onClick={() => remove(item)}>
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -218,10 +245,19 @@ export default function DailyReport() {
         />
       )}
 
+      {editing && (
+        <EntryModal
+          fields={fields}
+          existing={editing}
+          onClose={() => setEditing(null)}
+          onDone={() => { setEditing(null); setReload((n) => n + 1); }}
+        />
+      )}
+
       {detail && (
         <Modal title={fmtDate(detail.report_date)} onClose={() => setDetail(null)}>
           <div className="report-grid">
-            {fields.entry.map((f) => (
+            {[...fields.entry, ...fields.system].map((f) => (
               <div className="report-cell" key={f.key}>
                 <span>{f.label}</span><strong>{formatValue(detail[f.key], f.type)}</strong>
               </div>
@@ -240,37 +276,48 @@ export default function DailyReport() {
   );
 }
 
-function EntryModal({ fields, onClose, onDone }) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [values, setValues] = useState({});
+/// Gunluk veri girisi ve duzenlemesi.
+///
+/// Formda yalnizca elle girilen alanlar var. Food alanlari sistemdeki pasta
+/// satis ve imha kayitlarindan hesaplandigi icin girilmez; okunur gosterilir.
+///
+/// `existing` verilirse kayitli gun duzenlenir ve tarih degistirilemez —
+/// tarihi degistirmek ayni gune ikinci kayit cakismasi olusturuyor.
+function EntryModal({ fields, existing, onClose, onDone }) {
+  const editing = !!existing;
+  const [date, setDate] = useState(
+    () => (existing ? existing.report_date : new Date().toISOString().slice(0, 10))
+  );
+  const [values, setValues] = useState(() =>
+    existing
+      ? Object.fromEntries(fields.entry.map((f) => [f.key, String(existing[f.key] ?? '')]))
+      : {}
+  );
   const [system, setSystem] = useState({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Food alanlari sistemdeki satis/imha kayitlarindan dolar. Güne ait kayit
-  // varsa onceki degerler kullanilir; kullanici duzeltmisse kaybolmasin.
+  // Sistemin o gun icin hesapladigi food rakamlari ve (yeni girişte) kayitli
+  // degerler yuklenir. Duzenlemede alanlar zaten dolu; ustune yazilmaz.
   useEffect(() => {
     if (!date) return;
     api.get(`/daily-reports/day/${date}`, { silent: true })
       .then((r) => {
+        setSystem((r.data && r.data.suggested) || {});
+        if (editing) return;
         const saved = r.data && r.data.report;
-        const suggested = (r.data && r.data.suggested) || {};
-        setSystem(suggested);
-        setValues(Object.fromEntries(fields.entry.map((f) => {
-          if (saved && saved[f.key] !== undefined && saved[f.key] !== null) {
-            return [f.key, String(saved[f.key])];
-          }
-          if (SYSTEM_FIELDS.includes(f.key)) return [f.key, String(suggested[f.key] ?? '')];
-          return [f.key, ''];
-        })));
+        setValues(Object.fromEntries(fields.entry.map((f) => [
+          f.key,
+          saved && saved[f.key] !== undefined && saved[f.key] !== null ? String(saved[f.key]) : '',
+        ])));
       })
-      .catch(() => { setValues({}); setSystem({}); });
-  }, [date, fields]);
+      .catch(() => { setSystem({}); });
+  }, [date, fields, editing]);
 
   async function submit(e) {
     e.preventDefault();
     setErr('');
-    const payload = { report_date: date };
+    const payload = editing ? {} : { report_date: date };
     for (const f of fields.entry) {
       const raw = String(values[f.key] ?? '').replace(',', '.').trim();
       if (raw === '') { setErr(`${f.label} zorunludur`); return; }
@@ -281,8 +328,15 @@ function EntryModal({ fields, onClose, onDone }) {
     }
     setBusy(true);
     try {
-      await api.post('/daily-reports', payload, { noToast: true, busyMessage: 'Rapor kaydediliyor...' });
-      toast('Rapor kaydedildi');
+      if (editing) {
+        await api.put(`/daily-reports/${existing.id}`, payload,
+          { noToast: true, busyMessage: 'Rapor güncelleniyor...' });
+        toast('Rapor güncellendi');
+      } else {
+        await api.post('/daily-reports', payload,
+          { noToast: true, busyMessage: 'Rapor kaydediliyor...' });
+        toast('Rapor kaydedildi');
+      }
       onDone();
     } catch (er) {
       setErr(errorMessage(er));
@@ -292,56 +346,55 @@ function EntryModal({ fields, onClose, onDone }) {
   }
 
   return (
-    <Modal title="Günlük Rapor" onClose={onClose}>
+    <Modal title={editing ? 'Günlük Raporu Düzenle' : 'Günlük Rapor'} onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
         <div className="field">
           <label>Tarih</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            disabled={editing}
+            required
+          />
           <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-            Aynı gün için tekrar giriş mevcut kaydı günceller.
+            {editing
+              ? 'Tarih değiştirilemez. Farklı bir gün için kaydı silip yeniden girin.'
+              : 'Aynı gün için tekrar giriş mevcut kaydı günceller.'}
           </p>
         </div>
-        {fields.entry.map((f) => {
-          const fromSystem = SYSTEM_FIELDS.includes(f.key);
-          return (
-            <div className="field" key={f.key}>
-              <label>{f.label}</label>
-              <div className="system-field">
-                <input
-                  value={values[f.key] ?? ''}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  inputMode="decimal"
-                  required
-                />
-                {fromSystem && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-secondary"
-                    title="Sistemden doldur"
-                    onClick={() => setValues((v) => ({ ...v, [f.key]: String(system[f.key] ?? 0) }))}
-                  >
-                    <RefreshCw size={14} />
-                  </button>
-                )}
+        {fields.entry.map((f) => (
+          <div className="field" key={f.key}>
+            <label>{f.label}</label>
+            <input
+              value={values[f.key] ?? ''}
+              onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+              inputMode="decimal"
+              required
+            />
+          </div>
+        ))}
+        {fields.system.length > 0 && (
+          <div className="system-box">
+            <p className="system-box-title"><Sparkles size={14} /> Sistemden gelen değerler</p>
+            {fields.system.map((f) => (
+              <div className="system-box-row" key={f.key}>
+                <span>{f.label}</span>
+                <strong>{formatValue(system[f.key], f.type)}</strong>
               </div>
-              {fromSystem && (
-                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-                  Sistemdeki satış ve imha kayıtlarından: {formatValue(system[f.key], f.type)}
-                </p>
-              )}
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        )}
         <p className="muted" style={{ fontSize: 12 }}>
-          FOOD alanları sistemdeki pasta satış ve imha kayıtlarından otomatik dolar;
-          gerekirse değiştirebilirsiniz. AT, IPT, FOOD MARKOUT %, FOOD UPH,
-          MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.
+          FOOD alanları o günün pasta satış ve imha kayıtlarından hesaplanır, elle
+          girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen
+          değerlerden otomatik hesaplanır.
         </p>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Kaydediliyor...' : 'Kaydet'}
+            {busy ? (editing ? 'Güncelleniyor...' : 'Kaydediliyor...') : (editing ? 'Güncelle' : 'Kaydet')}
           </button>
         </div>
       </form>

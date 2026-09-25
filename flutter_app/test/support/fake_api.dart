@@ -52,6 +52,20 @@ class FakeAdapter implements HttpClientAdapter {
     );
   }
 
+  /// Bir ucun cagrilip cagrilmadigi (sorgu dizesi yok sayilir).
+  bool called(String key) =>
+      calls.any((c) => c.split('?').first == key.split('?').first);
+
+  /// Bir uca gonderilen son govde; gonderilmediyse null.
+  Map<String, Object?>? lastBody(String key) {
+    for (final e in bodies.entries.toList().reversed) {
+      if (e.key.split('?').first == key.split('?').first) {
+        return (e.value as Map?)?.cast<String, Object?>();
+      }
+    }
+    return null;
+  }
+
   @override
   void close({bool force = false}) {}
 }

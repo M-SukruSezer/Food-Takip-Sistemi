@@ -31,6 +31,12 @@
   --border-strong: #d1d5db;
   --bg: #f5f6f8;
   --card: #ffffff;
+  /* Metin icin koyulastirilmis tonlar; olculen kontrast beyaz uzerinde
+     5.02 / 5.02 / 4.83 / 5.93. */
+  --ok-text: #15803d;
+  --warning-text: #b45309;
+  --danger-text: #dc2626;
+  --info-text: #0369a1;
   --card-strong: #ffffff;
   --panel-glow: rgba(21, 128, 61, 0.10);
   /* Kenar menü artık temayla değişiyor: açık temada açık zemin + koyu yazı. */
@@ -69,6 +75,12 @@
   --border-strong: #33415c;
   --bg: #0b1220;
   --card: #131c2e;
+  /* Koyu temada canli tonlar kart uzerinde 6.16-10.21 kontrast veriyor;
+     ayrica koyulastirmaya gerek yok. */
+  --ok-text: #4ade80;
+  --warning-text: #fbbf24;
+  --danger-text: #f87171;
+  --info-text: #7dd3fc;
   --card-strong: #16213a;
   --panel-glow: rgba(52, 211, 153, 0.16);
   --sidebar-a: #070d18;
@@ -2322,6 +2334,89 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .report-cell.derived strong { color: var(--primary); }
 
 /* Sistemden dolan alan: girdi + "sistemden doldur" düğmesi yan yana */
-.system-field { display: flex; gap: 6px; align-items: stretch; }
-.system-field input { flex: 1; }
 .system-field .btn { flex: none; }
+
+/* --- Rapor paneli: sistemden gelen okunur alanlar --- */
+.system-box {
+  margin: 4px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--primary-soft);
+}
+.system-box-title {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12px; font-weight: 700;
+  color: var(--primary);
+}
+.system-box-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+.system-box-row span { color: var(--muted); }
+.system-box-row strong { font-weight: 700; }
+
+/* Tablo satirindaki islem dugmeleri tek satirda kalsin. */
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* --- Ana sayfa genel raporu --- */
+.manager-overview { display: grid; gap: 16px; }
+.mo-head { margin-bottom: 12px; }
+.mo-head h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 3px; font-size: 16px;
+}
+.mo-head .muted { font-size: 12px; }
+
+.mo-figures { display: flex; flex-wrap: wrap; gap: 20px; }
+.mo-figure { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+.mo-figure span { font-size: 11px; color: var(--muted); }
+.mo-figure strong { font-size: 18px; font-weight: 800; }
+
+.mo-bar {
+  margin-top: 12px; height: 8px;
+  border-radius: 6px; overflow: hidden;
+  background: var(--border);
+}
+.mo-bar-fill { height: 100%; border-radius: 6px; transition: width .25s ease; }
+.mo-bar-fill.ok { background: var(--success); }
+.mo-bar-fill.warning { background: var(--warning); }
+.mo-bar-fill.danger { background: var(--danger); }
+.mo-bar-note { margin: 6px 0 0; font-size: 12px; font-weight: 600; }
+
+.mo-forecast {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 12px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.mo-forecast > div { flex: 1; display: flex; flex-direction: column; }
+.mo-forecast span { font-size: 12px; color: var(--muted); }
+.mo-forecast strong { font-size: 20px; font-weight: 800; color: var(--primary); }
+.mo-forecast em { font-size: 12px; font-style: normal; color: var(--muted); }
+
+.mo-note { margin: 6px 0 0; font-size: 11px; }
+.mo-sub { margin: 18px 0 8px; font-size: 13px; font-weight: 700; }
+.mo-idle { margin-top: 16px; }
+
+/* Yeterlilik riskini gosteren nokta. */
+.mo-dot {
+  display: inline-block; width: 8px; height: 8px;
+  margin-right: 8px; border-radius: 50%;
+  vertical-align: middle;
+}
+.mo-dot.ok { background: var(--success); }
+.mo-dot.warning { background: var(--warning); }
+.mo-dot.danger { background: var(--danger); }
+
+/* Metin tonlari zeminden ayri tutuluyor: --success ve --warning acik temada
+   beyaz uzerinde 3.3 ve 3.19 kontrast veriyor, kucuk metin icin AA esigi olan
+   4.5'in altinda. Nokta ve cubuk gibi grafik ogeler canli tonu kullanmaya
+   devam ediyor (onlarin esigi 3.0 ve geciyorlar). */
+.text-ok { color: var(--ok-text); }
+.text-warning { color: var(--warning-text); }
+.text-danger { color: var(--danger-text); }
+.text-info { color: var(--info-text); }

@@ -6,6 +6,7 @@ import 'package:foodtakip/core/nav.dart';
 import 'package:foodtakip/core/session.dart';
 import 'package:foodtakip/models/daily_report.dart';
 import 'package:foodtakip/screens/daily_report_dialogs.dart';
+import 'package:foodtakip/widgets/dialogs.dart';
 import 'package:foodtakip/screens/daily_report_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,12 +17,14 @@ final _fields = {
     {'key': 'net_sales', 'label': 'NET SALES', 'type': 'money'},
     {'key': 'adt', 'label': 'ADT', 'type': 'int'},
     {'key': 'product_qty', 'label': 'PRODUCT QTY', 'type': 'int'},
-    {'key': 'food_usd', 'label': 'FOOD USD', 'type': 'int'},
-    {'key': 'food_usd_try', 'label': 'FOOD USD ₺', 'type': 'money'},
-    {'key': 'food_mo_try', 'label': 'FOOD MO ₺', 'type': 'money'},
     {'key': 'sold_beverage_qty', 'label': 'SOLD BEVERAGE QTY', 'type': 'int'},
     {'key': 'modifiers', 'label': 'MODIFIERS', 'type': 'int'},
     {'key': 'app_amount', 'label': 'APP', 'type': 'money'},
+  ],
+  'system': [
+    {'key': 'food_usd', 'label': 'FOOD USD', 'type': 'int'},
+    {'key': 'food_usd_try', 'label': 'FOOD USD ₺', 'type': 'money'},
+    {'key': 'food_mo_try', 'label': 'FOOD MO ₺', 'type': 'money'},
   ],
   'derived': [
     {'key': 'at', 'label': 'AT', 'type': 'money', 'formula': 'NET SALES / ADT'},
@@ -200,49 +203,20 @@ void main() {
     expect(r.metrics.at, isNull);
     expect(r.metrics.ipt, 2.2);
   });
-  group('Sistemden otomatik doldurma', () {
-    testWidgets('food alanları satış ve imha kayıtlarından dolar', (tester) async {
-      installFakeApi({
-        'GET /daily-reports': _page,
-        'GET /daily-reports/fields': _fields,
-        'GET /daily-reports/day/2026-09-25': {
-          'report': null,
+  group('Food alanları sistemden gelir, formda girilmez', () {
+    Map<String, Object?> dayResponse({Map<String, Object?>? report}) => {
+          'report': report,
           'suggested': {
             'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400,
             'discarded_qty': 2, 'waste_uses_current_price': true,
           },
-        },
-      });
-      signInAs('store_manager', storeId: 1);
+        };
 
-      await tester.pumpWidget(host(const DailyReportScreen()));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Gün Ekle'));
-      await tester.pumpAndSettle();
-
-      // Food alanlari dolu gelir, digerleri bos.
-      final dialog = find.byType(AlertDialog);
-      expect(find.descendant(of: dialog, matching: find.text('31')), findsWidgets);
-      expect(find.descendant(of: dialog, matching: find.text('5980')), findsWidgets);
-      expect(find.descendant(of: dialog, matching: find.text('400')), findsWidgets);
-      expect(find.textContaining('Sistemdeki satış ve imha kayıtlarından'), findsWidgets);
-      expect(find.textContaining('gerekirse değiştirebilirsiniz'), findsOneWidget);
-    });
-
-    testWidgets('kayıt varsa önceki değerler korunur', (tester) async {
+    testWidgets('formda food girişi yok, değerler okunur gösterilir', (tester) async {
       installFakeApi({
         'GET /daily-reports': _page,
         'GET /daily-reports/fields': _fields,
-        'GET /daily-reports/day/2026-09-25': {
-          // Kullanici daha once 28 diye duzeltmis; sistem 31 dese de o kalmali.
-          'report': {
-            'id': 9, 'store_id': 1, 'report_date': '2026-09-25',
-            'net_sales': 9000, 'adt': 100, 'product_qty': 200, 'food_usd': 28,
-            'food_usd_try': 5000, 'food_mo_try': 100, 'sold_beverage_qty': 120,
-            'modifiers': 20, 'app_amount': 500, 'metrics': {},
-          },
-          'suggested': {'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400},
-        },
+        'GET /daily-reports/day/2026-09-25': dayResponse(),
       });
       signInAs('store_manager', storeId: 1);
 
@@ -252,17 +226,112 @@ void main() {
       await tester.pumpAndSettle();
 
       final dialog = find.byType(AlertDialog);
-      expect(find.descendant(of: dialog, matching: find.text('28')), findsWidgets);
-      expect(find.descendant(of: dialog, matching: find.text('31')), findsNothing);
+      // Elle girilen 6 alan + baska giris yok: food icin TextField uretilmez.
+      expect(find.descendant(of: dialog, matching: find.byType(TextField)), findsNWidgets(6));
+
+      // Food rakamlari okunur blokta gorunur.
+      expect(find.descendant(of: dialog, matching: find.text('Sistemden gelen değerler')),
+          findsOneWidget);
+      expect(find.descendant(of: dialog, matching: find.text('FOOD USD')), findsOneWidget);
+      expect(find.descendant(of: dialog, matching: find.text('31')), findsOneWidget);
+      expect(find.textContaining('elle girilmez'), findsOneWidget);
+    });
+
+    testWidgets('kaydederken food alanı gönderilmez', (tester) async {
+      final fake = installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+        'GET /daily-reports/day/2026-09-25': dayResponse(),
+        'POST /daily-reports': {'id': 1, 'metrics': {}},
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gün Ekle'));
+      await tester.pumpAndSettle();
+
+      final inputs = find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField));
+      for (var i = 0; i < 6; i++) {
+        await tester.enterText(inputs.at(i), '10');
+      }
+      await tester.tap(find.text('Kaydet'));
+      await tester.pumpAndSettle();
+
+      final sent = fake.lastBody('POST /daily-reports')!;
+      expect(sent.containsKey('food_usd'), isFalse);
+      expect(sent.containsKey('food_usd_try'), isFalse);
+      expect(sent.containsKey('food_mo_try'), isFalse);
+      expect(sent['net_sales'], 10);
     });
   });
 
-  test('sistemden dolan alanlar yalnızca food kalemleri', () {
+  group('Gün düzenleme ve silme', () {
+    testWidgets('düzenle mevcut değerleri yükler ve PUT atar', (tester) async {
+      // Ozet karti uzun; gunluk kartlar tembel listede cizilmiyor.
+      tester.view.physicalSize = const Size(800, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final fake = installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+        'GET /daily-reports/day/2026-09-23': {'report': null, 'suggested': {}},
+        'PUT /daily-reports/1': {'id': 1, 'metrics': {}},
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.edit_outlined).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Günlük Raporu Düzenle'), findsOneWidget);
+      // Tarih duzenlemede degistirilemez.
+      expect(find.byType(DateTimeField), findsNothing);
+      expect(find.textContaining('Tarih değiştirilemez'), findsOneWidget);
+
+      await tester.tap(find.text('Güncelle'));
+      await tester.pumpAndSettle();
+      expect(fake.lastBody('PUT /daily-reports/1'), isNotNull);
+    });
+
+    testWidgets('sil onay ister ve DELETE atar', (tester) async {
+      // Ozet karti uzun; gunluk kartlar tembel listede cizilmiyor.
+      tester.view.physicalSize = const Size(800, 2600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final fake = installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+        'DELETE /daily-reports/1': {'ok': true},
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Raporu Sil'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Sil'));
+      await tester.pumpAndSettle();
+      expect(fake.called('DELETE /daily-reports/1'), isTrue);
+    });
+  });
+
+  test('sistemden gelen alanlar yalnızca food kalemleri', () {
     expect(SystemFoodValues.keys, ['food_usd', 'food_usd_try', 'food_mo_try']);
     const v = SystemFoodValues(foodUsd: 31, foodUsdTry: 5980, foodMoTry: 400, discardedQty: 2);
     expect(v['food_usd'], 31);
     // NET SALES gibi alanlar elle girilir.
     expect(v['net_sales'], isNull);
+  });
+
+  test('alan listesi entry ve system olarak ayrışır', () {
+    final f = ReportFields.fromJson(_fields);
+    expect(f.entry.map((e) => e.key), isNot(contains('food_usd')));
+    expect(f.system.map((e) => e.key), ['food_usd', 'food_usd_try', 'food_mo_try']);
+    expect(f.entry.length, 6);
   });
 
 }

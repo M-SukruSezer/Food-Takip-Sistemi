@@ -33,6 +33,7 @@ _Table _build(DailyReportPage page, ReportFields fields, {bool showStore = false
     'Tarih',
     if (showStore) 'Mağaza',
     ...fields.entry.map((f) => f.label),
+    ...fields.system.map((f) => f.label),
     ...fields.derived.map((f) => f.label),
   ];
 
@@ -41,6 +42,7 @@ _Table _build(DailyReportPage page, ReportFields fields, {bool showStore = false
       fmtDate(item.date),
       if (showStore) item.storeName ?? '-',
       ...fields.entry.map((f) => _formatValue(item.values[f.key], f.type)),
+      ...fields.system.map((f) => _formatValue(item.values[f.key], f.type)),
       ...fields.derived.map((f) => _formatValue(item.metrics[f.key], f.type)),
     ];
   }).toList();
@@ -50,6 +52,7 @@ _Table _build(DailyReportPage page, ReportFields fields, {bool showStore = false
     'TOPLAM (${page.summary.days} gün)',
     if (showStore) '',
     ...fields.entry.map((f) => _formatValue(page.summary.totals[f.key], f.type)),
+    ...fields.system.map((f) => _formatValue(page.summary.totals[f.key], f.type)),
     ...fields.derived.map((f) => _formatValue(page.summary.metrics[f.key], f.type)),
   ];
 

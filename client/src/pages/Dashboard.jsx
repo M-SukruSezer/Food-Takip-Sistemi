@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { fmtDate } from '../format';
+import { fmtDate, REPORT_PANEL_ROLES } from '../format';
+import ManagerOverview from '../components/ManagerOverview';
 
 const STATUS_CHART_LABELS = {
   frozen: 'Donuk Depo',
@@ -43,6 +44,11 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('week');
   const [storeId, setStoreId] = useState('');
   const [stores, setStores] = useState([]);
+  // Ana sayfadaki genel rapor: yalnizca magaza muduru ve vardiya muduru.
+  const showOverview = REPORT_PANEL_ROLES.includes(user.role);
+  const [overview, setOverview] = useState(null);
+  const [reportFields, setReportFields] = useState({ entry: [], system: [], derived: [] });
+  const [stockWindow, setStockWindow] = useState(14);
   // silent: 60 saniyelik otomatik yenileme kullanicinin basladigi bir islem
   // degil; ekrani her dakika kilitlememesi icin katman ve bildirim olmadan doner.
   const load = useCallback((silent = false) => {
@@ -58,9 +64,22 @@ export default function Dashboard() {
     if (['super_admin', 'store_manager'].includes(user.role)) {
       api.get('/approvals?status=pending', opts).then((r) => setPendingApprovals(r.data.length)).catch(() => {});
     }
-  }, [user.role, storeId]);
+    // Genel rapor ayri alinir: hata verirse ana sayfanin geri kalani gorunur kalsin.
+    if (REPORT_PANEL_ROLES.includes(user.role)) {
+      api.get(`/manager-overview?days=${stockWindow}` + (storeId ? `&storeId=${storeId}` : ''), { silent: true })
+        .then((r) => setOverview(r.data))
+        .catch(() => {});
+    }
+  }, [user.role, storeId, stockWindow]);
 
   useEffect(() => { load(); }, [load, reload]);
+
+  useEffect(() => {
+    if (!showOverview) return;
+    api.get('/daily-reports/fields', { silent: true })
+      .then((r) => setReportFields({ entry: [], system: [], derived: [], ...r.data }))
+      .catch(() => {});
+  }, [showOverview]);
 
   useEffect(() => {
     const t = setInterval(() => load(true), 60000);
@@ -197,6 +216,15 @@ export default function Dashboard() {
         <Stat icon={Banknote} label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} to="/sales?range=today&kind=sale" />
         <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
       </div>
+
+      {showOverview && overview && (
+        <ManagerOverview
+          overview={overview}
+          fields={reportFields}
+          windowDays={stockWindow}
+          onWindowChanged={setStockWindow}
+        />
+      )}
 
       {summary && (
         <div className="analytics-layout">

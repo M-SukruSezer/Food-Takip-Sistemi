@@ -5,6 +5,7 @@ import '../models/approval.dart';
 import '../models/batch.dart';
 import '../models/daily_report.dart';
 import '../models/dashboard.dart';
+import '../models/manager_overview.dart';
 import '../models/movement.dart';
 import '../models/petty_cash.dart';
 import '../models/product_type.dart';
@@ -397,11 +398,39 @@ class Repository {
     );
   }
 
+  /// Kayitli gunu duzenler. Tarih degismez; gun degisecekse silip yeniden
+  /// girmek gerekir.
+  Future<void> updateDailyReport(DailyReport report, Map<String, num> values) async {
+    await api.dio.put(
+      '/daily-reports/${report.id}',
+      data: values,
+      options: apiOptions(noToast: true, busyMessage: 'Rapor güncelleniyor...'),
+    );
+  }
+
   Future<void> deleteDailyReport(DailyReport report) async {
     await api.dio.delete(
       '/daily-reports/${report.id}',
       options: apiOptions(successMessage: 'Rapor silindi'),
     );
+  }
+
+  /// Ana sayfadaki genel rapor: petty cash durumu, ciro hizi, ay sonu tahmini
+  /// ve urun urun donuk depo yeterliligi. Yalnizca magaza/vardiya muduru.
+  Future<ManagerOverview> managerOverview({
+    int? days,
+    int? storeId,
+    bool silent = false,
+  }) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/manager-overview',
+      queryParameters: {
+        'days': ?days?.toString(),
+        'storeId': ?storeId?.toString(),
+      },
+      options: apiOptions(silent: silent),
+    );
+    return ManagerOverview.fromJson(r.data ?? const {});
   }
 
   // ---- Petty Cash ----
