@@ -190,3 +190,58 @@ class DailyReportPage {
     from: '', to: '', period: 'week', items: [], summary: ReportSummaryTotals.empty,
   );
 }
+
+/// Sistemin o gun icin hesapladigi food rakamlari. Satis ve imha kayitlarindan
+/// gelir; form bu degerlerle on dolar.
+class SystemFoodValues {
+  const SystemFoodValues({
+    required this.foodUsd,
+    required this.foodUsdTry,
+    required this.foodMoTry,
+    required this.discardedQty,
+  });
+
+  final num foodUsd;
+  final num foodUsdTry;
+  final num foodMoTry;
+  final int discardedQty;
+
+  num? operator [](String key) => switch (key) {
+        'food_usd' => foodUsd,
+        'food_usd_try' => foodUsdTry,
+        'food_mo_try' => foodMoTry,
+        _ => null,
+      };
+
+  /// Sistemden doldurulan alanlar; arayuz bunlari isaretler.
+  static const keys = ['food_usd', 'food_usd_try', 'food_mo_try'];
+
+  bool get isEmpty => foodUsd == 0 && foodUsdTry == 0 && foodMoTry == 0;
+
+  factory SystemFoodValues.fromJson(Map<String, dynamic> j) => SystemFoodValues(
+        foodUsd: _num(j['food_usd']),
+        foodUsdTry: _num(j['food_usd_try']),
+        foodMoTry: _num(j['food_mo_try']),
+        discardedQty: _int(j['discarded_qty']),
+      );
+
+  static const empty =
+      SystemFoodValues(foodUsd: 0, foodUsdTry: 0, foodMoTry: 0, discardedQty: 0);
+}
+
+/// /daily-reports/day/:date yaniti: varsa kayit + sistemin hesapladigi degerler.
+class DailyReportDay {
+  const DailyReportDay({this.report, required this.suggested});
+
+  final DailyReport? report;
+  final SystemFoodValues suggested;
+
+  factory DailyReportDay.fromJson(Map<String, dynamic> j) => DailyReportDay(
+        report: j['report'] == null
+            ? null
+            : DailyReport.fromJson(j['report'] as Map<String, dynamic>),
+        suggested: j['suggested'] == null
+            ? SystemFoodValues.empty
+            : SystemFoodValues.fromJson(j['suggested'] as Map<String, dynamic>),
+      );
+}

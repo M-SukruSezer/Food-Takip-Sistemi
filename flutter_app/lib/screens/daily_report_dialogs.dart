@@ -26,23 +26,37 @@ Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields
   var date = DateTime.now();
   final controllers = {for (final f in fields.entry) f.key: TextEditingController()};
   var loadedFor = '';
+  var system = SystemFoodValues.empty;
 
   String dayKey(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  /// Secilen gunde kayit varsa alanlar onunla dolar; tekrar giris gunceller.
+  String textFor(ReportField f, num v) => f.isInt ? v.toInt().toString() : v.toString();
+
+  /// Secilen gun icin formu hazirlar.
+  ///
+  /// Food alanlari (FOOD USD, FOOD USD ₺, FOOD MO ₺) sistemdeki satis ve imha
+  /// kayitlarindan otomatik dolar. Gune ait kayit varsa onceki degerler
+  /// kullanilir — kullanici duzeltmisse kaybolmasin.
   Future<void> loadExisting(VoidCallback rebuild) async {
     final key = dayKey(date);
     if (loadedFor == key) return;
     loadedFor = key;
     try {
-      final existing = await repo.dailyReportFor(key);
+      final day = await repo.dailyReportFor(key);
+      system = day.suggested;
       for (final f in fields.entry) {
-        final v = existing?.values[f.key];
-        controllers[f.key]!.text = v == null ? '' : (f.isInt ? v.toInt().toString() : v.toString());
+        final saved = day.report?.values[f.key];
+        if (saved != null) {
+          controllers[f.key]!.text = textFor(f, saved);
+        } else if (SystemFoodValues.keys.contains(f.key)) {
+          controllers[f.key]!.text = textFor(f, system[f.key] ?? 0);
+        } else {
+          controllers[f.key]!.text = '';
+        }
       }
     } catch (_) {
-      // Kayit yoksa alanlar bos kalir.
+      // Sistem degerleri alinamazsa alanlar bos kalir, elle girilebilir.
     }
     rebuild();
   }
@@ -67,23 +81,51 @@ Future<bool?> showDailyReportDialog(BuildContext context, {required ReportFields
               },
             ),
           ),
-          ...fields.entry.map((f) => LabeledField(
-                label: f.label,
-                child: TextField(
-                  controller: controllers[f.key],
-                  keyboardType: TextInputType.numberWithOptions(decimal: !f.isInt),
-                  style: const TextStyle(fontSize: 16),
-                  decoration: InputDecoration(
-                    suffixText: f.type == 'money' ? 'TL' : null,
-                    hintText: f.isInt ? 'adet' : null,
+          ...fields.entry.map((f) {
+            final fromSystem = SystemFoodValues.keys.contains(f.key);
+            final systemValue = system[f.key];
+            return LabeledField(
+              label: f.label,
+              hint: fromSystem
+                  ? 'Sistemdeki satış ve imha kayıtlarından: '
+                      '${formatReportValue(systemValue, f.type)}'
+                  : null,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controllers[f.key],
+                      keyboardType: TextInputType.numberWithOptions(decimal: !f.isInt),
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        suffixText: f.type == 'money' ? 'TL' : null,
+                        hintText: f.isInt ? 'adet' : null,
+                      ),
+                    ),
                   ),
-                ),
-              )),
+                  // Kullanici elle degistirdiyse sistem degerine donebilsin.
+                  if (fromSystem) ...[
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: 'Sistemden doldur',
+                      onPressed: () {
+                        controllers[f.key]!.text = textFor(f, systemValue ?? 0);
+                        rebuild();
+                      },
+                      icon: const Icon(Icons.sync, size: 20),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
+              'FOOD alanları sistemdeki pasta satış ve imha kayıtlarından '
+              'otomatik dolar; gerekirse değiştirebilirsiniz. '
               'AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% '
-              'bu değerlerden otomatik hesaplanır.',
+              'girilen değerlerden otomatik hesaplanır.',
               style: TextStyle(fontSize: 12, color: context.tokens.muted),
             ),
           ),

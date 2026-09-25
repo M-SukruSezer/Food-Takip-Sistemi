@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, FileSpreadsheet, FileText } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, FileText, RefreshCw } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
 import { fmtDate, fmtMoney, errorMessage } from '../format';
 
 const ENTRY_ROLES = ['store_manager', 'shift_supervisor'];
+
+// Bu alanlar sistemdeki pasta satis ve imha kayitlarindan otomatik dolar.
+const SYSTEM_FIELDS = ['food_usd', 'food_usd_try', 'food_mo_try'];
 
 // Degerleri turune gore bicimler. Paydasi sifir olan oran sunucudan null
 // gelir; ekranda "-" gosterilir.
@@ -240,18 +243,28 @@ export default function DailyReport() {
 function EntryModal({ fields, onClose, onDone }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [values, setValues] = useState({});
+  const [system, setSystem] = useState({});
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Secilen gunde kayit varsa alanlar onunla dolar; tekrar giris gunceller.
+  // Food alanlari sistemdeki satis/imha kayitlarindan dolar. Güne ait kayit
+  // varsa onceki degerler kullanilir; kullanici duzeltmisse kaybolmasin.
   useEffect(() => {
     if (!date) return;
     api.get(`/daily-reports/day/${date}`, { silent: true })
       .then((r) => {
-        if (!r.data) { setValues({}); return; }
-        setValues(Object.fromEntries(fields.entry.map((f) => [f.key, String(r.data[f.key] ?? '')])));
+        const saved = r.data && r.data.report;
+        const suggested = (r.data && r.data.suggested) || {};
+        setSystem(suggested);
+        setValues(Object.fromEntries(fields.entry.map((f) => {
+          if (saved && saved[f.key] !== undefined && saved[f.key] !== null) {
+            return [f.key, String(saved[f.key])];
+          }
+          if (SYSTEM_FIELDS.includes(f.key)) return [f.key, String(suggested[f.key] ?? '')];
+          return [f.key, ''];
+        })));
       })
-      .catch(() => setValues({}));
+      .catch(() => { setValues({}); setSystem({}); });
   }, [date, fields]);
 
   async function submit(e) {
@@ -289,20 +302,41 @@ function EntryModal({ fields, onClose, onDone }) {
             Aynı gün için tekrar giriş mevcut kaydı günceller.
           </p>
         </div>
-        {fields.entry.map((f) => (
-          <div className="field" key={f.key}>
-            <label>{f.label}</label>
-            <input
-              value={values[f.key] ?? ''}
-              onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-              inputMode="decimal"
-              required
-            />
-          </div>
-        ))}
+        {fields.entry.map((f) => {
+          const fromSystem = SYSTEM_FIELDS.includes(f.key);
+          return (
+            <div className="field" key={f.key}>
+              <label>{f.label}</label>
+              <div className="system-field">
+                <input
+                  value={values[f.key] ?? ''}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  inputMode="decimal"
+                  required
+                />
+                {fromSystem && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    title="Sistemden doldur"
+                    onClick={() => setValues((v) => ({ ...v, [f.key]: String(system[f.key] ?? 0) }))}
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                )}
+              </div>
+              {fromSystem && (
+                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                  Sistemdeki satış ve imha kayıtlarından: {formatValue(system[f.key], f.type)}
+                </p>
+              )}
+            </div>
+          );
+        })}
         <p className="muted" style={{ fontSize: 12 }}>
-          AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% bu değerlerden
-          otomatik hesaplanır.
+          FOOD alanları sistemdeki pasta satış ve imha kayıtlarından otomatik dolar;
+          gerekirse değiştirebilirsiniz. AT, IPT, FOOD MARKOUT %, FOOD UPH,
+          MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.
         </p>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>

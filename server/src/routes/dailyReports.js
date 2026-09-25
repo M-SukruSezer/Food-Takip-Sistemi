@@ -7,12 +7,11 @@ const { logActivity } = require('../utils');
 
 const router = express.Router();
 
-// Rapor girisi yalnizca magazada vardiya yoneten iki rolde.
+// Rapor paneli yalnizca magazada vardiya yoneten iki role acik. Ust kademeler
+// (Ana Yonetici, operations/regional manager) paneli hic gormez.
 const ENTRY_ROLES = ['store_manager', 'shift_supervisor'];
-// Modulu gorebilenler: girenler + izleme amacli ust kademeler.
-const VIEWER_ROLES = ['super_admin', 'operations_manager', 'regional_manager', ...ENTRY_ROLES];
 
-router.use(requireAuth, requireRole(...VIEWER_ROLES));
+router.use(requireAuth, requireRole(...ENTRY_ROLES));
 
 // Kullanicinin girdigi ham alanlar. Oranlar burada yok: hesaplanir.
 const FIELDS = [
@@ -122,6 +121,56 @@ router.get('/', async (req, res) => {
   res.json({ from, to, period, items, summary: aggregate(items) });
 });
 
+/// O gunun food rakamlarini sistemden hesaplar.
+///
+/// FOOD USD ve FOOD USD ₺ satislardan (kind = 'sale'), FOOD MO ₺ imhalardan
+/// gelir. Ikram ikisine de girmez: satis degildir, zayi de degildir.
+///
+/// Imha satirlari fiyat anlik goruntusu tutmuyor, bu yuzden zayi tutari
+/// cesidin GUNCEL fiyatiyla hesaplanir — hareket raporundaki ile ayni kural.
+async function systemFoodValues(storeId, date) {
+  const from = `${date}T00:00:00.000Z`;
+  const to = `${date}T23:59:59.999Z`;
+
+  const sold = await queryOne(`
+    SELECT COALESCE(SUM(quantity),0) AS qty,
+           COALESCE(SUM(quantity * unit_price),0) AS amount
+    FROM sales
+    WHERE kind = 'sale' AND store_id = ? AND sold_at >= ? AND sold_at <= ?
+  `, storeId, from, to);
+
+  const wasted = await queryOne(`
+    SELECT COALESCE(SUM(d.quantity * pt.unit_price),0) AS amount,
+           COALESCE(SUM(d.quantity),0) AS qty
+    FROM discards d
+    JOIN batches b ON b.id = d.batch_id
+    JOIN product_types pt ON pt.id = b.product_type_id
+    WHERE d.store_id = ? AND d.discarded_at >= ? AND d.discarded_at <= ?
+  `, storeId, from, to);
+
+  return {
+    food_usd: Number(sold.qty) || 0,
+    food_usd_try: Number(sold.amount) || 0,
+    food_mo_try: Number(wasted.amount) || 0,
+    // Arayuz "5 imha kaydindan" diye aciklama gosterebilsin.
+    discarded_qty: Number(wasted.qty) || 0,
+    // Imha tutari guncel fiyattan hesaplandi; arayuz bunu belirtir.
+    waste_uses_current_price: true,
+  };
+}
+
+/// Sistemden gelen food rakamlari — form bunlarla on dolar.
+router.get('/suggested/:date', async (req, res) => {
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId || req.user.store_id;
+  if (!storeId) return res.status(400).json({ error: 'Mağaza belirtilmeli' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) {
+    return res.status(400).json({ error: 'Tarih YYYY-AA-GG biçiminde olmalıdır' });
+  }
+  res.json(await systemFoodValues(storeId, req.params.date));
+});
+
 /// Tek gun (varsa) — giris formu mevcut degeri yuklesin diye.
 router.get('/day/:date', async (req, res) => {
   const scope = resolveStoreScope(req, res);
@@ -133,7 +182,10 @@ router.get('/day/:date', async (req, res) => {
     'SELECT * FROM daily_reports WHERE store_id = ? AND report_date = ?',
     storeId, req.params.date
   );
-  res.json(row ? withMetrics(row) : null);
+  // Kayit olsun olmasin sistem rakamlari birlikte doner; form food alanlarini
+  // bununla on doldurur.
+  const suggested = await systemFoodValues(storeId, req.params.date);
+  res.json({ report: row ? withMetrics(row) : null, suggested });
 });
 
 /// Gunluk kayit ekle/guncelle. Ayni gun icin tekrar giris mevcut satiri gunceller.
@@ -186,9 +238,6 @@ router.delete('/:id', async (req, res) => {
   const row = await queryOne('SELECT * FROM daily_reports WHERE id = ?', Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Rapor bulunamadı' });
   if (!allowsStore(req, row.store_id)) return res.status(403).json({ error: 'Bu rapora erişim yetkiniz yok' });
-  if (!ENTRY_ROLES.includes(req.user.role) && req.user.role !== 'super_admin') {
-    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
-  }
   await execute('DELETE FROM daily_reports WHERE id = ?', row.id);
   await logActivity(req.user, 'GUNLUK_RAPOR_SIL', 'daily_report', row.id,
     `${row.report_date} raporu silindi`, row.store_id);

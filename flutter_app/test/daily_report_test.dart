@@ -133,13 +133,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Gün Ekle'), findsOneWidget, reason: '$rol giriş yapabilmeli');
       }
-      for (final rol in ['super_admin', 'regional_manager']) {
-        installFakeApi({'GET /daily-reports': _page, 'GET /daily-reports/fields': _fields});
-        signInAs(rol, storeId: 1);
-        await tester.pumpWidget(host(const DailyReportScreen()));
-        await tester.pumpAndSettle();
-        expect(find.text('Gün Ekle'), findsNothing, reason: '$rol giriş yapamamalı');
-      }
+      // Ust kademeler paneli hic gormuyor; menu kontrolu asagidaki testte.
     });
 
     testWidgets('haftalık/aylık seçimi sunucuya gider', (tester) async {
@@ -181,9 +175,20 @@ void main() {
     });
   });
 
-  test('menüde Rapor Paneli barista dışındaki rollerde görünür', () {
+  test('Rapor Paneli yalnızca iki role açık', () {
     final item = navItems.firstWhere((i) => i.path == '/daily-report');
-    expect(item.roles, contains('shift_supervisor'));
+    expect(item.roles, ['store_manager', 'shift_supervisor']);
+    // Ust kademeler ve barista paneli hic gormez.
+    for (final rol in ['super_admin', 'operations_manager', 'regional_manager', 'barista']) {
+      expect(item.roles, isNot(contains(rol)), reason: '$rol görmemeli');
+    }
+  });
+
+  test('Petty Cash üst kademelere açık kalır', () {
+    // Rapor Paneli kapatildi ama Petty Cash izleme amacli acik.
+    final item = navItems.firstWhere((i) => i.path == '/petty-cash');
+    expect(item.roles, contains('super_admin'));
+    expect(item.roles, contains('regional_manager'));
     expect(item.roles, isNot(contains('barista')));
   });
 
@@ -195,4 +200,69 @@ void main() {
     expect(r.metrics.at, isNull);
     expect(r.metrics.ipt, 2.2);
   });
+  group('Sistemden otomatik doldurma', () {
+    testWidgets('food alanları satış ve imha kayıtlarından dolar', (tester) async {
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+        'GET /daily-reports/day/2026-09-25': {
+          'report': null,
+          'suggested': {
+            'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400,
+            'discarded_qty': 2, 'waste_uses_current_price': true,
+          },
+        },
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gün Ekle'));
+      await tester.pumpAndSettle();
+
+      // Food alanlari dolu gelir, digerleri bos.
+      final dialog = find.byType(AlertDialog);
+      expect(find.descendant(of: dialog, matching: find.text('31')), findsWidgets);
+      expect(find.descendant(of: dialog, matching: find.text('5980')), findsWidgets);
+      expect(find.descendant(of: dialog, matching: find.text('400')), findsWidgets);
+      expect(find.textContaining('Sistemdeki satış ve imha kayıtlarından'), findsWidgets);
+      expect(find.textContaining('gerekirse değiştirebilirsiniz'), findsOneWidget);
+    });
+
+    testWidgets('kayıt varsa önceki değerler korunur', (tester) async {
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+        'GET /daily-reports/day/2026-09-25': {
+          // Kullanici daha once 28 diye duzeltmis; sistem 31 dese de o kalmali.
+          'report': {
+            'id': 9, 'store_id': 1, 'report_date': '2026-09-25',
+            'net_sales': 9000, 'adt': 100, 'product_qty': 200, 'food_usd': 28,
+            'food_usd_try': 5000, 'food_mo_try': 100, 'sold_beverage_qty': 120,
+            'modifiers': 20, 'app_amount': 500, 'metrics': {},
+          },
+          'suggested': {'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400},
+        },
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Gün Ekle'));
+      await tester.pumpAndSettle();
+
+      final dialog = find.byType(AlertDialog);
+      expect(find.descendant(of: dialog, matching: find.text('28')), findsWidgets);
+      expect(find.descendant(of: dialog, matching: find.text('31')), findsNothing);
+    });
+  });
+
+  test('sistemden dolan alanlar yalnızca food kalemleri', () {
+    expect(SystemFoodValues.keys, ['food_usd', 'food_usd_try', 'food_mo_try']);
+    const v = SystemFoodValues(foodUsd: 31, foodUsdTry: 5980, foodMoTry: 400, discardedQty: 2);
+    expect(v['food_usd'], 31);
+    // NET SALES gibi alanlar elle girilir.
+    expect(v['net_sales'], isNull);
+  });
+
 }

@@ -102,6 +102,9 @@ export const MANAGER_ROLES = [
 // Tum roller (menu erisimi icin).
 export const ALL_ROLES = ROLE_ORDER;
 
+// Rapor Panelini gorebilen roller. Ust kademeler bu paneli hic gormez.
+export const REPORT_PANEL_ROLES = ['store_manager', 'shift_supervisor'];
+
 // Petty Cash modulunu gorebilen roller. Giris yetkisi yalnizca son ikisinde;
 // ust kademeler izleme amacli gorur, barista hic gormez.
 export const PETTY_CASH_ROLES = [

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
-  ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES,
+  ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES,
 } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
@@ -22,7 +22,7 @@ const LINKS = (user) => [
   { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
   { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
   { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
-  { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: PETTY_CASH_ROLES },
+  { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES },
 ];
 
 const TABS = [

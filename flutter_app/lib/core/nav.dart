@@ -32,6 +32,9 @@ const allRoles = [
 /// Kullanici yonetimi, cesit yonetimi ve onaylara erisen roller.
 const managerRoles = ['super_admin', 'operations_manager', 'regional_manager', 'store_manager'];
 
+/// Rapor Panelini gorebilen roller. Ust kademeler bu paneli hic gormez.
+const reportPanelRoles = ['store_manager', 'shift_supervisor'];
+
 /// Petty Cash modulunu gorebilen roller. Giris yetkisi yalnizca son ikisinde;
 /// ust kademeler izleme amacli gorur.
 const pettyCashRoles = [
@@ -56,7 +59,7 @@ const navItems = <NavItem>[
   // Masraf girisi Store Manager ve Shift Supervisor'da; ust kademeler
   // sorumlu olduklari magazalarin kayitlarini gorur.
   NavItem(path: '/petty-cash', label: 'Petty Cash', shortLabel: 'Kasa', icon: Icons.receipt_outlined, roles: pettyCashRoles),
-  NavItem(path: '/daily-report', label: 'Rapor Paneli', shortLabel: 'Panel', icon: Icons.assessment_outlined, roles: pettyCashRoles),
+  NavItem(path: '/daily-report', label: 'Rapor Paneli', shortLabel: 'Panel', icon: Icons.assessment_outlined, roles: reportPanelRoles),
   NavItem(path: '/profile', label: 'Profilim', shortLabel: 'Profil', icon: Icons.account_circle_outlined, roles: allRoles),
 ];
 

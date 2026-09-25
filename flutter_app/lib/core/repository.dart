@@ -377,13 +377,15 @@ class Repository {
     return DailyReportPage.fromJson(r.data ?? const {});
   }
 
-  Future<DailyReport?> dailyReportFor(String date, {int? storeId}) async {
+  /// Gunun kaydi (varsa) + sistemin satis/imha kayitlarindan hesapladigi
+  /// food rakamlari.
+  Future<DailyReportDay> dailyReportFor(String date, {int? storeId}) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/daily-reports/day/$date',
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(silent: true),
     );
-    return r.data == null ? null : DailyReport.fromJson(r.data!);
+    return DailyReportDay.fromJson(r.data ?? const {});
   }
 
   /// Ayni gun icin tekrar gonderim mevcut kaydi gunceller.
