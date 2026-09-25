@@ -30,13 +30,14 @@ class _UsersScreenState extends State<UsersScreen> {
   String? _error;
   bool _loaded = false;
 
-  bool get _isSuper => session.user?.isSuperAdmin ?? false;
 
   @override
   void initState() {
     super.initState();
     _load();
-    if (_isSuper) {
+    // Magaza listesi hem filtre hem de cok magazali rol atamasi icin gerekli;
+    // sunucu zaten yalnizca erisilen magazalari donuyor.
+    if (session.user?.canManage ?? false) {
       repo.stores(silent: true).then((s) {
         if (mounted) setState(() => _stores = s);
       }).onError((Object _, StackTrace _) {});
@@ -183,7 +184,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 children: [
                   Pill(text: roleLabels[user.role] ?? user.role, color: t.info),
                   Pill(
-                    text: user.storeName ?? (user.role == 'super_admin' ? 'Tüm mağazalar' : 'Mağaza atanmamış'),
+                    text: user.isMultiStore
+                        ? '${user.storeIds.length} mağaza sorumlusu'
+                        : (user.storeName ??
+                            (user.role == 'super_admin' ? 'Tüm mağazalar' : 'Mağaza atanmamış')),
                     color: t.warning,
                   ),
                 ],
@@ -248,7 +252,10 @@ Future<bool?> showUserDialog(
   final username = TextEditingController(text: user?.username ?? '');
   final password = TextEditingController();
   final fullName = TextEditingController(text: user?.fullName ?? '');
-  var role = user?.role ?? 'staff';
+  // Roller once cozulur; varsayilan en alt kademe (Barista).
+  final roles = [...assignableRoles(current)];
+  if (roles.isEmpty) roles.add('barista');
+  var role = user?.role ?? roles.last;
   // Yeni kullanici imha ve ikram ile gelir: yetki sistemi oncesi davranis
   // buydu, sunucudaki varsayilanla ayni.
   final selected = <String>{
@@ -257,8 +264,8 @@ Future<bool?> showUserDialog(
   final grantable = grantablePermissions(current);
   int? storeId = user?.storeId ?? (current?.isSuperAdmin == true ? null : current?.storeId);
   var active = user?.active ?? true;
+  final selectedStores = <int>{...(user?.storeIds ?? const <int>[])};
   final isSuper = current?.isSuperAdmin ?? false;
-  final roles = assignableRoles(current);
   final lockRole = user != null && roleLocked(current, user);
 
   return showDialog<bool>(
@@ -309,7 +316,33 @@ Future<bool?> showUserDialog(
                   },
           ),
         ),
-        if (isSuper && role != 'super_admin')
+        // Cok magazali rol: sorumlu olunan magazalar isaretlenir.
+        if (multiStoreRoles.contains(role) && stores.isNotEmpty)
+          LabeledField(
+            label: 'Sorumlu Olduğu Mağazalar',
+            hint: 'Seçilen mağazaların verilerini görebilir.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: stores.map((store) {
+                return CheckboxListTile(
+                  value: selectedStores.contains(store.id),
+                  onChanged: (v) {
+                    if (v == true) {
+                      selectedStores.add(store.id);
+                    } else {
+                      selectedStores.remove(store.id);
+                    }
+                    rebuild();
+                  },
+                  title: Text(store.name, style: const TextStyle(fontSize: 14)),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                );
+              }).toList(),
+            ),
+          )
+        else if (isSuper && !multiStoreRoles.contains(role) && role != 'super_admin')
           LabeledField(
             label: 'Mağaza',
             child: DropdownButtonFormField<int?>(
@@ -380,9 +413,10 @@ Future<bool?> showUserDialog(
               password: password.text,
               fullName: fullName.text.trim(),
               role: role,
-              storeId: role == 'super_admin' ? null : storeId,
+              storeId: multiStoreRoles.contains(role) || role == 'super_admin' ? null : storeId,
               active: true,
               permissions: role == 'super_admin' ? null : selected.toList(),
+              storeIds: multiStoreRoles.contains(role) ? selectedStores.toList() : null,
             );
           } else {
             await repo.updateUser(
@@ -390,9 +424,10 @@ Future<bool?> showUserDialog(
               fullName: fullName.text.trim(),
               role: role,
               active: permissionsFor(current, user).canToggleActive ? active : null,
-              storeId: role == 'super_admin' ? null : storeId,
+              storeId: multiStoreRoles.contains(role) || role == 'super_admin' ? null : storeId,
               includeStore: isSuper,
               permissions: role == 'super_admin' ? null : selected.toList(),
+              storeIds: multiStoreRoles.contains(role) ? selectedStores.toList() : null,
             );
           }
           return null;

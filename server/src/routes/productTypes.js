@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth, requirePermission } = require('../auth');
+const { requireAuth, requirePermission, resolveStoreScope, allowsStore } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
@@ -33,11 +33,10 @@ router.get('/', async (req, res) => {
     `,);
     return res.json(rows);
   }
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId;
   if (!storeId) return res.status(400).json({ error: 'Mağaza zorunludur' });
-  if (req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
   const rows = await queryAll(`
     SELECT pt.*, s.name AS store_name FROM product_types pt
     LEFT JOIN stores s ON s.id = pt.store_id
@@ -78,7 +77,7 @@ router.post('/', requirePermission('manage_product_types'), async (req, res) => 
 router.put('/:id', requirePermission('manage_product_types'), async (req, res) => {
   const existing = await queryOne('SELECT * FROM product_types WHERE id = ?',Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Ürün çeşidi bulunamadı' });
-  if (req.user.role !== 'super_admin' && existing.store_id !== req.user.store_id) {
+  if (req.user.role !== 'super_admin' && !allowsStore(req, existing.store_id)) {
     return res.status(403).json({
       error: existing.store_id === null
         ? 'Genel çeşitleri yalnızca Ana Yönetici düzenleyebilir'
@@ -114,7 +113,7 @@ router.put('/:id', requirePermission('manage_product_types'), async (req, res) =
 router.delete('/:id', requirePermission('manage_product_types'), async (req, res) => {
   const existing = await queryOne('SELECT * FROM product_types WHERE id = ?',Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Ürün çeşidi bulunamadı' });
-  if (req.user.role !== 'super_admin' && existing.store_id !== req.user.store_id) {
+  if (req.user.role !== 'super_admin' && !allowsStore(req, existing.store_id)) {
     return res.status(403).json({
       error: existing.store_id === null
         ? 'Genel çeşitleri yalnızca Ana Yönetici silebilir'

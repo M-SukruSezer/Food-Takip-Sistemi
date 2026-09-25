@@ -166,7 +166,7 @@ class _SideNav extends StatelessWidget {
                     if (!rail)
                       Expanded(
                         child: Text(
-                          'Food Takip Sistemi',
+                          'Operasyon Takip',
                           style: TextStyle(
                             color: t.sidebarInk,
                             fontWeight: FontWeight.w800,

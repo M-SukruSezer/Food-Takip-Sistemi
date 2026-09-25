@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth, requireRole } = require('../auth');
+const { requireAuth, requireRole, resolveStoreScope, allowsStore, storeFilter, ROLES } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
@@ -8,14 +8,13 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
 
-  const params = [];
-  let where = '';
-  if (storeId) { where = ' WHERE sl.store_id = ?'; params.push(storeId); }
+  const f = storeFilter(scope, 'sl.store_id');
+  const params = [...f.params];
+  // storeFilter " AND ..." uretir; ilk kosul oldugu icin WHERE'e cevrilir.
+  let where = f.sql ? ' WHERE' + f.sql.slice(4) : '';
   // ?kind=sale|ikram ile tek tur listelenebilir; verilmezse ikisi de gelir.
   if (req.query.kind === 'sale' || req.query.kind === 'ikram') {
     where += where ? ' AND' : ' WHERE';
@@ -39,11 +38,11 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
-router.post('/', requireRole('super_admin', 'store_manager', 'staff'), async (req, res) => {
+router.post('/', requireRole(...ROLES), async (req, res) => {
   const { batch_id, quantity } = req.body || {};
   const batch = await queryOne('SELECT * FROM batches WHERE id = ?',Number(batch_id));
   if (!batch) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  if (req.user.role !== 'super_admin' && batch.store_id !== req.user.store_id) {
+  if (!allowsStore(req, batch.store_id)) {
     return res.status(403).json({ error: 'Bu ürüne erişim yetkiniz yok' });
   }
   if (batch.status !== 'food_cabinet') return res.status(400).json({ error: 'Ürün satışa uygun durumda değil' });

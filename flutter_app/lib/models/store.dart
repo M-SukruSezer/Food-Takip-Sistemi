@@ -53,6 +53,7 @@ class ManagedUser {
     this.storeId,
     this.storeName,
     this.permissions = const [],
+    this.storeIds = const [],
   });
 
   final int id;
@@ -67,14 +68,23 @@ class ManagedUser {
   /// tam listeyi doner.
   final List<String> permissions;
 
+  /// Cok magazali rollerde (operations/regional manager) sorumlu olunan
+  /// magazalar; digerlerinde bos.
+  final List<int> storeIds;
+
+  bool get isMultiStore => const ['operations_manager', 'regional_manager'].contains(role);
+
   factory ManagedUser.fromJson(Map<String, dynamic> j) => ManagedUser(
         id: _int(j['id']),
         username: j['username'] as String? ?? '',
         fullName: j['full_name'] as String? ?? '',
-        role: j['role'] as String? ?? 'staff',
+        role: j['role'] as String? ?? 'barista',
         active: _int(j['active']) == 1,
         storeId: j['store_id'] == null ? null : _int(j['store_id']),
         storeName: j['store_name'] as String?,
         permissions: parsePermissions(j['permissions']),
+        storeIds: (j['store_ids'] as List<dynamic>? ?? const [])
+            .map((e) => _int(e))
+            .toList(),
       );
 }

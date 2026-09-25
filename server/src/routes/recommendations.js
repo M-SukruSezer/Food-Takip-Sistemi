@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth } = require('../auth');
+const { requireAuth, resolveStoreScope, storeFilter } = require('../auth');
 const { batchRow, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
@@ -12,13 +12,12 @@ router.use(requireAuth);
 // warning (24-48 sa) / normal (48 saatten fazla).
 router.get('/', async (req, res) => {
   await promoteReadyThawing();
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  const all = !storeId && req.user.role === 'super_admin';
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
 
-  const where = all
-    ? " WHERE b.status = 'food_cabinet'"
-    : " WHERE b.status = 'food_cabinet' AND b.store_id = ?";
-  const params = all ? [] : [storeId];
+  const f = storeFilter(scope, 'b.store_id');
+  const where = " WHERE b.status = 'food_cabinet'" + f.sql;
+  const params = [...f.params];
 
   const rows = await queryAll(`
     SELECT b.*, pt.name AS product_name, pt.skt_days, pt.unit_price AS product_unit_price, s.name AS store_name

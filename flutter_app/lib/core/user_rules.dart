@@ -1,3 +1,4 @@
+import 'format.dart';
 import '../models/store.dart';
 import '../models/user.dart';
 
@@ -35,7 +36,7 @@ UserPermissions permissionsFor(AppUser? current, ManagedUser target) {
   final isSelf = current.id == target.id;
   final isSuper = current.role == 'super_admin';
 
-  if (!isSuper && current.role != 'store_manager') {
+  if (!current.canManage) {
     return const UserPermissions(
       canEdit: false,
       canToggleActive: false,
@@ -45,14 +46,26 @@ UserPermissions permissionsFor(AppUser? current, ManagedUser target) {
     );
   }
 
-  // Magaza yoneticisi yalnizca kendi magazasindaki kullanicilara dokunabilir.
-  if (!isSuper && target.storeId != current.storeId) {
+  // Yalnizca kendinden ASAGI kademedeki kullanicilar yonetilebilir.
+  if (!isSelf && roleLevel(target.role) <= roleLevel(current.role)) {
     return const UserPermissions(
       canEdit: false,
       canToggleActive: false,
       canResetPassword: false,
       canDelete: false,
-      reason: 'Bu kullanıcı başka mağazaya bağlı',
+      reason: 'Bu kullanıcı sizinle aynı ya da üst kademede',
+    );
+  }
+
+  // Magaza kapsami: Ana Yonetici hepsine, digerleri yalnizca sorumlu olduklari
+  // magazalardaki kullanicilara dokunabilir.
+  if (!isSuper && !isSelf && !_inScope(current, target)) {
+    return const UserPermissions(
+      canEdit: false,
+      canToggleActive: false,
+      canResetPassword: false,
+      canDelete: false,
+      reason: 'Bu kullanıcı sorumluluğunuzdaki mağazalarda değil',
     );
   }
 
@@ -79,11 +92,16 @@ UserPermissions permissionsFor(AppUser? current, ManagedUser target) {
 }
 
 /// Bir kullanicinin atayabilecegi roller.
-List<String> assignableRoles(AppUser? current) {
-  if (current?.role == 'super_admin') {
-    return const ['super_admin', 'store_manager', 'staff'];
-  }
-  return const ['store_manager', 'staff'];
+/// Tanimlanabilecek roller: islemi yapanin kademesinin altindakiler.
+/// Sunucu ayni kurali uyguluyor; buradaki liste secenekleri kisitlamak icin.
+List<String> assignableRoles(AppUser? current) => rolesBelow(current?.role);
+
+/// Islemi yapanin erisebildigi magazalar hedef kullaniciyi kapsiyor mu?
+bool _inScope(AppUser current, ManagedUser target) {
+  final scope = current.isMultiStore
+      ? current.storeIds
+      : (current.storeId == null ? const <int>[] : [current.storeId!]);
+  return target.storeId != null && scope.contains(target.storeId);
 }
 
 /// Bir kullanicinin devredebilecegi yetkiler: Ana Yonetici hepsini, digerleri

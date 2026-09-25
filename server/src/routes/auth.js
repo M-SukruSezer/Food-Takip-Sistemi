@@ -1,9 +1,16 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { sign, verifyPassword, requireAuth, permissionsOf } = require('../auth');
+const { sign, verifyPassword, requireAuth, permissionsOf, isMultiStoreRole } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
+
+/// Cok magazali rollerde sorumlu olunan magazalar; digerlerinde bos dizi.
+async function storeIdsFor(user) {
+  if (!isMultiStoreRole(user.role)) return [];
+  const rows = await queryAll('SELECT store_id FROM user_stores WHERE user_id = ?', user.id);
+  return rows.map((r) => Number(r.store_id));
+}
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body || {};
@@ -37,6 +44,7 @@ router.post('/login', async (req, res) => {
       avatar: user.avatar || null,
       // Arayuz yetkisiz dugmeleri bastan gizlesin; son soz sunucuda.
       permissions: permissionsOf(user),
+      store_ids: await storeIdsFor(user),
     },
   });
 });
@@ -54,6 +62,7 @@ router.get('/me', requireAuth, async (req, res) => {
     store_name: store ? store.name : null,
     avatar: user.avatar || null,
     permissions: permissionsOf(user),
+    store_ids: await storeIdsFor(user),
   });
 });
 

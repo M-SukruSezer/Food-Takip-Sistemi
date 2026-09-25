@@ -94,7 +94,7 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
       animation: themePreference,
       builder: (context, _) {
         return MaterialApp.router(
-          title: 'Food Takip Sistemi',
+          title: 'Operasyon Takip',
           debugShowCheckedModeBanner: false,
           // Tarih seciciler ve takvim basliklari Turkce gelsin; aksi halde
           // Material varsayilani yalnizca Ingilizce destekler.

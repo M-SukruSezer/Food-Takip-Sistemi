@@ -72,11 +72,45 @@ export function sumRemaining(list) {
   return (list || []).reduce((s, b) => s + (b.remaining || 0), 0);
 }
 
+// Rol kademeleri; sunucudaki ROLES ile ayni sirada (ust kademe once).
+export const ROLE_ORDER = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'barista',
+];
+
 export const ROLE_LABELS = {
   super_admin: 'Ana Yönetici',
-  store_manager: 'Mağaza Yöneticisi',
-  staff: 'Personel',
+  operations_manager: 'Operations Manager',
+  regional_manager: 'Regional Manager',
+  store_manager: 'Store Manager',
+  shift_supervisor: 'Shift Supervisor',
+  barista: 'Barista',
 };
+
+// Birden fazla magazadan sorumlu olabilen roller.
+export const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager'];
+
+// Kullanici yonetimi yapabilen roller.
+export const MANAGER_ROLES = [
+  'super_admin', 'operations_manager', 'regional_manager', 'store_manager',
+];
+
+// Tum roller (menu erisimi icin).
+export const ALL_ROLES = ROLE_ORDER;
+
+export function roleLevel(role) {
+  const i = ROLE_ORDER.indexOf(role);
+  return i < 0 ? ROLE_ORDER.length : i;
+}
+
+// Bir rolun tanimlayabilecegi roller: kendinden asagi kademedekiler.
+export function rolesBelow(role) {
+  return ROLE_ORDER.slice(roleLevel(role) + 1);
+}
 
 // Ana Yoneticinin devredebildigi yetkiler; sunucudaki ALL_PERMISSIONS ile ayni.
 export const ALL_PERMISSIONS = ['manage_product_types', 'adjust_batches', 'discard', 'ikram'];

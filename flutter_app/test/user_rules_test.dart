@@ -3,8 +3,14 @@ import 'package:foodtakip/core/user_rules.dart';
 import 'package:foodtakip/models/store.dart';
 import 'package:foodtakip/models/user.dart';
 
-AppUser _user(int id, String role, {int? storeId}) =>
-    AppUser(id: id, username: 'u$id', fullName: 'User $id', role: role, storeId: storeId);
+AppUser _user(int id, String role, {int? storeId, List<int> storeIds = const []}) => AppUser(
+      id: id,
+      username: 'u$id',
+      fullName: 'User $id',
+      role: role,
+      storeId: storeId,
+      storeIds: storeIds,
+    );
 
 ManagedUser _managed(int id, String role, {int? storeId, bool active = true, String? name}) =>
     ManagedUser(
@@ -19,7 +25,7 @@ ManagedUser _managed(int id, String role, {int? storeId, bool active = true, Str
 void main() {
   group('permissionsFor', () {
     test('ana yonetici baska kullaniciyi tamamen yonetir', () {
-      final p = permissionsFor(_user(1, 'super_admin'), _managed(2, 'staff', storeId: 5));
+      final p = permissionsFor(_user(1, 'super_admin'), _managed(2, 'barista', storeId: 5));
       expect(p.canEdit, isTrue);
       expect(p.canToggleActive, isTrue);
       expect(p.canResetPassword, isTrue);
@@ -35,17 +41,32 @@ void main() {
       expect(p.canResetPassword, isTrue);
     });
 
-    test('ana yonetici hesabi silinemez', () {
+    test('aynı kademedeki hesap yönetilemez', () {
+      // Kural degisti: artik yalnizca KENDINDEN ASAGI kademedekiler yonetilir,
+      // bu yuzden bir Ana Yonetici baska bir Ana Yoneticiye dokunamaz.
       final p = permissionsFor(_user(1, 'super_admin'), _managed(2, 'super_admin'));
       expect(p.canDelete, isFalse);
-      expect(p.canEdit, isTrue);
-      expect(p.reason, 'Ana yönetici hesabı silinemez');
+      expect(p.canEdit, isFalse);
+      expect(p.reason, 'Bu kullanıcı sizinle aynı ya da üst kademede');
+    });
+
+    test('üst kademe alt kademeyi yönetir, tersi olmaz', () {
+      // Cok magazali rolde yetki atanan magazalardan gelir.
+      final ops = _user(1, 'operations_manager', storeIds: const [4]);
+      expect(permissionsFor(ops, _managed(2, 'store_manager', storeId: 4)).canEdit, isTrue);
+
+      // Atanmamis magazadaki kullaniciya dokunamaz.
+      expect(permissionsFor(ops, _managed(5, 'store_manager', storeId: 9)).canEdit, isFalse);
+
+      final sm = _user(3, 'store_manager', storeId: 4);
+      expect(permissionsFor(sm, _managed(1, 'operations_manager')).canEdit, isFalse);
+      expect(permissionsFor(sm, _managed(9, 'shift_supervisor', storeId: 4)).canEdit, isTrue);
     });
 
     test('magaza yoneticisi baska magazanin kullanicisina dokunamaz', () {
       final p = permissionsFor(
         _user(1, 'store_manager', storeId: 3),
-        _managed(2, 'staff', storeId: 4),
+        _managed(2, 'barista', storeId: 4),
       );
       expect(p.canEdit, isFalse);
       expect(p.canToggleActive, isFalse);
@@ -56,7 +77,7 @@ void main() {
     test('magaza yoneticisi kendi magazasindaki personeli yonetir', () {
       final p = permissionsFor(
         _user(1, 'store_manager', storeId: 3),
-        _managed(2, 'staff', storeId: 3),
+        _managed(2, 'barista', storeId: 3),
       );
       expect(p.canEdit, isTrue);
       expect(p.canDelete, isTrue);
@@ -72,34 +93,39 @@ void main() {
     });
 
     test('personelin kullanici yonetimi yetkisi yok', () {
-      final p = permissionsFor(_user(1, 'staff', storeId: 3), _managed(2, 'staff', storeId: 3));
+      final p = permissionsFor(_user(1, 'barista', storeId: 3), _managed(2, 'barista', storeId: 3));
       expect(p.canEdit, isFalse);
       expect(p.canResetPassword, isFalse);
     });
   });
 
   group('assignableRoles', () {
-    test('ana yonetici her rolu atar', () {
-      expect(assignableRoles(_user(1, 'super_admin')),
-          containsAll(<String>['super_admin', 'store_manager', 'staff']));
+    test('ana yonetici kendisi haric her rolu atar', () {
+      final roles = assignableRoles(_user(1, 'super_admin'));
+      expect(roles, containsAll(<String>[
+        'operations_manager', 'regional_manager',
+        'store_manager', 'shift_supervisor', 'barista',
+      ]));
+      // Kendi kademesini atayamaz.
+      expect(roles, isNot(contains('super_admin')));
     });
 
-    test('magaza yoneticisi ana yonetici olusturamaz', () {
-      expect(assignableRoles(_user(1, 'store_manager', storeId: 2)),
-          isNot(contains('super_admin')));
+    test('store manager yalnizca kendi altini olusturur', () {
+      final roles = assignableRoles(_user(1, 'store_manager', storeId: 2));
+      expect(roles, ['shift_supervisor', 'barista']);
     });
   });
 
   test('roleLocked yalnizca kendi kaydinda acik', () {
     final me = _user(4, 'super_admin');
     expect(roleLocked(me, _managed(4, 'super_admin')), isTrue);
-    expect(roleLocked(me, _managed(5, 'staff')), isFalse);
+    expect(roleLocked(me, _managed(5, 'barista')), isFalse);
   });
 
   group('filterUsers', () {
     final items = [
-      _managed(1, 'staff', name: 'Şükrü Şen'),
-      _managed(2, 'staff', name: 'Ali Gündüz'),
+      _managed(1, 'barista', name: 'Şükrü Şen'),
+      _managed(2, 'barista', name: 'Ali Gündüz'),
       _managed(3, 'store_manager', name: 'Ayşe Çiftçi'),
     ];
 

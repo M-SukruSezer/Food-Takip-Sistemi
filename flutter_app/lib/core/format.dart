@@ -36,11 +36,43 @@ String formatHours(num? hours) {
   return rest > 0 ? '$d gün $rest saat' : '$d gün';
 }
 
+/// Rol kademeleri; sunucudaki ROLES ile ayni sirada (ust kademe once).
+const roleOrder = <String>[
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'barista',
+];
+
 const roleLabels = <String, String>{
   'super_admin': 'Ana Yönetici',
-  'store_manager': 'Mağaza Yöneticisi',
-  'staff': 'Personel',
+  'operations_manager': 'Operations Manager',
+  'regional_manager': 'Regional Manager',
+  'store_manager': 'Store Manager',
+  'shift_supervisor': 'Shift Supervisor',
+  'barista': 'Barista',
 };
+
+/// Birden fazla magazadan sorumlu olabilen roller.
+const multiStoreRoles = <String>['operations_manager', 'regional_manager'];
+
+/// Kullanici yonetimi yapabilen roller.
+const managerRoleKeys = <String>[
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+];
+
+int roleLevel(String? role) {
+  final i = roleOrder.indexOf(role ?? '');
+  return i < 0 ? roleOrder.length : i;
+}
+
+/// Bir rolun tanimlayabilecegi roller: kendinden asagi kademedekiler.
+List<String> rolesBelow(String? role) => roleOrder.sublist(roleLevel(role) + 1);
 
 const statusLabels = <String, String>{
   'frozen': 'Donuk Depo',

@@ -1,3 +1,4 @@
+import { ALL_ROLES, MANAGER_ROLES } from './format';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import Layout from './components/Layout';
@@ -49,9 +50,9 @@ export default function App() {
         <Route path="sales" element={<Sales />} />
         <Route path="logs" element={<Logs />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="users" element={<Guard roles={['super_admin', 'store_manager']}><Users /></Guard>} />
+        <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />
-        <Route path="approvals" element={<Guard roles={['super_admin', 'store_manager']}><Approvals /></Guard>} />
+        <Route path="approvals" element={<Guard roles={MANAGER_ROLES}><Approvals /></Guard>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

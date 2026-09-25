@@ -6,21 +6,21 @@ import {
   PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { useAuth } from '../auth';
-import { ROLE_LABELS, sumRemaining } from '../format';
+import { ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
 
 const LINKS = (user) => [
-  { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/batches', label: 'Ürünler', ico: Package, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: ['super_admin', 'store_manager'] },
-  { to: '/sales', label: 'Hareket Raporu', ico: Banknote, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/profile', label: 'Profilim', ico: UserCircle, roles: ['super_admin', 'store_manager', 'staff'] },
-  { to: '/users', label: 'Kullanıcılar', ico: Users, roles: ['super_admin', 'store_manager'] },
+  { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ALL_ROLES },
+  { to: '/batches', label: 'Ürünler', ico: Package, roles: ALL_ROLES },
+  { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ALL_ROLES },
+  { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: MANAGER_ROLES },
+  { to: '/sales', label: 'Hareket Raporu', ico: Banknote, roles: ALL_ROLES },
+  { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES },
+  { to: '/profile', label: 'Profilim', ico: UserCircle, roles: ALL_ROLES },
+  { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
   { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
-  { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: ['super_admin', 'store_manager'] },
+  { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
 ];
 
 const TABS = [
@@ -71,8 +71,8 @@ export default function Layout() {
       {open && <div className="overlay" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <img className="logo" src="/logo.png" alt="Food Takip Sistemi" />
-          <span className="brand-text">Food Takip Sistemi</span>
+          <img className="logo" src="/logo.png" alt="Operasyon Takip" />
+          <span className="brand-text">Operasyon Takip</span>
           <button
             type="button"
             className="sidebar-toggle"
@@ -120,7 +120,7 @@ export default function Layout() {
           <button className="burger" onClick={() => setOpen(true)} aria-label="Menü"><Menu size={22} /></button>
 
           <span className="mobile-header-logo">
-            <img src="/logo.png" alt="Food Takip Sistemi" />
+            <img src="/logo.png" alt="Operasyon Takip" />
           </span>
 
           <span className="top-spacer" />

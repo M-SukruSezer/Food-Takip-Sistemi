@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('super_admin', 'store_manager', 'staff')),
+  role TEXT NOT NULL CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'store_manager', 'shift_supervisor', 'barista')),
   avatar TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -104,6 +104,23 @@ CREATE TABLE IF NOT EXISTS discards (
 ALTER TABLE product_types ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;
+
+-- Rol kademeleri genisledi: staff -> barista, araya operations_manager,
+-- regional_manager ve shift_supervisor girdi.
+-- Sira onemli: kisit once dusurulur, satirlar tasinir, sonra yeni kisit
+-- eklenir. Ters sirada ADD CONSTRAINT hala 'staff' olan satirlara takiliyor.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+UPDATE users SET role = 'barista' WHERE role = 'staff';
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'store_manager', 'shift_supervisor', 'barista'));
+
+-- Operations/regional manager birden fazla magazadan sorumlu olabilir; tek
+-- users.store_id yetmiyor. Diger roller tek magazaya bagli kalir.
+CREATE TABLE IF NOT EXISTS user_stores (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  store_id BIGINT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, store_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_stores_user ON user_stores(user_id);
 -- Yetki sistemi gelmeden once her kullanici imha ve ikram yapabiliyordu;
 -- mevcut hesaplar bu yetkileri kaybetmesin diye bir kez doldurulur.
 -- NULL kosulu sayesinde sonradan yetkisi elinden alinan kullanici (ornegin

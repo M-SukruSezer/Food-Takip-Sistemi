@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { queryOne } = require('./db');
+const { queryOne, queryAll } = require('./db');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -26,16 +26,25 @@ function verifyPassword(plain, hash) {
   return bcrypt.compareSync(plain, hash);
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Giriş yapmanız gerekiyor' });
   try {
     req.user = jwt.verify(token, SIGNING_SECRET);
-    next();
   } catch (e) {
     return res.status(401).json({ error: 'Oturum süresi doldu, lütfen tekrar giriş yapın' });
   }
+  // Erisilebilir magazalar istek basina bir kez cozulur; boylece rotalar
+  // senkron kalir. Yalnizca cok magazali roller icin sorgu atilir.
+  req.storeIds = await accessibleStoreIds(req.user);
+  next();
+}
+
+/// Istek icin magaza erisim kontrolu. req.storeIds null ise tum magazalar.
+function allowsStore(req, storeId) {
+  if (req.storeIds === null) return true;
+  return req.storeIds.includes(Number(storeId));
 }
 
 function requireRole(...roles) {
@@ -45,6 +54,47 @@ function requireRole(...roles) {
     }
     next();
   };
+}
+
+// Rol kademeleri. Sira onemli: kucuk indis daha ust kademe. Bir kullanici
+// yalnizca kendinden ASAGI kademedeki rolleri tanimlayabilir.
+const ROLES = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'barista',
+];
+
+const ROLE_LABELS = {
+  super_admin: 'Ana Yönetici',
+  operations_manager: 'Operations Manager',
+  regional_manager: 'Regional Manager',
+  store_manager: 'Store Manager',
+  shift_supervisor: 'Shift Supervisor',
+  barista: 'Barista',
+};
+
+/// Birden fazla magazadan sorumlu olabilen roller; magaza atamasi
+/// user_stores tablosundan gelir.
+const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager'];
+
+/// Kullanici yonetimi yapabilen roller (kendi altindakileri tanimlar).
+const MANAGER_ROLES = ['super_admin', 'operations_manager', 'regional_manager', 'store_manager'];
+
+function roleLevel(role) {
+  const i = ROLES.indexOf(role);
+  return i < 0 ? ROLES.length : i;
+}
+
+/// [actor] rolunun tanimlayabilecegi roller: kendinden asagidakiler.
+function assignableRoles(actorRole) {
+  return ROLES.slice(roleLevel(actorRole) + 1);
+}
+
+function isMultiStoreRole(role) {
+  return MULTI_STORE_ROLES.includes(role);
 }
 
 // Ana Yoneticinin mağaza müdürlerine ve personele devredebildiği yetkiler.
@@ -126,8 +176,63 @@ function storeScope(req, res, next) {
   next();
 }
 
+/// Kullanicinin erisebildigi magaza kimlikleri.
+///   super_admin            -> null (tum magazalar)
+///   operations/regional    -> user_stores atamalari
+///   diger roller           -> kendi magazasi
+/// Bos dizi donerse kullaniciya hic magaza atanmamistir.
+async function accessibleStoreIds(user) {
+  if (user.role === 'super_admin') return null;
+  if (isMultiStoreRole(user.role)) {
+    const rows = await queryAll('SELECT store_id FROM user_stores WHERE user_id = ?', user.id);
+    return rows.map((r) => Number(r.store_id));
+  }
+  return user.store_id ? [Number(user.store_id)] : [];
+}
+
+/// Rota basinda magaza kapsamini cozer.
+///   storeId  -> tek magazaya daraltilmissa o magaza, degilse null
+///   storeIds -> null ise tum magazalar, dizi ise izin verilen magazalar
+/// Yetkisiz istek icin yanit yazilir ve ok:false doner.
+function resolveStoreScope(req, res) {
+  const requested = req.query.storeId ? Number(req.query.storeId) : null;
+  const ids = req.storeIds;
+
+  if (ids === null) return { ok: true, storeId: requested, storeIds: null };
+  if (ids.length === 0) {
+    res.status(403).json({ error: 'Size mağaza atanmamış' });
+    return { ok: false };
+  }
+  if (requested !== null) {
+    if (!ids.includes(requested)) {
+      res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
+      return { ok: false };
+    }
+    return { ok: true, storeId: requested, storeIds: [requested] };
+  }
+  // Tek magazasi varsa dogrudan daraltilir; birden fazlaysa hepsi kapsama girer.
+  return { ok: true, storeId: ids.length === 1 ? ids[0] : null, storeIds: ids };
+}
+
+/// Kapsami SQL parcasina cevirir. Cok magazali rollerde tek esitlik yetmiyor,
+/// IN (...) gerekiyor.
+///   scope.storeId  dolu  -> tek magaza
+///   scope.storeIds null  -> filtre yok (tum magazalar)
+///   aksi halde           -> IN (...)
+function storeFilter(scope, column = 'store_id') {
+  if (scope.storeId != null) return { sql: ` AND ${column} = ?`, params: [scope.storeId] };
+  if (scope.storeIds === null) return { sql: '', params: [] };
+  if (scope.storeIds.length === 0) return { sql: ' AND 1 = 0', params: [] };
+  return {
+    sql: ` AND ${column} IN (${scope.storeIds.map(() => '?').join(',')})`,
+    params: [...scope.storeIds],
+  };
+}
+
 module.exports = {
   sign, hashPassword, verifyPassword, requireAuth, requireRole, storeScope,
+  ROLES, ROLE_LABELS, MANAGER_ROLES, roleLevel, assignableRoles, isMultiStoreRole,
+  accessibleStoreIds, allowsStore, resolveStoreScope, storeFilter,
   ALL_PERMISSIONS, DEFAULT_PERMISSIONS, PERMISSION_LABELS, PERMISSION_ERRORS,
   parsePermissions, permissionsOf, serializePermissions, requirePermission,
 };

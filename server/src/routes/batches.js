@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, transaction, nowISO, addHours, addDays } = require('../db');
-const { requireAuth, requirePermission, permissionsOf } = require('../auth');
+const { requireAuth, requirePermission, permissionsOf, resolveStoreScope, storeFilter } = require('../auth');
 const { logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
@@ -9,16 +9,13 @@ router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   await promoteReadyThawing();
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (!storeId) {
-    if (req.user.role !== 'super_admin') return res.status(403).json({ error: 'Mağaza atanmamış' });
-  } else if (req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
 
-  let where = '';
-  const params = [];
-  if (storeId) { where += ' WHERE b.store_id = ?'; params.push(storeId); }
+  const f = storeFilter(scope, 'b.store_id');
+  const params = [...f.params];
+  // storeFilter " AND ..." uretir; ilk kosul oldugu icin WHERE'e cevrilir.
+  let where = f.sql ? ' WHERE' + f.sql.slice(4) : '';
   if (req.query.status) {
     const statuses = String(req.query.status).split(',');
     where += where ? ' AND' : ' WHERE';
@@ -48,7 +45,7 @@ router.get('/:id', async (req, res) => {
     WHERE b.id = ?
   `,Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   const sales = await queryAll(`
     SELECT sl.*, u.full_name AS sold_by_name FROM sales sl LEFT JOIN users u ON u.id = sl.sold_by WHERE sl.batch_id = ? ORDER BY sl.sold_at DESC
   `,row.id);
@@ -89,7 +86,7 @@ router.post('/', async (req, res) => {
 router.post('/:id/thaw', async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (row.status !== 'frozen') return res.status(400).json({ error: 'Yalnızca donuk depodaki ürünler çözülme sürecine alınabilir' });
 
   let qty = row.remaining;
@@ -135,7 +132,7 @@ router.post('/:id/thaw', async (req, res) => {
 router.post('/:id/complete-thaw', async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (row.status !== 'thawing') return res.status(400).json({ error: 'Bu ürün çözülme sürecinde değil' });
   if (!row.thawing_finish_at) return res.status(400).json({ error: 'Çözülme başlangıcı tanımsız' });
 
@@ -169,7 +166,7 @@ router.post('/:id/complete-thaw', async (req, res) => {
 router.post('/:id/request-early-transfer', async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (row.status !== 'thawing') return res.status(400).json({ error: 'Yalnızca çözülme sürecindeki ürünler için erken aktarım istenebilir' });
   if (row.thawing_finish_at && Date.now() >= new Date(row.thawing_finish_at).getTime()) {
     return res.status(400).json({ error: 'Çözülme süresi doldu, doğrudan food dolabına aktarabilirsiniz' });
@@ -192,7 +189,7 @@ router.post('/:id/request-early-transfer', async (req, res) => {
 router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (!['frozen', 'thawing', 'food_cabinet'].includes(row.status)) {
     return res.status(400).json({ error: 'Bu durumdaki ürün imha edilemez' });
   }
@@ -246,7 +243,7 @@ router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
 router.post('/:id/add-stock', async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (row.status !== 'frozen') return res.status(400).json({ error: 'Yalnızca donuk depodaki ürüne stok eklenebilir' });
   const qty = Number(req.body.quantity);
   if (!Number.isInteger(qty) || qty < 1) return res.status(400).json({ error: 'Miktar en az 1 olmalıdır' });
@@ -276,7 +273,7 @@ router.post('/:id/sell', async (req, res) => {
 
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
-  requireStoreAccessForBatch(row.store_id, req.user);
+  requireStoreAccessForBatch(row.store_id, req);
   if (row.status !== 'food_cabinet') return res.status(400).json({ error: `Yalnızca food dolabındaki ürünler ${verb}` });
   if (row.skt_end && Date.now() > new Date(row.skt_end).getTime()) {
     // SKT dolan urun ikram da edilemez; gida guvenligi kurali ayni.

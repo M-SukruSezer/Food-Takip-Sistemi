@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, nowISO, addDays } = require('../db');
-const { requireAuth, requireRole } = require('../auth');
+const { requireAuth, requireRole, MANAGER_ROLES, resolveStoreScope, storeFilter, allowsStore } = require('../auth');
 const { logActivity } = require('../utils');
 
 const router = express.Router();
@@ -8,15 +8,13 @@ const router = express.Router();
 router.use(requireAuth);
 
 // Onay listesi: mağaza yöneticisi kendi mağazası, super_admin tümü (?storeId=)
-router.get('/', requireRole('super_admin', 'store_manager'), async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+router.get('/', requireRole(...MANAGER_ROLES, 'shift_supervisor'), async (req, res) => {
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
 
-  const params = [];
-  let where = '';
-  if (storeId) { where = ' WHERE a.store_id = ?'; params.push(storeId); }
+  const f = storeFilter(scope, 'a.store_id');
+  const params = [...f.params];
+  let where = f.sql ? ' WHERE' + f.sql.slice(4) : '';
   const status = req.query.status;
   if (status) {
     const allowed = ['pending', 'approved', 'rejected', 'cancelled'];
@@ -56,10 +54,10 @@ router.get('/', requireRole('super_admin', 'store_manager'), async (req, res) =>
 });
 
 // Onayla -> çözünmeden çıkar, food dolabına al (SKT başlar)
-router.post('/:id/approve', requireRole('super_admin', 'store_manager'), async (req, res) => {
+router.post('/:id/approve', requireRole(...MANAGER_ROLES, 'shift_supervisor'), async (req, res) => {
   const ap = await queryOne('SELECT * FROM transfer_approvals WHERE id = ?',Number(req.params.id));
   if (!ap) return res.status(404).json({ error: 'Onay isteği bulunamadı' });
-  if (req.user.role !== 'super_admin' && ap.store_id !== req.user.store_id) {
+  if (!allowsStore(req, ap.store_id)) {
     return res.status(403).json({ error: 'Bu isteğe erişim yetkiniz yok' });
   }
   if (ap.status !== 'pending') return res.status(400).json({ error: 'Bu istek zaten karara bağlanmış' });
@@ -89,10 +87,10 @@ router.post('/:id/approve', requireRole('super_admin', 'store_manager'), async (
 });
 
 // Reddet -> ürün çözülmede kalır
-router.post('/:id/reject', requireRole('super_admin', 'store_manager'), async (req, res) => {
+router.post('/:id/reject', requireRole(...MANAGER_ROLES, 'shift_supervisor'), async (req, res) => {
   const ap = await queryOne('SELECT * FROM transfer_approvals WHERE id = ?',Number(req.params.id));
   if (!ap) return res.status(404).json({ error: 'Onay isteği bulunamadı' });
-  if (req.user.role !== 'super_admin' && ap.store_id !== req.user.store_id) {
+  if (!allowsStore(req, ap.store_id)) {
     return res.status(403).json({ error: 'Bu isteğe erişim yetkiniz yok' });
   }
   if (ap.status !== 'pending') return res.status(400).json({ error: 'Bu istek zaten karara bağlanmış' });

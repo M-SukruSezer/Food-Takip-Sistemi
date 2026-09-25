@@ -280,6 +280,7 @@ class Repository {
     int? storeId,
     bool active = true,
     List<String>? permissions,
+    List<int>? storeIds,
   }) async {
     await api.dio.post(
       '/users',
@@ -291,6 +292,8 @@ class Repository {
         'store_id': ?storeId,
         'active': active,
         'permissions': ?permissions,
+        // Cok magazali roller icin sorumluluk listesi.
+        'store_ids': ?storeIds,
       },
       options: apiOptions(noToast: true),
     );
@@ -304,6 +307,7 @@ class Repository {
     int? storeId,
     bool includeStore = false,
     List<String>? permissions,
+    List<int>? storeIds,
   }) async {
     await api.dio.put(
       '/users/$id',
@@ -313,6 +317,7 @@ class Repository {
         'active': ?active,
         if (includeStore) 'store_id': storeId,
         'permissions': ?permissions,
+        'store_ids': ?storeIds,
       },
       options: apiOptions(noToast: true),
     );

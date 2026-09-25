@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth } = require('../auth');
+const { requireAuth, resolveStoreScope, storeFilter } = require('../auth');
 
 const router = express.Router();
 
@@ -8,14 +8,16 @@ router.use(requireAuth);
 
 // Rapor: süper admin için tüm mağazaların özeti
 router.get('/summary', async (req, res) => {
-  const requested = req.query.storeId ? Number(req.query.storeId) : null;
-  if (requested && req.user.role !== 'super_admin' && requested !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const requested = scope.storeId;
 
-  // Ana yönetici mağaza seçmediyse tüm mağazaların karşılaştırmalı özeti döner.
-  if (req.user.role === 'super_admin' && !requested) {
-    const stores = await queryAll('SELECT id, name FROM stores WHERE active = 1 ORDER BY name');
+  // Magaza secilmediyse sorumlu olunan magazalarin karsilastirmali ozeti doner:
+  // Ana Yonetici icin hepsi, operations/regional manager icin atananlar.
+  if (!requested) {
+    const sf = storeFilter(scope, 'id');
+    const stores = await queryAll(
+      `SELECT id, name FROM stores WHERE active = 1 ${sf.sql} ORDER BY name`, ...sf.params);
     const summary = await Promise.all(stores.map(async (s) => {
       const active = await queryOne(`
         SELECT
@@ -48,7 +50,7 @@ router.get('/summary', async (req, res) => {
   }
 
   // tek mağaza özeti: seçilen mağaza ya da kullanıcının kendi mağazası
-  const sid = requested || req.user.store_id;
+  const sid = requested;
   const store = await queryOne('SELECT id, name FROM stores WHERE id = ?',sid);
   const active = await queryOne(`
     SELECT
@@ -81,11 +83,11 @@ router.get('/summary', async (req, res) => {
 
 // Son 7 gün satış grafiği verisi
 router.get('/sales7', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId;
 
+  const f = storeFilter(scope);
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
@@ -97,8 +99,8 @@ router.get('/sales7', async (req, res) => {
     const end = day + 'T23:59:59.999Z';
     const row = await queryOne(`
       SELECT COALESCE(SUM(quantity),0) AS qty, COALESCE(SUM(quantity * unit_price),0) AS revenue
-      FROM sales WHERE kind = 'sale' AND sold_at >= ? AND sold_at <= ? ${storeId ? 'AND store_id = ?' : ''}
-    `, start, end, ...(storeId ? [storeId] : []));
+      FROM sales WHERE kind = 'sale' AND sold_at >= ? AND sold_at <= ? ${f.sql}
+    `, start, end, ...f.params);
     return { date: day, qty: row.qty, revenue: row.revenue || 0 };
   }));
   res.json(data);
@@ -106,16 +108,16 @@ router.get('/sales7', async (req, res) => {
 
 // Stok dagilimi (durum bazinda kalan adet)
 router.get('/status', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu magazaya erisim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId;
   // Satis ve imha adetleri batches.remaining'den okunamaz: satilan ya da imha
   // edilen partide remaining 0'a duser, bu yuzden eski sorgu "Satildi" ve
   // "Imha" icin her zaman 0 donuyordu. Aktif stok remaining'den, satis/ikram
   // sales tablosundan, imha discards tablosundan sayilir.
-  const where = storeId ? 'WHERE store_id = ?' : '';
-  const args = storeId ? [storeId] : [];
+  const f = storeFilter(scope);
+  const where = f.sql ? 'WHERE' + f.sql.slice(4) : '';
+  const args = [...f.params];
 
   const active = await queryAll(`
     SELECT status, COALESCE(SUM(remaining),0) AS quantity
@@ -152,16 +154,15 @@ router.get('/status', async (req, res) => {
 
 // Son hareketler akisi
 router.get('/activity', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu magazaya erisim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'l.store_id');
   const rows = await queryAll(`
     SELECT l.action, l.details, l.created_at, s.name AS store_name
     FROM activity_logs l LEFT JOIN stores s ON s.id = l.store_id
-    ${storeId ? 'WHERE l.store_id = ?' : ''}
+    ${f.sql ? 'WHERE' + f.sql.slice(4) : ''}
     ORDER BY l.created_at DESC LIMIT 20
-  `, ...(storeId ? [storeId] : []));
+  `, ...f.params);
   res.json(rows);
 });
 
@@ -169,11 +170,12 @@ router.get('/activity', async (req, res) => {
 // en cok zayi verilenler. Tam siralanmis listeler doner; ilk/son kac tanesinin
 // gosterilecegine arayuz karar verir.
 router.get('/products', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId;
 
+  const soldFilter = storeFilter(scope, 'sl.store_id');
+  const wastedFilter = storeFilter(scope, 'd.store_id');
   const since = (days) => new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
 
   const sold = (from) => queryAll(`
@@ -183,20 +185,20 @@ router.get('/products', async (req, res) => {
     FROM sales sl
     JOIN batches b ON b.id = sl.batch_id
     JOIN product_types pt ON pt.id = b.product_type_id
-    WHERE sl.kind = 'sale' AND sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}
+    WHERE sl.kind = 'sale' AND sl.sold_at >= ? ${soldFilter.sql}
     GROUP BY pt.id, pt.name
     ORDER BY qty DESC, pt.name
-  `, ...(storeId ? [from, storeId] : [from]));
+  `, from, ...soldFilter.params);
 
   const wasted = (from) => queryAll(`
     SELECT pt.id, pt.name, COALESCE(SUM(d.quantity),0) AS qty
     FROM discards d
     JOIN batches b ON b.id = d.batch_id
     JOIN product_types pt ON pt.id = b.product_type_id
-    WHERE d.discarded_at >= ? ${storeId ? 'AND d.store_id = ?' : ''}
+    WHERE d.discarded_at >= ? ${wastedFilter.sql}
     GROUP BY pt.id, pt.name
     ORDER BY qty DESC, pt.name
-  `, ...(storeId ? [from, storeId] : [from]));
+  `, from, ...wastedFilter.params);
 
   const build = async (days) => {
     const from = since(days);
@@ -212,10 +214,9 @@ router.get('/products', async (req, res) => {
 // Imha satirlarinda tutar yoktur (discards tablosu fiyat anlik goruntusu
 // tutmuyor); cesidin GUNCEL fiyatiyla hesaplanir ve arayuz bunu boyle yazar.
 router.get('/movements', async (req, res) => {
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const storeId = scope.storeId;
 
   const allowedKinds = ['sale', 'ikram', 'discard'];
   const kinds = String(req.query.kind || '')
@@ -236,7 +237,9 @@ router.get('/movements', async (req, res) => {
   if (salesKinds.length > 0) {
     let where = `WHERE sl.kind IN (${salesKinds.map(() => '?').join(',')})`;
     params.push(...salesKinds);
-    if (storeId) { where += ' AND sl.store_id = ?'; params.push(storeId); }
+    const sf = storeFilter(scope, 'sl.store_id');
+    where += sf.sql;
+    params.push(...sf.params);
     if (productTypeId) { where += ' AND b.product_type_id = ?'; params.push(productTypeId); }
     if (from) { where += ' AND sl.sold_at >= ?'; params.push(from); }
     if (to) { where += ' AND sl.sold_at <= ?'; params.push(to); }
@@ -255,7 +258,9 @@ router.get('/movements', async (req, res) => {
 
   if (wanted.includes('discard')) {
     let where = 'WHERE 1 = 1';
-    if (storeId) { where += ' AND d.store_id = ?'; params.push(storeId); }
+    const df = storeFilter(scope, 'd.store_id');
+    where += df.sql;
+    params.push(...df.params);
     if (productTypeId) { where += ' AND b.product_type_id = ?'; params.push(productTypeId); }
     if (from) { where += ' AND d.discarded_at >= ?'; params.push(from); }
     if (to) { where += ' AND d.discarded_at <= ?'; params.push(to); }

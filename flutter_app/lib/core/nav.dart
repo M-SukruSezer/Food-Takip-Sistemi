@@ -20,8 +20,17 @@ class NavItem {
   final bool inBottomBar;
 }
 
-const allRoles = ['super_admin', 'store_manager', 'staff'];
-const managerRoles = ['super_admin', 'store_manager'];
+const allRoles = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'barista',
+];
+
+/// Kullanici yonetimi, cesit yonetimi ve onaylara erisen roller.
+const managerRoles = ['super_admin', 'operations_manager', 'regional_manager', 'store_manager'];
 
 /// React tarafindaki LINKS/TABS dizilerinin karsiligi.
 const navItems = <NavItem>[

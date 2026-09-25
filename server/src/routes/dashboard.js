@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth } = require('../auth');
+const { requireAuth, resolveStoreScope, storeFilter } = require('../auth');
 const { batchRow, promoteReadyThawing } = require('../utils');
 
 const router = express.Router();
@@ -9,14 +9,15 @@ router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   await promoteReadyThawing();
-  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
-  if (storeId && req.user.role !== 'super_admin' && storeId !== req.user.store_id) {
-    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
-  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  // Cok magazali rollerde storeId null kalir ama filtre bos kalmamali:
+  // operations/regional manager yalnizca atandigi magazalari gormeli.
+  const f = storeFilter(scope);
 
-  const stats = async (sid) => {
-    const w = sid ? 'AND store_id = ?' : '';
-    const p = sid ? [sid] : [];
+  const stats = async () => {
+    const w = f.sql;
+    const p = f.params;
     const count = async (statusSql, extraParams = []) => await queryOne(statusSql, ...p, ...extraParams);
     return {
       frozen: await count(`SELECT COUNT(*) AS c, COALESCE(SUM(remaining),0) AS qty FROM batches WHERE status = 'frozen' ${w}`),
@@ -25,26 +26,18 @@ router.get('/', async (req, res) => {
     };
   };
 
-  const summary = await stats(storeId);
+  const summary = await stats();
   const frozen = summary.frozen;
   const thawing = summary.thawing;
   const cabinet = summary.food_cabinet;
 
   // food dolabı ürünlerini çekip SKT durumunu dinamik hesapla
-  let cabinetRows;
-  if (storeId) {
-    cabinetRows = await queryAll(`
-      SELECT b.*, pt.name AS product_name, pt.skt_days FROM batches b
-      JOIN product_types pt ON pt.id = b.product_type_id
-      WHERE b.store_id = ? AND b.status = 'food_cabinet' AND b.skt_end IS NOT NULL
-    `,storeId);
-  } else {
-    cabinetRows = await queryAll(`
-      SELECT b.*, pt.name AS product_name, pt.skt_days FROM batches b
-      JOIN product_types pt ON pt.id = b.product_type_id
-      WHERE b.status = 'food_cabinet' AND b.skt_end IS NOT NULL
-    `,);
-  }
+  const cabinetFilter = storeFilter(scope, 'b.store_id');
+  const cabinetRows = await queryAll(`
+    SELECT b.*, pt.name AS product_name, pt.skt_days FROM batches b
+    JOIN product_types pt ON pt.id = b.product_type_id
+    WHERE b.status = 'food_cabinet' AND b.skt_end IS NOT NULL ${cabinetFilter.sql}
+  `, ...cabinetFilter.params);
   const mapped = cabinetRows.map(batchRow);
   const expiring = mapped.filter(b => b.urgency === 'critical').reduce((s, b) => s + b.remaining, 0);
   const expired = mapped.filter(b => b.urgency === 'expired').reduce((s, b) => s + b.remaining, 0);
@@ -53,14 +46,15 @@ router.get('/', async (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   // kind = 'sale' filtresi: ikram stoktan duser ama ciroya ve satis adedine
   // girmez, ayri sayilir.
+  const salesFilter = storeFilter(scope, 'sl.store_id');
   const soldToday = await queryOne(
     `SELECT COUNT(*) AS c, COALESCE(SUM(sl.quantity),0) AS qty, COALESCE(SUM(sl.quantity * sl.unit_price),0) AS revenue
-     FROM sales sl WHERE sl.kind = 'sale' AND sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}`
-  ,today + 'T00:00:00.000Z', ...(storeId ? [storeId] : []));
+     FROM sales sl WHERE sl.kind = 'sale' AND sl.sold_at >= ? ${salesFilter.sql}`
+  ,today + 'T00:00:00.000Z', ...salesFilter.params);
   const ikramToday = await queryOne(
     `SELECT COUNT(*) AS c, COALESCE(SUM(sl.quantity),0) AS qty, COALESCE(SUM(sl.quantity * sl.unit_price),0) AS value
-     FROM sales sl WHERE sl.kind = 'ikram' AND sl.sold_at >= ? ${storeId ? 'AND sl.store_id = ?' : ''}`
-  ,today + 'T00:00:00.000Z', ...(storeId ? [storeId] : []));
+     FROM sales sl WHERE sl.kind = 'ikram' AND sl.sold_at >= ? ${salesFilter.sql}`
+  ,today + 'T00:00:00.000Z', ...salesFilter.params);
 
   res.json({
     counts: {

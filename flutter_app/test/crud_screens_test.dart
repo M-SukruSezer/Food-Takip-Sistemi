@@ -28,7 +28,7 @@ final _users = [
   {'id': 1, 'username': 'test', 'full_name': 'Test Kullanici', 'role': 'super_admin', 'active': 1, 'store_id': null},
   {'id': 2, 'username': 'ayse', 'full_name': 'Ayşe Çiftçi', 'role': 'store_manager', 'active': 1,
    'store_id': 4, 'store_name': 'Merkez'},
-  {'id': 3, 'username': 'ali', 'full_name': 'Ali Gündüz', 'role': 'staff', 'active': 0,
+  {'id': 3, 'username': 'ali', 'full_name': 'Ali Gündüz', 'role': 'barista', 'active': 0,
    'store_id': 4, 'store_name': 'Merkez'},
 ];
 
@@ -180,7 +180,7 @@ void main() {
       expect(find.text('@ali'), findsOneWidget);
       expect(find.text('Ana Yönetici'), findsOneWidget);
       expect(find.text('Tüm mağazalar'), findsOneWidget);
-      expect(find.text('Mağaza Yöneticisi'), findsOneWidget);
+      expect(find.text('Store Manager'), findsOneWidget);
       // Pasif kullanici hem etiketle hem aktifleştirme dugmesiyle ayrisir.
       expect(find.text('pasif'), findsOneWidget);
       expect(find.text('Aktifleştir'), findsOneWidget);
@@ -216,7 +216,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Ana Yönetici').hitTestable(), findsNothing);
-      expect(find.text('Personel').hitTestable(), findsWidgets);
+      expect(find.text('Barista').hitTestable(), findsWidgets);
     });
 
     testWidgets('kısa şifre sunucuya gitmeden reddedilir', (tester) async {

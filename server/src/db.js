@@ -86,7 +86,7 @@ async function seed() {
     const storeRes = await queryOne('INSERT INTO stores (name, address, phone) VALUES (?,?,?) RETURNING id', ['Demo Mağaza', 'Örnek Cad. No:1, İstanbul', '0212 000 00 00'], client);
     const storeId = Number(storeRes.id);
     await execute(insertUser, [storeId, 'mudur', bcrypt.hashSync('mudur123', 10), 'Mağaza Müdürü', 'store_manager'], client);
-    await execute(insertUser, [storeId, 'personel', bcrypt.hashSync('personel123', 10), 'Mağaza Personeli', 'staff'], client);
+    await execute(insertUser, [storeId, 'personel', bcrypt.hashSync('personel123', 10), 'Mağaza Personeli', 'barista'], client);
     const typeInsert = 'INSERT INTO product_types (store_id, name, skt_days, description) VALUES (?,?,?,?) RETURNING id';
     const t1 = await queryOne(typeInsert, [storeId, 'Çikolatalı Pasta', 3, 'Çikolatalı ganaj kremalı pasta'], client);
     const t2 = await queryOne(typeInsert, [storeId, 'Vişneli Pasta', 4, 'Vişne soslu pasta'], client);

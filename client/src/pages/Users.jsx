@@ -4,8 +4,7 @@ import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
 import {
-  ROLE_LABELS, errorMessage, fmtDate,
-  ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions,
+  ROLE_LABELS, errorMessage, fmtDate, ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions, rolesBelow, MULTI_STORE_ROLES,
 } from '../format';
 
 export default function Users() {
@@ -57,7 +56,11 @@ export default function Users() {
                   <td data-label="Kullanıcı"><strong>{u.username}</strong></td>
                   <td data-label="Ad Soyad">{u.full_name}</td>
                   <td data-label="Rol">{ROLE_LABELS[u.role]}</td>
-                  <td data-label="Mağaza">{u.store_name || (u.role === 'super_admin' ? '—' : '-')}</td>
+                  <td data-label="Mağaza">
+                    {MULTI_STORE_ROLES.includes(u.role)
+                      ? `${(u.store_ids || []).length} mağaza sorumlusu`
+                      : (u.store_name || (u.role === 'super_admin' ? '—' : '-'))}
+                  </td>
                   <td data-label="Yetkiler" className="muted" style={{ fontSize: 12 }}>
                     {u.role === 'super_admin'
                       ? 'Tümü (rol gereği)'
@@ -141,12 +144,15 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
   const [username, setUsername] = useState(user?.username || '');
   const [full_name, setFullName] = useState(user?.full_name || '');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState(user?.role || 'staff');
+  const [role, setRole] = useState(user?.role || 'barista');
   const [store_id, setStoreId] = useState(user?.store_id || '');
   const [active, setActive] = useState(user ? user.active === 1 : true);
   const [permissions, setPermissions] = useState(
     user ? (user.permissions || []) : DEFAULT_PERMISSIONS
   );
+  // Operations / Regional Manager birden fazla magazadan sorumlu olabilir.
+  const [storeIds, setStoreIds] = useState(user ? (user.store_ids || []) : []);
+  const multiStore = MULTI_STORE_ROLES.includes(role);
   const [err, setErr] = useState('');
 
   const editing = !!user;
@@ -169,6 +175,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
         if (isSuper && store_id !== '') payload.store_id = Number(store_id);
         // Ana Yonetici hesabinda yetkiler rolden gelir, gonderilmez.
         if (role !== 'super_admin') payload.permissions = permissions;
+        if (multiStore) payload.store_ids = storeIds;
         await api.put(`/users/${user.id}`, payload, { noToast: true });
         toast('Kullanıcı güncellendi');
       } else {
@@ -177,6 +184,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
           store_id: store_id === '' ? undefined : Number(store_id),
           active,
           permissions: role === 'super_admin' ? undefined : permissions,
+          store_ids: multiStore ? storeIds : undefined,
         }, { noToast: true });
         toast('Kullanıcı oluşturuldu');
       }
@@ -186,9 +194,9 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
     }
   }
 
-  const roleOptions = isSuper
-    ? ['store_manager', 'staff', 'super_admin']
-    : ['store_manager', 'staff'];
+  // Yalnizca kendinden asagi kademedeki roller tanimlanabilir; sunucu da
+  // ayni kurali uyguluyor.
+  const roleOptions = rolesBelow(me && me.role);
 
   return (
     <Modal title={editing ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı'} onClose={onClose}>
@@ -216,10 +224,31 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
             {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
         </div>
-        {isSuper && (
+        {multiStore ? (
+          <div className="field">
+            <label>Sorumlu Olduğu Mağazalar</label>
+            <div className="permission-list">
+              {stores.map((s) => (
+                <label key={s.id} className="permission-row">
+                  <input
+                    type="checkbox"
+                    checked={storeIds.includes(s.id)}
+                    onChange={(e) => setStoreIds((list) => (e.target.checked
+                      ? [...new Set([...list, s.id])]
+                      : list.filter((id) => id !== s.id)))}
+                  />
+                  {s.name}
+                </label>
+              ))}
+            </div>
+            <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+              Seçilen mağazaların verilerini görebilir.
+            </p>
+          </div>
+        ) : (
           <div className="field">
             <label>Mağaza</label>
-            <select value={store_id} onChange={(e) => setStoreId(e.target.value)} disabled={role === 'super_admin'}>
+            <select value={store_id} onChange={(e) => setStoreId(e.target.value)}>
               <option value="">— (Mağaza yok)</option>
               {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>

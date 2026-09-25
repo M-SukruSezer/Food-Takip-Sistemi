@@ -1,6 +1,6 @@
 {
-    "name": "foodtakip",
-    "short_name": "foodtakip",
+    "name": "Operasyon Takip",
+    "short_name": "Operasyon Takip",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

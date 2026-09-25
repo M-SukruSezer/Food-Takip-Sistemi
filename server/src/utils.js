@@ -1,4 +1,5 @@
 const { queryAll, queryOne, execute, nowISO } = require('./db');
+const { allowsStore } = require('./auth');
 
 async function logActivity(user, action, entityType, entityId, details, storeId) {
   const sid = storeId !== undefined ? storeId : (user && user.store_id) || null;
@@ -41,8 +42,11 @@ function batchRow(row) {
   };
 }
 
-function requireStoreAccessForBatch(storeId, user) {
-  if (user.role !== 'super_admin' && storeId !== user.store_id) {
+// Cok magazali roller (operations/regional manager) icin tek store_id
+// karsilastirmasi yetmiyor; izin verilen magaza listesi istek basina
+// requireAuth'ta cozuluyor.
+function requireStoreAccessForBatch(storeId, req) {
+  if (!allowsStore(req, storeId)) {
     const err = new Error('Bu ürüne erişim yetkiniz yok');
     err.status = 403;
     throw err;

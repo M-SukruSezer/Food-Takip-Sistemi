@@ -129,7 +129,7 @@ void main() {
       await tester.pumpWidget(_shell(b));
       await tester.pumpAndSettle();
       final nav = tester.widget<Container>(
-        find.ancestor(of: find.text('Food Takip Sistemi'), matching: find.byType(Container)).last,
+        find.ancestor(of: find.text('Operasyon Takip'), matching: find.byType(Container)).last,
       );
       zeminler.add((nav.decoration! as BoxDecoration).color!);
       await _teardownShell(tester);
