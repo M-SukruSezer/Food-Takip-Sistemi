@@ -101,21 +101,21 @@ function isMultiStoreRole(role) {
 // Rol sabit kalır; bu liste rolün üstüne eklenen izinlerdir.
 const ALL_PERMISSIONS = ['manage_product_types', 'adjust_batches', 'discard', 'ikram'];
 
-// Yeni kullanıcı imha ve ikram yapabilir: yetki sistemi gelmeden önceki
+// Yeni kullanıcı zayi ve ikram yapabilir: yetki sistemi gelmeden önceki
 // davranış buydu, varsayılanı değiştirmek mevcut akışı kırardı.
 const DEFAULT_PERMISSIONS = ['discard', 'ikram'];
 
 const PERMISSION_LABELS = {
   manage_product_types: 'Pasta çeşidi yönetimi',
   adjust_batches: 'Parti düzeltme (tarih/adet)',
-  discard: 'İmha',
+  discard: 'Zayi',
   ikram: 'İkram',
 };
 
 const PERMISSION_ERRORS = {
   manage_product_types: 'Pasta çeşidi yönetimi yetkiniz yok',
   adjust_batches: 'Parti düzeltme yetkiniz yok',
-  discard: 'İmha yetkiniz yok',
+  discard: 'Zayi girme yetkiniz yok',
   ikram: 'İkram yetkiniz yok',
 };
 

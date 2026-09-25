@@ -111,10 +111,10 @@ router.get('/status', async (req, res) => {
   const scope = resolveStoreScope(req, res);
   if (!scope.ok) return undefined;
   const storeId = scope.storeId;
-  // Satis ve imha adetleri batches.remaining'den okunamaz: satilan ya da imha
+  // Satis ve zayi adetleri batches.remaining'den okunamaz: satilan ya da zayi
   // edilen partide remaining 0'a duser, bu yuzden eski sorgu "Satildi" ve
-  // "Imha" icin her zaman 0 donuyordu. Aktif stok remaining'den, satis/ikram
-  // sales tablosundan, imha discards tablosundan sayilir.
+  // "Zayi" icin her zaman 0 donuyordu. Aktif stok remaining'den, satis/ikram
+  // sales tablosundan, zayi discards tablosundan sayilir.
   const f = storeFilter(scope);
   const where = f.sql ? 'WHERE' + f.sql.slice(4) : '';
   const args = [...f.params];
@@ -208,10 +208,10 @@ router.get('/products', async (req, res) => {
   res.json({ week: await build(7), month: await build(30) });
 });
 
-// Hareket raporu: satis, ikram ve imha kayitlarini tek listede birlestirir.
+// Hareket raporu: satis, ikram ve zayi kayitlarini tek listede birlestirir.
 // Filtreler: tarih araligi, urun cesidi, hareket turu, magaza.
 //
-// Imha satirlarinda tutar yoktur (discards tablosu fiyat anlik goruntusu
+// Zayi satirlarinda tutar yoktur (discards tablosu fiyat anlik goruntusu
 // tutmuyor); cesidin GUNCEL fiyatiyla hesaplanir ve arayuz bunu boyle yazar.
 router.get('/movements', async (req, res) => {
   const scope = resolveStoreScope(req, res);
@@ -288,7 +288,7 @@ router.get('/movements', async (req, res) => {
 
   const items = rows.map((r) => ({
     ...r,
-    // Satis/ikram satirinda fiyat anlik goruntudur, imhada guncel fiyattir.
+    // Satis/ikram satirinda fiyat anlik goruntudur, zayide guncel fiyattir.
     total: r.unit_price === null || r.unit_price === undefined ? null : Number(r.unit_price) * r.quantity,
     price_is_current: r.kind === 'discard',
   }));

@@ -13,7 +13,7 @@ const STATUS_LABELS = {
   thawing: 'Çözülme (+4°C)',
   food_cabinet: 'Food Dolabı',
   sold: 'Satıldı',
-  discarded: 'İmha Edildi',
+  discarded: 'Zayi Verildi',
 };
 
 function batchRow(row) {
@@ -45,6 +45,15 @@ function batchRow(row) {
 // Cok magazali roller (operations/regional manager) icin tek store_id
 // karsilastirmasi yetmiyor; izin verilen magaza listesi istek basina
 // requireAuth'ta cozuluyor.
+/// Bir parti satildiktan/zayi verildikten sonra adet duzeltilirse hangi
+/// duruma geri donecegi. Zaman damgalari surecin nereye kadar ilerledigini
+/// tuttugu icin durum bunlardan cikarilir; ayri bir kolon gerekmiyor.
+function activeStatusOf(batch) {
+  if (batch.food_cabinet_entered_at) return 'food_cabinet';
+  if (batch.thawing_started_at) return 'thawing';
+  return 'frozen';
+}
+
 function requireStoreAccessForBatch(storeId, req) {
   if (!allowsStore(req, storeId)) {
     const err = new Error('Bu ürüne erişim yetkiniz yok');
@@ -99,4 +108,6 @@ async function promoteReadyThawing() {
   return promoted.length;
 }
 
-module.exports = { logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing };
+module.exports = {
+  activeStatusOf, logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing,
+  STATUS_LABELS };

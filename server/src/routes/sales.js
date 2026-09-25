@@ -1,7 +1,9 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth, requireRole, resolveStoreScope, allowsStore, storeFilter, ROLES } = require('../auth');
+const { requirePermission } = require('../auth');
 const { logActivity } = require('../utils');
+const { readQuantity, correctRecord, deleteRecord } = require('./corrections');
 
 const router = express.Router();
 
@@ -67,6 +69,62 @@ router.post('/', requireRole(...ROLES), async (req, res) => {
     id: Number(r.lastInsertRowid), remaining, status: remaining === 0 ? 'sold' : 'food_cabinet',
     unit_price: unitPrice, total: unitPrice !== null ? qty * unitPrice : null,
   });
+});
+
+/// Satis veya ikram kaydinin adedini duzeltir.
+///
+/// Adet azaltilirsa fark partinin stoguna geri doner, artirilirsa stoktan
+/// dusulur. Rapor paneli food rakamlarini satislardan canli hesapladigi icin
+/// duzeltme gecmis gunlerin raporuna da yansir.
+router.put('/:id', requirePermission('adjust_batches'), async (req, res) => {
+  const sale = await queryOne('SELECT * FROM sales WHERE id = ?', Number(req.params.id));
+  if (!sale) return res.status(404).json({ error: 'Kayıt bulunamadı' });
+  if (!allowsStore(req, sale.store_id)) {
+    return res.status(403).json({ error: 'Bu kayda erişim yetkiniz yok' });
+  }
+  const parsed = readQuantity(req.body && req.body.quantity);
+  if (parsed.error) return res.status(400).json({ error: parsed.error });
+  if (parsed.quantity === sale.quantity) return res.json({ ok: true, unchanged: true });
+
+  const batch = await queryOne('SELECT * FROM batches WHERE id = ?', sale.batch_id);
+  if (!batch) return res.status(404).json({ error: 'Ürün bulunamadı' });
+
+  const out = await correctRecord({
+    table: 'sales', record: sale, batch, newQuantity: parsed.quantity, req,
+  });
+  if (out.error) return res.status(400).json({ error: out.error });
+
+  const type = await queryOne(
+    'SELECT pt.name FROM product_types pt JOIN batches b ON b.product_type_id = pt.id WHERE b.id = ?',
+    sale.batch_id
+  );
+  const label = sale.kind === 'ikram' ? 'İkram' : 'Satış';
+  await logActivity(req.user, 'SATIS_DUZELT', 'sale', sale.id,
+    `${type.name} ${label} adedi düzeltildi: ${sale.quantity} -> ${parsed.quantity}`
+    + (out.delta > 0 ? ` (${out.delta} adet stoka döndü)` : out.delta < 0 ? ` (${-out.delta} adet stoktan düştü)` : ''),
+    sale.store_id);
+  res.json({ ok: true, quantity: parsed.quantity, ...out });
+});
+
+/// Satis veya ikram kaydini siler; adedin tamami stoga doner.
+router.delete('/:id', requirePermission('adjust_batches'), async (req, res) => {
+  const sale = await queryOne('SELECT * FROM sales WHERE id = ?', Number(req.params.id));
+  if (!sale) return res.status(404).json({ error: 'Kayıt bulunamadı' });
+  if (!allowsStore(req, sale.store_id)) {
+    return res.status(403).json({ error: 'Bu kayda erişim yetkiniz yok' });
+  }
+  const batch = await queryOne('SELECT * FROM batches WHERE id = ?', sale.batch_id);
+  if (!batch) return res.status(404).json({ error: 'Ürün bulunamadı' });
+
+  const type = await queryOne(
+    'SELECT pt.name FROM product_types pt JOIN batches b ON b.product_type_id = pt.id WHERE b.id = ?',
+    sale.batch_id
+  );
+  await deleteRecord({ table: 'sales', record: sale, batch });
+  const label = sale.kind === 'ikram' ? 'İkram' : 'Satış';
+  await logActivity(req.user, 'SATIS_SIL', 'sale', sale.id,
+    `${type.name} ${label} kaydı silindi (${sale.quantity} adet stoka döndü)`, sale.store_id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

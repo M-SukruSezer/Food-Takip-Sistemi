@@ -122,7 +122,7 @@ router.post('/', async (req, res) => {
   const existing = await queryOne('SELECT id FROM users WHERE username = ?',String(username).trim());
   if (existing) return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanılıyor' });
 
-  // Yetki listesi verilmezse varsayilan (imha + ikram) uygulanir: yetki
+  // Yetki listesi verilmezse varsayilan (zayi + ikram) uygulanir: yetki
   // sistemi oncesi davranis buydu.
   const grantable = await grantableBy(req.user);
   const wanted = req.body.permissions === undefined

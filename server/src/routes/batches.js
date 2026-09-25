@@ -1,7 +1,8 @@
 const express = require('express');
 const { queryAll, queryOne, execute, transaction, nowISO, addHours, addDays } = require('../db');
 const { requireAuth, requirePermission, permissionsOf, resolveStoreScope, storeFilter } = require('../auth');
-const { logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing } = require('../utils');
+const { deleteBatchCascade } = require('./corrections');
+const { logActivity, batchRow, requireStoreAccessForBatch, promoteReadyThawing, STATUS_LABELS } = require('../utils');
 
 const router = express.Router();
 
@@ -185,13 +186,13 @@ router.post('/:id/request-early-transfer', async (req, res) => {
   res.status(201).json({ id: Number(r.lastInsertRowid) });
 });
 
-// İmha / atma
+// Zayi / atma
 router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
   const row = await queryOne('SELECT * FROM batches WHERE id = ?',Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
   requireStoreAccessForBatch(row.store_id, req);
   if (!['frozen', 'thawing', 'food_cabinet'].includes(row.status)) {
-    return res.status(400).json({ error: 'Bu durumdaki ürün imha edilemez' });
+    return res.status(400).json({ error: 'Bu durumdaki ürün için zayi girilemez' });
   }
   const { reason } = req.body || {};
   let qty = row.remaining;
@@ -205,7 +206,7 @@ router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
   const full = qty >= row.remaining;
   const at = nowISO();
 
-  // Imha adedi discards tablosuna yazilir; parti guncellemesiyle ayni islemde
+  // Zayi adedi discards tablosuna yazilir; parti guncellemesiyle ayni islemde
   // olmasi gerekir, yoksa biri basarisiz olunca zayi raporu stokla tutmaz.
   await transaction(async (client) => {
     await execute(
@@ -219,7 +220,7 @@ router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
       );
       await execute(
         "UPDATE transfer_approvals SET status = 'cancelled', decided_at = ?, decision_note = ? WHERE batch_id = ? AND status = 'pending'",
-        [at, 'Ürün imha edildi', row.id], client
+        [at, 'Ürün zayi verildi', row.id], client
       );
     } else {
       await execute('UPDATE batches SET remaining = remaining - ? WHERE id = ?', [qty, row.id], client);
@@ -228,8 +229,8 @@ router.post('/:id/discard', requirePermission('discard'), async (req, res) => {
 
   await logActivity(req.user, 'IMHA', 'batch', row.id,
     full
-      ? `${type.name} tamamen imha edildi (${qty} adet, ${reason || 'sebep belirtilmedi'})`
-      : `${type.name} kısmi imha: ${qty} adet (${reason || 'sebep belirtilmedi'})`,
+      ? `${type.name} tamamen zayi verildi (${qty} adet, ${reason || 'sebep belirtilmedi'})`
+      : `${type.name} kısmi zayi: ${qty} adet (${reason || 'sebep belirtilmedi'})`,
     row.store_id);
 
   res.json({
@@ -278,7 +279,7 @@ router.post('/:id/sell', async (req, res) => {
   if (row.skt_end && Date.now() > new Date(row.skt_end).getTime()) {
     // SKT dolan urun ikram da edilemez; gida guvenligi kurali ayni.
     return res.status(400).json({
-      error: `Bu ürünün SKT süresi doldu, ${isIkram ? 'ikram edilemez' : 'satış yapılamaz'}. İmha edilmelidir.`,
+      error: `Bu ürünün SKT süresi doldu, ${isIkram ? 'ikram edilemez' : 'satış yapılamaz'}. Zayi verilmelidir.`,
     });
   }
 
@@ -401,6 +402,112 @@ router.put('/:id/adjust', requirePermission('adjust_batches'), async (req, res) 
     `${type.name} kaydı düzeltildi — ${changes.join('; ')}`, row.store_id);
 
   res.json({ ok: true, changes });
+});
+
+/// Cozulmeye alinan adedi duzeltir; fark donuk depoya geri doner.
+///
+/// Yalnizca cozulme surecindeki partide anlamli: food dolabina gecmis urun
+/// tekrar dondurulamaz, o durumda adet duzeltmesi /adjust ile yapilir.
+///
+/// Fark once ayni partiden bolunmus donuk kardese eklenir (bolmenin tam
+/// tersi). Kardes yoksa donma tarihi korunarak yeni bir donuk parti acilir —
+/// boylece dondurucudaki yas kaybolmaz.
+router.post('/:id/correct-thaw-quantity', requirePermission('adjust_batches'), async (req, res) => {
+  const row = await queryOne('SELECT * FROM batches WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
+  requireStoreAccessForBatch(row.store_id, req);
+  if (row.status !== 'thawing') {
+    return res.status(400).json({ error: 'Yalnızca çözülme sürecindeki ürünün adedi donuk depoya döndürülebilir' });
+  }
+
+  const qty = Number(req.body && req.body.quantity);
+  if (!Number.isInteger(qty) || qty < 0) {
+    return res.status(400).json({ error: 'Doğru adet 0 veya daha büyük bir tam sayı olmalıdır' });
+  }
+  if (qty > row.remaining) {
+    return res.status(400).json({ error: `Doğru adet mevcut adetten büyük olamaz (mevcut: ${row.remaining})` });
+  }
+  const back = row.remaining - qty;
+  if (back === 0) return res.json({ ok: true, unchanged: true, remaining: row.remaining });
+
+  const type = await queryOne('SELECT name FROM product_types WHERE id = ?', row.product_type_id);
+  // Bolmeden kalan donuk kardes: ayni cesit, ayni magaza, ayni donma tarihi.
+  const sibling = await queryOne(
+    `SELECT * FROM batches
+     WHERE store_id = ? AND product_type_id = ? AND status = 'frozen' AND entered_frozen_at = ?
+     ORDER BY id LIMIT 1`,
+    row.store_id, row.product_type_id, row.entered_frozen_at
+  );
+
+  let target = null;
+  await transaction(async (client) => {
+    if (qty === 0) {
+      // Cozulmeye hic alinmamis olmali: parti tamamen geri doner.
+      await execute(
+        `UPDATE batches SET status = 'frozen', quantity = ?, remaining = ?,
+           thawing_started_at = NULL, thawing_finish_at = NULL WHERE id = ?`,
+        [back, back, row.id], client
+      );
+      await execute(
+        "UPDATE transfer_approvals SET status = 'cancelled', decided_at = ?, decision_note = ? WHERE batch_id = ? AND status = 'pending'",
+        [nowISO(), 'Çözülme adedi düzeltildi, ürün donuk depoya döndü', row.id], client
+      );
+      target = { id: row.id, merged: false, reverted: true };
+      return;
+    }
+
+    await execute('UPDATE batches SET quantity = ?, remaining = ? WHERE id = ?',
+      [qty, qty, row.id], client);
+
+    if (sibling) {
+      await execute('UPDATE batches SET quantity = quantity + ?, remaining = remaining + ? WHERE id = ?',
+        [back, back, sibling.id], client);
+      target = { id: sibling.id, merged: true };
+    } else {
+      const r = await execute(
+        `INSERT INTO batches (store_id, product_type_id, batch_code, quantity, remaining, status,
+           entered_frozen_at, notes, created_by)
+         VALUES (?,?,?,?,?,'frozen',?,?,?) RETURNING id`,
+        [row.store_id, row.product_type_id, row.batch_code, back, back,
+         row.entered_frozen_at, row.notes, req.user.id], client
+      );
+      target = { id: Number(r.lastInsertRowid), merged: false };
+    }
+  });
+
+  await logActivity(req.user, 'COZULME_DUZELT', 'batch', row.id,
+    qty === 0
+      ? `${type.name} çözülmeden çıkarıldı, ${back} adet donuk depoya döndü`
+      : `${type.name} çözülme adedi düzeltildi: ${row.remaining} -> ${qty}, `
+        + `${back} adet donuk depoya döndü${target.merged ? ' (mevcut partiye eklendi)' : ' (yeni parti)'}`,
+    row.store_id);
+
+  res.json({ ok: true, remaining: qty, returned_to_frozen: back, frozen_batch: target });
+});
+
+/// Partiyi ve ona bagli tum satis/zayi/onay kayitlarini siler.
+///
+/// Yalnizca ana yonetici. Geri alinamaz: adet duzeltmesi yeterliyse
+/// /adjust, /correct-thaw-quantity veya kayit bazli duzeltme kullanilmali.
+router.delete('/:id', async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Kayıt silme yetkisi yalnızca Ana Yöneticide' });
+  }
+  const row = await queryOne('SELECT * FROM batches WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Ürün bulunamadı' });
+
+  const type = await queryOne('SELECT name FROM product_types WHERE id = ?', row.product_type_id);
+  const counts = await deleteBatchCascade(row, req);
+
+  const parts = [];
+  if (counts.sales) parts.push(`${counts.sales} satış/ikram`);
+  if (counts.discards) parts.push(`${counts.discards} zayi`);
+  if (counts.approvals) parts.push(`${counts.approvals} onay isteği`);
+  await logActivity(req.user, 'PARTI_SIL', 'batch', row.id,
+    `${type.name} partisi silindi (${STATUS_LABELS[row.status] || row.status}, ${row.remaining} adet kalan)`
+    + (parts.length ? ` — birlikte silinen: ${parts.join(', ')}` : ''),
+    row.store_id);
+  res.json({ ok: true, deleted: counts });
 });
 
 module.exports = router;

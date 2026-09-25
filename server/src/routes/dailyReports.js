@@ -23,13 +23,13 @@ const ENTRY_FIELDS = [
   { key: 'app_amount', label: 'APP', type: 'money' },
 ];
 
-// Food alanlari elle girilmez. Sistemdeki pasta satis ve imha kayitlarindan
+// Food alanlari elle girilmez. Sistemdeki pasta satis ve zayi kayitlarindan
 // hesaplanir, bu yuzden giris formunda yer almaz; formda yalnizca okunur
 // bilgi olarak gosterilir.
 const SYSTEM_FIELDS = [
   { key: 'food_usd', label: 'FOOD USD', type: 'int', source: 'Satis adedi (ikram haric)' },
   { key: 'food_usd_try', label: 'FOOD USD ₺', type: 'money', source: 'Satis tutari (ikram haric)' },
-  { key: 'food_mo_try', label: 'FOOD MO ₺', type: 'money', source: 'Imha tutari (guncel fiyat)' },
+  { key: 'food_mo_try', label: 'FOOD MO ₺', type: 'money', source: 'Zayi tutari (guncel fiyat)' },
 ];
 
 const ALL_FIELDS = [...ENTRY_FIELDS, ...SYSTEM_FIELDS];
@@ -65,7 +65,7 @@ function derive(row) {
 /// Kayitli satiri olculerle donusturur.
 ///
 /// `live` verilirse food alanlari o gunun GUNCEL sistem rakamlariyla degistirilir.
-/// Boylece rapor kaydedildikten sonra gelen satis/imha hareketleri de raporda
+/// Boylece rapor kaydedildikten sonra gelen satis/zayi hareketleri de raporda
 /// gorunur; kullanicinin kaydi yenilemesi gerekmez.
 function withMetrics(row, live) {
   const base = {};
@@ -167,10 +167,10 @@ async function systemFoodRange(storeId, from, to) {
 
 /// O gunun food rakamlarini sistemden hesaplar.
 ///
-/// FOOD USD ve FOOD USD ₺ satislardan (kind = 'sale'), FOOD MO ₺ imhalardan
+/// FOOD USD ve FOOD USD ₺ satislardan (kind = 'sale'), FOOD MO ₺ zayilardan
 /// gelir. Ikram ikisine de girmez: satis degildir, zayi de degildir.
 ///
-/// Imha satirlari fiyat anlik goruntusu tutmuyor, bu yuzden zayi tutari
+/// Zayi satirlari fiyat anlik goruntusu tutmuyor, bu yuzden zayi tutari
 /// cesidin GUNCEL fiyatiyla hesaplanir — hareket raporundaki ile ayni kural.
 async function systemFoodValues(storeId, date) {
   const map = await systemFoodRange(storeId, date, date);
