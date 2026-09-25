@@ -466,3 +466,36 @@ CREATE INDEX IF NOT EXISTS idx_personnel_requests_user ON personnel_requests(use
 -- Yoneticinin onay kuyrugu.
 CREATE INDEX IF NOT EXISTS idx_personnel_requests_pending
   ON personnel_requests(store_id) WHERE status = 'PENDING';
+
+-- Resmi tatiller.
+--
+-- Yillik izin calisma gunu uzerinden sayilir: hafta tatili ve resmi tatil
+-- dusulur (4857/m.56). Onceki surumde resmi tatil dusulmuyordu ve kullaniciya
+-- bu bildiriliyordu; artik bu tablodan okunuyor.
+--
+-- Dini bayramlar her yil kaydigi icin TOHUMLANMIYOR: tarih uydurmak yanlis
+-- izin hesabi uretir. Sabit milli bayramlar /pdks/holidays/seed ile yilbasina
+-- eklenir, dini bayramlar elle girilir.
+CREATE TABLE IF NOT EXISTS public_holidays (
+  id BIGSERIAL PRIMARY KEY,
+  holiday_date TEXT NOT NULL,                           -- YYYY-MM-DD
+  name TEXT NOT NULL,
+  -- Arefe gunleri yarim tatil: izin hesabinda 0.5 gun sayilir.
+  is_half_day INTEGER NOT NULL DEFAULT 0,
+  -- NULL = tum magazalar. Magazaya ozel tatil (yerel kurtulus gunu) icin dolu.
+  store_id BIGINT REFERENCES stores(id) ON DELETE CASCADE,
+  created_by BIGINT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE public_holidays DROP CONSTRAINT IF EXISTS public_holidays_date_check;
+ALTER TABLE public_holidays ADD CONSTRAINT public_holidays_date_check
+  CHECK (holiday_date ~ '^\d{4}-\d{2}-\d{2}$');
+
+-- Ayni gune ayni kapsamda iki kayit olmasin. NULL'lar tekil sayilmadigi icin
+-- genel ve magazaya ozel tatiller ayri indekslerle tekillestirilir.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_global
+  ON public_holidays(holiday_date) WHERE store_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_store
+  ON public_holidays(store_id, holiday_date) WHERE store_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_holidays_date ON public_holidays(holiday_date);

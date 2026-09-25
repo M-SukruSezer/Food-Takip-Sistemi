@@ -14,6 +14,18 @@ router.use(requireAuth);
 const requireManager = requireRole(...MANAGER_ROLES);
 const TYPES = ['IZIN', 'SAATLIK_IZIN', 'AVANS'];
 
+/// Bir tarih araligindaki resmi tatiller.
+///
+/// Magazaya ozel tatil genel takvimi gecersiz kilabilir; holidayMap bu onceligi
+/// uyguluyor.
+async function holidaysFor(storeId, from, to) {
+  const rows = await queryAll(`
+    SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+    WHERE holiday_date >= ? AND holiday_date <= ?
+      AND (store_id IS NULL OR store_id = ?)`, from, to, storeId);
+  return bal.holidayMap(rows);
+}
+
 /// Personelin profili; kayit yoksa varsayilanlar.
 async function profileOf(userId) {
   const p = await queryOne('SELECT * FROM pdks_profiles WHERE user_id = ?', userId);
@@ -77,8 +89,12 @@ async function balancesOf(userId, atIso = new Date().toISOString()) {
     month,
     weekly_off_days: profile.weekly_off_days,
     hired_at: profile.hired_at,
-    // Resmi tatiller hesaba katilmiyor; arayuz bunu yazmali.
-    notes: ['Yıllık izin hesabında hafta tatili düşülür, resmi tatiller düşülmez.'],
+    notes: [
+      'Yıllık izin hesabında hafta tatili ve resmi tatil günleri düşülür; '
+        + 'arife gibi yarım tatiller 0,5 gün sayılır.',
+      'Dini bayram tarihleri her yıl kaydığı için yöneticinin tatil '
+        + 'takvimine eklemesi gerekir.',
+    ],
   };
 }
 
@@ -179,11 +195,13 @@ router.post('/requests', async (req, res) => {
       return res.status(400).json({ error: 'İzin tarihleri YYYY-AA-GG biçiminde olmalıdır' });
     }
     if (to < from) return res.status(400).json({ error: 'Bitiş tarihi başlangıçtan önce olamaz' });
-    const days = bal.countLeaveDays(from, to, profile.weekly_off_days);
+    // Resmi tatil ve hafta tatili gunleri izin hakkindan dusulmez.
+    const holidays = await holidaysFor(storeId, from, to);
+    const days = bal.countLeaveDays(from, to, profile.weekly_off_days, holidays);
     if (days === null) return res.status(400).json({ error: 'Tarih aralığı geçersiz' });
     if (days === 0) {
       return res.status(400).json({
-        error: 'Seçilen aralıkta çalışma günü yok (hepsi hafta tatili)',
+        error: 'Seçilen aralıkta çalışma günü yok (hepsi hafta tatili veya resmi tatil)',
       });
     }
     if (days > balances.leave.remaining_days) {

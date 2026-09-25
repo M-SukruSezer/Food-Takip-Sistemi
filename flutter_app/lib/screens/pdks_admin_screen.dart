@@ -407,6 +407,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
             const SizedBox(height: 8),
             Text(
               '${s.workedDays} gün çalıştı · ${s.leaveDays} gün izin'
+              '${s.holidayDays > 0 ? ' · ${s.holidayDays} resmi tatil' : ''}'
               '${s.absentDays > 0 ? ' · ${s.absentDays} gün devamsız' : ''}'
               '${s.lateMinutes > 0 ? ' · ${s.lateMinutes} dk geç' : ''}',
               style: TextStyle(fontSize: 12, color: t.muted),
@@ -424,15 +425,23 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                         ),
                         Expanded(
                           child: Text(
-                            d.isDayOff
-                                ? 'Hafta tatili'
-                                : d.statuses.isEmpty
-                                    ? (d.shiftNames.join(', ').isEmpty
-                                        ? '-' : d.shiftNames.join(', '))
-                                    : d.statuses
-                                        .map((x) => x.replaceAll('_', ' ').toLowerCase())
-                                        .join(', '),
-                            style: TextStyle(fontSize: 11, color: t.muted),
+                            // Resmi tatilde adi gostermek durum listesinden
+                            // daha bilgilendirici.
+                            d.isHoliday
+                                ? (d.holidayName ?? 'Resmi tatil')
+                                : d.isDayOff
+                                    ? 'Hafta tatili'
+                                    : d.statuses.isEmpty
+                                        ? (d.shiftNames.join(', ').isEmpty
+                                            ? '-' : d.shiftNames.join(', '))
+                                        : d.statuses
+                                            .map((x) => x.replaceAll('_', ' ').toLowerCase())
+                                            .join(', '),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: d.isHoliday ? t.danger : t.muted,
+                              fontWeight: d.isHoliday ? FontWeight.w700 : FontWeight.w400,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

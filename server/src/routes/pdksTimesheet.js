@@ -3,6 +3,7 @@ const { queryAll, queryOne } = require('../db');
 const {
   requireAuth, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
 } = require('../auth');
+const bal = require('../pdks/balance');
 const sheet = require('../pdks/timesheet');
 const t = require('../pdks/time');
 
@@ -35,6 +36,24 @@ async function buildTimesheet(userIds, from, to) {
     `SELECT u.id, u.full_name, u.role, u.store_id, s.name AS store_name
      FROM users u LEFT JOIN stores s ON s.id = u.store_id
      WHERE u.id IN (${ph}) ORDER BY u.full_name`, ...userIds);
+
+  // Resmi tatiller: aralik basina tek sorgu, magaza bazinda haritalanir.
+  // Tatil gunu planli sureyi dusuruyor; izin hesabinda dusuldugu icin
+  // puantajda calisma gunu sayilmasi tutarsiz olurdu.
+  const storeIds = [...new Set(users.map((u) => u.store_id).filter((v) => v != null))];
+  const holidayRows = storeIds.length === 0
+    ? []
+    : await queryAll(`
+        SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+        WHERE holiday_date >= ? AND holiday_date <= ?
+          AND (store_id IS NULL OR store_id IN (${storeIds.map(() => '?').join(',')}))`,
+        from, to, ...storeIds);
+  const holidaysByStore = new Map();
+  for (const sid of storeIds) {
+    holidaysByStore.set(sid, bal.holidayMap(
+      holidayRows.filter((h) => h.store_id === null || Number(h.store_id) === Number(sid))
+    ));
+  }
 
   const assignments = await queryAll(`
     SELECT us.user_id, us.work_date, us.is_day_off,
@@ -85,6 +104,7 @@ async function buildTimesheet(userIds, from, to) {
   const dates = dateRange(from, to);
   return users.map((u) => {
     const userLeaves = leaves.filter((l) => Number(l.user_id) === Number(u.id));
+    const userHolidays = holidaysByStore.get(u.store_id) || {};
     const days = dates.map((date) => {
       const day = sheet.computeDay({
         workDate: date,
@@ -92,6 +112,7 @@ async function buildTimesheet(userIds, from, to) {
         logs: byLog.get(key(u.id, date)) || [],
         leaveDay: userLeaves.some((l) => date >= l.start_at && date <= l.end_at),
         hourlyLeaveMinutes: byHourly.get(key(u.id, date)) || 0,
+        holiday: userHolidays[date] || null,
       });
       const names = (byAssignment.get(key(u.id, date)) || [])
         .map((a) => a.shift_name).filter(Boolean);
@@ -161,6 +182,7 @@ router.get('/timesheet', async (req, res) => {
       'Mola, İş Kanunu m.68 asgarisi ile vardiyada tanımlı molanın küçüğü kadar düşülür.',
       'Geç kalma ve erken çıkış eksik sürenin parçasıdır, üstüne eklenmez.',
       'Vardiya atanmamış günlerin çalışması sınıflandırılmaz, ayrıca bildirilir.',
+      'Resmi tatilde planlı süre sıfırdır; o gün çalışma tamamen fazla mesai sayılır.',
     ],
   });
 });

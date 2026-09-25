@@ -2687,3 +2687,13 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   .pdks-actions .btn { flex: 1 1 100%; }
 }
 
+/* Takvimde resmi tatil: hafta tatilinden ayrisan kirmizi cerceve. */
+.cal-cell.holiday {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.cal-holiday {
+  color: var(--danger-text) !important;
+  font-weight: 700;
+}
+

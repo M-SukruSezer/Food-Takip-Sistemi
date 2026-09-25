@@ -29,6 +29,7 @@ class _PdksScreenState extends State<PdksScreen> {
   PdksBalance? _balance;
   List<PersonnelRequest> _requests = const [];
   List<ShiftAssignment> _assignments = const [];
+  List<PublicHoliday> _holidays = const [];
   DateTime _month = DateTime.now();
   String? _error;
   bool _loaded = false;
@@ -72,11 +73,15 @@ class _PdksScreenState extends State<PdksScreen> {
 
   void _loadMonth() {
     final last = DateTime.utc(_month.year, _month.month + 1, 0);
-    repo.pdksAssignments(
-      from: '$_monthKey-01',
-      to: '$_monthKey-${last.day.toString().padLeft(2, '0')}',
-    ).then((a) {
+    final from = '$_monthKey-01';
+    final to = '$_monthKey-${last.day.toString().padLeft(2, '0')}';
+    repo.pdksAssignments(from: from, to: to).then((a) {
       if (mounted) setState(() => _assignments = a);
+    }).onError((Object _, StackTrace _) {});
+    // Resmi tatiller takvimde isaretlenir: personel izin planlarken hangi
+    // gunun tatil oldugunu gormeli.
+    repo.pdksHolidays(from: from, to: to).then((h) {
+      if (mounted) setState(() => _holidays = h);
     }).onError((Object _, StackTrace _) {});
   }
 
@@ -274,7 +279,11 @@ class _PdksScreenState extends State<PdksScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              ShiftCalendar(monthKey: _monthKey, assignments: _assignments),
+              ShiftCalendar(
+                monthKey: _monthKey,
+                assignments: _assignments,
+                holidays: _holidays,
+              ),
             ],
           ),
         ),
@@ -584,10 +593,16 @@ class _RequestRow extends StatelessWidget {
 
 /// Aylik vardiya takvimi. Pazartesi ile baslar (TR takvim alisligi).
 class ShiftCalendar extends StatelessWidget {
-  const ShiftCalendar({super.key, required this.monthKey, required this.assignments});
+  const ShiftCalendar({
+    super.key,
+    required this.monthKey,
+    required this.assignments,
+    this.holidays = const [],
+  });
 
   final String monthKey;
   final List<ShiftAssignment> assignments;
+  final List<PublicHoliday> holidays;
 
   @override
   Widget build(BuildContext context) {
@@ -603,6 +618,7 @@ class ShiftCalendar extends StatelessWidget {
     for (final a in assignments) {
       byDate.putIfAbsent(a.workDate, () => []).add(a);
     }
+    final byHoliday = holidayMap(holidays);
 
     final cells = <Widget>[];
     for (var i = 0; i < lead; i++) {
@@ -612,11 +628,21 @@ class ShiftCalendar extends StatelessWidget {
       final date = '$monthKey-${d.toString().padLeft(2, '0')}';
       final list = byDate[date] ?? const <ShiftAssignment>[];
       final dayOff = list.any((a) => a.isDayOff);
+      final holiday = byHoliday[date];
       cells.add(Container(
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: dayOff ? t.bg : (list.isEmpty ? t.card : t.primarySoft),
-          border: Border.all(color: list.isEmpty && !dayOff ? t.border : t.primary),
+          // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
+          color: holiday != null
+              ? t.dangerSoft
+              : dayOff
+                  ? t.bg
+                  : (list.isEmpty ? t.card : t.primarySoft),
+          border: Border.all(
+            color: holiday != null
+                ? t.danger
+                : (list.isEmpty && !dayOff ? t.border : t.primary),
+          ),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -624,7 +650,14 @@ class ShiftCalendar extends StatelessWidget {
           children: [
             Text('$d',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: t.ink)),
-            if (dayOff)
+            if (holiday != null)
+              Text(
+                holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
+                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: t.danger),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              )
+            else if (dayOff)
               Text('Tatil', style: TextStyle(fontSize: 9, color: t.muted))
             else
               ...list.take(2).map((a) => Text(
@@ -664,6 +697,14 @@ class ShiftCalendar extends StatelessWidget {
           const SizedBox(height: 10),
           Text('Bu ay için vardiya atanmamış.',
               style: TextStyle(fontSize: 13, color: t.muted)),
+        ],
+        if (holidays.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Kırmızı çerçeveli günler resmi tatil; yıllık izin hakkınızdan '
+            'düşülmez.',
+            style: TextStyle(fontSize: 11, color: t.muted),
+          ),
         ],
       ],
     );

@@ -379,4 +379,96 @@ void main() {
       expect(yon.items.map((i) => i.path), contains('/pdks-admin'));
     });
   });
+
+  group('Resmi tatiller', () {
+    PublicHoliday h(String date, String name,
+            {bool half = false, int? storeId}) =>
+        PublicHoliday.fromJson({
+          'id': 1, 'holiday_date': date, 'name': name,
+          'is_half_day': half, 'store_id': storeId,
+        });
+
+    test('mağazaya özel kayıt geneli geçersiz kılar', () {
+      // Sunucudaki holidayMap ile ayni kural: iki taraf ayrismamali.
+      final m = holidayMap([
+        h('2026-10-29', 'Genel'),
+        h('2026-10-29', 'Yerel yarım', half: true, storeId: 1),
+      ]);
+      expect(m['2026-10-29']!.name, 'Yerel yarım');
+      expect(m['2026-10-29']!.isHalfDay, isTrue);
+      // Ters sirada da ayni sonuc.
+      final m2 = holidayMap([
+        h('2026-10-29', 'Yerel yarım', half: true, storeId: 1),
+        h('2026-10-29', 'Genel'),
+      ]);
+      expect(m2['2026-10-29']!.name, 'Yerel yarım');
+    });
+
+    test('yarım gün bayrağı ayrışır', () {
+      expect(h('2026-10-28', 'Arefe', half: true).isHalfDay, isTrue);
+      expect(h('2026-10-29', '29 Ekim').isHalfDay, isFalse);
+      expect(h('2026-10-29', '29 Ekim').isStoreSpecific, isFalse);
+      expect(h('2026-10-29', 'Yerel', storeId: 1).isStoreSpecific, isTrue);
+    });
+
+    test('puantaj günü tatil alanlarını taşır', () {
+      final d = TimesheetDay.fromJson({
+        'work_date': '2026-10-29', 'presence_minutes': 480,
+        'worked_minutes': 480, 'scheduled_minutes': 0,
+        'overtime_minutes': 480, 'missing_minutes': 0, 'late_minutes': 0,
+        'is_day_off': false, 'on_leave': false,
+        'statuses': ['RESMI_TATIL'], 'shift_names': ['Gündüz'],
+        'is_holiday': true, 'holiday_name': 'Cumhuriyet Bayramı',
+      });
+      expect(d.isHoliday, isTrue);
+      expect(d.holidayName, 'Cumhuriyet Bayramı');
+      // Resmi tatilde planli sure sifir, calisma tamamen fazla mesai.
+      expect(d.scheduledMinutes, 0);
+      expect(d.overtimeMinutes, 480);
+    });
+
+    // Takvim GECERLI ayi gosteriyor; tatil tarihi o ayda olmali.
+    String thisMonthDay(int day) {
+      final n = DateTime.now();
+      return '${n.year}-${n.month.toString().padLeft(2, '0')}'
+          '-${day.toString().padLeft(2, '0')}';
+    }
+
+    testWidgets('takvimde tatil işaretlenir ve açıklaması çıkar', (tester) async {
+      tall(tester);
+      installFakeApi({
+        ..._routes(),
+        'GET /pdks/holidays': [
+          {'id': 1, 'holiday_date': thisMonthDay(10), 'name': 'ZZ Bayram',
+           'is_half_day': false, 'store_id': null},
+        ],
+      });
+      signInAs('barista', storeId: 1);
+
+      await tester.pumpWidget(host(const PdksScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ShiftCalendar), findsOneWidget);
+      expect(find.text('ZZ Bayram'), findsOneWidget);
+      expect(find.textContaining('yıllık izin hakkınızdan'), findsOneWidget);
+    });
+
+    testWidgets('yarım tatil ½ ile gösterilir', (tester) async {
+      tall(tester);
+      installFakeApi({
+        ..._routes(),
+        'GET /pdks/holidays': [
+          {'id': 2, 'holiday_date': thisMonthDay(11), 'name': 'Arefe',
+           'is_half_day': true, 'store_id': 1},
+        ],
+      });
+      signInAs('barista', storeId: 1);
+
+      await tester.pumpWidget(host(const PdksScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Arefe ½'), findsOneWidget);
+    });
+  });
+
 }

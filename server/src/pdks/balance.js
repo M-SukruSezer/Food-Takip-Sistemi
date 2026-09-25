@@ -53,10 +53,12 @@ function leaveYearRange(hiredAt, atIso = new Date().toISOString()) {
 
 /// Iki tarih arasindaki IZIN GUNU sayisi.
 ///
-/// Hafta tatili gunleri dusulur: yillik izin calisma gunu uzerinden sayilir.
-/// Resmi tatiller HESABA KATILMIYOR — tatil takvimi tablosu gerekir, bu
-/// surumde yok. Kullaniciya gosterilen metinde belirtilmeli.
-function countLeaveDays(from, to, weeklyOffDays = [0]) {
+/// Yillik izin CALISMA GUNU uzerinden sayilir (4857/m.56): hafta tatili ve
+/// resmi tatil gunleri dusulur. Arefe gibi yarim tatiller 0.5 gun sayilir.
+///
+/// [holidays] { 'YYYY-MM-DD': { half: bool } } biciminde. Bos verilirse resmi
+/// tatil dusulmez — cagiran katman tatil takvimini gecirmek zorunda.
+function countLeaveDays(from, to, weeklyOffDays = [0], holidays = {}) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return null;
   if (to < from) return null;
   const off = new Set(weeklyOffDays);
@@ -66,10 +68,37 @@ function countLeaveDays(from, to, weeklyOffDays = [0]) {
   for (let guard = 0; guard < 400 && cursor <= to; guard++) {
     const [y, m, d] = cursor.split('-').map(Number);
     const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-    if (!off.has(dow)) days++;
+    if (!off.has(dow)) {
+      const holiday = holidays[cursor];
+      // Hafta tatiline denk gelen resmi tatil ikinci kez dusulmez: gun
+      // zaten sayilmiyor.
+      if (!holiday) days += 1;
+      else if (holiday.half) days += 0.5;
+    }
     cursor = t.shiftDate(cursor, 1);
   }
-  return days;
+  // 0.5'li toplamlarda kayan nokta artigi olusmasin.
+  return Math.round(days * 100) / 100;
+}
+
+/// Tatil satirlarini countLeaveDays'in bekledigi haritaya cevirir.
+///
+/// Ayni gune hem genel hem magazaya ozel kayit varsa magazaya ozel kazanir:
+/// yerel tatil genel takvimi gecersiz kilabilir (orn. yarim gun ilan edilmis).
+function holidayMap(rows) {
+  const out = {};
+  for (const r of rows || []) {
+    const date = r.holiday_date;
+    if (!date) continue;
+    const specific = r.store_id !== null && r.store_id !== undefined;
+    if (out[date] && out[date].specific && !specific) continue;
+    out[date] = {
+      half: r.is_half_day === 1 || r.is_half_day === true,
+      name: r.name,
+      specific,
+    };
+  }
+  return out;
 }
 
 /// Saatlik izin suresi. Ayni gun icinde olmali.
@@ -136,6 +165,7 @@ function summarize({ entitlementDays, usedDays, pendingDays,
 
 module.exports = {
   parseWeeklyOff,
+  holidayMap,
   leaveYearRange,
   countLeaveDays,
   countLeaveHours,

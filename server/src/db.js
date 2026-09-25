@@ -135,6 +135,15 @@ async function initialize() {
   await pool.query(schema);
   await seed();
   await bootstrapAdmin();
+  // KVKK: suresi gecmis ham konum koordinatlarini bosaltir. Ayri bir
+  // zamanlanmis is altyapisi yok, soguk baslatmada firsatci calisiyor.
+  // Kucuk partide ve hatayi yutarak: temizlik ertelenebilir bir is, acilisi
+  // bloklamamali.
+  const purged = await require('./pdks/kvkk').purgeOnStartup();
+  if (purged && purged.purged > 0) {
+    console.log(`KVKK: ${purged.purged} kaydın ham koordinatı silindi`
+      + (purged.remaining > 0 ? `, ${purged.remaining} kayıt sırada` : ''));
+  }
 }
 
 module.exports = { pool, query, queryAll, queryOne, execute, transaction, initialize, nowISO, addHours, addDays };

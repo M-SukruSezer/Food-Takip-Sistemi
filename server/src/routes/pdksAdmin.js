@@ -7,6 +7,7 @@ const { logActivity } = require('../utils');
 const qr = require('../pdks/qr');
 const t = require('../pdks/time');
 const bal = require('../pdks/balance');
+const kvkk = require('../pdks/kvkk');
 
 const router = express.Router();
 
@@ -248,6 +249,14 @@ router.post('/assignments', requireManager, async (req, res) => {
       `SELECT start_at, end_at FROM personnel_requests
        WHERE user_id = ? AND type = 'IZIN' AND status = 'APPROVED'
          AND start_at <= ? AND end_at >= ?`, u.id, to, from);
+    // Resmi tatiller de atlanir. Tatilde acik olan magaza icin yonetici o
+    // gunu tek tek atayabilir; toplu atamada varsayilan olarak atlanmasi
+    // yanlis planlamayi engelliyor.
+    const holidayRows = await queryAll(`
+      SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+      WHERE holiday_date >= ? AND holiday_date <= ?
+        AND (store_id IS NULL OR store_id = ?)`, from, to, u.store_id);
+    const holidays = bal.holidayMap(holidayRows);
 
     let count = 0;
     const skippedDates = [];
@@ -257,8 +266,10 @@ router.post('/assignments', requireManager, async (req, res) => {
         const [y, m, d] = cursor.split('-').map(Number);
         const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
         const onLeave = leaves.some((l) => cursor >= l.start_at && cursor <= l.end_at);
+        // Yarim tatilde calisilir; yalnizca tam tatil atlanir.
+        const onHoliday = holidays[cursor] != null && holidays[cursor].half !== true;
 
-        if (isDayOff || (!off.has(dow) && !onLeave)) {
+        if (isDayOff || (!off.has(dow) && !onLeave && !onHoliday)) {
           // Ayni gune ayni vardiya varsa tekrar yazilmaz.
           await execute(`
             INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, note, assigned_by)
@@ -268,6 +279,8 @@ router.post('/assignments', requireManager, async (req, res) => {
           count++;
         } else if (onLeave) {
           skippedDates.push({ date: cursor, reason: 'onaylı izin' });
+        } else if (onHoliday) {
+          skippedDates.push({ date: cursor, reason: `resmi tatil (${holidays[cursor].name})` });
         }
         cursor = t.shiftDate(cursor, 1);
       }
@@ -486,6 +499,141 @@ router.post('/settings/:storeId/rotate-secret', requireRole('super_admin'), asyn
   await logActivity(req.user, 'PDKS_SIR_YENILE', 'store', storeId,
     'QR sırrı yenilendi, eski kodlar geçersiz', storeId);
   res.json({ ok: true, warning: 'Basılı QR kodların yeniden basılması gerekiyor' });
+});
+
+// ---- Resmi tatiller ----
+
+/// Tatil listesi. Personel de gorur: izin talebi verirken hangi gunun tatil
+/// oldugunu bilmesi gerekiyor.
+router.get('/holidays', async (req, res) => {
+  const from = req.query.from;
+  const to = req.query.to;
+  const params = [];
+  let where = '1 = 1';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(from || '')) { where += ' AND h.holiday_date >= ?'; params.push(from); }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(to || '')) { where += ' AND h.holiday_date <= ?'; params.push(to); }
+
+  // Kullanicinin magazasina ait olan + tum magazalar icin gecerli olanlar.
+  const storeId = req.user.store_id;
+  if (storeId) {
+    where += ' AND (h.store_id IS NULL OR h.store_id = ?)';
+    params.push(storeId);
+  }
+
+  const rows = await queryAll(`
+    SELECT h.*, s.name AS store_name
+    FROM public_holidays h LEFT JOIN stores s ON s.id = h.store_id
+    WHERE ${where}
+    ORDER BY h.holiday_date`, ...params);
+  res.json(rows.map((r) => ({ ...r, is_half_day: r.is_half_day === 1 })));
+});
+
+router.post('/holidays', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const date = String(body.holiday_date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Tarih YYYY-AA-GG biçiminde olmalıdır' });
+  }
+  const name = String(body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Tatil adı zorunludur' });
+  const half = body.is_half_day ? 1 : 0;
+
+  // store_id verilmezse kullanicinin magazasi. Tum magazalar icin tatil
+  // yalnizca ana yoneticide: ulke capinda gecerli bir kayit.
+  let storeId = body.store_id === undefined ? req.user.store_id : body.store_id;
+  if (storeId === null) {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Tüm mağazalar için tatil yalnızca Ana Yönetici tanımlar' });
+    }
+  } else {
+    storeId = Number(storeId);
+    if (!Number.isInteger(storeId)) return res.status(400).json({ error: 'Mağaza geçersiz' });
+    if (!allowsStore(req, storeId)) return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
+  }
+
+  try {
+    const r = await execute(`
+      INSERT INTO public_holidays (holiday_date, name, is_half_day, store_id, created_by)
+      VALUES (?,?,?,?,?) RETURNING id`, date, name, half, storeId, req.user.id);
+    await logActivity(req.user, 'TATIL_EKLE', 'holiday', r.lastInsertRowid,
+      `${date} ${name}${half ? ' (yarım gün)' : ''}`, storeId);
+    res.status(201).json({ id: Number(r.lastInsertRowid) });
+  } catch (e) {
+    if (String(e.message).includes('idx_holidays')) {
+      return res.status(400).json({ error: 'Bu tarih için zaten bir tatil kayıtlı' });
+    }
+    throw e;
+  }
+});
+
+router.delete('/holidays/:id', requireManager, async (req, res) => {
+  const row = await queryOne('SELECT * FROM public_holidays WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Tatil bulunamadı' });
+  if (row.store_id === null && req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Tüm mağazalar tatilini yalnızca Ana Yönetici siler' });
+  }
+  if (row.store_id !== null && !allowsStore(req, row.store_id)) {
+    return res.status(403).json({ error: 'Bu tatile erişim yetkiniz yok' });
+  }
+  await execute('DELETE FROM public_holidays WHERE id = ?', row.id);
+  await logActivity(req.user, 'TATIL_SIL', 'holiday', row.id,
+    `${row.holiday_date} ${row.name}`, row.store_id);
+  res.json({ ok: true });
+});
+
+// Sabit tarihli milli bayramlar. DINI BAYRAMLAR BURADA YOK: tarihleri her yil
+// kaydigi icin uydurmak yanlis izin hesabi uretir, elle girilmeleri gerekiyor.
+const FIXED_HOLIDAYS = [
+  { md: '01-01', name: 'Yılbaşı' },
+  { md: '04-23', name: 'Ulusal Egemenlik ve Çocuk Bayramı' },
+  { md: '05-01', name: 'Emek ve Dayanışma Günü' },
+  { md: '05-19', name: 'Atatürk’ü Anma, Gençlik ve Spor Bayramı' },
+  { md: '07-15', name: 'Demokrasi ve Millî Birlik Günü' },
+  { md: '08-30', name: 'Zafer Bayramı' },
+  { md: '10-29', name: 'Cumhuriyet Bayramı' },
+];
+
+/// Bir yilin sabit milli bayramlarini ekler. Var olan kayitlara dokunmaz.
+router.post('/holidays/seed', requireRole('super_admin'), async (req, res) => {
+  const year = Number(req.query.year || req.body?.year);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    return res.status(400).json({ error: 'Geçerli bir yıl verin' });
+  }
+  let added = 0;
+  for (const h of FIXED_HOLIDAYS) {
+    const r = await execute(`
+      INSERT INTO public_holidays (holiday_date, name, is_half_day, store_id, created_by)
+      VALUES (?,?,0,NULL,?)
+      ON CONFLICT DO NOTHING`, `${year}-${h.md}`, h.name, req.user.id);
+    if (r.changes > 0) added++;
+  }
+  await logActivity(req.user, 'TATIL_TOHUM', 'holiday', null,
+    `${year} yılı sabit milli bayramları: ${added} kayıt eklendi`, null);
+  res.status(201).json({
+    year,
+    added,
+    total: FIXED_HOLIDAYS.length,
+    warning: 'Dini bayramlar (Ramazan ve Kurban) her yıl kaydığı için '
+      + 'eklenmedi; elle girilmeleri gerekiyor.',
+  });
+});
+
+// ---- KVKK: ham koordinat saklama suresi ----
+
+router.get('/kvkk/status', requireRole('super_admin'), async (req, res) => {
+  res.json(await kvkk.retentionStatus());
+});
+
+/// Suresi gecmis koordinatlari bosaltir. Devam kaydi SILINMEZ.
+router.post('/kvkk/purge', requireRole('super_admin'), async (req, res) => {
+  const days = req.body && req.body.days !== undefined ? Number(req.body.days) : undefined;
+  if (days !== undefined && (!Number.isInteger(days) || days < 1 || days > 3650)) {
+    return res.status(400).json({ error: 'Saklama süresi 1-3650 gün arasında olmalıdır' });
+  }
+  const out = await kvkk.purgeCoordinates({ days });
+  await logActivity(req.user, 'KVKK_TEMIZLIK', 'attendance_log', null,
+    `${out.purged} kaydın ham koordinatı silindi (${out.retention_days} gün)`, null);
+  res.json(out);
 });
 
 module.exports = router;

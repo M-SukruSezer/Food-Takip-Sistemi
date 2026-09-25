@@ -325,6 +325,54 @@ class ShiftAssignment {
       );
 }
 
+/// Resmi tatil.
+class PublicHoliday {
+  const PublicHoliday({
+    required this.id,
+    required this.date,
+    required this.name,
+    required this.isHalfDay,
+    this.storeId,
+    this.storeName,
+  });
+
+  final int id;
+  final String date;
+  final String name;
+
+  /// Arefe gibi yarim tatil: izin hesabinda 0,5 gun sayilir.
+  final bool isHalfDay;
+
+  /// null = tum magazalar.
+  final int? storeId;
+  final String? storeName;
+
+  bool get isStoreSpecific => storeId != null;
+
+  factory PublicHoliday.fromJson(Map<String, dynamic> j) => PublicHoliday(
+        id: _int(j['id']),
+        date: j['holiday_date'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        isHalfDay: j['is_half_day'] == true || j['is_half_day'] == 1,
+        storeId: j['store_id'] == null ? null : _int(j['store_id']),
+        storeName: j['store_name'] as String?,
+      );
+}
+
+/// Tatil listesini gune gore haritalar.
+///
+/// Magazaya ozel kayit geneli gecersiz kilar — sunucu tarafindaki holidayMap
+/// ile ayni kural; iki tarafin ayrismamasi icin burada da uygulaniyor.
+Map<String, PublicHoliday> holidayMap(List<PublicHoliday> list) {
+  final out = <String, PublicHoliday>{};
+  for (final h in list) {
+    final existing = out[h.date];
+    if (existing != null && existing.isStoreSpecific && !h.isStoreSpecific) continue;
+    out[h.date] = h;
+  }
+  return out;
+}
+
 /// "Su an kimler iste" satiri.
 class PresenceRow {
   const PresenceRow({
@@ -402,6 +450,8 @@ class TimesheetDay {
     required this.onLeave,
     required this.statuses,
     required this.shiftNames,
+    this.isHoliday = false,
+    this.holidayName,
   });
 
   final String workDate;
@@ -416,6 +466,10 @@ class TimesheetDay {
   final List<String> statuses;
   final List<String> shiftNames;
 
+  /// Resmi tatil: planli sure sifirdir, calisma tamamen fazla mesai.
+  final bool isHoliday;
+  final String? holidayName;
+
   factory TimesheetDay.fromJson(Map<String, dynamic> j) => TimesheetDay(
         workDate: j['work_date'] as String? ?? '',
         presenceMinutes: _int(j['presence_minutes']),
@@ -428,6 +482,8 @@ class TimesheetDay {
         onLeave: j['on_leave'] == true,
         statuses: ((j['statuses'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
         shiftNames: ((j['shift_names'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
+        isHoliday: j['is_holiday'] == true,
+        holidayName: j['holiday_name'] as String?,
       );
 }
 
@@ -437,6 +493,7 @@ class TimesheetSummary {
     required this.workedDays,
     required this.absentDays,
     required this.leaveDays,
+    required this.holidayDays,
     required this.workedMinutes,
     required this.scheduledMinutes,
     required this.overtimeMinutes,
@@ -449,6 +506,7 @@ class TimesheetSummary {
   final int workedDays;
   final int absentDays;
   final int leaveDays;
+  final int holidayDays;
   final int workedMinutes;
   final int scheduledMinutes;
   final int overtimeMinutes;
@@ -463,6 +521,7 @@ class TimesheetSummary {
         workedDays: _int(j['worked_days']),
         absentDays: _int(j['absent_days']),
         leaveDays: _int(j['leave_days']),
+        holidayDays: _int(j['holiday_days']),
         workedMinutes: _int(j['worked_minutes']),
         scheduledMinutes: _int(j['scheduled_minutes']),
         overtimeMinutes: _int(j['overtime_minutes']),
@@ -472,7 +531,8 @@ class TimesheetSummary {
       );
 
   static const empty = TimesheetSummary(
-    days: 0, workedDays: 0, absentDays: 0, leaveDays: 0, workedMinutes: 0,
+    days: 0, workedDays: 0, absentDays: 0, leaveDays: 0, holidayDays: 0,
+    workedMinutes: 0,
     scheduledMinutes: 0, overtimeMinutes: 0, missingMinutes: 0,
     lateMinutes: 0, unscheduledMinutes: 0,
   );

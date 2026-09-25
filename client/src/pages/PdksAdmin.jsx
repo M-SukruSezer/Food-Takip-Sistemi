@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Users, ClipboardCheck, Table2, CalendarClock, Settings, QrCode as QrIcon,
-  MapPin, Plus, Trash2, RefreshCw,
+  MapPin, Plus, Trash2, RefreshCw, CalendarDays, ShieldCheck,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -16,6 +16,7 @@ const SEKMELER = [
   { id: 'requests', label: 'Talepler', ico: ClipboardCheck },
   { id: 'timesheet', label: 'Puantaj', ico: Table2 },
   { id: 'shifts', label: 'Vardiyalar', ico: CalendarClock },
+  { id: 'holidays', label: 'Tatiller', ico: CalendarDays },
   { id: 'settings', label: 'Ayarlar', ico: Settings },
 ];
 
@@ -66,7 +67,8 @@ export default function PdksAdmin() {
       {sekme === 'requests' && <Talepler onChange={() => setReload((n) => n + 1)} />}
       {sekme === 'timesheet' && <Puantaj />}
       {sekme === 'shifts' && <Vardiyalar isSuper={user.role === 'super_admin'} />}
-      {sekme === 'settings' && <Ayarlar />}
+      {sekme === 'holidays' && <Tatiller isSuper={user.role === 'super_admin'} />}
+      {sekme === 'settings' && <Ayarlar isSuper={user.role === 'super_admin'} />}
     </div>
   );
 }
@@ -719,7 +721,7 @@ function AtamaModal({ vardiyalar, onClose, onDone }) {
 
 // ---- Ayarlar ----
 
-function Ayarlar() {
+function Ayarlar({ isSuper }) {
   const [liste, setListe] = useState([]);
   const [duzenle, setDuzenle] = useState(null);
   const [kiosk, setKiosk] = useState(null);
@@ -793,6 +795,8 @@ function Ayarlar() {
           </table>
         </div>
       </div>
+
+      {isSuper && <KvkkPanel />}
 
       {duzenle && (
         <AyarModal magaza={duzenle} onClose={() => setDuzenle(null)}
@@ -919,5 +923,261 @@ function KioskModal({ veri, onClose, onYenile }) {
         <button className="btn btn-primary" onClick={onClose}>Kapat</button>
       </div>
     </Modal>
+  );
+}
+
+// ---- Resmi tatiller ----
+
+function Tatiller({ isSuper }) {
+  const [liste, setListe] = useState([]);
+  const [yil, setYil] = useState(() => new Date().getFullYear());
+  const [ekle, setEkle] = useState(false);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    api.get(`/pdks/holidays?from=${yil}-01-01&to=${yil}-12-31`, { silent: true })
+      .then((r) => setListe(r.data)).catch(() => {});
+  }, [yil, reload]);
+
+  async function tohumla() {
+    try {
+      const r = await api.post(`/pdks/holidays/seed?year=${yil}`, undefined, { noToast: true });
+      toast(r.data.added > 0
+        ? `${r.data.added} sabit millî bayram eklendi`
+        : 'Bu yılın sabit bayramları zaten ekli');
+      setReload((n) => n + 1);
+    } catch (e) {
+      toast(errorMessage(e));
+    }
+  }
+
+  async function sil(h) {
+    if (!window.confirm(`${fmtDate(h.holiday_date)} — ${h.name} silinecek.`)) return;
+    try {
+      await api.delete(`/pdks/holidays/${h.id}`, { successMessage: 'Tatil silindi' });
+      setReload((n) => n + 1);
+    } catch { /* bildirim api katmaninda */ }
+  }
+
+  return (
+    <>
+      <div className="surface-panel">
+        <div className="mo-head">
+          <h3><CalendarDays size={18} /> Resmi Tatiller — {yil}</h3>
+          <div className="row-actions">
+            <button className="btn btn-sm btn-secondary" onClick={() => setYil((y) => y - 1)}>‹</button>
+            <button className="btn btn-sm btn-secondary" onClick={() => setYil((y) => y + 1)}>›</button>
+            {isSuper && (
+              <button className="btn btn-sm btn-secondary" onClick={tohumla}>
+                Millî bayramları ekle
+              </button>
+            )}
+            <button className="btn btn-sm btn-primary" onClick={() => setEkle(true)}>
+              <Plus size={14} /> Yeni Tatil
+            </button>
+          </div>
+        </div>
+        <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          Resmi tatiller yıllık izin hakkından düşülmez ve puantajda planlı süre
+          sıfır sayılır (o gün çalışma tamamen fazla mesai olur). Arife gibi yarım
+          tatiller 0,5 gün sayılır.
+        </p>
+        <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+          <strong>Dini bayramlar</strong> her yıl kaydığı için otomatik eklenmiyor;
+          Ramazan ve Kurban Bayramı tarihlerini elle girmeniz gerekiyor.
+        </p>
+      </div>
+
+      <div className="card table-card">
+        <div className="table-wrap">
+          <table className="responsive">
+            <thead>
+              <tr><th>Tarih</th><th>Ad</th><th>Tür</th><th>Kapsam</th><th>İşlem</th></tr>
+            </thead>
+            <tbody>
+              {liste.length === 0 && (
+                <tr><td data-label="" colSpan="5">
+                  <p className="empty">{yil} için tatil tanımlanmamış.</p>
+                </td></tr>
+              )}
+              {liste.map((h) => (
+                <tr key={h.id}>
+                  <td data-label="Tarih"><strong>{fmtDate(h.holiday_date)}</strong></td>
+                  <td data-label="Ad">{h.name}</td>
+                  <td data-label="Tür">
+                    <span className={`badge ${h.is_half_day ? 'warning' : 'critical'}`}>
+                      {h.is_half_day ? 'Yarım gün' : 'Tam gün'}
+                    </span>
+                  </td>
+                  <td data-label="Kapsam">{h.store_name || 'Tüm mağazalar'}</td>
+                  <td data-label="İşlem">
+                    <button className="btn btn-sm btn-danger" onClick={() => sil(h)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {ekle && (
+        <TatilModal isSuper={isSuper} onClose={() => setEkle(false)}
+          onDone={() => { setEkle(false); setReload((n) => n + 1); }} />
+      )}
+    </>
+  );
+}
+
+function TatilModal({ isSuper, onClose, onDone }) {
+  const [tarih, setTarih] = useState('');
+  const [ad, setAd] = useState('');
+  const [yarim, setYarim] = useState(false);
+  const [tumMagazalar, setTumMagazalar] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function gonder(e) {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    try {
+      const govde = { holiday_date: tarih, name: ad.trim(), is_half_day: yarim };
+      if (tumMagazalar) govde.store_id = null;
+      await api.post('/pdks/holidays', govde, { noToast: true });
+      toast('Tatil eklendi');
+      onDone();
+    } catch (e2) {
+      setErr(errorMessage(e2));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title="Yeni Resmi Tatil" onClose={onClose}>
+      <form onSubmit={gonder}>
+        {err && <div className="alert error">{err}</div>}
+        <div className="field">
+          <label>Tarih</label>
+          <input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Ad</label>
+          <input value={ad} onChange={(e) => setAd(e.target.value)}
+            placeholder="Ramazan Bayramı 1. Gün" required />
+        </div>
+        <div className="field">
+          <label>
+            <input type="checkbox" checked={yarim} onChange={(e) => setYarim(e.target.checked)} />
+            {' '}Yarım gün (arife)
+          </label>
+          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+            Yarım tatil izin hesabında 0,5 gün sayılır ve o gün planlı sürenin
+            yarısı beklenir.
+          </p>
+        </div>
+        {isSuper && (
+          <div className="field">
+            <label>
+              <input type="checkbox" checked={tumMagazalar}
+                onChange={(e) => setTumMagazalar(e.target.checked)} />
+              {' '}Tüm mağazalarda geçerli
+            </label>
+          </div>
+        )}
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Ekleniyor...' : 'Ekle'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ---- KVKK: ham koordinat saklama suresi ----
+
+function KvkkPanel() {
+  const [durum, setDurum] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const yukle = useCallback(() => {
+    api.get('/pdks/kvkk/status', { silent: true })
+      .then((r) => setDurum(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => { yukle(); }, [yukle]);
+
+  async function temizle() {
+    if (!window.confirm(
+      'Saklama süresi geçmiş kayıtların ham konum koordinatları silinecek.\n\n'
+      + 'Devam kayıtları silinmez; mesafe özeti ve konum geçerliliği korunur.'
+    )) return;
+    setBusy(true);
+    try {
+      const r = await api.post('/pdks/kvkk/purge', undefined, { noToast: true });
+      toast(r.data.purged > 0
+        ? `${r.data.purged} kaydın koordinatı silindi`
+        : 'Süresi geçmiş kayıt yok');
+      yukle();
+    } catch (e) {
+      toast(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!durum) return null;
+
+  return (
+    <div className="surface-panel">
+      <div className="mo-head">
+        <h3><ShieldCheck size={18} /> KVKK — Konum Verisi Saklama</h3>
+        <span className="muted">Saklama süresi: {durum.retention_days} gün</span>
+      </div>
+      <div className="mo-figures">
+        <div className="mo-figure">
+          <span>Toplam devam kaydı</span>
+          <strong>{durum.total_logs}</strong>
+        </div>
+        <div className="mo-figure">
+          <span>Koordinat tutan</span>
+          <strong>{durum.with_coordinates}</strong>
+        </div>
+        <div className="mo-figure">
+          <span>Süresi geçmiş</span>
+          <strong className={durum.overdue > 0 ? 'text-warning' : 'text-ok'}>
+            {durum.overdue}
+          </strong>
+        </div>
+        <div className="mo-figure">
+          <span>Temizlenmiş</span>
+          <strong className="text-ok">{durum.already_purged}</strong>
+        </div>
+      </div>
+      <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>
+        {durum.note}
+      </p>
+      {durum.oldest_with_coordinates && (
+        <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          Koordinat tutan en eski kayıt: {fmtDateTime(durum.oldest_with_coordinates)}
+        </p>
+      )}
+      <p className="muted" style={{ fontSize: 11, margin: '4px 0 0' }}>
+        Temizlik sunucu her soğuk başlatmada kendiliğinden çalışır; buradan elle
+        de tetikleyebilirsiniz. Süre <code>PDKS_COORD_RETENTION_DAYS</code> ile
+        değiştirilir.
+      </p>
+      <div className="actions" style={{ marginTop: 10 }}>
+        <button className="btn btn-secondary" onClick={temizle}
+          disabled={busy || durum.overdue === 0}>
+          <ShieldCheck size={16} />
+          {durum.overdue > 0 ? `${durum.overdue} kaydı temizle` : 'Temizlenecek kayıt yok'}
+        </button>
+      </div>
+    </div>
   );
 }

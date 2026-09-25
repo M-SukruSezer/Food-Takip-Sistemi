@@ -23,6 +23,7 @@ export default function Pdks() {
   const [bakiye, setBakiye] = useState(null);
   const [talepler, setTalepler] = useState([]);
   const [takvim, setTakvim] = useState([]);
+  const [tatiller, setTatiller] = useState([]);
   const [ay, setAy] = useState(() => new Date().toISOString().slice(0, 7));
   const [reload, setReload] = useState(0);
   const [hata, setHata] = useState('');
@@ -44,8 +45,13 @@ export default function Pdks() {
     const son = new Date(`${ay}-01T00:00:00Z`);
     son.setUTCMonth(son.getUTCMonth() + 1);
     son.setUTCDate(0);
-    api.get(`/pdks/assignments?from=${ay}-01&to=${son.toISOString().slice(0, 10)}`, { silent: true })
+    const bitis = son.toISOString().slice(0, 10);
+    api.get(`/pdks/assignments?from=${ay}-01&to=${bitis}`, { silent: true })
       .then((r) => setTakvim(r.data)).catch(() => {});
+    // Resmi tatiller takvimde isaretlenir: personel izin planlarken hangi
+    // gunun tatil oldugunu gormeli.
+    api.get(`/pdks/holidays?from=${ay}-01&to=${bitis}`, { silent: true })
+      .then((r) => setTatiller(r.data)).catch(() => {});
   }, [ay, reload]);
 
   /// Cihazin anlik konumunu alir.
@@ -334,7 +340,7 @@ export default function Pdks() {
           <h3><CalendarDays size={18} /> Vardiya Takvimi</h3>
           <input type="month" value={ay} onChange={(e) => setAy(e.target.value)} />
         </div>
-        <Takvim ay={ay} atamalar={takvim} />
+        <Takvim ay={ay} atamalar={takvim} tatiller={tatiller} />
       </section>
 
       {qrGoster && (
@@ -372,7 +378,7 @@ export default function Pdks() {
 }
 
 /// Aylik vardiya takvimi. Pazartesi ile baslar (TR takvim alisligi).
-function Takvim({ ay, atamalar }) {
+function Takvim({ ay, atamalar, tatiller = [] }) {
   const [y, m] = ay.split('-').map(Number);
   const ilk = new Date(Date.UTC(y, m - 1, 1));
   const gunSayisi = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -384,20 +390,34 @@ function Takvim({ ay, atamalar }) {
     if (!gunler.has(a.work_date)) gunler.set(a.work_date, []);
     gunler.get(a.work_date).push(a);
   }
+  // Magazaya ozel tatil geneli gecersiz kilar (sunucu tarafiyla ayni kural).
+  const tatilGunleri = new Map();
+  for (const h of tatiller) {
+    const mevcut = tatilGunleri.get(h.holiday_date);
+    if (mevcut && mevcut.store_id !== null && h.store_id === null) continue;
+    tatilGunleri.set(h.holiday_date, h);
+  }
 
   const hucreler = [];
   for (let i = 0; i < bosluk; i++) hucreler.push(<div className="cal-cell empty" key={`b${i}`} />);
   for (let d = 1; d <= gunSayisi; d++) {
     const tarih = `${ay}-${String(d).padStart(2, '0')}`;
     const liste = gunler.get(tarih) || [];
-    const tatil = liste.some((a) => a.is_day_off);
+    const haftaTatili = liste.some((a) => a.is_day_off);
+    const resmi = tatilGunleri.get(tarih);
+    const sinif = resmi ? 'holiday' : haftaTatili ? 'off' : liste.length ? 'on' : '';
     hucreler.push(
-      <div className={`cal-cell ${tatil ? 'off' : liste.length ? 'on' : ''}`} key={tarih}>
+      <div className={`cal-cell ${sinif}`} key={tarih} title={resmi ? resmi.name : undefined}>
         <span className="cal-day">{d}</span>
-        {tatil ? <em>Tatil</em>
-          : liste.map((a, i) => (
-            <em key={i}>{a.start_time}–{a.end_time}</em>
-          ))}
+        {resmi && (
+          <em className="cal-holiday">
+            {resmi.name}{resmi.is_half_day ? ' (½)' : ''}
+          </em>
+        )}
+        {!resmi && haftaTatili && <em>Tatil</em>}
+        {!resmi && !haftaTatili && liste.map((a, i) => (
+          <em key={i}>{a.start_time}–{a.end_time}</em>
+        ))}
       </div>
     );
   }
@@ -411,6 +431,11 @@ function Takvim({ ay, atamalar }) {
       {atamalar.length === 0 && (
         <p className="muted" style={{ fontSize: 13, margin: '10px 0 0' }}>
           Bu ay için vardiya atanmamış.
+        </p>
+      )}
+      {tatiller.length > 0 && (
+        <p className="muted" style={{ fontSize: 11, margin: '8px 0 0' }}>
+          Kırmızı çerçeveli günler resmi tatil; yıllık izin hakkınızdan düşülmez.
         </p>
       )}
     </>

@@ -623,6 +623,22 @@ class Repository {
         .toList();
   }
 
+  /// Resmi tatiller. Personel de gorur: izin planlarken gerekiyor.
+  Future<List<PublicHoliday>> pdksHolidays({
+    required String from,
+    required String to,
+    bool silent = true,
+  }) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/pdks/holidays',
+      queryParameters: {'from': from, 'to': to},
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => PublicHoliday.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<PresenceSnapshot> pdksNow({bool silent = true}) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/pdks/now',

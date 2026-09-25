@@ -93,6 +93,7 @@ function computeDay({
   logs = [],
   leaveDay = false,
   hourlyLeaveMinutes = 0,
+  holiday = null,
 }) {
   const { pairs, open, orphanOut } = pairLogs(logs);
 
@@ -120,7 +121,17 @@ function computeDay({
 
   // Onayli saatlik izin BEKLENEN BULUNMA suresini dusurur.
   const hourly = Math.max(0, Math.round(hourlyLeaveMinutes) || 0);
-  const expectedPresence = Math.max(0, scheduled - hourly);
+
+  // Resmi tatil planli sureyi dusurur: izin hesabinda o gun dusuldugu icin
+  // puantajda da calisma gunu sayilmasi tutarsiz olurdu. Tam tatilde planli
+  // sure sifir (calisma tamamen fazla mesai), yarim tatilde yarisi.
+  //
+  // Ustune HAFTA TATILI gibi davranmiyor: hafta tatili zaten ayri isaretli.
+  const holidayFull = holiday != null && holiday.half !== true;
+  const holidayHalf = holiday != null && holiday.half === true;
+  const holidayFactor = holidayFull ? 0 : holidayHalf ? 0.5 : 1;
+
+  const expectedPresence = Math.max(0, Math.round(scheduled * holidayFactor) - hourly);
 
   // Planli calisma, beklenen bulunmadan AYNI mola kuraliyla cikarilir.
   //
@@ -169,7 +180,10 @@ function computeDay({
 
   let overtime = 0;
   let missing = 0;
-  if (isDayOff) {
+  if (holidayFull && !isDayOff) {
+    // Resmi tatilde calisma tamamen fazla mesai; calismadiysa eksik cikmaz.
+    overtime = netWorked;
+  } else if (isDayOff) {
     // Hafta tatilinde calisma tamamen fazla mesai: planli sure sifir.
     overtime = netWorked;
   } else if (noShift) {
@@ -182,11 +196,15 @@ function computeDay({
   }
 
   const statuses = [];
+  if (holiday != null) statuses.push(holidayHalf ? 'YARIM_TATIL' : 'RESMI_TATIL');
   if (noShift && (presence > 0 || open)) statuses.push('VARDIYA_YOK');
   if (isDayOff && presence > 0) statuses.push('TATILDE_CALISMA');
   if (leaveDay) statuses.push('IZINLI');
   if (hourly > 0) statuses.push('SAATLIK_IZIN');
-  if (working.length > 0 && !leaveDay && presence === 0 && !open) statuses.push('DEVAMSIZ');
+  // Resmi tatilde gelmemek devamsizlik degil.
+  if (working.length > 0 && !leaveDay && !holidayFull && presence === 0 && !open) {
+    statuses.push('DEVAMSIZ');
+  }
   if (open) statuses.push('ACIK_GIRIS');
   if (orphanOut > 0) statuses.push('ESLESMEYEN_KAYIT');
   if (lateMinutes > 0) statuses.push('GEC_GELDI');
@@ -198,6 +216,8 @@ function computeDay({
     is_day_off: isDayOff,
     no_shift: noShift,
     on_leave: leaveDay,
+    holiday_name: holiday?.name ?? null,
+    is_holiday: holiday != null,
     // Fiili bulunma (mola dusulmemis).
     presence_minutes: presence,
     expected_presence_minutes: leaveDay ? 0 : expectedPresence,
@@ -229,6 +249,7 @@ function summarize(days) {
     absent_days: days.filter((d) => d.statuses.includes('DEVAMSIZ')).length,
     leave_days: days.filter((d) => d.on_leave).length,
     day_off_days: days.filter((d) => d.is_day_off).length,
+    holiday_days: days.filter((d) => d.is_holiday).length,
     presence_minutes: sum('presence_minutes'),
     worked_minutes: sum('worked_minutes'),
     // Vardiya atanmamis gunlerin calismasi. worked_minutes'a dahildir ama
