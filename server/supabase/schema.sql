@@ -229,3 +229,234 @@ ALTER TABLE petty_cash_expenses ADD CONSTRAINT petty_cash_status_check
 
 CREATE INDEX IF NOT EXISTS idx_petty_status ON petty_cash_expenses(store_id, status);
 
+
+-- ===========================================================================
+-- PDKS (Personel Devam Kontrol Sistemi)
+--
+-- KVKK: biyometrik veri TUTULMAZ. Dogrulama yalnizca iki yontemle yapilir:
+--   QR  -> magazadaki kioskta donen token ya da basili sabit kod
+--   GPS -> cihaz konumunun magaza koordinatina uzakligi
+-- Konum verisi kisisel veridir; ham koordinatlar saklanir ama
+-- coords_purged_at ile saklama suresi sonunda temizlenebilir. Karar icin
+-- gereken ozet (distance_m, is_valid_location) koordinat silinse de kalir.
+-- ===========================================================================
+
+-- Isyeri = magaza. Ayri bir workplaces tablosu ACILMADI: projede tum yetki
+-- kapsami store_id uzerinden yurüyor (req.storeIds / storeFilter) ve
+-- kullanicinin magazasi users.store_id. Ikinci bir isyeri kavrami personelin
+-- magazasi ile isyerinin ayrismasina izin verip bu kapsami kirardi.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+-- Geofence yaricapi. Sehir ici GPS sapmasi 20-50 m olabildigi icin varsayilan
+-- 100 m; magaza bazinda daraltilabilir.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS geofence_radius_m INTEGER NOT NULL DEFAULT 100;
+-- QR token uretiminde kullanilan magaza sirri. Adim 2'de HMAC ile donen token
+-- uretilir; sir asla istemciye gonderilmez.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS qr_secret TEXT;
+-- 'rotating' = kioskta 60 sn'de bir yenilenen token (onerilen)
+-- 'static'   = basili sabit kod. Fotograflanip uzaktan okutulabildigi icin
+--              Adim 2'de sabit kod TEK BASINA kabul edilmeyecek, konum
+--              dogrulamasiyla birlikte gecerli olacak.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS qr_mode TEXT NOT NULL DEFAULT 'rotating';
+-- Magaza PDKS'e dahil edilmeden hicbir davranis degismez.
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS pdks_enabled INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE stores DROP CONSTRAINT IF EXISTS stores_qr_mode_check;
+ALTER TABLE stores ADD CONSTRAINT stores_qr_mode_check
+  CHECK (qr_mode IN ('rotating', 'static'));
+ALTER TABLE stores DROP CONSTRAINT IF EXISTS stores_geofence_radius_check;
+ALTER TABLE stores ADD CONSTRAINT stores_geofence_radius_check
+  CHECK (geofence_radius_m BETWEEN 20 AND 5000);
+
+-- Personelin PDKS profili: izin/avans hakki ve hafta tatili.
+CREATE TABLE IF NOT EXISTS pdks_profiles (
+  user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  hired_at TEXT,                                        -- YYYY-MM-DD
+  -- 4857 sayili Is Kanunu'nda 1-5 yil arasi yillik izin 14 gun; varsayilan bu.
+  annual_leave_days DOUBLE PRECISION NOT NULL DEFAULT 14,
+  monthly_advance_limit DOUBLE PRECISION NOT NULL DEFAULT 0,
+  -- Hafta tatili gunleri, users.permissions ile ayni desende JSON metin.
+  -- 0 = Pazar ... 6 = Cumartesi. Ornek: '[0]' ya da '[0,6]'.
+  weekly_off_days TEXT NOT NULL DEFAULT '[0]',
+  updated_by BIGINT,
+  updated_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+-- Vardiya tanimi. store_id NULL ise tum magazalarda kullanilabilir sablon.
+CREATE TABLE IF NOT EXISTS shifts (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT REFERENCES stores(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  -- Duvar saati, 'HH:MM'. Saat dilimi tasimaz: 08:00 vardiyasi her gun 08:00.
+  -- Bu yuzden TEXT; ISO zaman damgasi kullanmak yaz saati kaymasi yaratirdi.
+  start_time TEXT NOT NULL,
+  -- end_time <= start_time ise vardiya gece yarisini gecer (22:00 -> 06:00).
+  end_time TEXT NOT NULL,
+  break_duration_minutes INTEGER NOT NULL DEFAULT 0,
+  -- 08:00 vardiyasinda 10 dk tolerans: 08:10'a kadar gec sayilmaz.
+  late_tolerance_minutes INTEGER NOT NULL DEFAULT 0,
+  early_leave_tolerance_minutes INTEGER NOT NULL DEFAULT 0,
+  -- Vardiya bitisinden bu kadar sonrasi fazla mesai sayilir; kisa
+  -- sarkmalar mesaiye yazilmasin.
+  overtime_starts_after_minutes INTEGER NOT NULL DEFAULT 15,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_by BIGINT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE shifts DROP CONSTRAINT IF EXISTS shifts_time_format_check;
+ALTER TABLE shifts ADD CONSTRAINT shifts_time_format_check
+  CHECK (start_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+     AND end_time   ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
+ALTER TABLE shifts DROP CONSTRAINT IF EXISTS shifts_minutes_check;
+ALTER TABLE shifts ADD CONSTRAINT shifts_minutes_check
+  CHECK (break_duration_minutes BETWEEN 0 AND 480
+     AND late_tolerance_minutes BETWEEN 0 AND 120
+     AND early_leave_tolerance_minutes BETWEEN 0 AND 120
+     AND overtime_starts_after_minutes BETWEEN 0 AND 120);
+
+-- Personel-gun vardiya atamasi. shift_id NULL + is_day_off=1 hafta tatili.
+CREATE TABLE IF NOT EXISTS user_shifts (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  shift_id BIGINT REFERENCES shifts(id) ON DELETE RESTRICT,
+  work_date TEXT NOT NULL,                              -- YYYY-MM-DD
+  is_day_off INTEGER NOT NULL DEFAULT 0,
+  note TEXT,
+  assigned_by BIGINT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  -- Ayni gune ayni vardiya iki kez atanamaz. Bolunmus vardiyaya (sabah +
+  -- aksam) izin verilir: farkli shift_id ile ayni gun eklenebilir.
+  UNIQUE (user_id, work_date, shift_id)
+);
+
+ALTER TABLE user_shifts DROP CONSTRAINT IF EXISTS user_shifts_date_format_check;
+ALTER TABLE user_shifts ADD CONSTRAINT user_shifts_date_format_check
+  CHECK (work_date ~ '^\d{4}-\d{2}-\d{2}$');
+-- Tatil satirinda vardiya olmaz, vardiya satirinda tatil olmaz.
+ALTER TABLE user_shifts DROP CONSTRAINT IF EXISTS user_shifts_dayoff_check;
+ALTER TABLE user_shifts ADD CONSTRAINT user_shifts_dayoff_check
+  CHECK ((is_day_off = 1 AND shift_id IS NULL) OR (is_day_off = 0 AND shift_id IS NOT NULL));
+-- UNIQUE kisiti NULL'lari tekil saymadigi icin tatil satiri ayri indeksle
+-- tekillestirilir; aksi halde ayni gune iki tatil yazilabiliyor.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_shifts_dayoff
+  ON user_shifts(user_id, work_date) WHERE shift_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_user_shifts_user_date ON user_shifts(user_id, work_date);
+CREATE INDEX IF NOT EXISTS idx_user_shifts_date ON user_shifts(work_date);
+
+-- Giris/cikis kaydi.
+CREATE TABLE IF NOT EXISTS attendance_logs (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  store_id BIGINT NOT NULL REFERENCES stores(id),
+  type TEXT NOT NULL,                                   -- GIRIS | CIKIS
+  method TEXT NOT NULL,                                 -- QR | GPS
+  occurred_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  -- Kaydin yazildigi IS GUNU. Gece vardiyasinda cikis ertesi takvim gunune
+  -- duser; puantaj bu kolona gore grupladigi icin vardiyanin basladigi gun
+  -- yazilir, occurred_at'in tarihi degil.
+  work_date TEXT NOT NULL,
+  -- Konum yalnizca GPS yonteminde dolu; QR'da sorulmaz (KVKK: amacla sinirli).
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  -- Cihazin bildirdigi dogruluk yaricapi. Buyuk accuracy ile gelen kayit
+  -- yaricap icinde gorunse de guvenilir degil; Adim 2'de esik uygulanir.
+  accuracy_m DOUBLE PRECISION,
+  -- Haversine ile hesaplanan magazaya uzaklik. Koordinat KVKK saklama suresi
+  -- sonunda silinse bile karar bu ozetle denetlenebilir kalir.
+  distance_m DOUBLE PRECISION,
+  is_valid_location INTEGER,                             -- NULL = konum sorulmadi
+  -- Android/iOS sahte konum bayragi. Web Geolocation API bunu vermedigi icin
+  -- NULL olabilir: "bilinmiyor" ile "sahte degil" ayri tutulur.
+  is_mocked INTEGER,
+  -- Okutulan QR token'inin ozeti. Ayni token'in ikinci kez kullanilmasini
+  -- engellemek icin saklanir; token'in kendisi saklanmaz.
+  qr_token_hash TEXT,
+  device_label TEXT,
+  note TEXT,
+  -- Kiosk ya da yonetici okuttuysa islemi yapan kullanici; personelin kendi
+  -- cihazindan yaptigi kayitta user_id ile ayni olur.
+  created_by BIGINT,
+  -- KVKK saklama suresi sonunda ham koordinatlar bosaltilinca damgalanir.
+  coords_purged_at TEXT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_type_check;
+ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_type_check
+  CHECK (type IN ('GIRIS', 'CIKIS'));
+-- Yalnizca iki yontem. Biyometrik ya da elle giris bu kisittan gecmez.
+ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_method_check;
+ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_method_check
+  CHECK (method IN ('QR', 'GPS'));
+-- GPS yonteminde koordinat ve gecerlilik zorunlu; aksi halde dogrulanmamis
+-- bir kayit GPS gibi gorunebilir.
+ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_gps_check;
+ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_gps_check
+  CHECK (
+    method <> 'GPS'
+    OR (is_valid_location IS NOT NULL
+        AND (coords_purged_at IS NOT NULL OR (latitude IS NOT NULL AND longitude IS NOT NULL)))
+  );
+ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_date_format_check;
+ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_date_format_check
+  CHECK (work_date ~ '^\d{4}-\d{2}-\d{2}$');
+
+CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance_logs(user_id, work_date);
+CREATE INDEX IF NOT EXISTS idx_attendance_store_time ON attendance_logs(store_id, occurred_at);
+-- "Su an kimler iste" sorgusu: son kaydin turune bakar.
+CREATE INDEX IF NOT EXISTS idx_attendance_user_time ON attendance_logs(user_id, occurred_at DESC);
+-- Ayni QR token'i ikinci kez kullanilamasin.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_qr_token
+  ON attendance_logs(qr_token_hash) WHERE qr_token_hash IS NOT NULL;
+-- KVKK temizligi: suresi gecmis, koordinati hala dolu kayitlari bulur.
+CREATE INDEX IF NOT EXISTS idx_attendance_purge
+  ON attendance_logs(occurred_at) WHERE coords_purged_at IS NULL AND latitude IS NOT NULL;
+
+-- Izin / saatlik izin / avans talepleri.
+--
+-- Ad bilerek 'requests' degil: bu veritabaninda transfer_approvals ve
+-- petty_cash onay akislari da var, hangi talep oldugu adindan anlasilmali.
+CREATE TABLE IF NOT EXISTS personnel_requests (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  store_id BIGINT NOT NULL REFERENCES stores(id),
+  type TEXT NOT NULL,                                   -- IZIN | SAATLIK_IZIN | AVANS
+  -- IZIN'de YYYY-MM-DD, SAATLIK_IZIN'de ISO zaman damgasi. AVANS'ta bos.
+  start_at TEXT,
+  end_at TEXT,
+  -- Talep aninda hesaplanip saklanir: izin hakki dusumu, kural sonradan
+  -- degisse de gecmis talebin degeri kaymasin.
+  days DOUBLE PRECISION,
+  hours DOUBLE PRECISION,
+  amount DOUBLE PRECISION,                              -- AVANS tutari
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  manager_id BIGINT REFERENCES users(id),
+  decided_at TEXT,
+  decision_note TEXT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_type_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_type_check
+  CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS'));
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_status_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_status_check
+  CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'));
+-- Tur ile dolu alanlar tutarli olmali: avansta tutar, izinde tarih.
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_shape_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_shape_check
+  CHECK (
+    (type = 'AVANS' AND amount IS NOT NULL AND amount > 0)
+    OR (type IN ('IZIN', 'SAATLIK_IZIN') AND start_at IS NOT NULL AND end_at IS NOT NULL)
+  );
+-- Karar verilmis talepte karar veren ve zamani bulunmali.
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_decision_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_decision_check
+  CHECK (status = 'PENDING' OR status = 'CANCELLED' OR (manager_id IS NOT NULL AND decided_at IS NOT NULL));
+
+CREATE INDEX IF NOT EXISTS idx_personnel_requests_user ON personnel_requests(user_id, created_at DESC);
+-- Yoneticinin onay kuyrugu.
+CREATE INDEX IF NOT EXISTS idx_personnel_requests_pending
+  ON personnel_requests(store_id) WHERE status = 'PENDING';
