@@ -484,6 +484,34 @@ class Repository {
 
   // ---- Petty Cash ----
 
+  /// Onay bekleyen masraflar. Magaza muduru ve ana yonetici.
+  Future<List<PettyCashExpense>> pendingPettyCash({bool silent = true}) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/petty-cash/pending',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => PettyCashExpense.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Masrafi onaylar. Ret icin [rejectPettyCash] kullanilir.
+  Future<void> approvePettyCash(PettyCashExpense e) async {
+    await api.dio.post(
+      '/petty-cash/${e.id}/approve',
+      options: apiOptions(successMessage: 'Masraf onaylandı'),
+    );
+  }
+
+  /// Masrafi reddeder. Gerekce zorunlu; sunucu da bos gerekceyi reddediyor.
+  Future<void> rejectPettyCash(PettyCashExpense e, String note) async {
+    await api.dio.post(
+      '/petty-cash/${e.id}/reject',
+      data: {'note': note},
+      options: apiOptions(noToast: true, busyMessage: 'Reddediliyor...'),
+    );
+  }
+
   Future<PettyCashPage> pettyCash({int? storeId, bool silent = false}) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/petty-cash',

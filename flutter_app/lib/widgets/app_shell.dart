@@ -73,7 +73,7 @@ class _AppShellState extends State<AppShell> {
     final width = MediaQuery.sizeOf(context).width;
     final wide = width >= kSidebarBreakpoint;
     final user = session.user;
-    final items = navFor(user);
+    final groups = navGroupsFor(user);
     final location = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
@@ -82,7 +82,7 @@ class _AppShellState extends State<AppShell> {
       drawer: wide
           ? null
           : Drawer(
-              child: _SideNav(items: items, location: location, rail: false),
+              child: _SideNav(groups: groups, location: location, rail: false),
             ),
       bottomNavigationBar: wide
           ? null
@@ -95,7 +95,7 @@ class _AppShellState extends State<AppShell> {
           children: [
             if (wide)
               _SideNav(
-                items: items,
+                groups: groups,
                 location: location,
                 rail: _isRail(width),
                 onToggleRail: () =>
@@ -134,13 +134,13 @@ class _AppShellState extends State<AppShell> {
 
 class _SideNav extends StatelessWidget {
   const _SideNav({
-    required this.items,
+    required this.groups,
     required this.location,
     required this.rail,
     this.onToggleRail,
   });
 
-  final List<NavItem> items;
+  final List<NavGroup> groups;
   final String location;
   final bool rail;
   final VoidCallback? onToggleRail;
@@ -210,66 +210,107 @@ class _SideNav extends StatelessWidget {
                   horizontal: rail ? 8 : 12,
                   vertical: 12,
                 ),
-                children: items.map((item) {
-                  final active = location == item.path;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Tooltip(
-                      message: rail ? item.label : '',
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-                        onTap: () {
-                          if (Scaffold.of(context).hasDrawer) {
-                              Navigator.of(context).pop();
-                            }
-                          context.go(item.path);
-                        },
-                        child: Container(
-                          constraints: const BoxConstraints(
-                            minHeight: AppTokens.tap,
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: rail ? 0 : 14,
-                          ),
-                          decoration: BoxDecoration(
-                            // primary600 uzerinde beyaz yazi 3.3 kontrast
-                            // veriyordu (AA siniri 4.5); primary ile 5.02.
-                            color: active ? t.primary : null,
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusSm,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: rail
-                                ? MainAxisAlignment.center
-                                : MainAxisAlignment.start,
-                            children: [
-                              Icon(
-                                item.icon,
-                                size: 20,
-                                color: active ? t.card : t.sidebarMuted,
-                              ),
-                              if (!rail) ...[
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    item.label,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: active ? t.card : t.sidebarMuted,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                children: [
+                  for (var gi = 0; gi < groups.length; gi++) ...[
+                    // Daraltilmis menude baslik metni sigmaz; gruplari ayirmak
+                    // icin ince bir cizgi kalir.
+                    if (gi > 0)
+                      SizedBox(height: rail ? 8 : 14)
+                    else
+                      const SizedBox.shrink(),
+                    if (rail && gi > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Divider(height: 1, color: t.sidebarBorder),
+                      ),
+                    if (!rail && groups[gi].title != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 14, bottom: 6),
+                        child: Text(
+                          groups[gi].title!.toUpperCase(),
+                          style: TextStyle(
+                            color: t.sidebarMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    if (!rail && groups[gi].title == null && gi > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 14,
+                          right: 14,
+                          bottom: 8,
+                        ),
+                        child: Divider(height: 1, color: t.sidebarBorder),
+                      ),
+                    ...groups[gi].items.map((item) {
+                      final active = location == item.path;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Tooltip(
+                          message: rail ? item.label : '',
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusSm,
+                            ),
+                            onTap: () {
+                              if (Scaffold.of(context).hasDrawer) {
+                                Navigator.of(context).pop();
+                              }
+                              context.go(item.path);
+                            },
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minHeight: AppTokens.tap,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: rail ? 0 : 14,
+                              ),
+                              decoration: BoxDecoration(
+                                // primary600 uzerinde beyaz yazi 3.3 kontrast
+                                // veriyordu (AA siniri 4.5); primary ile 5.02.
+                                color: active ? t.primary : null,
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusSm,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: rail
+                                    ? MainAxisAlignment.center
+                                    : MainAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    item.icon,
+                                    size: 20,
+                                    color: active ? t.card : t.sidebarMuted,
+                                  ),
+                                  if (!rail) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        item.label,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: active
+                                              ? t.card
+                                              : t.sidebarMuted,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ],
               ),
             ),
             Divider(height: 1, color: t.sidebarBorder),

@@ -211,3 +211,21 @@ CREATE TABLE IF NOT EXISTS daily_reports (
   UNIQUE (store_id, report_date)
 );
 CREATE INDEX IF NOT EXISTS idx_daily_reports_store_date ON daily_reports(store_id, report_date);
+
+-- Vardiya mudurunun girdigi masraf magaza muduru onayina takilir.
+--
+-- Varsayilan 'approved': bu kural gelmeden once girilen kayitlar onaylanmis
+-- sayilir, aksi halde gecmis masraflar toptan bekleyene duserdi.
+ALTER TABLE petty_cash_expenses ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+ALTER TABLE petty_cash_expenses ADD COLUMN IF NOT EXISTS decided_by BIGINT;
+ALTER TABLE petty_cash_expenses ADD COLUMN IF NOT EXISTS decided_at TEXT;
+ALTER TABLE petty_cash_expenses ADD COLUMN IF NOT EXISTS decision_note TEXT;
+
+-- Kisit sonradan eklenir; DROP once calisir ki migration her soguk baslatmada
+-- tekrar edilebilir olsun.
+ALTER TABLE petty_cash_expenses DROP CONSTRAINT IF EXISTS petty_cash_status_check;
+ALTER TABLE petty_cash_expenses ADD CONSTRAINT petty_cash_status_check
+  CHECK (status IN ('pending', 'approved', 'rejected'));
+
+CREATE INDEX IF NOT EXISTS idx_petty_status ON petty_cash_expenses(store_id, status);
+

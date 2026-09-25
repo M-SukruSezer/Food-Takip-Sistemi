@@ -70,6 +70,32 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
     }
   }
 
+  Future<void> _approve(PettyCashExpense e) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Masrafı Onayla',
+      danger: false,
+      confirmLabel: 'Onayla',
+      body: Text(
+        '${fmtMoney(e.amount)} — ${e.description}\n'
+        '${e.createdByName ?? 'bilinmiyor'} girdi.'
+        '${e.hasReceipt ? '' : '\n\nBu masrafta fiş görseli yok.'}',
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await repo.approvePettyCash(e);
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
+    await _load(silent: true);
+  }
+
+  Future<void> _reject(PettyCashExpense e) async {
+    final ok = await showPettyCashRejectDialog(context, e);
+    if (ok == true) await _load(silent: true);
+  }
+
   Future<void> _delete(PettyCashExpense e) async {
     final ok = await confirmDialog(
       context,
@@ -215,6 +241,15 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
+                      // Vardiya muduru girisi magaza muduru onayina takilir.
+                      Pill(
+                        text: e.statusLabel,
+                        color: e.isPending
+                            ? t.warning
+                            : e.isRejected
+                                ? t.danger
+                                : t.success,
+                      ),
                       if (e.hasReceipt)
                         Pill(text: 'fişli', color: t.success)
                       else
@@ -223,6 +258,13 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         Pill(text: e.storeName!, color: t.primary),
                     ],
                   ),
+                  if (e.isRejected && e.decisionNote != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Ret gerekçesi: ${e.decisionNote}',
+                      style: TextStyle(fontSize: 12, color: t.danger),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Text(
                     '${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
@@ -235,6 +277,20 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         onPressed: e.hasReceipt ? () => _showReceipt(e) : null,
                         child: const Text('Fişi Gör'),
                       ),
+                      if (e.isPending && (_page.status?.canApprove ?? false)) ...[
+                        FilledButton(
+                          onPressed: () => _approve(e),
+                          child: const Text('Onayla'),
+                        ),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: t.danger,
+                            side: BorderSide(color: t.danger),
+                          ),
+                          onPressed: () => _reject(e),
+                          child: const Text('Reddet'),
+                        ),
+                      ],
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: t.danger,
@@ -319,6 +375,13 @@ class _LimitCard extends StatelessWidget {
               color: tight ? t.danger : t.success,
             ),
           ),
+          // Bekleyen masraf da limitten dusuyor: para kasadan cikti.
+          if (status.pendingThisWeek > 0)
+            Text(
+              '${fmtMoney(status.pendingThisWeek)} onay bekliyor '
+              '(${status.pendingCount} kayıt)',
+              style: TextStyle(fontSize: 12, color: t.warning),
+            ),
           Text(
             'Hafta başlangıcı: ${fmtDate(status.weekStart)}',
             style: TextStyle(fontSize: 12, color: t.muted),

@@ -30,15 +30,24 @@ async function pettyCash(storeId) {
     'SELECT weekly_amount FROM petty_cash_limits WHERE store_id = ?', storeId
   );
   const ws = weekStart();
-  const spentRow = await queryOne(
-    'SELECT COALESCE(SUM(amount),0) AS total, COUNT(*) AS c FROM petty_cash_expenses WHERE store_id = ? AND spent_at >= ?',
-    storeId, ws
-  );
+  // Limit hesabi pettyCash.js ile ayni kurala uymali: onayli + bekleyen
+  // sayilir (para kasadan cikti), reddedilen sayilmaz.
+  const spentRow = await queryOne(`
+    SELECT COALESCE(SUM(amount),0) AS total,
+           COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END),0) AS pending,
+           COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),0) AS pending_count,
+           COUNT(*) AS c
+    FROM petty_cash_expenses
+    WHERE store_id = ? AND spent_at >= ? AND status <> 'rejected'
+  `, storeId, ws);
   const limit = limitRow ? Number(limitRow.weekly_amount) || 0 : 0;
   const spent = Number(spentRow.total) || 0;
+  const pending = Number(spentRow.pending) || 0;
   return {
     weekly_limit: limit,
     spent_this_week: spent,
+    pending_this_week: pending,
+    pending_count: Number(spentRow.pending_count) || 0,
     expense_count: Number(spentRow.c) || 0,
     remaining: Math.max(0, limit - spent),
     // Limit tanimli degilse oran anlamsiz; arayuz "limit tanimlanmamis" yazar.

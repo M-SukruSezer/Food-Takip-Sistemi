@@ -11,6 +11,11 @@ const router = express.Router();
 const SPENDER_ROLES = ['store_manager', 'shift_supervisor'];
 const requireSpender = requireRole(...SPENDER_ROLES);
 
+// Vardiya mudurunun girdigi masraf magaza muduru onayina takilir. Magaza
+// mudurunun kendi girisi onay beklemez: onaylayan makam kendisi.
+const APPROVER_ROLES = ['store_manager', 'super_admin'];
+const NEEDS_APPROVAL_ROLES = ['shift_supervisor'];
+
 // Modulu gorebilenler: masrafi girenler + izleme amacli ust kademeler.
 // Barista bu modulu hic gormez.
 const VIEWER_ROLES = [
@@ -38,12 +43,28 @@ async function limitFor(storeId) {
   return row ? Number(row.weekly_amount) : 0;
 }
 
+/// Haftalik harcama dokumu.
+///
+/// Limit kontrolu onayli VE bekleyen masraflari birlikte sayar: para fiilen
+/// kasadan cikmistir, onay yalnizca kaydin dogrulanmasidir. Bekleyeni saymamak
+/// limitin bekleyen kayit yiginiyla asilmasina izin verirdi. Reddedilen kayit
+/// sayilmaz — o harcama kabul edilmemistir.
 async function spentThisWeek(storeId) {
-  const row = await queryOne(
-    'SELECT COALESCE(SUM(amount),0) AS total FROM petty_cash_expenses WHERE store_id = ? AND spent_at >= ?',
-    storeId, weekStart()
-  );
-  return Number(row.total) || 0;
+  const row = await queryOne(`
+    SELECT COALESCE(SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END),0) AS approved,
+           COALESCE(SUM(CASE WHEN status = 'pending'  THEN amount ELSE 0 END),0) AS pending,
+           COALESCE(SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END),0) AS pending_count
+    FROM petty_cash_expenses
+    WHERE store_id = ? AND spent_at >= ? AND status <> 'rejected'
+  `, storeId, weekStart());
+  const approved = Number(row.approved) || 0;
+  const pending = Number(row.pending) || 0;
+  return {
+    approved,
+    pending,
+    pendingCount: Number(row.pending_count) || 0,
+    total: approved + pending,
+  };
 }
 
 /// Masraf listesi + haftalik limit durumu.
@@ -61,13 +82,16 @@ router.get('/', async (req, res) => {
   // her acilista megabaytlarca veri iner.
   const items = await queryAll(`
     SELECT e.id, e.store_id, e.amount, e.description, e.spent_at, e.created_at,
+           e.status, e.decided_at, e.decision_note,
            (e.receipt IS NOT NULL) AS has_receipt,
-           u.full_name AS created_by_name, s.name AS store_name
+           u.full_name AS created_by_name, s.name AS store_name,
+           d.full_name AS decided_by_name
     FROM petty_cash_expenses e
     LEFT JOIN users u ON u.id = e.created_by
+    LEFT JOIN users d ON d.id = e.decided_by
     LEFT JOIN stores s ON s.id = e.store_id
     ${where}
-    ORDER BY e.spent_at DESC
+    ORDER BY CASE WHEN e.status = 'pending' THEN 0 ELSE 1 END, e.spent_at DESC
     LIMIT 500
   `, ...params);
 
@@ -79,9 +103,13 @@ router.get('/', async (req, res) => {
     status = {
       store_id: scope.storeId,
       weekly_limit: limit,
-      spent_this_week: spent,
-      remaining: Math.max(0, limit - spent),
+      spent_this_week: spent.total,
+      approved_this_week: spent.approved,
+      pending_this_week: spent.pending,
+      pending_count: spent.pendingCount,
+      remaining: Math.max(0, limit - spent.total),
       week_start: weekStart(),
+      can_approve: APPROVER_ROLES.includes(req.user.role),
     };
   }
 
@@ -125,41 +153,135 @@ router.post('/', requireSpender, async (req, res) => {
     return res.status(400).json({ error: 'Bu mağaza için haftalık petty cash limiti tanımlanmamış' });
   }
   const spent = await spentThisWeek(storeId);
-  const remaining = limit - spent;
+  const remaining = limit - spent.total;
   if (value > remaining) {
     return res.status(400).json({
       error: `Haftalık limit aşılıyor. Kalan: ${remaining.toFixed(2)} TL`,
     });
   }
 
+  const needsApproval = NEEDS_APPROVAL_ROLES.includes(req.user.role);
+  const status = needsApproval ? 'pending' : 'approved';
+
   const r = await execute(
-    `INSERT INTO petty_cash_expenses (store_id, amount, description, receipt, spent_at, created_by)
-     VALUES (?,?,?,?,COALESCE(?, to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),?)
+    `INSERT INTO petty_cash_expenses (store_id, amount, description, receipt, spent_at, created_by, status)
+     VALUES (?,?,?,?,COALESCE(?, to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),?,?)
      RETURNING id`,
-    storeId, value, String(description).trim(), receipt || null, spent_at || null, req.user.id
+    storeId, value, String(description).trim(), receipt || null, spent_at || null,
+    req.user.id, status
   );
   await logActivity(req.user, 'PETTY_CASH', 'petty_cash', r.lastInsertRowid,
-    `${value} TL masraf: ${String(description).trim()}`, storeId);
+    `${value} TL masraf: ${String(description).trim()}`
+    + (needsApproval ? ' (mağaza müdürü onayı bekliyor)' : ''), storeId);
 
   res.status(201).json({
     id: Number(r.lastInsertRowid),
+    status,
+    needs_approval: needsApproval,
     remaining: remaining - value,
   });
 });
 
-/// Masraf silme: kaydi giren kisi ya da Ana Yonetici.
+/// Masraf silme.
+///
+/// Bekleyen kaydi giren kisi geri alabilir. Onaylanmis ya da reddedilmis kayit
+/// bir karar tasidigi icin yalnizca Ana Yonetici silebilir; aksi halde
+/// vardiya muduru onaylanmis masrafi silip kayittan cikarabilirdi.
 router.delete('/:id', async (req, res) => {
   const row = await queryOne('SELECT * FROM petty_cash_expenses WHERE id = ?', Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Masraf bulunamadı' });
   if (!allowsStore(req, row.store_id)) return res.status(403).json({ error: 'Bu masrafa erişim yetkiniz yok' });
-  if (req.user.role !== 'super_admin' && row.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Yalnızca kendi girdiğiniz masrafı silebilirsiniz' });
+  if (req.user.role !== 'super_admin') {
+    if (row.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Yalnızca kendi girdiğiniz masrafı silebilirsiniz' });
+    }
+    if (row.status !== 'pending') {
+      return res.status(400).json({
+        error: row.status === 'approved'
+          ? 'Onaylanmış masraf silinemez'
+          : 'Reddedilmiş masraf silinemez',
+      });
+    }
   }
   await execute('DELETE FROM petty_cash_expenses WHERE id = ?', row.id);
   await logActivity(req.user, 'PETTY_CASH_SIL', 'petty_cash', row.id,
     `${row.amount} TL masraf silindi`, row.store_id);
   res.json({ ok: true });
 });
+
+// ---- Onay (vardiya muduru girisleri) ----
+
+/// Onay bekleyen masraflar. Onaylayan makamin kuyrugu.
+router.get('/pending', requireRole(...APPROVER_ROLES), async (req, res) => {
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'e.store_id');
+  const rows = await queryAll(`
+    SELECT e.id, e.store_id, e.amount, e.description, e.spent_at, e.created_at,
+           e.status, (e.receipt IS NOT NULL) AS has_receipt,
+           u.full_name AS created_by_name, u.role AS created_by_role,
+           s.name AS store_name
+    FROM petty_cash_expenses e
+    LEFT JOIN users u ON u.id = e.created_by
+    LEFT JOIN stores s ON s.id = e.store_id
+    WHERE e.status = 'pending' ${f.sql}
+    ORDER BY e.spent_at
+  `, ...f.params);
+  res.json(rows.map((r) => ({ ...r, has_receipt: !!r.has_receipt })));
+});
+
+/// Onayla / reddet. Yalnizca magaza muduru ve Ana Yonetici.
+///
+/// Karar verilmis kayit tekrar karara acilmaz: ayni masraf iki kez
+/// onaylanip limitte cift sayilmasin.
+async function decide(req, res, next) {
+  const approve = next === 'approved';
+  const row = await queryOne('SELECT * FROM petty_cash_expenses WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Masraf bulunamadı' });
+  if (!allowsStore(req, row.store_id)) {
+    return res.status(403).json({ error: 'Bu masrafa erişim yetkiniz yok' });
+  }
+  if (row.status !== 'pending') {
+    return res.status(400).json({
+      error: row.status === 'approved' ? 'Bu masraf zaten onaylanmış' : 'Bu masraf zaten reddedilmiş',
+    });
+  }
+  // Kendi girdigi masrafi onaylamak anlamsiz: magaza muduru girisi zaten
+  // onayli aciliyor. Yine de veri bozulmasina karsi kapatilir.
+  if (row.created_by === req.user.id) {
+    return res.status(400).json({ error: 'Kendi girdiğiniz masrafı onaylayamazsınız' });
+  }
+
+  const note = req.body && req.body.note !== undefined
+    ? String(req.body.note).trim() || null
+    : null;
+  if (!approve && !note) {
+    return res.status(400).json({ error: 'Ret gerekçesi zorunludur' });
+  }
+
+  await execute(`
+    UPDATE petty_cash_expenses
+    SET status = ?, decided_by = ?, decision_note = ?,
+        decided_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    WHERE id = ?
+  `, next, req.user.id, note, row.id);
+
+  await logActivity(req.user, approve ? 'PETTY_CASH_ONAY' : 'PETTY_CASH_RET',
+    'petty_cash', row.id,
+    `${row.amount} TL masraf ${approve ? 'onaylandı' : 'reddedildi'}: ${row.description}`
+    + (note ? ` (${note})` : ''), row.store_id);
+
+  const limit = await limitFor(row.store_id);
+  const spent = await spentThisWeek(row.store_id);
+  res.json({
+    ok: true,
+    status: next,
+    remaining: Math.max(0, limit - spent.total),
+  });
+}
+
+router.post('/:id/approve', requireRole(...APPROVER_ROLES), (req, res) => decide(req, res, 'approved'));
+router.post('/:id/reject', requireRole(...APPROVER_ROLES), (req, res) => decide(req, res, 'rejected'));
 
 // ---- Limitler (yalnizca Ana Yonetici belirler) ----
 

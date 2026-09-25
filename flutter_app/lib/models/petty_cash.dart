@@ -15,8 +15,13 @@ class PettyCashExpense {
     required this.description,
     required this.spentAt,
     required this.hasReceipt,
+    this.status = 'approved',
     this.createdByName,
+    this.createdByRole,
     this.storeName,
+    this.decidedByName,
+    this.decidedAt,
+    this.decisionNote,
   });
 
   final int id;
@@ -27,8 +32,30 @@ class PettyCashExpense {
 
   /// Fis gorseli listede tasinmaz; ayri uc noktadan cekilir.
   final bool hasReceipt;
+
+  /// 'pending' | 'approved' | 'rejected'.
+  ///
+  /// Vardiya mudurunun girdigi masraf 'pending' acilir ve magaza muduru karar
+  /// verene kadar oyle kalir. Magaza mudurunun kendi girisi dogrudan onayli.
+  final String status;
+
   final String? createdByName;
+  final String? createdByRole;
   final String? storeName;
+  final String? decidedByName;
+  final String? decidedAt;
+
+  /// Ret gerekcesi; masrafi giren kisiye gosterilir.
+  final String? decisionNote;
+
+  bool get isPending => status == 'pending';
+  bool get isRejected => status == 'rejected';
+
+  String get statusLabel => switch (status) {
+        'pending' => 'Onay bekliyor',
+        'rejected' => 'Reddedildi',
+        _ => 'Onaylandı',
+      };
 
   factory PettyCashExpense.fromJson(Map<String, dynamic> j) => PettyCashExpense(
         id: _int(j['id']),
@@ -37,8 +64,13 @@ class PettyCashExpense {
         description: j['description'] as String? ?? '',
         spentAt: j['spent_at'] as String? ?? '',
         hasReceipt: j['has_receipt'] == true,
+        status: j['status'] as String? ?? 'approved',
         createdByName: j['created_by_name'] as String?,
+        createdByRole: j['created_by_role'] as String?,
         storeName: j['store_name'] as String?,
+        decidedByName: j['decided_by_name'] as String?,
+        decidedAt: j['decided_at'] as String?,
+        decisionNote: j['decision_note'] as String?,
       );
 }
 
@@ -50,6 +82,9 @@ class PettyCashStatus {
     required this.spentThisWeek,
     required this.remaining,
     required this.weekStart,
+    this.pendingThisWeek = 0,
+    this.pendingCount = 0,
+    this.canApprove = false,
   });
 
   final int storeId;
@@ -57,6 +92,14 @@ class PettyCashStatus {
   final num spentThisWeek;
   final num remaining;
   final String weekStart;
+
+  /// Onay bekleyen tutar. Limitten dusuyor: para kasadan cikmistir. Reddedilen
+  /// masraf limite geri eklenir.
+  final num pendingThisWeek;
+  final int pendingCount;
+
+  /// Kullanici bekleyen masraflara karar verebilir mi (magaza muduru / ana yonetici).
+  final bool canApprove;
 
   bool get hasLimit => weeklyLimit > 0;
   double get usedRatio => weeklyLimit <= 0 ? 0 : (spentThisWeek / weeklyLimit).clamp(0, 1).toDouble();
@@ -67,6 +110,9 @@ class PettyCashStatus {
         spentThisWeek: _num(j['spent_this_week']),
         remaining: _num(j['remaining']),
         weekStart: j['week_start'] as String? ?? '',
+        pendingThisWeek: _num(j['pending_this_week']),
+        pendingCount: _int(j['pending_count']),
+        canApprove: j['can_approve'] == true,
       );
 }
 

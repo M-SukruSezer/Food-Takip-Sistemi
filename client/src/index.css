@@ -2458,3 +2458,33 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   flex: 1; border: 0; background: transparent; outline: none;
   padding: 10px 0; font-size: 14px; color: var(--ink);
 }
+
+/* --- Yan menu grup basliklari --- */
+.side-group { display: flex; flex-direction: column; }
+.side-group + .side-group { margin-top: 14px; }
+.side-group-title {
+  padding: 0 14px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--sidebar-muted);
+}
+.side-group-rule {
+  margin: 6px 14px 8px;
+  border-top: 1px solid var(--sidebar-border);
+}
+/* Daraltilmis menude baslik metni sigmaz; yerine ayirici cizgi kalir ki
+   gruplar birbirine karismasin. */
+.sidebar-collapsed .side-group-title {
+  padding: 0;
+  height: 0;
+  overflow: hidden;
+}
+.sidebar-collapsed .side-group + .side-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--sidebar-border);
+}
+.sidebar-collapsed .side-group-rule { display: none; }
+

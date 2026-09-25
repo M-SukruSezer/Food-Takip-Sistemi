@@ -10,21 +10,43 @@ import {
 import api from '../api';
 import { Avatar, Confirm } from './ui';
 
-const LINKS = [
-  { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ALL_ROLES },
-  { to: '/batches', label: 'Ürünler', ico: Package, roles: ALL_ROLES },
-  { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ALL_ROLES },
-  { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: MANAGER_ROLES },
-  { to: '/sales', label: 'Hareket Raporu', ico: Banknote, roles: ALL_ROLES },
-  { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES },
-  { to: '/profile', label: 'Profilim', ico: UserCircle, roles: ALL_ROLES },
-  { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
-  { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
-  { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
-  { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
-  { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES },
-  // Ana sayfada cok yer kapladigi icin kendi modulu oldu.
-  { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES },
+// Yan menu mantiksal gruplara ayrildi: gunluk operasyon, para ve raporlar,
+// kurulum. Bir grupta kullanicinin rolune acik oge kalmazsa baslik da
+// cizilmez, yoksa bos bolum basligi kalirdi.
+const NAV_GROUPS = [
+  {
+    title: 'Operasyon',
+    items: [
+      { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ALL_ROLES },
+      { to: '/batches', label: 'Ürünler', ico: Package, roles: ALL_ROLES },
+      { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ALL_ROLES },
+      { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
+    ],
+  },
+  {
+    title: 'Kasa ve Raporlar',
+    items: [
+      { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
+      { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES },
+      { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES },
+      { to: '/sales', label: 'Hareket Raporu', ico: Banknote, roles: ALL_ROLES },
+      { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES },
+    ],
+  },
+  {
+    title: 'Yönetim',
+    items: [
+      { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: MANAGER_ROLES },
+      { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
+      { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
+    ],
+  },
+  {
+    // Baslik yok: hesap ogesi listenin sonunda tek basina duruyor.
+    items: [
+      { to: '/profile', label: 'Profilim', ico: UserCircle, roles: ALL_ROLES },
+    ],
+  },
 ];
 
 const TABS = [
@@ -68,7 +90,10 @@ export default function Layout() {
 
   if (!user) return null;
 
-  const links = LINKS.filter((l) => l.roles.includes(user.role));
+  // Rolune acik ogesi olmayan grup hic cizilmez.
+  const groups = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((l) => l.roles.includes(user.role)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className={`app ${collapsed ? 'sidebar-collapsed' : ''}`}>
@@ -88,17 +113,24 @@ export default function Layout() {
           </button>
         </div>
         <nav>
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
-              onClick={() => setOpen(false)}
-              title={l.label}
-            >
-              <span className="ico"><l.ico size={20} /></span>
-              <span className="side-label">{l.label}</span>
-            </NavLink>
+          {groups.map((g, gi) => (
+            <div className="side-group" key={g.title || `grup-${gi}`}>
+              {/* Daraltilmis menude baslik yerine ince ayirici kalir. */}
+              {g.title && <div className="side-group-title">{g.title}</div>}
+              {!g.title && gi > 0 && <div className="side-group-rule" />}
+              {g.items.map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
+                  onClick={() => setOpen(false)}
+                  title={l.label}
+                >
+                  <span className="ico"><l.ico size={20} /></span>
+                  <span className="side-label">{l.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="side-footer">

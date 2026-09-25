@@ -39,6 +39,17 @@ function compressReceipt(file, maxSide = 1280) {
   });
 }
 
+const PETTY_STATUS_LABEL = {
+  pending: 'Onay bekliyor',
+  approved: 'Onaylandı',
+  rejected: 'Reddedildi',
+};
+const PETTY_STATUS_KIND = {
+  pending: 'warning',
+  approved: 'sold',
+  rejected: 'critical',
+};
+
 export default function PettyCash() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
@@ -103,6 +114,13 @@ export default function PettyCash() {
           <p className="petty-remaining" style={tight ? { color: 'var(--danger)' } : undefined}>
             Kalan: {fmtMoney(status.remaining)}
           </p>
+          {/* Bekleyen masraf da limitten dusuyor: para kasadan cikti. */}
+          {status.pending_this_week > 0 && (
+            <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+              {fmtMoney(status.pending_this_week)} onay bekliyor ({status.pending_count} kayıt)
+              {status.can_approve && ' — Onaylar ekranından karar verebilirsiniz.'}
+            </p>
+          )}
           <p className="muted" style={{ fontSize: 12, margin: 0 }}>
             Hafta başlangıcı: {fmtDate(status.week_start)}
           </p>
@@ -125,16 +143,25 @@ export default function PettyCash() {
         <div className="table-wrap">
           <table className="responsive">
             <thead>
-              <tr><th>Açıklama</th><th>Tutar</th><th>Fiş</th><th>Giren</th><th>Tarih</th><th>İşlem</th></tr>
+              <tr><th>Açıklama</th><th>Tutar</th><th>Durum</th><th>Fiş</th><th>Giren</th><th>Tarih</th><th>İşlem</th></tr>
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td data-label="" colSpan="6"><p className="empty">Bu hafta masraf kaydı yok.</p></td></tr>
+                <tr><td data-label="" colSpan="7"><p className="empty">Bu hafta masraf kaydı yok.</p></td></tr>
               )}
               {items.map((e) => (
                 <tr key={e.id}>
                   <td data-label="Açıklama"><strong>{e.description}</strong></td>
                   <td data-label="Tutar">{fmtMoney(e.amount)}</td>
+                  <td data-label="Durum">
+                    <span className={`badge ${PETTY_STATUS_KIND[e.status] || 'sold'}`}>
+                      {PETTY_STATUS_LABEL[e.status] || 'Onaylandı'}
+                    </span>
+                    {/* Ret gerekcesi masrafi girene gosterilir. */}
+                    {e.status === 'rejected' && e.decision_note && (
+                      <div className="muted" style={{ fontSize: 11 }}>{e.decision_note}</div>
+                    )}
+                  </td>
                   <td data-label="Fiş">
                     {e.has_receipt
                       ? <button className="btn btn-sm btn-secondary" onClick={() => openReceipt(e.id)}>Görüntüle</button>

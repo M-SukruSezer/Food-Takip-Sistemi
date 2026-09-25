@@ -98,6 +98,22 @@ void signInAs(
   ));
 }
 
+/// Oturuma dokunmadan bir kullanici nesnesi uretir; rol kurallarini saf
+/// fonksiyon olarak olcmek icin.
+AppUser testUser(
+  String role, {
+  int? storeId,
+  int id = 1,
+  List<String> permissions = const ['discard', 'ikram'],
+}) => AppUser(
+      id: id,
+      username: 'test',
+      fullName: 'Test Kullanici',
+      role: role,
+      storeId: storeId,
+      permissions: permissions,
+    );
+
 /// Testin kendi adaptorunu takar, sonunda geri alir.
 FakeAdapter installFakeApi(Map<String, Object?> routes) {
   final adapter = FakeAdapter(routes);

@@ -254,3 +254,55 @@ Future<bool?> showLimitsDialog(BuildContext context) async {
     ),
   );
 }
+
+/// Masraf reddi. Gerekce zorunlu: masrafi giren kisi neden reddedildigini
+/// gorsun, sunucu da bos gerekceyi kabul etmiyor.
+Future<bool?> showPettyCashRejectDialog(
+  BuildContext context,
+  PettyCashExpense expense,
+) {
+  final note = TextEditingController();
+
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => FormDialog(
+      title: 'Masrafı Reddet',
+      submitLabel: 'Reddet',
+      fields: (context, rebuild) {
+        final t = context.tokens;
+        return [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              '${fmtMoney(expense.amount)} — ${expense.description}\n'
+              '${expense.createdByName ?? 'bilinmiyor'} girdi.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            ),
+          ),
+          LabeledField(
+            label: 'Ret Gerekçesi',
+            hint: 'Masrafı giren kişi bu gerekçeyi görecek. '
+                'Tutar haftalık limite geri eklenir.',
+            child: TextField(
+              controller: note,
+              autofocus: true,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ];
+      },
+      onSubmit: () async {
+        final text = note.text.trim();
+        if (text.isEmpty) return 'Ret gerekçesi zorunludur';
+        try {
+          await repo.rejectPettyCash(expense, text);
+          return null;
+        } catch (e) {
+          return errorMessage(e);
+        }
+      },
+    ),
+  );
+}
+
