@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store,
-  Menu, LogOut, ClipboardCheck, UserCircle,
-  PanelLeftClose, PanelLeftOpen,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt,
 } from 'lucide-react';
 import { useAuth } from '../auth';
-import { ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES } from '../format';
+import {
+  ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES,
+} from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
 
@@ -21,6 +21,7 @@ const LINKS = (user) => [
   { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
   { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
   { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
+  { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
 ];
 
 const TABS = [

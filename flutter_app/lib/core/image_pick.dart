@@ -18,12 +18,20 @@ const _imageTypes = XTypeGroup(
 );
 
 /// Kullaniciya gorsel sectirir; iptal ederse null doner.
-Future<Uint8List?> pickImageBytes() async {
+///
+/// [fromCamera] yalnizca telefonda anlamli; masaustunde kamera yok, dosya
+/// secici acilir.
+Future<Uint8List?> pickImageBytes({bool fromCamera = false}) async {
   if (usesFileSelector(defaultTargetPlatform, isWeb: kIsWeb)) {
     final file = await openFile(acceptedTypeGroups: const [_imageTypes]);
     return file == null ? null : await file.readAsBytes();
   }
-  // Telefonda galeri arayuzu daha tanidik oldugu icin image_picker kalir.
-  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+  final picked = await ImagePicker().pickImage(
+    // Telefonda galeri arayuzu daha tanidik; fis icin kamera da gerekiyor.
+    source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+  );
   return picked == null ? null : await picked.readAsBytes();
 }
+
+/// Masaustunde kamera yok; arayuz "Fotoğraf Çek" dugmesini gizler.
+bool cameraAvailable() => !usesFileSelector(defaultTargetPlatform, isWeb: kIsWeb);

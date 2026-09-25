@@ -1,4 +1,4 @@
-import { ALL_ROLES, MANAGER_ROLES } from './format';
+import { ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES } from './format';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './auth';
 import Layout from './components/Layout';
@@ -9,6 +9,7 @@ import Recommendations from './pages/Recommendations';
 import ProductTypes from './pages/ProductTypes';
 import Sales from './pages/Sales';
 import Users from './pages/Users';
+import PettyCash from './pages/PettyCash';
 import Stores from './pages/Stores';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="sales" element={<Sales />} />
         <Route path="logs" element={<Logs />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="petty-cash" element={<Guard roles={PETTY_CASH_ROLES}><PettyCash /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />
         <Route path="approvals" element={<Guard roles={MANAGER_ROLES}><Approvals /></Guard>} />

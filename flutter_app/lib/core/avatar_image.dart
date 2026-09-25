@@ -45,3 +45,40 @@ String encodeAvatar(Uint8List bytes, {int side = 256, int quality = 82}) {
     q -= 12;
   }
 }
+
+/// Fis/fatura fotosu icin sunucu siniri (pettyCash.js RECEIPT_MAX_CHARS).
+const receiptMaxChars = 900000;
+
+/// Fis fotosunu sunucuda saklanabilecek en kucuk makul boyuta indirir.
+///
+/// Avatardan farki: kare kirpilmaz — fisin tamami okunabilir kalmali. Uzun
+/// kenar [maxSide] piksele indirilir, sonra hedef boyuta inene kadar JPEG
+/// kalitesi kademeli dusurulur. Telefon fotolari 3-5 MB geliyor; bu adim
+/// olmadan sunucu reddediyor ve veritabani siseriyor.
+String encodeReceipt(Uint8List bytes, {int maxSide = 1280, int quality = 70}) {
+  img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (_) {
+    decoded = null;
+  }
+  if (decoded == null) {
+    throw const FormatException('Görsel açılamadı');
+  }
+
+  var image = decoded;
+  final longest = image.width > image.height ? image.width : image.height;
+  if (longest > maxSide) {
+    image = image.width >= image.height
+        ? img.copyResize(image, width: maxSide)
+        : img.copyResize(image, height: maxSide);
+  }
+
+  var q = quality;
+  while (true) {
+    final jpeg = img.encodeJpg(image, quality: q);
+    final url = 'data:image/jpeg;base64,${base64Encode(jpeg)}';
+    if (url.length <= receiptMaxChars || q <= 35) return url;
+    q -= 10;
+  }
+}

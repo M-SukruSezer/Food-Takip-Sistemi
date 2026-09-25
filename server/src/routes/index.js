@@ -10,6 +10,7 @@ const dashboardRoutes = require('./dashboard');
 const reportRoutes = require('./reports');
 const logRoutes = require('./logs');
 const approvalRoutes = require('./approvals');
+const pettyCashRoutes = require('./pettyCash');
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/reports', reportRoutes);
 router.use('/logs', logRoutes);
 router.use('/approvals', approvalRoutes);
+router.use('/petty-cash', pettyCashRoutes);
 
 module.exports = router;

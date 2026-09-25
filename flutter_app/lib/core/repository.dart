@@ -5,6 +5,7 @@ import '../models/approval.dart';
 import '../models/batch.dart';
 import '../models/dashboard.dart';
 import '../models/movement.dart';
+import '../models/petty_cash.dart';
 import '../models/product_type.dart';
 import '../models/store.dart';
 import '../models/user.dart';
@@ -343,6 +344,68 @@ class Repository {
 
   Future<void> deleteUser(ManagedUser user) async {
     await api.dio.delete('/users/${user.id}', options: apiOptions(successMessage: 'Kullanıcı silindi'));
+  }
+
+  // ---- Petty Cash ----
+
+  Future<PettyCashPage> pettyCash({int? storeId, bool silent = false}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/petty-cash',
+      queryParameters: {'storeId': ?storeId?.toString()},
+      options: apiOptions(silent: silent),
+    );
+    return PettyCashPage.fromJson(r.data ?? const {});
+  }
+
+  /// Fis gorseli listede tasinmaz, tek tek cekilir.
+  Future<String?> pettyCashReceipt(int id) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/petty-cash/$id/receipt',
+      options: apiOptions(busyMessage: 'Fiş açılıyor...'),
+    );
+    return r.data?['receipt'] as String?;
+  }
+
+  Future<void> addPettyCash({
+    required num amount,
+    required String description,
+    String? receipt,
+    DateTime? spentAt,
+  }) async {
+    await api.dio.post(
+      '/petty-cash',
+      data: {
+        'amount': amount,
+        'description': description,
+        'receipt': ?receipt,
+        'spent_at': ?spentAt?.toUtc().toIso8601String(),
+      },
+      // Hata pencerede satir ici gosterilir.
+      options: apiOptions(noToast: true, busyMessage: 'Masraf kaydediliyor...'),
+    );
+  }
+
+  Future<void> deletePettyCash(PettyCashExpense expense) async {
+    await api.dio.delete(
+      '/petty-cash/${expense.id}',
+      options: apiOptions(successMessage: 'Masraf silindi'),
+    );
+  }
+
+  Future<List<PettyCashLimit>> pettyCashLimits({bool silent = false}) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/petty-cash/limits',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? []).map((e) => PettyCashLimit.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> setPettyCashLimit(int storeId, num weeklyAmount) async {
+    await api.dio.put(
+      '/petty-cash/limits/$storeId',
+      data: {'weekly_amount': weeklyAmount},
+      options: apiOptions(noToast: true),
+    );
   }
 
   // ---- Profil ----

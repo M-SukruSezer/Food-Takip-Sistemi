@@ -102,6 +102,13 @@ export const MANAGER_ROLES = [
 // Tum roller (menu erisimi icin).
 export const ALL_ROLES = ROLE_ORDER;
 
+// Petty Cash modulunu gorebilen roller. Giris yetkisi yalnizca son ikisinde;
+// ust kademeler izleme amacli gorur, barista hic gormez.
+export const PETTY_CASH_ROLES = [
+  'super_admin', 'operations_manager', 'regional_manager',
+  'store_manager', 'shift_supervisor',
+];
+
 export function roleLevel(role) {
   const i = ROLE_ORDER.indexOf(role);
   return i < 0 ? ROLE_ORDER.length : i;

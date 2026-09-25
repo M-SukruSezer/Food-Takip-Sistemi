@@ -32,6 +32,16 @@ const allRoles = [
 /// Kullanici yonetimi, cesit yonetimi ve onaylara erisen roller.
 const managerRoles = ['super_admin', 'operations_manager', 'regional_manager', 'store_manager'];
 
+/// Petty Cash modulunu gorebilen roller. Giris yetkisi yalnizca son ikisinde;
+/// ust kademeler izleme amacli gorur.
+const pettyCashRoles = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+];
+
 /// React tarafindaki LINKS/TABS dizilerinin karsiligi.
 const navItems = <NavItem>[
   NavItem(path: '/dashboard', label: 'Ana Sayfa', shortLabel: 'Ana Sayfa', icon: Icons.home_outlined, roles: allRoles, inBottomBar: true),
@@ -43,6 +53,9 @@ const navItems = <NavItem>[
   NavItem(path: '/users', label: 'Kullanıcılar', shortLabel: 'Kullanıcılar', icon: Icons.group_outlined, roles: managerRoles),
   NavItem(path: '/stores', label: 'Mağazalar', shortLabel: 'Mağazalar', icon: Icons.store_outlined, roles: ['super_admin']),
   NavItem(path: '/approvals', label: 'Onaylar', shortLabel: 'Onaylar', icon: Icons.fact_check_outlined, roles: managerRoles),
+  // Masraf girisi Store Manager ve Shift Supervisor'da; ust kademeler
+  // sorumlu olduklari magazalarin kayitlarini gorur.
+  NavItem(path: '/petty-cash', label: 'Petty Cash', shortLabel: 'Kasa', icon: Icons.receipt_outlined, roles: pettyCashRoles),
   NavItem(path: '/profile', label: 'Profilim', shortLabel: 'Profil', icon: Icons.account_circle_outlined, roles: allRoles),
 ];
 

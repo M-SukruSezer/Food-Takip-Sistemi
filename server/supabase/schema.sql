@@ -159,3 +159,28 @@ WHERE b.status = 'discarded'
 CREATE INDEX IF NOT EXISTS idx_discards_store ON discards(store_id);
 CREATE INDEX IF NOT EXISTS idx_discards_batch ON discards(batch_id);
 CREATE INDEX IF NOT EXISTS idx_discards_at ON discards(discarded_at);
+
+-- ---------------------------------------------------------------------------
+-- Petty Cash: magaza kasasindan yapilan kucuk masraflar.
+-- Limit magaza basina HAFTALIK; Ana Yonetici belirler. Store Manager ve
+-- Shift Supervisor ayni kasayi paylasir.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS petty_cash_limits (
+  store_id BIGINT PRIMARY KEY REFERENCES stores(id) ON DELETE CASCADE,
+  weekly_amount DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (weekly_amount >= 0),
+  updated_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  updated_by BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS petty_cash_expenses (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  amount DOUBLE PRECISION NOT NULL CHECK (amount > 0),
+  description TEXT NOT NULL,
+  -- Fis/fatura fotosu data URL olarak; istemci 1000px'e kuculterek gonderir.
+  receipt TEXT,
+  spent_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  created_by BIGINT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+CREATE INDEX IF NOT EXISTS idx_petty_store_date ON petty_cash_expenses(store_id, spent_at);

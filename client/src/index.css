@@ -2270,3 +2270,32 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   box-shadow: var(--shadow);
 }
 .stat-link:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; }
+
+/* ---------- Petty Cash ---------- */
+.petty-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.petty-remaining { font-size: 14px; font-weight: 700; color: var(--success); margin: 8px 0 2px; }
+
+/* Kendi çubuğu: sayfanın başka yerinde kullanılan .progress kuralını
+   ezmemek için ayrı isim. */
+.petty-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.petty-progress-bar { height: 100%; background: var(--primary); transition: width 0.2s ease; }
+.petty-progress-bar.danger { background: var(--danger); }
+
+.receipt-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.receipt-preview img {
+  max-height: 160px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.receipt-preview .muted { font-size: 12px; }
