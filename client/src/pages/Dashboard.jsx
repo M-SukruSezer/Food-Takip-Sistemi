@@ -145,6 +145,12 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-shell">
+      {/* Ciro Forecast ve Petty Cash en ustte: magaza muduru ve vardiya
+          muduru gune bu iki rakamla basliyor. */}
+      {showOverview && overview && (
+        <ManagerOverview overview={overview} fields={reportFields} />
+      )}
+
       {expiredCount > 0 && (
         <div className="alert error" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex' }}><TriangleAlert size={22} /></span>
@@ -216,9 +222,6 @@ export default function Dashboard() {
         <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
       </div>
 
-      {showOverview && overview && (
-        <ManagerOverview overview={overview} fields={reportFields} />
-      )}
 
       {summary && (
         <div className="analytics-layout">

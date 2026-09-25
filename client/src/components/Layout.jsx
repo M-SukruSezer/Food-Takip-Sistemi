@@ -10,7 +10,7 @@ import {
 import api from '../api';
 import { Avatar, Confirm } from './ui';
 
-const LINKS = (user) => [
+const LINKS = [
   { to: '/dashboard', label: 'Ana Sayfa', ico: Home, roles: ALL_ROLES },
   { to: '/batches', label: 'Ürünler', ico: Package, roles: ALL_ROLES },
   { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ALL_ROLES },
@@ -68,7 +68,7 @@ export default function Layout() {
 
   if (!user) return null;
 
-  const links = LINKS(user).filter((l) => l.roles.includes(user.role));
+  const links = LINKS.filter((l) => l.roles.includes(user.role));
 
   return (
     <div className={`app ${collapsed ? 'sidebar-collapsed' : ''}`}>

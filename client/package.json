@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "apk": "VITE_API_URL=${VITE_API_URL:-https://food-takip-sistemi.vercel.app/api} npm run build && npx cap sync android && cd android && ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../Pasta-SKT.apk && echo \"APK hazir: ../Pasta-SKT.apk\""
+    "apk": "VITE_API_URL=${VITE_API_URL:-https://food-takip-sistemi.vercel.app/api} npm run build && npx cap sync android && cd android && ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../Pasta-SKT.apk && echo \"APK hazir: ../Pasta-SKT.apk\"",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -24,6 +25,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.12.0",
     "vite": "^6.0.7"
   }
 }

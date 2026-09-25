@@ -154,6 +154,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
+          // Ciro Forecast ve Petty Cash en ustte: magaza muduru ve vardiya
+          // muduru gune bu iki rakamla basliyor.
+          if (_showOverview && _overview != null) ...[
+            ManagerOverviewBlock(overview: _overview!, fields: _reportFields),
+            const SizedBox(height: AppTokens.gap),
+          ],
           if (c.expiredQty > 0) ...[
             AppAlert(
               message:
@@ -183,10 +189,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           _StatGrid(counts: c, soldToday: data.soldToday),
           const SizedBox(height: AppTokens.gap),
-          if (_showOverview && _overview != null) ...[
-            ManagerOverviewBlock(overview: _overview!, fields: _reportFields),
-            const SizedBox(height: AppTokens.gap),
-          ],
           if (_summary != null) ...[
             _SummaryBlock(summary: _summary!),
             const SizedBox(height: AppTokens.gap),
