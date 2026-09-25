@@ -52,13 +52,11 @@ Map<String, Object?> _json({
       'stock': {'window_days': 14, 'items': stock},
     };
 
-Widget _block(Map<String, Object?> j, {int windowDays = 14}) => host(
+Widget _block(Map<String, Object?> j) => host(
       SingleChildScrollView(
         child: ManagerOverviewBlock(
           overview: ManagerOverview.fromJson(j),
           fields: _fields,
-          windowDays: windowDays,
-          onWindowChanged: (_) {},
         ),
       ),
     );
@@ -142,6 +140,36 @@ void main() {
       expect(find.textContaining('6.69%'), findsOneWidget);
     });
 
+    testWidgets('Ciro Forecast üstte, Petty Cash altında', (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_block(_json()));
+      await tester.pumpAndSettle();
+
+      final forecast = tester.getTopLeft(find.text('Ciro Forecast')).dy;
+      final petty = tester.getTopLeft(find.text('Petty Cash')).dy;
+      expect(forecast, lessThan(petty));
+      // Eski uzun ad kullanilmiyor.
+      expect(find.text('Ciro Hızı ve Ay Sonu Tahmini'), findsNothing);
+      // Stok yeterliligi artik kendi modulunde.
+      expect(find.text('Donuk Depo Yeterliliği'), findsNothing);
+    });
+
+    testWidgets('iki kart da tıklanabilir', (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_block(_json()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InkWell), findsNWidgets(2));
+      // Tiklanabilirligi belli eden ok her kartta var.
+      expect(find.byIcon(Icons.chevron_right), findsNWidgets(2));
+    });
+
     testWidgets('veri girilmemişse tahmin yerine uyarı çıkar', (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -153,52 +181,5 @@ void main() {
       expect(find.text('Veri girilmedi'), findsOneWidget);
     });
 
-    testWidgets('ürün ürün yeterlilik ve risk sıralaması', (tester) async {
-      tester.view.physicalSize = const Size(800, 2600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_block(_json(stock: [
-        {
-          'product_type_id': 1, 'name': 'OPERA FRAMBUAZ', 'frozen_qty': 1,
-          'thawing_qty': 0, 'cabinet_qty': 1, 'available_qty': 2, 'sold_qty': 3,
-          'daily_velocity': 0.2142857, 'days_of_cover': 4.666,
-          'depletion_date': '2026-09-29', 'risk': 2,
-        },
-        {
-          'product_type_id': 2, 'name': 'LOTUS CUP', 'frozen_qty': 42,
-          'thawing_qty': 0, 'cabinet_qty': 0, 'available_qty': 42, 'sold_qty': 15,
-          'daily_velocity': 1.0714, 'days_of_cover': 39.2,
-          'depletion_date': '2026-11-03', 'risk': 3,
-        },
-        {
-          'product_type_id': 3, 'name': 'MARLENKA', 'frozen_qty': 16,
-          'thawing_qty': 0, 'cabinet_qty': 0, 'available_qty': 16, 'sold_qty': 0,
-          'daily_velocity': 0, 'days_of_cover': null, 'risk': null,
-        },
-      ])));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Donuk Depo Yeterliliği'), findsOneWidget);
-      expect(find.text('4.7 gün'), findsOneWidget);
-      expect(find.text('39 gün'), findsOneWidget);
-      // Satis hareketi olmayanlar ayri bolumde, yeterlilik gunu olmadan.
-      expect(find.textContaining('Satış hareketi olmayan 1 çeşit'), findsOneWidget);
-      expect(find.text('16 adet'), findsOneWidget);
-      // Adet kirilimi satirda gorunur.
-      expect(find.textContaining('Donuk 1 · Çözülen 0 · Dolap 1'), findsOneWidget);
-      expect(find.textContaining('0.21 adet/gün'), findsOneWidget);
-    });
-
-    testWidgets('stok yoksa açıklama gösterir', (tester) async {
-      tester.view.physicalSize = const Size(800, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(_block(_json()));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('aktif stok veya satış kaydı yok'), findsOneWidget);
-    });
   });
 }

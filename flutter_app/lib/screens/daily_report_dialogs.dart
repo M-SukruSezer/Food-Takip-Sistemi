@@ -25,7 +25,7 @@ String dayKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}'
 /// Gunluk veri girisi ve duzenlemesi.
 ///
 /// Formda yalnizca elle girilen alanlar var. Food alanlari sistemdeki pasta
-/// satis ve imha kayitlarindan hesaplandigi icin girilmez; okunur bilgi
+/// satis ve zayi kayitlarindan hesaplandigi icin girilmez; okunur bilgi
 /// olarak gosterilir. Oranlar da sunucuda hesaplanir.
 ///
 /// [existing] verilirse kayitli gun duzenlenir ve tarih degistirilemez —
@@ -167,7 +167,7 @@ Future<bool?> showDailyReportDialog(
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'FOOD alanları o günün pasta satış ve imha kayıtlarından '
+              'FOOD alanları o günün pasta satış ve zayi kayıtlarından '
               'hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, '
               'MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
               style: TextStyle(fontSize: 12, color: context.tokens.muted),

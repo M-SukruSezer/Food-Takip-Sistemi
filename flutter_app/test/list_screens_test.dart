@@ -36,7 +36,7 @@ final _movements = {
 final _logs = [
   {'id': 1, 'action': 'SATIS', 'details': 'Çikolatalı Pasta 2 adet satıldı',
    'username': 'ayse', 'store_name': 'Merkez', 'created_at': '2026-09-20T10:00:00.000Z'},
-  {'id': 2, 'action': 'IMHA', 'details': 'Poğaça imha edildi',
+  {'id': 2, 'action': 'IMHA', 'details': 'Poğaça zayi verildi',
    'username': 'ali', 'store_name': 'Merkez', 'created_at': '2026-09-20T09:00:00.000Z'},
   {'id': 3, 'action': 'SATIS', 'details': 'Poğaça 1 adet satıldı',
    'username': 'ali', 'store_name': 'Merkez', 'created_at': '2026-09-20T08:00:00.000Z'},
@@ -84,7 +84,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Çikolatalı Pasta 2 adet satıldı'), findsOneWidget);
-      expect(find.text('Poğaça imha edildi'), findsOneWidget);
+      expect(find.text('Poğaça zayi verildi'), findsOneWidget);
       expect(find.text('Tüm İşlemler (3)'), findsOneWidget);
 
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
@@ -92,7 +92,7 @@ void main() {
       await tester.tap(find.text('IMHA').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Poğaça imha edildi'), findsOneWidget);
+      expect(find.text('Poğaça zayi verildi'), findsOneWidget);
       expect(find.text('Çikolatalı Pasta 2 adet satıldı'), findsNothing);
       // Suzme istemcide yapilir, sunucuya yeni istek gitmez.
       expect(adapter.calls.where((c) => c.startsWith('GET /logs')).length, 1);
@@ -178,12 +178,12 @@ void main() {
   });
 
   group('Hareket Raporu', () {
-    testWidgets('satış, ikram ve imha toplamları ayrı gösterilir', (tester) async {
+    testWidgets('satış, ikram ve zayi toplamları ayrı gösterilir', (tester) async {
       signInAs('store_manager', storeId: 4);
       await tester.pumpWidget(host(const SalesScreen()));
       await tester.pumpAndSettle();
 
-      // Satis 5 adet / 300 TL; ikram 1 adet / 200 TL; imha 2 adet / 520 TL.
+      // Satis 5 adet / 300 TL; ikram 1 adet / 200 TL; zayi 2 adet / 520 TL.
       expect(find.widgetWithText(StatCard, '5'), findsOneWidget);
       expect(find.widgetWithText(StatCard, '300,00 TL'), findsOneWidget);
       expect(find.text('değeri 200,00 TL'), findsOneWidget);
@@ -192,14 +192,14 @@ void main() {
       expect(find.text('yalnızca satışlar'), findsOneWidget);
     });
 
-    testWidgets('her satır türüyle etiketlenir, imha nedeni görünür', (tester) async {
+    testWidgets('her satır türüyle etiketlenir, zayi nedeni görünür', (tester) async {
       signInAs('store_manager', storeId: 4);
       await tester.pumpWidget(host(const SalesScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('İkram'), findsWidgets);
       expect(find.text('SKT süresi doldu'), findsOneWidget);
-      // Imhada fiyat anlik goruntu degil, cesidin guncel fiyati.
+      // Zayide fiyat anlik goruntu degil, cesidin guncel fiyati.
       expect(find.text('güncel birim 260,00 TL'), findsOneWidget);
       expect(find.text('birim 150,00 TL'), findsOneWidget);
       expect(find.text('Fiyat yok'), findsOneWidget);
@@ -223,7 +223,7 @@ void main() {
       await tester.pumpAndSettle();
 
       adapter.calls.clear();
-      await tester.tap(find.widgetWithText(FilterChip, 'İmha'));
+      await tester.tap(find.widgetWithText(FilterChip, 'Zayi'));
       await tester.pumpAndSettle();
 
       final call = adapter.calls.firstWhere((c) => c.startsWith('GET /reports/movements'));
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpWidget(host(const SalesScreen()));
       await tester.pumpAndSettle();
 
-      for (final label in ['İmha', 'İkram', 'Satış']) {
+      for (final label in ['Zayi', 'İkram', 'Satış']) {
         await tester.tap(find.widgetWithText(FilterChip, label));
         await tester.pumpAndSettle();
       }

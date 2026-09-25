@@ -99,7 +99,7 @@ class Repository {
     await api.dio.post(
       '/batches/${batch.id}/discard',
       data: {'reason': reason},
-      options: apiOptions(successMessage: 'Ürün imha edildi'),
+      options: apiOptions(successMessage: 'Zayi kaydedildi'),
     );
   }
 
@@ -378,7 +378,7 @@ class Repository {
     return DailyReportPage.fromJson(r.data ?? const {});
   }
 
-  /// Gunun kaydi (varsa) + sistemin satis/imha kayitlarindan hesapladigi
+  /// Gunun kaydi (varsa) + sistemin satis/zayi kayitlarindan hesapladigi
   /// food rakamlari.
   Future<DailyReportDay> dailyReportFor(String date, {int? storeId}) async {
     final r = await api.dio.get<Map<String, dynamic>>(
@@ -567,7 +567,7 @@ class Repository {
     );
   }
 
-  // ---- Hareket raporu (satis + ikram + imha) ----
+  // ---- Hareket raporu (satis + ikram + zayi) ----
 
   /// [kinds] bos verilirse sunucu tum turleri doner. Tarihler gun bazindadir
   /// (YYYY-MM-DD); sunucu bitis gununu tamamen dahil eder.

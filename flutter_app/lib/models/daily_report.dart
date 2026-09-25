@@ -47,7 +47,7 @@ class ReportFields {
   /// Kullanicinin elle girdigi alanlar — form yalnizca bunlari gosterir.
   final List<ReportField> entry;
 
-  /// Sistemin satis ve imha kayitlarindan hesapladigi alanlar. Formda yer
+  /// Sistemin satis ve zayi kayitlarindan hesapladigi alanlar. Formda yer
   /// almaz; tabloda ve ozette okunur olarak gosterilir.
   final List<ReportField> system;
 
@@ -202,7 +202,7 @@ class DailyReportPage {
   );
 }
 
-/// Sistemin o gun icin hesapladigi food rakamlari. Satis ve imha
+/// Sistemin o gun icin hesapladigi food rakamlari. Satis ve zayi
 /// kayitlarindan gelir; kullanici bunlari elle girmez ve degistiremez.
 class SystemFoodValues {
   const SystemFoodValues({

@@ -138,15 +138,15 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
   );
 }
 
-/// Imha: adet ve sebep.
+/// Zayi: adet ve sebep.
 Future<bool?> showDiscardDialog(BuildContext context, Batch batch) {
   final quantity = TextEditingController(text: '${batch.remaining}');
   final reason = TextEditingController();
   return showDialog<bool>(
     context: context,
     builder: (ctx) => FormDialog(
-      title: 'İmha Et',
-      submitLabel: 'İmha Et',
+      title: 'Zayi Gir',
+      submitLabel: 'Zayi Gir',
       fields: (context, rebuild) => [
         Text('${batch.productName} — kalan ${batch.remaining} adet',
             style: TextStyle(color: context.tokens.muted)),

@@ -15,7 +15,7 @@ const STATUS_CHART_LABELS = {
   food_cabinet: 'Food Dolabı',
   sold: 'Satıldı',
   ikram: 'İkram',
-  discarded: 'İmha',
+  discarded: 'Zayi',
 };
 
 const STATUS_CHART_TONE = {
@@ -48,7 +48,6 @@ export default function Dashboard() {
   const showOverview = REPORT_PANEL_ROLES.includes(user.role);
   const [overview, setOverview] = useState(null);
   const [reportFields, setReportFields] = useState({ entry: [], system: [], derived: [] });
-  const [stockWindow, setStockWindow] = useState(14);
   // silent: 60 saniyelik otomatik yenileme kullanicinin basladigi bir islem
   // degil; ekrani her dakika kilitlememesi icin katman ve bildirim olmadan doner.
   const load = useCallback((silent = false) => {
@@ -66,11 +65,11 @@ export default function Dashboard() {
     }
     // Genel rapor ayri alinir: hata verirse ana sayfanin geri kalani gorunur kalsin.
     if (REPORT_PANEL_ROLES.includes(user.role)) {
-      api.get(`/manager-overview?days=${stockWindow}` + (storeId ? `&storeId=${storeId}` : ''), { silent: true })
+      api.get('/manager-overview' + (storeId ? `?storeId=${storeId}` : ''), { silent: true })
         .then((r) => setOverview(r.data))
         .catch(() => {});
     }
-  }, [user.role, storeId, stockWindow]);
+  }, [user.role, storeId]);
 
   useEffect(() => { load(); }, [load, reload]);
 
@@ -150,7 +149,7 @@ export default function Dashboard() {
         <div className="alert error" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex' }}><TriangleAlert size={22} /></span>
           <span style={{ flex: 1 }}>
-            <strong>{expiredCount} adet</strong> ürünün SKT'si doldu! Satışa sunulmamalı, hemen imha edilmeli.
+            <strong>{expiredCount} adet</strong> ürünün SKT'si doldu! Satışa sunulmamalı, hemen zayi verilmeli.
           </span>
         </div>
       )}
@@ -212,18 +211,13 @@ export default function Dashboard() {
         <Stat icon={Snowflake} label="Donuk Depo" value={c.frozen_qty} sub={`${c.frozen} kayıt`} color="var(--info)" to="/batches?tab=frozen" />
         <Stat icon={Hourglass} label="Çözülme" value={c.thawing_qty} sub={`${c.thawing} kayıt`} color="var(--warning)" to="/batches?tab=thawing" />
         <Stat icon={Refrigerator} label="Food Dolabı" value={c.food_cabinet_qty} sub={`${c.food_cabinet} kayıt`} color="var(--success)" to="/batches?tab=food_cabinet" />
-        <Stat icon={TriangleAlert} label="SKT Geçen" value={c.expired_qty} sub="imha edilmeli" color="var(--danger)" to="/recommendations" />
+        <Stat icon={TriangleAlert} label="SKT Geçen" value={c.expired_qty} sub="zayi verilmeli" color="var(--danger)" to="/recommendations" />
         <Stat icon={Banknote} label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} to="/sales?range=today&kind=sale" />
         <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
       </div>
 
       {showOverview && overview && (
-        <ManagerOverview
-          overview={overview}
-          fields={reportFields}
-          windowDays={stockWindow}
-          onWindowChanged={setStockWindow}
-        />
+        <ManagerOverview overview={overview} fields={reportFields} />
       )}
 
       {summary && (
@@ -237,7 +231,7 @@ export default function Dashboard() {
                       <thead>
                         <tr>
                           <th>Mağaza</th><th>Ürün Çeşidi</th><th>Donuk</th><th>Çözülme</th>
-                          <th>Food Dolabı</th><th>Satılan</th><th>Ciro</th><th>İmha</th>
+                          <th>Food Dolabı</th><th>Satılan</th><th>Ciro</th><th>Zayi</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -267,7 +261,7 @@ export default function Dashboard() {
                   <div className="sub">{summary.revenue.toLocaleString('tr-TR')} TL ciro</div>
                 </Link>
                 <Link to="/sales?kind=discard" className="stat stat-card stat-link">
-                  <div className="label"><span><Trash2 size={15} /> İmha</span></div>
+                  <div className="label"><span><Trash2 size={15} /> Zayi</span></div>
                   <div className="value">{summary.discarded_qty}</div>
                   <div className="sub">adet</div>
                 </Link>

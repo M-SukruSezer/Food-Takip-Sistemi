@@ -23,7 +23,7 @@ const _rangeLabels = {
   DateRange.custom: 'Özel aralık',
 };
 
-/// Hareket raporu: satis, ikram ve imha kayitlari tek listede; tarih, urun ve
+/// Hareket raporu: satis, ikram ve zayi kayitlari tek listede; tarih, urun ve
 /// tur filtreleriyle suzulur.
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key, this.initialRange, this.initialKind});
@@ -207,7 +207,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 sub: 'değeri ${fmtMoney(totals.ikramValue)}',
               ),
               StatCard(
-                label: 'İmha Edilen',
+                label: 'Zayi Verilen',
                 value: fmtInt(totals.discardQty),
                 sub: 'değeri ${fmtMoney(totals.discardValue)}',
               ),
@@ -248,7 +248,7 @@ class _SalesScreenState extends State<SalesScreen> {
                         Pill(text: '${m.quantity} adet', color: t.info),
                         if (m.unitPrice != null)
                           Pill(
-                            // Imhada fiyat anlik goruntu degil, guncel fiyat.
+                            // Zayide fiyat anlik goruntu degil, guncel fiyat.
                             text: m.priceIsCurrent
                                 ? 'güncel birim ${fmtMoney(m.unitPrice)}'
                                 : 'birim ${fmtMoney(m.unitPrice)}',

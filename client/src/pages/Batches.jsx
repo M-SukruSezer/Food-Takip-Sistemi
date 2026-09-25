@@ -148,7 +148,7 @@ export default function Batches() {
                           </button>
                         )}
                         {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && can(user, 'discard') && (
-                          <button className="danger" onClick={() => setConfirmDiscard(b)}><Trash2 size={16} /> İmha Et</button>
+                          <button className="danger" onClick={() => setConfirmDiscard(b)}><Trash2 size={16} /> Zayi Gir</button>
                         )}
                       </ActionMenu>
                     </div>
@@ -302,24 +302,24 @@ function DiscardModal({ batch, onClose, onDone }) {
     setErr('');
     try {
       const r = await api.post(`/batches/${batch.id}/discard`, { reason, quantity }, { noToast: true });
-      toast(Number(quantity) >= batch.remaining ? 'Ürün tamamen imha edildi' : `${quantity} adet imha edildi, kalan: ${r.data.remaining}`);
+      toast(Number(quantity) >= batch.remaining ? 'Ürünün tamamı zayi verildi' : `${quantity} adet zayi verildi, kalan: ${r.data.remaining}`);
       onDone();
     } catch (er) {
       setErr(errorMessage(er));
     }
   }
   return (
-    <Modal title="Ürünü İmha Et" onClose={onClose}>
+    <Modal title="Ürüne Zayi Gir" onClose={onClose}>
       <form onSubmit={submit}>
         <p>{batch.product_name} — stokta {batch.remaining} adet var.</p>
         {err && <div className="alert error">{err}</div>}
         <div className="field">
-          <label>İmha Edilecek Adet</label>
+          <label>Zayi Adedi</label>
           <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
-          <p className="login-hint">Tümünü imha etmek için {batch.remaining} yaz. Azı imha edilirse kalan stokta durur.</p>
+          <p className="login-hint">Tümüne zayi girmek için {batch.remaining} yaz. Azına girilirse kalan stokta durur.</p>
         </div>
         <div className="field">
-          <label>İmha / Atık Sebebi</label>
+          <label>Zayi Sebebi</label>
           <select value={reason} onChange={(e) => setReason(e.target.value)}>
             <option value="">Seçin...</option>
             <option value="SKT süresi doldu">SKT süresi doldu</option>
@@ -330,7 +330,7 @@ function DiscardModal({ batch, onClose, onDone }) {
         </div>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="submit" className="btn btn-danger">İmha Et</button>
+          <button type="submit" className="btn btn-danger">Zayi Gir</button>
         </div>
       </form>
     </Modal>

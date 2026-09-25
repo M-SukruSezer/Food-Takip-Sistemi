@@ -9,7 +9,7 @@ import { fmtDateTime, fmtMoney } from '../format';
 const KINDS = [
   { key: 'sale', label: 'Satış', badge: 'sold' },
   { key: 'ikram', label: 'İkram', badge: 'warning' },
-  { key: 'discard', label: 'İmha', badge: 'discarded' },
+  { key: 'discard', label: 'Zayi', badge: 'discarded' },
 ];
 
 // Hazir tarih araliklari. "all" filtre gondermez; sunucu son 1000 hareketi doner.
@@ -100,7 +100,7 @@ export default function Sales() {
     <div className="page-shell">
       <div className="page-head">
         <h2><Banknote size={20} /> Hareket Raporu</h2>
-        <span className="muted">Satış, ikram ve imha kayıtları</span>
+        <span className="muted">Satış, ikram ve zayi kayıtları</span>
       </div>
 
       <div className="surface-panel">
@@ -193,7 +193,7 @@ export default function Sales() {
             <div className="sub">değeri {fmtMoney(totals.ikram_value)}</div>
           </div>
           <div className="stat stat-card">
-            <div className="label"><span>İmha Edilen</span></div>
+            <div className="label"><span>Zayi Verilen</span></div>
             <div className="value">{totals.discard_qty}</div>
             <div className="sub">değeri {fmtMoney(totals.discard_value)}</div>
           </div>
@@ -225,7 +225,7 @@ export default function Sales() {
                     <td data-label="Adet">{m.quantity}</td>
                     <td data-label="Birim">
                       {m.unit_price === null || m.unit_price === undefined ? '-' : fmtMoney(m.unit_price)}
-                      {/* Imhada tutar anlik goruntu degil, cesidin guncel fiyati. */}
+                      {/* Zayide tutar anlik goruntu degil, cesidin guncel fiyati. */}
                       {m.price_is_current && m.unit_price !== null && (
                         <div className="muted" style={{ fontSize: 11 }}>güncel fiyat</div>
                       )}

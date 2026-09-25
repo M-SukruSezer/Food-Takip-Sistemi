@@ -18,6 +18,7 @@ import 'screens/petty_cash_screen.dart';
 import 'screens/product_types_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/sales_screen.dart';
+import 'screens/stock_coverage_screen.dart';
 import 'screens/stores_screen.dart';
 import 'screens/users_screen.dart';
 import 'widgets/app_shell.dart';
@@ -50,6 +51,7 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/approvals': (s) => const ApprovalsScreen(),
   '/petty-cash': (s) => const PettyCashScreen(),
   '/daily-report': (s) => const DailyReportScreen(),
+  '/stock-coverage': (s) => const StockCoverageScreen(),
   '/profile': (s) => const ProfileScreen(),
 };
 

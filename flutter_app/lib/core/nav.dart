@@ -60,6 +60,8 @@ const navItems = <NavItem>[
   // sorumlu olduklari magazalarin kayitlarini gorur.
   NavItem(path: '/petty-cash', label: 'Petty Cash', shortLabel: 'Kasa', icon: Icons.receipt_outlined, roles: pettyCashRoles),
   NavItem(path: '/daily-report', label: 'Rapor Paneli', shortLabel: 'Panel', icon: Icons.assessment_outlined, roles: reportPanelRoles),
+  // Ana sayfada cok yer kapladigi icin kendi modulu oldu.
+  NavItem(path: '/stock-coverage', label: 'Stok Yeterliliği', shortLabel: 'Yeterlilik', icon: Icons.inventory_outlined, roles: reportPanelRoles),
   NavItem(path: '/profile', label: 'Profilim', shortLabel: 'Profil', icon: Icons.account_circle_outlined, roles: allRoles),
 ];
 

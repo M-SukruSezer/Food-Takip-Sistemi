@@ -128,11 +128,11 @@ export const ALL_PERMISSIONS = ['manage_product_types', 'adjust_batches', 'disca
 export const PERMISSION_LABELS = {
   manage_product_types: 'Pasta çeşidi yönetimi',
   adjust_batches: 'Parti düzeltme (tarih/adet)',
-  discard: 'İmha',
+  discard: 'Zayi',
   ikram: 'İkram',
 };
 
-// Yeni kullanici imha ve ikram ile gelir: yetki sistemi oncesi davranis buydu.
+// Yeni kullanici zayi ve ikram ile gelir: yetki sistemi oncesi davranis buydu.
 export const DEFAULT_PERMISSIONS = ['discard', 'ikram'];
 
 // Arayuz yetkisiz dugmeleri gizler; son sozu sunucu soyler. Ana Yonetici her
@@ -155,7 +155,7 @@ export const STATUS_LABELS = {
   thawing: 'Çözülme (+4°C)',
   food_cabinet: 'Food Dolabı',
   sold: 'Satıldı',
-  discarded: 'İmha Edildi',
+  discarded: 'Zayi Verildi',
 };
 
 // Arama icin Turkce duyarsizlastirma: personel telefonda Turkce karakter

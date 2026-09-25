@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
@@ -23,6 +23,8 @@ const LINKS = (user) => [
   { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
   { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
   { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES },
+  // Ana sayfada cok yer kapladigi icin kendi modulu oldu.
+  { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES },
 ];
 
 const TABS = [

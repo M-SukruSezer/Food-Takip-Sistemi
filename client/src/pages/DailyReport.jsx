@@ -279,7 +279,7 @@ export default function DailyReport() {
 /// Gunluk veri girisi ve duzenlemesi.
 ///
 /// Formda yalnizca elle girilen alanlar var. Food alanlari sistemdeki pasta
-/// satis ve imha kayitlarindan hesaplandigi icin girilmez; okunur gosterilir.
+/// satis ve zayi kayitlarindan hesaplandigi icin girilmez; okunur gosterilir.
 ///
 /// `existing` verilirse kayitli gun duzenlenir ve tarih degistirilemez —
 /// tarihi degistirmek ayni gune ikinci kayit cakismasi olusturuyor.
@@ -387,7 +387,7 @@ function EntryModal({ fields, existing, onClose, onDone }) {
           </div>
         )}
         <p className="muted" style={{ fontSize: 12 }}>
-          FOOD alanları o günün pasta satış ve imha kayıtlarından hesaplanır, elle
+          FOOD alanları o günün pasta satış ve zayi kayıtlarından hesaplanır, elle
           girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen
           değerlerden otomatik hesaplanır.
         </p>

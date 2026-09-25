@@ -256,7 +256,7 @@ Future<bool?> showUserDialog(
   final roles = [...assignableRoles(current)];
   if (roles.isEmpty) roles.add('barista');
   var role = user?.role ?? roles.last;
-  // Yeni kullanici imha ve ikram ile gelir: yetki sistemi oncesi davranis
+  // Yeni kullanici zayi ve ikram ile gelir: yetki sistemi oncesi davranis
   // buydu, sunucudaki varsayilanla ayni.
   final selected = <String>{
     ...(user?.permissions ?? const ['discard', 'ikram']),

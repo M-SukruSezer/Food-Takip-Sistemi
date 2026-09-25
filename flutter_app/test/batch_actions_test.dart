@@ -25,7 +25,7 @@ Batch _b({
     });
 
 void main() {
-  test('donuk depo: ana islem cozulmeye al, menude stok ekle ve imha', () {
+  test('donuk depo: ana islem cozulmeye al, menude stok ekle ve zayi', () {
     final a = batchActionsFor(_b(status: 'frozen'), canAdjust: false);
     expect(a.primary, BatchAction.thaw);
     expect(a.menu, [BatchAction.detail, BatchAction.addStock, BatchAction.discard]);
@@ -58,7 +58,7 @@ void main() {
     expect(a.menu, [BatchAction.detail, BatchAction.adjust, BatchAction.discard]);
   });
 
-  test('gecmis kayitlarda imha yok', () {
+  test('gecmis kayitlarda zayi yok', () {
     for (final s in ['sold', 'discarded']) {
       final a = batchActionsFor(_b(status: s), canAdjust: true);
       expect(a.primary, isNull, reason: s);

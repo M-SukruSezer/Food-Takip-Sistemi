@@ -12,10 +12,10 @@ const movementKinds = <String>['sale', 'ikram', 'discard'];
 const movementKindLabels = <String, String>{
   'sale': 'Satış',
   'ikram': 'İkram',
-  'discard': 'İmha',
+  'discard': 'Zayi',
 };
 
-/// Satis, ikram ve imha kayitlarinin birlesik satiri.
+/// Satis, ikram ve zayi kayitlarinin birlesik satiri.
 class Movement {
   const Movement({
     required this.id,
@@ -44,7 +44,7 @@ class Movement {
   final String? storeName;
   final String? reason;
 
-  /// Imha satirlarinda tutar anlik goruntu degil, cesidin guncel fiyatiyla
+  /// Zayi satirlarinda tutar anlik goruntu degil, cesidin guncel fiyatiyla
   /// hesaplanmistir; arayuz bunu belirtir.
   final bool priceIsCurrent;
 

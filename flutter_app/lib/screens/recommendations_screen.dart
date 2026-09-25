@@ -105,10 +105,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   Future<void> _discard(Batch b) async {
     final ok = await _confirm(
-      title: 'İmha Et',
-      confirmLabel: 'İmha Et',
+      title: 'Zayi Gir',
+      confirmLabel: 'Zayi Gir',
       danger: true,
-      body: Text('${b.productName} (${b.remaining} adet) imha edilecek. Onaylıyor musunuz?'),
+      body: Text('${b.productName} (${b.remaining} adet) için zayi girilecek. Onaylıyor musunuz?'),
     );
     if (ok != true) return;
     try {
@@ -278,7 +278,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           if (expired.isNotEmpty) ...[
             AppAlert(
               message:
-                  '${_sum(expired)} adet ürünün SKT\'si doldu. Lütfen imha edin veya satışı durdurun.',
+                  '${_sum(expired)} adet ürünün SKT\'si doldu. Lütfen zayi girin veya satışı durdurun.',
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -543,7 +543,7 @@ class _RecommendationCard extends StatelessWidget {
                           Text(batch.storeName!, style: TextStyle(fontSize: 12, color: t.muted)),
                       ],
                     ),
-                    // SKT'si gecmis urun + imha yetkisi yok: hic dugme kalmaz,
+                    // SKT'si gecmis urun + zayi yetkisi yok: hic dugme kalmaz,
                     // bosluk da cizilmez.
                     if (!batch.isExpired || onDiscard != null)
                       const SizedBox(height: 10),
@@ -576,7 +576,7 @@ class _RecommendationCard extends StatelessWidget {
                                 side: BorderSide(color: t.danger),
                               ),
                               onPressed: onDiscard,
-                              child: const Text('İmha'),
+                              child: const Text('Zayi'),
                             ),
                           ),
                         ],

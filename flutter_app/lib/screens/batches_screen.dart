@@ -317,7 +317,7 @@ class _BatchCard extends StatelessWidget {
       'frozen' => (text: 'Donuk Depo', color: t.info),
       'thawing' => (text: 'Çözülme', color: t.warning),
       'sold' => (text: 'Satıldı', color: t.success),
-      'discarded' => (text: 'İmha', color: t.muted),
+      'discarded' => (text: 'Zayi', color: t.muted),
       _ => (text: batch.status, color: t.muted),
     };
   }
@@ -355,7 +355,7 @@ class _BatchCard extends StatelessWidget {
             danger: false,
             onTap: onEarlyRequest
           ),
-        BatchAction.discard => (label: 'İmha Et', icon: Icons.delete_outline, danger: true, onTap: onDiscard),
+        BatchAction.discard => (label: 'Zayi Gir', icon: Icons.delete_outline, danger: true, onTap: onDiscard),
         _ => (label: '-', icon: Icons.help_outline, danger: false, onTap: onDetail),
       };
 

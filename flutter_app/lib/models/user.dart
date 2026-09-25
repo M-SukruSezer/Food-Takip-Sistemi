@@ -10,7 +10,7 @@ const allPermissions = <String>[
 const permissionLabels = <String, String>{
   'manage_product_types': 'Pasta çeşidi yönetimi',
   'adjust_batches': 'Parti düzeltme (tarih/adet)',
-  'discard': 'İmha',
+  'discard': 'Zayi',
   'ikram': 'İkram',
 };
 

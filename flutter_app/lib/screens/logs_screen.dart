@@ -32,6 +32,13 @@ IconData logIcon(String action) {
     'IMHA': Icons.delete_outline,
     'STOK_EKLE': Icons.add_box_outlined,
     'PARTI_DUZELT': Icons.edit_calendar_outlined,
+    // Geriye donuk adet duzeltmeleri ve silmeler.
+    'COZULME_DUZELT': Icons.undo,
+    'SATIS_DUZELT': Icons.edit_outlined,
+    'SATIS_SIL': Icons.delete_forever_outlined,
+    'ZAYI_DUZELT': Icons.edit_outlined,
+    'ZAYI_SIL': Icons.delete_forever_outlined,
+    'PARTI_SIL': Icons.delete_forever_outlined,
     'TRANSFER_ISTEK': Icons.fact_check_outlined,
     'TRANSFER_ONAY': Icons.check_circle_outline,
     'TRANSFER_RET': Icons.cancel_outlined,

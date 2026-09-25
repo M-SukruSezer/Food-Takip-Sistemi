@@ -38,7 +38,7 @@ BatchActions batchActionsFor(
       if (b.status == 'frozen') BatchAction.addStock,
       if (b.status == 'thawing' && !b.thawReady && b.pendingApprovalId == null)
         BatchAction.earlyRequest,
-      // Imha yetkisi olmayan kullanici menude gormez; sunucu da reddeder.
+      // Zayi yetkisi olmayan kullanici menude gormez; sunucu da reddeder.
       if (active && canDiscard) BatchAction.discard,
     ],
   );

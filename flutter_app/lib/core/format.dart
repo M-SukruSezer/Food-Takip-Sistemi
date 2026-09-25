@@ -79,7 +79,7 @@ const statusLabels = <String, String>{
   'thawing': 'Çözülme (+4°C)',
   'food_cabinet': 'Food Dolabı',
   'sold': 'Satıldı',
-  'discarded': 'İmha Edildi',
+  'discarded': 'Zayi Verildi',
 };
 
 /// Turkce duyarsiz arama: personel telefonda Turkce karakter yazmadan da

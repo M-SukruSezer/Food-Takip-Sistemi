@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ScrollText, KeyRound, Store, User, Lock, Cake, Snowflake, Hourglass,
-  Refrigerator, Banknote, Trash2, ClipboardList,
-} from 'lucide-react';
+  Refrigerator, Banknote, Trash2, ClipboardList, Undo2, Pencil } from 'lucide-react';
 import api from '../api';
 import { fmtDateTime } from '../format';
 
@@ -26,6 +25,9 @@ export default function Logs() {
       KULLANICI_OLUSTUR: User, KULLANICI_GUNCELLE: User, KULLANICI_SIL: User, SIFRE_SIFIRLA: Lock, SIFRE_DEGISTIR: Lock,
       CESIT_OLUSTUR: Cake, CESIT_GUNCELLE: Cake, CESIT_SIL: Cake,
       DONUK_EKLE: Snowflake, COZULME_BASLA: Hourglass, FOOD_DOLABI: Refrigerator, SATIS: Banknote, IMHA: Trash2,
+      // Geriye donuk adet duzeltmeleri ve silmeler.
+      COZULME_DUZELT: Undo2, SATIS_DUZELT: Pencil, ZAYI_DUZELT: Pencil,
+      SATIS_SIL: Trash2, ZAYI_SIL: Trash2, PARTI_SIL: Trash2,
     };
     return map[a] || ClipboardList;
   };

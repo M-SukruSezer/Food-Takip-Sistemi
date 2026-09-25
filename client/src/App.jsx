@@ -11,6 +11,7 @@ import Sales from './pages/Sales';
 import Users from './pages/Users';
 import PettyCash from './pages/PettyCash';
 import DailyReport from './pages/DailyReport';
+import StockCoverage from './pages/StockCoverage';
 import Stores from './pages/Stores';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="petty-cash" element={<Guard roles={PETTY_CASH_ROLES}><PettyCash /></Guard>} />
         <Route path="daily-report" element={<Guard roles={REPORT_PANEL_ROLES}><DailyReport /></Guard>} />
+        <Route path="stock-coverage" element={<Guard roles={REPORT_PANEL_ROLES}><StockCoverage /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />
         <Route path="approvals" element={<Guard roles={MANAGER_ROLES}><Approvals /></Guard>} />

@@ -81,7 +81,7 @@ Widget host(Widget child) {
 }
 
 /// Varsayilan yetkiler sunucudaki DEFAULT_PERMISSIONS ile ayni: yeni kullanici
-/// imha ve ikram yapabilir. Yetkisiz durumu test etmek icin bos liste verilir.
+/// zayi ve ikram yapabilir. Yetkisiz durumu test etmek icin bos liste verilir.
 void signInAs(
   String role, {
   int? storeId,

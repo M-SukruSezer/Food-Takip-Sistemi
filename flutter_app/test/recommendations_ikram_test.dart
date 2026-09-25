@@ -48,15 +48,15 @@ void main() {
     expect(find.textContaining('0-24'), findsNothing);
   });
 
-  testWidgets('SKT\'si geçmemiş ürün Satış, İkram ve İmha sunar', (tester) async {
+  testWidgets('SKT\'si geçmemiş ürün Satış, İkram ve Zayi sunar', (tester) async {
     signInAs('staff', storeId: 4);
     await tester.pumpWidget(host(const RecommendationsScreen()));
     await tester.pumpAndSettle();
 
     expect(find.text('Satış'), findsOneWidget);
     expect(find.text('İkram'), findsOneWidget);
-    // Iki kart var ama SKT'si gecen urunde yalnizca imha kalir.
-    expect(find.text('İmha'), findsNWidgets(2));
+    // Iki kart var ama SKT'si gecen urunde yalnizca zayi kalir.
+    expect(find.text('Zayi'), findsNWidgets(2));
   });
 
   testWidgets('ikram onayı ciroya girmeyeceğini söyler ve kind gönderir', (tester) async {
@@ -117,15 +117,15 @@ void main() {
 
       expect(find.text('Satış'), findsOneWidget);
       expect(find.text('İkram'), findsNothing);
-      expect(find.text('İmha'), findsNWidgets(2));
+      expect(find.text('Zayi'), findsNWidgets(2));
     });
 
-    testWidgets('imha yetkisi olmayan kullanıcıda İmha düğmesi yok', (tester) async {
+    testWidgets('zayi yetkisi olmayan kullanıcıda Zayi düğmesi yok', (tester) async {
       signInAs('staff', storeId: 4, permissions: const ['ikram']);
       await tester.pumpWidget(host(const RecommendationsScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('İmha'), findsNothing);
+      expect(find.text('Zayi'), findsNothing);
       expect(find.text('İkram'), findsOneWidget);
     });
 
@@ -136,7 +136,7 @@ void main() {
 
       expect(find.text('Satış'), findsOneWidget);
       expect(find.text('İkram'), findsNothing);
-      expect(find.text('İmha'), findsNothing);
+      expect(find.text('Zayi'), findsNothing);
     });
 
     testWidgets('ana yönetici yetki listesi boş olsa da hepsini görür', (tester) async {
@@ -146,7 +146,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('İkram'), findsOneWidget);
-      expect(find.text('İmha'), findsNWidgets(2));
+      expect(find.text('Zayi'), findsNWidgets(2));
     });
   });
 

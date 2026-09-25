@@ -49,7 +49,7 @@ export default function Recommendations() {
 
       {expired.length > 0 && (
         <div className="alert error">
-          <strong>{sum(expired)} adet</strong> ürünün SKT'si doldu. Lütfen imha edin veya satışı durdurun.
+          <strong>{sum(expired)} adet</strong> ürünün SKT'si doldu. Lütfen zayi girin veya satışı durdurun.
         </div>
       )}
 
@@ -130,7 +130,7 @@ export default function Recommendations() {
                   </>
                 )}
                 {can(user, 'discard') && (
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmDiscard(b)}>İmha</button>
+                  <button className="btn btn-sm btn-outline-danger" onClick={() => setConfirmDiscard(b)}>Zayi</button>
                 )}
               </div>
             </article>
@@ -187,14 +187,14 @@ export default function Recommendations() {
 
       {confirmDiscard && (
         <Confirm
-          title="İmha Et"
-          message={`${confirmDiscard.product_name} (${confirmDiscard.remaining} adet) imha edilecek. Onaylıyor musunuz?`}
-          confirmLabel="İmha Et"
+          title="Zayi Gir"
+          message={`${confirmDiscard.product_name} (${confirmDiscard.remaining} adet) için zayi girilecek. Onaylıyor musunuz?`}
+          confirmLabel="Zayi Gir"
           onCancel={() => setConfirmDiscard(null)}
           onConfirm={async () => {
             try {
               await api.post(`/batches/${confirmDiscard.id}/discard`, { reason: 'SKT süresi doldu' }, {
-                successMessage: 'Ürün imha edildi',
+                successMessage: 'Zayi kaydedildi',
               });
             } catch {
               // Bildirim API katmaninda gosterilir.

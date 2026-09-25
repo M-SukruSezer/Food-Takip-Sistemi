@@ -38,7 +38,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Ana sayfadaki genel rapor: yalnizca magaza muduru ve vardiya muduru.
   ManagerOverview? _overview;
   ReportFields _reportFields = ReportFields.empty;
-  int _stockWindow = 14;
 
   int? _storeId;
   bool _monthly = false;
@@ -88,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // yine gorunsun.
       if (_showOverview) {
         repo
-            .managerOverview(days: _stockWindow, storeId: _storeId, silent: true)
+            .managerOverview(storeId: _storeId, silent: true)
             .then((o) {
           if (mounted) setState(() => _overview = o);
         }).onError((Object _, StackTrace _) {});
@@ -143,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           if (c.expiredQty > 0) ...[
             AppAlert(
-              message: '${c.expiredQty} adet ürünün SKT\'si doldu! Satışa sunulmamalı, hemen imha edilmeli.',
+              message: '${c.expiredQty} adet ürünün SKT\'si doldu! Satışa sunulmamalı, hemen zayi verilmeli.',
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -172,11 +171,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ManagerOverviewBlock(
               overview: _overview!,
               fields: _reportFields,
-              windowDays: _stockWindow,
-              onWindowChanged: (v) {
-                setState(() => _stockWindow = v);
-                _load(silent: true);
-              },
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -287,7 +281,7 @@ class _StatGrid extends StatelessWidget {
         onTap: () => context.go('/batches?tab=food_cabinet'),
       ),
       StatCard(
-        label: 'SKT Geçen', value: '${counts.expiredQty}', sub: 'imha edilmeli',
+        label: 'SKT Geçen', value: '${counts.expiredQty}', sub: 'zayi verilmeli',
         icon: Icons.warning_amber_rounded, valueColor: t.danger,
         onTap: () => context.go('/recommendations'),
       ),
@@ -338,7 +332,7 @@ class _SummaryBlock extends StatelessWidget {
             onTap: () => context.go('/sales?kind=sale'),
           ),
           StatCard(
-            label: 'İmha', value: '${summary.discardedQty}', sub: 'adet',
+            label: 'Zayi', value: '${summary.discardedQty}', sub: 'adet',
             icon: Icons.delete_outline, valueColor: t.danger,
             onTap: () => context.go('/sales?kind=discard'),
           ),
@@ -358,7 +352,7 @@ class _SummaryBlock extends StatelessWidget {
             DataColumn(label: Text('Food Dolabı')),
             DataColumn(label: Text('Satılan')),
             DataColumn(label: Text('Ciro')),
-            DataColumn(label: Text('İmha')),
+            DataColumn(label: Text('Zayi')),
           ],
           rows: summary.stores
               .map((s) => DataRow(cells: [
@@ -395,10 +389,10 @@ class _StatusBreakdown extends StatelessWidget {
       'food_cabinet': 'Food Dolabı',
       'sold': 'Satıldı',
       'ikram': 'İkram',
-      'discarded': 'İmha',
+      'discarded': 'Zayi',
     };
     // Cubuk rengi kalemi ayirt ettirir: aktif stok marka rengi, satis yesil,
-    // ikram turuncu, imha kirmizi.
+    // ikram turuncu, zayi kirmizi.
     Color toneFor(String status) => switch (status) {
           'sold' => t.success,
           'ikram' => t.warning,
@@ -411,8 +405,8 @@ class _StatusBreakdown extends StatelessWidget {
         Text('Durum Dağılımı',
             style: TextStyle(color: t.muted, fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 2),
-        // Donuk/cozulme/dolap anlik stok; satis, ikram ve imha ise toplam.
-        Text('stok anlık · satış, ikram ve imha toplam',
+        // Donuk/cozulme/dolap anlik stok; satis, ikram ve zayi ise toplam.
+        Text('stok anlık · satış, ikram ve zayi toplam',
             style: TextStyle(color: t.muted, fontSize: 11)),
         const SizedBox(height: 8),
         ...slices.map((s) => Padding(
