@@ -406,9 +406,15 @@ CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance_logs(user_id, 
 CREATE INDEX IF NOT EXISTS idx_attendance_store_time ON attendance_logs(store_id, occurred_at);
 -- "Su an kimler iste" sorgusu: son kaydin turune bakar.
 CREATE INDEX IF NOT EXISTS idx_attendance_user_time ON attendance_logs(user_id, occurred_at DESC);
--- Ayni QR token'i ikinci kez kullanilamasin.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_qr_token
-  ON attendance_logs(qr_token_hash) WHERE qr_token_hash IS NOT NULL;
+-- Ayni personel ayni token'i ikinci kez kullanamaz.
+--
+-- Tekillik KISI BASINA: kioskta donen token 60 sn boyunca ayni oldugu icin
+-- global tekillik o dakika icinde giris yapan ikinci personeli reddederdi.
+-- Sabit basili kodda token hash'i hic yazilmaz (her zaman ayni olurdu);
+-- orada tekrar korumasi konum dogrulamasindan gelir.
+DROP INDEX IF EXISTS idx_attendance_qr_token;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_qr_token_user
+  ON attendance_logs(user_id, qr_token_hash) WHERE qr_token_hash IS NOT NULL;
 -- KVKK temizligi: suresi gecmis, koordinati hala dolu kayitlari bulur.
 CREATE INDEX IF NOT EXISTS idx_attendance_purge
   ON attendance_logs(occurred_at) WHERE coords_purged_at IS NULL AND latitude IS NOT NULL;

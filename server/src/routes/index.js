@@ -14,6 +14,7 @@ const approvalRoutes = require('./approvals');
 const pettyCashRoutes = require('./pettyCash');
 const dailyReportRoutes = require('./dailyReports');
 const managerOverviewRoutes = require('./managerOverview');
+const pdksRoutes = require('./pdks');
 
 const router = express.Router();
 
@@ -32,5 +33,6 @@ router.use('/approvals', approvalRoutes);
 router.use('/petty-cash', pettyCashRoutes);
 router.use('/daily-reports', dailyReportRoutes);
 router.use('/manager-overview', managerOverviewRoutes);
+router.use('/pdks', pdksRoutes);
 
 module.exports = router;
