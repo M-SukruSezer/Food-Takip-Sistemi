@@ -2554,8 +2554,12 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   background: none;
   padding: 0;
   cursor: pointer;
-  /* Ogeler alttan yukari dogru sirayla giriyor. */
-  animation: shortcut-in .18s ease-out both;
+  /* Ogeler dugmeye en yakindan baslayarak sirayla giriyor. Sure kisa
+     tutuluyor: uzun basamak menuyu gecikmeli acilmis gibi gosteriyordu. */
+  animation: shortcut-in .11s ease-out both;
+  /* Tarayici katmani onceden hazirlasin; perdenin arkasinda blur varken
+     her karede yeni katman ayirmak pahali. */
+  will-change: opacity, transform;
 }
 .shortcut-label {
   padding: 8px 12px;
@@ -2582,7 +2586,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .shortcut-item:hover .shortcut-ico { filter: brightness(1.08); }
 
 @keyframes shortcut-in {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {

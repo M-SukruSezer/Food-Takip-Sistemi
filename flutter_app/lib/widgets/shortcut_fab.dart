@@ -50,7 +50,11 @@ final _shortcuts = <_Shortcut>[
         toast('Önce pasta çeşidi tanımlanmalı', kind: ToastKind.error);
         return false;
       }
-      final ok = await showAddBatchDialog(context, types: types, stores: stores);
+      final ok = await showAddBatchDialog(
+        context,
+        types: types,
+        stores: stores,
+      );
       return ok == true;
     },
   ),
@@ -89,8 +93,9 @@ final _shortcuts = <_Shortcut>[
   ),
 ];
 
-List<_Shortcut> _shortcutsFor(String? role) =>
-    role == null ? const [] : _shortcuts.where((s) => s.roles.contains(role)).toList();
+List<_Shortcut> _shortcutsFor(String? role) => role == null
+    ? const []
+    : _shortcuts.where((s) => s.roles.contains(role)).toList();
 
 /// Kullanicinin rolunde hic kisayol var mi? Yoksa dugme cizilmez.
 bool hasShortcuts(String? role) => _shortcutsFor(role).isNotEmpty;
@@ -99,11 +104,18 @@ bool hasShortcuts(String? role) => _shortcutsFor(role).isNotEmpty;
 ///
 /// Dokununca tam ekran perde acilir ve kisayollar dugmenin uzerinde listelenir.
 /// Perde yukleme katmaniyla ayni gorunumu paylasiyor ([AppScrim]).
-class ShortcutFab extends StatelessWidget {
+class ShortcutFab extends StatefulWidget {
   const ShortcutFab({super.key, this.bottomInset = 0});
 
   /// Alt cubugun yuksekligi. Menu ogeleri cubugun uzerinde kalmali.
   final double bottomInset;
+
+  @override
+  State<ShortcutFab> createState() => _ShortcutFabState();
+}
+
+class _ShortcutFabState extends State<ShortcutFab> {
+  bool _menuOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -111,8 +123,21 @@ class ShortcutFab extends StatelessWidget {
     final items = _shortcutsFor(session.user?.role);
     if (items.isEmpty) return const SizedBox.shrink();
 
+    // Menu acikken dugme cizilmiyor. Gorunum sebebi degil, olculen sebep:
+    // dokunma dalgasi (ink splash) ~450ms animasyon yapiyor ve bulantinin
+    // ARKASINDA kaldigi icin her karede tam ekran bulantiyi yeniden
+    // hesaplatiyordu. Web tarafi da acikken dugmeyi gizliyor.
+    if (_menuOpen) return const SizedBox.shrink();
+
     return FloatingActionButton(
-      onPressed: () => _open(context, items, bottomInset),
+      onPressed: () async {
+        setState(() => _menuOpen = true);
+        try {
+          await _open(context, items, widget.bottomInset);
+        } finally {
+          if (mounted) setState(() => _menuOpen = false);
+        }
+      },
       backgroundColor: t.primary,
       foregroundColor: t.card,
       tooltip: 'Kısayollar',
@@ -132,13 +157,13 @@ Future<void> _open(
     barrierColor: Colors.transparent,
     barrierDismissible: true,
     barrierLabel: 'Kısayolları kapat',
-    transitionDuration: const Duration(milliseconds: 180),
+    // Olculen: 180ms'de son oge yerine oturuyordu ama kareler 640ms devam
+    // ediyordu. Sure kisaltildi; asil kazanc bulantiyi animasyon disina
+    // cikarmak (asagida).
+    transitionDuration: const Duration(milliseconds: 120),
     pageBuilder: (ctx, a1, a2) => const SizedBox.shrink(),
-    transitionBuilder: (ctx, anim, _, _) => _ShortcutSheet(
-      items: items,
-      bottomInset: bottomInset,
-      animation: anim,
-    ),
+    transitionBuilder: (ctx, anim, _, _) =>
+        _ShortcutSheet(items: items, bottomInset: bottomInset, animation: anim),
   );
   if (picked == null || !context.mounted) return;
   try {
@@ -162,53 +187,93 @@ class _ShortcutSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
 
     return Material(
       type: MaterialType.transparency,
-      child: FadeTransition(
-        opacity: curved,
-        // Perdeye dokunmak menuyu kapatir; bu yuzden tiklamalar yutulmuyor.
-        child: AppScrim(
-          absorb: false,
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            behavior: HitTestBehavior.opaque,
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(right: 16, bottom: bottomInset + 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (var i = 0; i < items.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: SlideTransition(
-                          // Ogeler alttan yukari dogru sirayla giriyor.
-                          position: Tween<Offset>(
-                            begin: Offset(0, 0.6 + i * 0.2),
-                            end: Offset.zero,
-                          ).animate(curved),
-                          child: _ShortcutTile(
-                            item: items[i],
-                            onTap: () => Navigator.pop(context, items[i]),
-                          ),
+      // Perde animasyonun DISINDA: BackdropFilter fade icinde oldugunda tam
+      // ekran bulanti her karede yeniden hesaplaniyor (saveLayer) ve menu
+      // oturduktan sonra bile kareler devam ediyordu. Yukleme katmani da
+      // solmadan beliriyor; gorunum tutarli kaliyor.
+      child: AppScrim(
+        absorb: false,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          behavior: HitTestBehavior.opaque,
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(right: 16, bottom: bottomInset + 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < items.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      // Basamakli giris ayni 120ms penceresinin ICINDE kaliyor:
+                      // Interval ile kaydirildigi icin toplam sure uzamiyor.
+                      child: _Entry(
+                        animation: animation,
+                        index: i,
+                        count: items.length,
+                        child: _ShortcutTile(
+                          item: items[i],
+                          onTap: () => Navigator.pop(context, items[i]),
                         ),
                       ),
-                    // Kapatma dugmesi acan dugmenin yerinde duruyor.
-                    FloatingActionButton(
-                      onPressed: () => Navigator.pop(context),
-                      backgroundColor: t.card,
-                      foregroundColor: t.ink,
-                      tooltip: 'Kapat',
-                      child: const Icon(Icons.close),
                     ),
-                  ],
-                ),
+                  // Kapatma dugmesi acan dugmenin yerinde duruyor.
+                  FloatingActionButton(
+                    onPressed: () => Navigator.pop(context),
+                    backgroundColor: t.card,
+                    foregroundColor: t.ink,
+                    tooltip: 'Kapat',
+                    child: const Icon(Icons.close),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tek ogenin girisi: kisa bir kaydirma ve solma.
+///
+/// Basamak, sureyi uzatmamak icin [Interval] ile ayni pencere icinde veriliyor.
+/// Repaint siniri, oge boyanirken perdenin yeniden boyanmasini engelliyor.
+class _Entry extends StatelessWidget {
+  const _Entry({
+    required this.animation,
+    required this.index,
+    required this.count,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final int index;
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // Alttaki oge ilk girer; en ustteki en son. Pencerenin ilk yarisi
+    // basamaklara ayrilir, kalan yarisi harekete.
+    final step = count <= 1 ? 0.0 : (count - 1 - index) / count * 0.5;
+    final curve = CurvedAnimation(
+      parent: animation,
+      curve: Interval(step, 1, curve: Curves.easeOutCubic),
+    );
+    return RepaintBoundary(
+      child: FadeTransition(
+        opacity: curve,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.35),
+            end: Offset.zero,
+          ).animate(curve),
+          child: child,
         ),
       ),
     );

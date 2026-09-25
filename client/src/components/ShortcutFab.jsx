@@ -57,7 +57,10 @@ export default function ShortcutFab({ role }) {
                 type="button"
                 key={s.key}
                 className="shortcut-item"
-                style={{ animationDelay: `${i * 40}ms` }}
+                // Basamak ters yonde: dugmeye en yakin oge ilk girer.
+                // Olculen sorun: i*40ms + 180ms ile en ust oge 300ms'de
+                // tamamlaniyordu. Simdi en fazla 60 + 110 = 170ms.
+                style={{ animationDelay: `${(items.length - 1 - i) * 20}ms` }}
                 onClick={() => go(s)}
               >
                 <span className="shortcut-label">{s.label}</span>

@@ -236,4 +236,78 @@ void main() {
       expect(find.text('NET SALES'), findsOneWidget);
     });
   });
+
+  group('Açılma hızı', () {
+    // Olculen sorun: menu 192ms'de oturuyordu ama kareler 640ms devam
+    // ediyordu. Iki sebep vardi: BackdropFilter fade icindeydi (tam ekran
+    // bulanti her karede yeniden hesaplaniyor) ve FAB'in dokunma dalgasi
+    // bulantinin arkasinda ~450ms animasyon yapiyordu.
+    testWidgets('menü hızla oturur ve kareler kısa sürede durur', (tester) async {
+      installFakeApi({});
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      expect(tester.binding.transientCallbackCount, 0, reason: 'baslangicta animasyon olmamali');
+
+      await tester.tap(find.byType(FloatingActionButton));
+      int? oturdu;
+      var ms = 0;
+      while (ms < 1500) {
+        await tester.pump(const Duration(milliseconds: 16));
+        ms += 16;
+        final slides =
+            tester.widgetList<SlideTransition>(find.byType(SlideTransition)).toList();
+        if (slides.isNotEmpty &&
+            oturdu == null &&
+            slides.last.position.value.dy.abs() < 0.001) {
+          oturdu = ms;
+        }
+        if (!tester.binding.hasScheduledFrame) break;
+      }
+
+      expect(oturdu, isNotNull);
+      expect(oturdu!, lessThanOrEqualTo(150), reason: 'son öğe 150ms içinde yerine oturmalı');
+      expect(ms, lessThanOrEqualTo(200), reason: 'kareler 200ms içinde durmalı (önce 640ms)');
+    });
+
+    testWidgets('bulanıklık animasyonun dışında', (tester) async {
+      installFakeApi({});
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(_app());
+      await _openMenu(tester);
+
+      // Perde bir FadeTransition icinde OLMAMALI: aksi halde tam ekran
+      // bulanti her karede yeniden hesaplanir.
+      final fadeAroundScrim = find.ancestor(
+        of: find.byType(AppScrim),
+        matching: find.byType(FadeTransition),
+      );
+      expect(fadeAroundScrim, findsNothing);
+
+      // Her oge kendi repaint sinirinda: biri boyanirken digerleri boyanmaz.
+      expect(
+        find.descendant(of: find.byType(AppScrim), matching: find.byType(RepaintBoundary)),
+        findsNWidgets(4),
+      );
+    });
+
+    testWidgets('menü açıkken düğme çizilmez', (tester) async {
+      installFakeApi({});
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(_app());
+      expect(find.byIcon(Icons.bolt), findsOneWidget);
+
+      await _openMenu(tester);
+      // Dokunma dalgasi bulantinin arkasinda animasyon yapmasin.
+      expect(find.byIcon(Icons.bolt), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.bolt), findsOneWidget);
+    });
+  });
+
 }
