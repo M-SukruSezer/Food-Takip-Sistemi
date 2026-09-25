@@ -184,3 +184,30 @@ CREATE TABLE IF NOT EXISTS petty_cash_expenses (
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
 CREATE INDEX IF NOT EXISTS idx_petty_store_date ON petty_cash_expenses(store_id, spent_at);
+
+-- ---------------------------------------------------------------------------
+-- Gunluk operasyon raporu. Store Manager / Shift Supervisor her gun icin
+-- ham verileri girer; oranlar (AT, IPT, FOOD MARKOUT %, FOOD UPH,
+-- MODIFIERS %, APP%) saklanmaz, okuma sirasinda hesaplanir. Boylece rapor
+-- her zaman tutarli kalir ve hesap hatasi girilemez.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS daily_reports (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  report_date TEXT NOT NULL,                        -- YYYY-MM-DD
+  net_sales DOUBLE PRECISION NOT NULL DEFAULT 0,    -- NET SALES
+  adt INTEGER NOT NULL DEFAULT 0,                   -- kesilen fis adedi
+  product_qty INTEGER NOT NULL DEFAULT 0,           -- toplam satilan urun
+  food_usd INTEGER NOT NULL DEFAULT 0,              -- satilan food adedi
+  food_usd_try DOUBLE PRECISION NOT NULL DEFAULT 0, -- satilan food tutari
+  food_mo_try DOUBLE PRECISION NOT NULL DEFAULT 0,  -- zayi food tutari
+  sold_beverage_qty INTEGER NOT NULL DEFAULT 0,     -- modifiers giren kalemler
+  modifiers INTEGER NOT NULL DEFAULT 0,             -- ekstralar
+  app_amount DOUBLE PRECISION NOT NULL DEFAULT 0,   -- mobil bakiye
+  created_by BIGINT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  updated_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  -- Ayni magaza ve gun icin tek kayit; tekrar giris mevcut satiri gunceller.
+  UNIQUE (store_id, report_date)
+);
+CREATE INDEX IF NOT EXISTS idx_daily_reports_store_date ON daily_reports(store_id, report_date);

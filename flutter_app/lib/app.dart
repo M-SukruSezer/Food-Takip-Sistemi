@@ -13,6 +13,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/recommendations_screen.dart';
 import 'screens/logs_screen.dart';
+import 'screens/daily_report_screen.dart';
 import 'screens/petty_cash_screen.dart';
 import 'screens/product_types_screen.dart';
 import 'screens/profile_screen.dart';
@@ -48,6 +49,7 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/logs': (s) => const LogsScreen(),
   '/approvals': (s) => const ApprovalsScreen(),
   '/petty-cash': (s) => const PettyCashScreen(),
+  '/daily-report': (s) => const DailyReportScreen(),
   '/profile': (s) => const ProfileScreen(),
 };
 

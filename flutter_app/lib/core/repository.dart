@@ -3,6 +3,7 @@ import 'opts.dart';
 import '../models/activity_log.dart';
 import '../models/approval.dart';
 import '../models/batch.dart';
+import '../models/daily_report.dart';
 import '../models/dashboard.dart';
 import '../models/movement.dart';
 import '../models/petty_cash.dart';
@@ -344,6 +345,61 @@ class Repository {
 
   Future<void> deleteUser(ManagedUser user) async {
     await api.dio.delete('/users/${user.id}', options: apiOptions(successMessage: 'Kullanıcı silindi'));
+  }
+
+  // ---- Gunluk operasyon raporu ----
+
+  Future<ReportFields> reportFields({bool silent = true}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/daily-reports/fields',
+      options: apiOptions(silent: silent),
+    );
+    return ReportFields.fromJson(r.data ?? const {});
+  }
+
+  Future<DailyReportPage> dailyReports({
+    String period = 'week',
+    String? from,
+    String? to,
+    int? storeId,
+    bool silent = false,
+  }) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/daily-reports',
+      queryParameters: {
+        'period': period,
+        'from': ?from,
+        'to': ?to,
+        'storeId': ?storeId?.toString(),
+      },
+      options: apiOptions(silent: silent),
+    );
+    return DailyReportPage.fromJson(r.data ?? const {});
+  }
+
+  Future<DailyReport?> dailyReportFor(String date, {int? storeId}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/daily-reports/day/$date',
+      queryParameters: {'storeId': ?storeId?.toString()},
+      options: apiOptions(silent: true),
+    );
+    return r.data == null ? null : DailyReport.fromJson(r.data!);
+  }
+
+  /// Ayni gun icin tekrar gonderim mevcut kaydi gunceller.
+  Future<void> saveDailyReport(String date, Map<String, num> values) async {
+    await api.dio.post(
+      '/daily-reports',
+      data: {'report_date': date, ...values},
+      options: apiOptions(noToast: true, busyMessage: 'Rapor kaydediliyor...'),
+    );
+  }
+
+  Future<void> deleteDailyReport(DailyReport report) async {
+    await api.dio.delete(
+      '/daily-reports/${report.id}',
+      options: apiOptions(successMessage: 'Rapor silindi'),
+    );
   }
 
   // ---- Petty Cash ----

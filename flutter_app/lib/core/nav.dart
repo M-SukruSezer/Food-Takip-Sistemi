@@ -56,6 +56,7 @@ const navItems = <NavItem>[
   // Masraf girisi Store Manager ve Shift Supervisor'da; ust kademeler
   // sorumlu olduklari magazalarin kayitlarini gorur.
   NavItem(path: '/petty-cash', label: 'Petty Cash', shortLabel: 'Kasa', icon: Icons.receipt_outlined, roles: pettyCashRoles),
+  NavItem(path: '/daily-report', label: 'Rapor Paneli', shortLabel: 'Panel', icon: Icons.assessment_outlined, roles: pettyCashRoles),
   NavItem(path: '/profile', label: 'Profilim', shortLabel: 'Profil', icon: Icons.account_circle_outlined, roles: allRoles),
 ];
 
