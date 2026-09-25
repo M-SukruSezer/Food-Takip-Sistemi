@@ -433,6 +433,55 @@ class Repository {
     return ManagerOverview.fromJson(r.data ?? const {});
   }
 
+  /// Cozulmeye alinan adedi duzeltir; fark donuk depoya doner.
+  Future<void> correctThawQuantity(Batch batch, int quantity) async {
+    await api.dio.post(
+      '/batches/${batch.id}/correct-thaw-quantity',
+      data: {'quantity': quantity},
+      options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
+    );
+  }
+
+  /// Partiyi ve bagli satis/zayi kayitlarini siler. Yalnizca ana yonetici.
+  Future<void> deleteBatch(Batch batch) async {
+    await api.dio.delete(
+      '/batches/${batch.id}',
+      options: apiOptions(successMessage: 'Kayıt silindi'),
+    );
+  }
+
+  /// Satis veya ikram adedini duzeltir; fark stoga doner ya da stoktan duser.
+  Future<void> updateSaleQuantity(int saleId, int quantity) async {
+    await api.dio.put(
+      '/sales/$saleId',
+      data: {'quantity': quantity},
+      options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
+    );
+  }
+
+  Future<void> deleteSale(int saleId) async {
+    await api.dio.delete(
+      '/sales/$saleId',
+      options: apiOptions(successMessage: 'Kayıt silindi, adet stoka döndü'),
+    );
+  }
+
+  /// Zayi adedini ve sebebini duzeltir.
+  Future<void> updateDiscard(int discardId, int quantity, String reason) async {
+    await api.dio.put(
+      '/discards/$discardId',
+      data: {'quantity': quantity, 'reason': reason},
+      options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
+    );
+  }
+
+  Future<void> deleteDiscard(int discardId) async {
+    await api.dio.delete(
+      '/discards/$discardId',
+      options: apiOptions(successMessage: 'Kayıt silindi, adet stoka döndü'),
+    );
+  }
+
   // ---- Petty Cash ----
 
   Future<PettyCashPage> pettyCash({int? storeId, bool silent = false}) async {

@@ -3,7 +3,22 @@ import 'format.dart';
 
 /// Bir partinin o anda hangi islemleri sundugunu belirler.
 /// Arayuzden ayri tutuluyor ki kural test edilebilsin.
-enum BatchAction { thaw, completeThaw, awaitingApproval, detail, adjust, addStock, earlyRequest, discard }
+enum BatchAction {
+  thaw,
+  completeThaw,
+  awaitingApproval,
+  detail,
+  adjust,
+  addStock,
+  earlyRequest,
+  discard,
+
+  /// Cozulmeye alinan adet yanlis girildiyse duzeltir; fark donuk depoya doner.
+  correctThaw,
+
+  /// Partiyi ve bagli kayitlari siler. Yalnizca ana yonetici.
+  deleteBatch,
+}
 
 class BatchActions {
   const BatchActions({required this.primary, required this.menu});
@@ -19,6 +34,7 @@ BatchActions batchActionsFor(
   Batch b, {
   required bool canAdjust,
   bool canDiscard = true,
+  bool canDelete = false,
 }) {
   BatchAction? primary;
   if (b.status == 'frozen') {
@@ -38,8 +54,13 @@ BatchActions batchActionsFor(
       if (b.status == 'frozen') BatchAction.addStock,
       if (b.status == 'thawing' && !b.thawReady && b.pendingApprovalId == null)
         BatchAction.earlyRequest,
+      // Cozulmeye alinan adet duzeltmesi yalnizca cozulme surecinde anlamli:
+      // food dolabina gecmis urun tekrar dondurulamaz.
+      if (canAdjust && b.status == 'thawing') BatchAction.correctThaw,
       // Zayi yetkisi olmayan kullanici menude gormez; sunucu da reddeder.
       if (active && canDiscard) BatchAction.discard,
+      // Silme geri alinamaz; yalnizca ana yoneticide.
+      if (canDelete) BatchAction.deleteBatch,
     ],
   );
 }

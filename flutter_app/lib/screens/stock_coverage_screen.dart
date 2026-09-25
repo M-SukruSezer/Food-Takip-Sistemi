@@ -62,14 +62,18 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
     final q = normalizeSearch(_query);
     final items = q.isEmpty
         ? _stock.items
-        : _stock.items.where((i) => normalizeSearch(i.name).contains(q)).toList();
+        : _stock.items
+              .where((i) => normalizeSearch(i.name).contains(q))
+              .toList();
 
     // Satis hizi olanlar once; satmayanlar yeterlilik hesaplanamadigi icin
     // ayri bolumde toplanir.
     final active = items.where((i) => i.daysOfCover != null).toList();
     final idle = items.where((i) => i.daysOfCover == null).toList();
 
-    final critical = _stock.items.where((i) => i.risk == 0 || i.risk == 1).length;
+    final critical = _stock.items
+        .where((i) => i.risk == 0 || i.risk == 1)
+        .length;
 
     return CrudScaffold(
       title: 'Stok Yeterliliği',
@@ -83,7 +87,8 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
         children: [
           if (critical > 0) ...[
             AppAlert(
-              message: '$critical çeşidin donuk deposu 3 günden az yetecek '
+              message:
+                  '$critical çeşidin donuk deposu 3 günden az yetecek '
                   'veya tükendi. Sipariş verilmesi gerekebilir.',
             ),
             const SizedBox(height: AppTokens.gap),
@@ -93,8 +98,14 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Satış hızı penceresi',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+                Text(
+                  'Satış hızı penceresi',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 SegmentedButton<int>(
                   segments: const [
@@ -138,20 +149,30 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Satış hareketi olmayan ${idle.length} çeşit',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: t.ink)),
+                Text(
+                  'Satış hareketi olmayan ${idle.length} çeşit',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('Satış hızı sıfır olduğu için yeterlilik hesaplanamaz.',
-                    style: TextStyle(fontSize: 12, color: t.muted)),
+                Text(
+                  'Satış hızı sıfır olduğu için yeterlilik hesaplanamaz.',
+                  style: TextStyle(fontSize: 12, color: t.muted),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: idle
-                      .map((i) => Pill(
-                            text: '${i.name} · ${fmtInt(i.frozenQty)} adet',
-                            color: t.muted,
-                          ))
+                      .map(
+                        (i) => Pill(
+                          text: '${i.name} · ${fmtInt(i.frozenQty)} adet',
+                          color: t.muted,
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -186,8 +207,8 @@ class _CoverageCard extends StatelessWidget {
     final coverText = cover == null
         ? '-'
         : cover < 1
-            ? 'bugün biter'
-            : '${cover.toStringAsFixed(cover < 10 ? 1 : 0)} gün';
+        ? 'bugün biter'
+        : '${cover.toStringAsFixed(cover < 10 ? 1 : 0)} gün';
 
     return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -197,8 +218,14 @@ class _CoverageCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(item.name,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+                child: Text(
+                  item.name,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Pill(text: label, color: color),
@@ -207,9 +234,22 @@ class _CoverageCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _Cell(label: 'Donuk depo', value: fmtInt(item.frozenQty), strong: true)),
-              Expanded(child: _Cell(label: 'Çözülen', value: fmtInt(item.thawingQty))),
-              Expanded(child: _Cell(label: 'Food dolabı', value: fmtInt(item.cabinetQty))),
+              Expanded(
+                child: _Cell(
+                  label: 'Donuk depo',
+                  value: fmtInt(item.frozenQty),
+                  strong: true,
+                ),
+              ),
+              Expanded(
+                child: _Cell(label: 'Çözülen', value: fmtInt(item.thawingQty)),
+              ),
+              Expanded(
+                child: _Cell(
+                  label: 'Food dolabı',
+                  value: fmtInt(item.cabinetQty),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -222,12 +262,19 @@ class _CoverageCard extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: _Cell(label: 'Yeterlilik', value: coverText, color: color, strong: true),
+                child: _Cell(
+                  label: 'Yeterlilik',
+                  value: coverText,
+                  color: color,
+                  strong: true,
+                ),
               ),
               Expanded(
                 child: _Cell(
                   label: 'Biteceği gün',
-                  value: item.depletionDate == null ? '-' : fmtDate(item.depletionDate),
+                  value: item.depletionDate == null
+                      ? '-'
+                      : fmtDate(item.depletionDate),
                 ),
               ),
             ],
@@ -267,12 +314,14 @@ class _Cell extends StatelessWidget {
       children: [
         Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
         const SizedBox(height: 2),
-        Text(value,
-            style: TextStyle(
-              fontSize: strong ? 15 : 14,
-              fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
-              color: color ?? t.ink,
-            )),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: strong ? 15 : 14,
+            fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
+            color: color ?? t.ink,
+          ),
+        ),
       ],
     );
   }

@@ -17,9 +17,14 @@ Future<bool?> confirmDialog(
       title: Text(title),
       content: SingleChildScrollView(child: body),
       actions: [
-        OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+        OutlinedButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Vazgeç'),
+        ),
         FilledButton(
-          style: danger ? FilledButton.styleFrom(backgroundColor: t.danger) : null,
+          style: danger
+              ? FilledButton.styleFrom(backgroundColor: t.danger)
+              : null,
           onPressed: () => Navigator.pop(ctx, true),
           child: Text(confirmLabel),
         ),
@@ -43,7 +48,8 @@ class FormDialog extends StatefulWidget {
   final String submitLabel;
 
   /// Alanlari kuran yapici; hata metni ve mesgul durumu dialog tarafindan yonetilir.
-  final List<Widget> Function(BuildContext context, VoidCallback rebuild) fields;
+  final List<Widget> Function(BuildContext context, VoidCallback rebuild)
+  fields;
 
   /// Basarili olursa null, hata varsa gosterilecek metni dondurur.
   final Future<String?> Function() onSubmit;
@@ -77,10 +83,32 @@ class _FormDialogState extends State<FormDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    // Cep ekraninda sabit 420 genislik tasiyordu ve dialog tum ekrani
+    // kapliyordu. Genislik ekrana gore daralir, kenarda bosluk kalir.
+    final screen = MediaQuery.sizeOf(context);
+    final narrow = screen.width < 600;
     return AlertDialog(
-      title: Text(widget.title),
+      title: Text(widget.title, style: TextStyle(fontSize: narrow ? 17 : 20)),
+      titlePadding: EdgeInsets.fromLTRB(
+        narrow ? 18 : 24,
+        narrow ? 18 : 24,
+        narrow ? 18 : 24,
+        0,
+      ),
+      contentPadding: EdgeInsets.fromLTRB(
+        narrow ? 18 : 24,
+        14,
+        narrow ? 18 : 24,
+        0,
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: narrow ? 14 : 40,
+        vertical: 24,
+      ),
       content: SizedBox(
-        width: 420,
+        // Kenar bosluklari (insetPadding + contentPadding) dusulur, yoksa
+        // dialog ekranin tamamini kaplayip kenara yapisiyor.
+        width: narrow ? screen.width - 2 * 14 - 2 * 18 : 420,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,7 +116,10 @@ class _FormDialogState extends State<FormDialog> {
             children: [
               if (_error != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: t.dangerSoft,
                     border: Border.all(color: t.danger.withValues(alpha: 0.3)),
@@ -118,8 +149,17 @@ class _FormDialogState extends State<FormDialog> {
 }
 
 /// Etiketli alan sarmalayici.
+///
+/// Cep ekraninda formlar cok uzundu (olculen: 375x667 telefonda gunluk rapor
+/// formu 1011px icerik, 640px kaydirma). Etiket ve bosluklar daraltildi;
+/// ikili alanlar icin [FormRow] kullanilir.
 class LabeledField extends StatelessWidget {
-  const LabeledField({super.key, required this.label, required this.child, this.hint});
+  const LabeledField({
+    super.key,
+    required this.label,
+    required this.child,
+    this.hint,
+  });
 
   final String label;
   final Widget child;
@@ -129,16 +169,25 @@ class LabeledField extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
-          const SizedBox(height: 6),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
           child,
           if (hint != null) ...[
-            const SizedBox(height: 6),
-            Text(hint!, style: TextStyle(fontSize: 12, color: t.muted)),
+            const SizedBox(height: 4),
+            Text(hint!, style: TextStyle(fontSize: 11, color: t.muted)),
           ],
         ],
       ),
@@ -146,9 +195,51 @@ class LabeledField extends StatelessWidget {
   }
 }
 
+/// Iki alani yan yana koyar. Sayisal alanlar kisa oldugu icin cep ekraninda
+/// bile rahat sigar ve form yuksekligi yariya iner.
+class FormRow extends StatelessWidget {
+  const FormRow({super.key, required this.left, this.right});
+
+  final Widget left;
+
+  /// Tek sayida alan kaldiginda bos birakilir; sol alan yarim genislikte durur
+  /// ki hizalama bozulmasin.
+  final Widget? right;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: left),
+        const SizedBox(width: 10),
+        Expanded(child: right ?? const SizedBox.shrink()),
+      ],
+    );
+  }
+}
+
+/// Alan listesini ikili satirlara boler.
+List<Widget> pairFields(List<Widget> fields) {
+  final rows = <Widget>[];
+  for (var i = 0; i < fields.length; i += 2) {
+    rows.add(
+      FormRow(
+        left: fields[i],
+        right: i + 1 < fields.length ? fields[i + 1] : null,
+      ),
+    );
+  }
+  return rows;
+}
+
 /// Tarih + saat secici. Adjust penceresinde kullanilir.
 class DateTimeField extends StatelessWidget {
-  const DateTimeField({super.key, required this.value, required this.onChanged});
+  const DateTimeField({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
 
   final DateTime? value;
   final ValueChanged<DateTime> onChanged;
@@ -159,7 +250,7 @@ class DateTimeField extends StatelessWidget {
     final text = value == null
         ? 'Seçilmedi'
         : '${value!.day.toString().padLeft(2, '0')}.${value!.month.toString().padLeft(2, '0')}.${value!.year} '
-            '${value!.hour.toString().padLeft(2, '0')}:${value!.minute.toString().padLeft(2, '0')}';
+              '${value!.hour.toString().padLeft(2, '0')}:${value!.minute.toString().padLeft(2, '0')}';
     return OutlinedButton.icon(
       icon: const Icon(Icons.event, size: 18),
       label: Align(alignment: Alignment.centerLeft, child: Text(text)),
@@ -183,7 +274,9 @@ class DateTimeField extends StatelessWidget {
           initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
         );
         if (time == null) return;
-        onChanged(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+        onChanged(
+          DateTime(date.year, date.month, date.day, time.hour, time.minute),
+        );
       },
     );
   }

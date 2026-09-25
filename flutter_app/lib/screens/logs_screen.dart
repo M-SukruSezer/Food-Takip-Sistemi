@@ -91,7 +91,9 @@ class _LogsScreenState extends State<LogsScreen> {
     final isSuper = session.user?.isSuperAdmin ?? false;
     // Filtre secenekleri gelen kayitlardan turetilir; bos liste olmaz.
     final actions = _items.map((l) => l.action).toSet().toList()..sort();
-    final shown = _filter == null ? _items : _items.where((l) => l.action == _filter).toList();
+    final shown = _filter == null
+        ? _items
+        : _items.where((l) => l.action == _filter).toList();
 
     return CrudScaffold(
       title: 'Hareket Kayıtları',
@@ -99,7 +101,9 @@ class _LogsScreenState extends State<LogsScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      emptyText: _filter == null ? 'Kayıt bulunamadı.' : 'Bu işlem türünde kayıt yok.',
+      emptyText: _filter == null
+          ? 'Kayıt bulunamadı.'
+          : 'Bu işlem türünde kayıt yok.',
       banner: actions.isEmpty
           ? null
           : AppCard(
@@ -113,49 +117,63 @@ class _LogsScreenState extends State<LogsScreen> {
                     value: null,
                     child: Text('Tüm İşlemler (${_items.length})'),
                   ),
-                  ...actions.map((a) => DropdownMenuItem<String?>(value: a, child: Text(a))),
+                  ...actions.map(
+                    (a) => DropdownMenuItem<String?>(value: a, child: Text(a)),
+                  ),
                 ],
                 onChanged: (v) => setState(() => _filter = v),
               ),
             ),
       children: shown
-          .map((log) => AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Icon(logIcon(log.action), size: 18, color: t.primary),
+          .map(
+            (log) => AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      logIcon(log.action),
+                      size: 18,
+                      color: t.primary,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(log.action,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.2,
-                                  color: t.ink)),
-                          const SizedBox(height: 4),
-                          Text(log.details ?? '-', style: TextStyle(fontSize: 14, color: t.ink)),
-                          const SizedBox(height: 6),
-                          Text(
-                            [
-                              fmtDateTime(log.createdAt),
-                              log.username ?? 'sistem',
-                              if (isSuper) log.storeName ?? 'genel',
-                            ].join(' · '),
-                            style: TextStyle(fontSize: 12, color: t.muted),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          log.action,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                            color: t.ink,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          log.details ?? '-',
+                          style: TextStyle(fontSize: 14, color: t.ink),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          [
+                            fmtDateTime(log.createdAt),
+                            log.username ?? 'sistem',
+                            if (isSuper) log.storeName ?? 'genel',
+                          ].join(' · '),
+                          style: TextStyle(fontSize: 12, color: t.muted),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ))
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }

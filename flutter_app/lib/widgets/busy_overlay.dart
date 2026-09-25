@@ -54,7 +54,10 @@ class _Overlay extends StatelessWidget {
               color: dark ? const Color(0x73020617) : const Color(0x59111827),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: t.card,
                     border: Border.all(color: t.border),
@@ -108,7 +111,11 @@ class _Overlay extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         message,
-                        style: TextStyle(color: t.ink, fontSize: 15, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: t.ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),

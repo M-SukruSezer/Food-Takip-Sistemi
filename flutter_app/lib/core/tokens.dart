@@ -229,7 +229,10 @@ ThemeData buildAppTheme(Brightness brightness) {
       fillColor: t.card,
       // 16px alti yazi iOS'ta sayfayi yakinlastirir; web hedefi oldugu icin korunur.
       hintStyle: TextStyle(color: t.muted, fontSize: 16),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      // 14 -> 11: cep ekraninda formlar cok uzuyordu. 16px yazi boyutu
+      // korunuyor, yoksa iOS sayfayi yakinlastiriyor.
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      isDense: true,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppTokens.radiusSm),
         borderSide: BorderSide(color: t.borderStrong),

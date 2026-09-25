@@ -9,7 +9,9 @@ import '../models/dashboard.dart';
 import '../models/movement.dart';
 import '../models/product_type.dart';
 import '../widgets/crud_scaffold.dart';
+import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
+import 'movement_dialogs.dart';
 
 /// Hazir tarih araliklari. "Tümü" filtre gondermez, sunucu son 1000 hareketi
 /// doner.
@@ -38,7 +40,10 @@ class SalesScreen extends StatefulWidget {
 }
 
 class _SalesScreenState extends State<SalesScreen> {
-  MovementReport _report = const MovementReport(items: [], totals: MovementTotals.empty);
+  MovementReport _report = const MovementReport(
+    items: [],
+    totals: MovementTotals.empty,
+  );
   List<StoreOption> _stores = const [];
   List<ProductType> _types = const [];
 
@@ -56,8 +61,9 @@ class _SalesScreenState extends State<SalesScreen> {
   @override
   void initState() {
     super.initState();
-    final range = DateRange.values
-        .where((r) => r != DateRange.custom && r.name == widget.initialRange);
+    final range = DateRange.values.where(
+      (r) => r != DateRange.custom && r.name == widget.initialRange,
+    );
     if (range.isNotEmpty) _range = range.first;
     if (movementKinds.contains(widget.initialKind)) {
       _kinds
@@ -66,13 +72,19 @@ class _SalesScreenState extends State<SalesScreen> {
     }
     _load();
     // Urun filtresi icin cesit listesi; hata verirse filtre gizli kalir.
-    repo.productTypes(silent: true).then((t) {
-      if (mounted) setState(() => _types = t);
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .productTypes(silent: true)
+        .then((t) {
+          if (mounted) setState(() => _types = t);
+        })
+        .onError((Object _, StackTrace _) {});
     if (_isSuper) {
-      repo.stores(silent: true).then((s) {
-        if (mounted) setState(() => _stores = s);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _stores = s);
+          })
+          .onError((Object _, StackTrace _) {});
     }
   }
 
@@ -97,7 +109,9 @@ class _SalesScreenState extends State<SalesScreen> {
         to: to,
         productTypeId: _productTypeId,
         // Hepsi seciliyse parametre gonderilmez.
-        kinds: _kinds.length == movementKinds.length ? const [] : _kinds.toList(),
+        kinds: _kinds.length == movementKinds.length
+            ? const []
+            : _kinds.toList(),
         storeId: _storeId,
         silent: silent,
       );
@@ -216,69 +230,134 @@ class _SalesScreenState extends State<SalesScreen> {
         ],
       ),
       children: _report.items
-          .map((m) => AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(m.productName ?? 'Ürün',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
-                        ),
-                        Text(
-                          m.total == null ? 'Fiyat yok' : fmtMoney(m.total),
+          .map(
+            (m) => AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          m.productName ?? 'Ürün',
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: m.total == null ? t.muted : _kindColor(m.kind, t),
+                            color: t.ink,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        Pill(text: m.kindLabel, color: _kindColor(m.kind, t)),
-                        Pill(text: '${m.quantity} adet', color: t.info),
-                        if (m.unitPrice != null)
-                          Pill(
-                            // Zayide fiyat anlik goruntu degil, guncel fiyat.
-                            text: m.priceIsCurrent
-                                ? 'güncel birim ${fmtMoney(m.unitPrice)}'
-                                : 'birim ${fmtMoney(m.unitPrice)}',
-                            color: t.warning,
-                          ),
-                        if (_isSuper && m.storeName != null)
-                          Pill(text: m.storeName!, color: t.primary),
-                      ],
-                    ),
-                    if (m.reason?.isNotEmpty == true) ...[
-                      const SizedBox(height: 6),
-                      Text(m.reason!, style: TextStyle(fontSize: 13, color: t.ink)),
+                      ),
+                      Text(
+                        m.total == null ? 'Fiyat yok' : fmtMoney(m.total),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: m.total == null
+                              ? t.muted
+                              : _kindColor(m.kind, t),
+                        ),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Pill(text: m.kindLabel, color: _kindColor(m.kind, t)),
+                      Pill(text: '${m.quantity} adet', color: t.info),
+                      if (m.unitPrice != null)
+                        Pill(
+                          // Zayide fiyat anlik goruntu degil, guncel fiyat.
+                          text: m.priceIsCurrent
+                              ? 'güncel birim ${fmtMoney(m.unitPrice)}'
+                              : 'birim ${fmtMoney(m.unitPrice)}',
+                          color: t.warning,
+                        ),
+                      if (_isSuper && m.storeName != null)
+                        Pill(text: m.storeName!, color: t.primary),
+                    ],
+                  ),
+                  if (m.reason?.isNotEmpty == true) ...[
                     const SizedBox(height: 6),
                     Text(
-                      '${fmtDateTime(m.at)} · ${m.userName ?? 'bilinmiyor'}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      m.reason!,
+                      style: TextStyle(fontSize: 13, color: t.ink),
                     ),
                   ],
-                ),
-              ))
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${fmtDateTime(m.at)} · ${m.userName ?? 'bilinmiyor'}',
+                          style: TextStyle(fontSize: 12, color: t.muted),
+                        ),
+                      ),
+                      // Geriye donuk adet duzeltmesi ve kayit silme. Sunucu da
+                      // ayni yetkiyi ariyor.
+                      if (_canAdjust) ...[
+                        IconButton(
+                          tooltip: 'Adedi düzelt',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _correct(m),
+                          icon: const Icon(Icons.edit_outlined, size: 19),
+                        ),
+                        IconButton(
+                          tooltip: 'Kaydı sil',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _remove(m),
+                          icon: Icon(Icons.delete_outline, size: 19, color: t.danger),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
 
+  bool get _canAdjust => session.user?.can('adjust_batches') ?? false;
+
+  Future<void> _correct(Movement m) async {
+    final ok = await showMovementCorrectDialog(context, m);
+    if (ok == true) await _load(silent: true);
+  }
+
+  /// Kayit silinince adedin tamami stoga doner; onay metni bunu yaziyor.
+  Future<void> _remove(Movement m) async {
+    final ok = await confirmDialog(
+      context,
+      title: '${m.kindLabel} Kaydını Sil',
+      confirmLabel: 'Sil',
+      body: Text(
+        '${m.productName ?? 'Ürün'} — ${m.quantity} adet\n\n'
+        'Kayıt silinecek ve ${m.quantity} adet stoka geri dönecek.',
+      ),
+    );
+    if (ok != true) return;
+    try {
+      if (m.kind == 'discard') {
+        await repo.deleteDiscard(m.id);
+      } else {
+        await repo.deleteSale(m.id);
+      }
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
+    await _load(silent: true);
+  }
+
   Color _kindColor(String kind, AppTokens t) => switch (kind) {
-        'ikram' => t.warning,
-        'discard' => t.danger,
-        _ => t.success,
-      };
+    'ikram' => t.warning,
+    'discard' => t.danger,
+    _ => t.success,
+  };
 }
 
 class _FilterCard extends StatelessWidget {
@@ -318,7 +397,14 @@ class _FilterCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Tarih', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+          Text(
+            'Tarih',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -331,13 +417,20 @@ class _FilterCard extends StatelessWidget {
               return ChoiceChip(
                 label: Text(label),
                 selected: selected,
-                onSelected: (_) => r == DateRange.custom ? onPickCustom() : onRange(r),
+                onSelected: (_) =>
+                    r == DateRange.custom ? onPickCustom() : onRange(r),
               );
             }).toList(),
           ),
           const SizedBox(height: 12),
-          Text('Hareket Türü',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+          Text(
+            'Hareket Türü',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -358,8 +451,14 @@ class _FilterCard extends StatelessWidget {
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Ürün'),
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Tüm ürünler')),
-                ...types.map((x) => DropdownMenuItem<int?>(value: x.id, child: Text(x.name))),
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Tüm ürünler'),
+                ),
+                ...types.map(
+                  (x) =>
+                      DropdownMenuItem<int?>(value: x.id, child: Text(x.name)),
+                ),
               ],
               onChanged: onProductType,
             ),
@@ -371,8 +470,14 @@ class _FilterCard extends StatelessWidget {
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Mağaza'),
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Tüm Mağazalar')),
-                ...stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Tüm Mağazalar'),
+                ),
+                ...stores.map(
+                  (s) =>
+                      DropdownMenuItem<int?>(value: s.id, child: Text(s.name)),
+                ),
               ],
               onChanged: onStore,
             ),

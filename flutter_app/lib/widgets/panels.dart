@@ -72,7 +72,11 @@ class StatCard extends StatelessWidget {
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: narrow ? 12 : 13, color: t.muted, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: narrow ? 12 : 13,
+                    color: t.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -113,10 +117,15 @@ class StatCard extends StatelessWidget {
   }
 }
 
-
 /// Uyari bandi (React'teki .alert).
 class AppAlert extends StatelessWidget {
-  const AppAlert({super.key, required this.message, this.danger = true, this.icon, this.trailing});
+  const AppAlert({
+    super.key,
+    required this.message,
+    this.danger = true,
+    this.icon,
+    this.trailing,
+  });
 
   final String message;
   final bool danger;
@@ -139,7 +148,12 @@ class AppAlert extends StatelessWidget {
         children: [
           Icon(icon ?? Icons.warning_amber_rounded, color: color, size: 22),
           const SizedBox(width: 10),
-          Expanded(child: Text(message, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
           ?trailing,
         ],
       ),

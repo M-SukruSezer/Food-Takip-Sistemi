@@ -35,10 +35,15 @@ Future<bool?> showAddBatchDialog(
             initialValue: typeId,
             isExpanded: true,
             items: types
-                .map((t) => DropdownMenuItem(
-                      value: t.id,
-                      child: Text('${t.name} (${t.sktDays} gün)', overflow: TextOverflow.ellipsis),
-                    ))
+                .map(
+                  (t) => DropdownMenuItem(
+                    value: t.id,
+                    child: Text(
+                      '${t.name} (${t.sktDays} gün)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) {
               typeId = v;
@@ -46,17 +51,23 @@ Future<bool?> showAddBatchDialog(
             },
           ),
         ),
-        LabeledField(
-          label: 'Adet',
-          child: TextField(
-            controller: quantity,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 16),
+        // Kisa alanlar yan yana: cep ekraninda form yuksekligi dususu.
+        FormRow(
+          left: LabeledField(
+            label: 'Adet',
+            child: TextField(
+              controller: quantity,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
-        ),
-        LabeledField(
-          label: 'Parti Kodu (opsiyonel)',
-          child: TextField(controller: code, style: const TextStyle(fontSize: 16)),
+          right: LabeledField(
+            label: 'Parti Kodu',
+            child: TextField(
+              controller: code,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
         ),
         if (isSuper && stores.isNotEmpty)
           LabeledField(
@@ -66,8 +77,14 @@ Future<bool?> showAddBatchDialog(
               initialValue: storeId,
               isExpanded: true,
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Çeşidin mağazası')),
-                ...stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Çeşidin mağazası'),
+                ),
+                ...stores.map(
+                  (s) =>
+                      DropdownMenuItem<int?>(value: s.id, child: Text(s.name)),
+                ),
               ],
               onChanged: (v) {
                 storeId = v;
@@ -77,7 +94,11 @@ Future<bool?> showAddBatchDialog(
           ),
         LabeledField(
           label: 'Not (opsiyonel)',
-          child: TextField(controller: notes, maxLines: 2, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: notes,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
       ],
       onSubmit: () async {
@@ -110,8 +131,10 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
       title: 'Çözülmeye Al',
       submitLabel: 'Çözülmeye Al',
       fields: (context, rebuild) => [
-        Text('${batch.productName} — kalan ${batch.remaining} adet',
-            style: TextStyle(color: context.tokens.muted)),
+        Text(
+          '${batch.productName} — kalan ${batch.remaining} adet',
+          style: TextStyle(color: context.tokens.muted),
+        ),
         const SizedBox(height: 12),
         LabeledField(
           label: 'Adet',
@@ -126,7 +149,9 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
       onSubmit: () async {
         final qty = int.tryParse(quantity.text.trim());
         if (qty == null || qty < 1) return 'Miktar en az 1 olmalıdır';
-        if (qty > batch.remaining) return 'Yeterli stok yok. Kalan: ${batch.remaining}';
+        if (qty > batch.remaining) {
+            return 'Yeterli stok yok. Kalan: ${batch.remaining}';
+          }
         try {
           await repo.thaw(batch.id, qty);
           return null;
@@ -148,8 +173,10 @@ Future<bool?> showDiscardDialog(BuildContext context, Batch batch) {
       title: 'Zayi Gir',
       submitLabel: 'Zayi Gir',
       fields: (context, rebuild) => [
-        Text('${batch.productName} — kalan ${batch.remaining} adet',
-            style: TextStyle(color: context.tokens.muted)),
+        Text(
+          '${batch.productName} — kalan ${batch.remaining} adet',
+          style: TextStyle(color: context.tokens.muted),
+        ),
         const SizedBox(height: 12),
         LabeledField(
           label: 'Adet',
@@ -161,15 +188,24 @@ Future<bool?> showDiscardDialog(BuildContext context, Batch batch) {
         ),
         LabeledField(
           label: 'Sebep',
-          child: TextField(controller: reason, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: reason,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
       ],
       onSubmit: () async {
         final qty = int.tryParse(quantity.text.trim());
         if (qty == null || qty < 1) return 'Miktar en az 1 olmalıdır';
-        if (qty > batch.remaining) return 'Yeterli stok yok. Kalan: ${batch.remaining}';
+        if (qty > batch.remaining) {
+            return 'Yeterli stok yok. Kalan: ${batch.remaining}';
+          }
         try {
-          await repo.discard(batch.id, quantity: qty, reason: reason.text.trim().isEmpty ? null : reason.text.trim());
+          await repo.discard(
+            batch.id,
+            quantity: qty,
+            reason: reason.text.trim().isEmpty ? null : reason.text.trim(),
+          );
           return null;
         } catch (e) {
           return errorMessage(e);
@@ -188,8 +224,10 @@ Future<bool?> showStockAddDialog(BuildContext context, Batch batch) {
       title: 'Stok Ekle',
       submitLabel: 'Stoka Ekle',
       fields: (context, rebuild) => [
-        Text('${batch.productName} — mevcut ${batch.remaining} adet',
-            style: TextStyle(color: context.tokens.muted)),
+        Text(
+          '${batch.productName} — mevcut ${batch.remaining} adet',
+          style: TextStyle(color: context.tokens.muted),
+        ),
         const SizedBox(height: 12),
         LabeledField(
           label: 'Eklenecek Adet',
@@ -235,12 +273,16 @@ Future<bool?> showEarlyRequestDialog(BuildContext context, Batch batch) {
             controller: reason,
             maxLines: 3,
             style: const TextStyle(fontSize: 16),
-            decoration: const InputDecoration(hintText: 'örn: Müşteri siparişi için acil ihtiyaç var'),
+            decoration: const InputDecoration(
+              hintText: 'örn: Müşteri siparişi için acil ihtiyaç var',
+            ),
           ),
         ),
       ],
       onSubmit: () async {
-        if (reason.text.trim().length < 3) return 'Erken aktarım nedeni yazılmalıdır';
+        if (reason.text.trim().length < 3) {
+            return 'Erken aktarım nedeni yazılmalıdır';
+          }
         try {
           await repo.requestEarlyTransfer(batch.id, reason.text.trim());
           return null;
@@ -254,7 +296,8 @@ Future<bool?> showEarlyRequestDialog(BuildContext context, Batch batch) {
 
 /// Ana Yonetici duzeltmesi: tarih/saat ve adetler.
 Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
-  DateTime? parse(String? iso) => iso == null ? null : DateTime.tryParse(iso)?.toLocal();
+  DateTime? parse(String? iso) =>
+      iso == null ? null : DateTime.tryParse(iso)?.toLocal();
 
   final quantity = TextEditingController(text: '${batch.quantity}');
   final remaining = TextEditingController(text: '${batch.remaining}');
@@ -276,28 +319,62 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
           style: TextStyle(fontSize: 13, color: context.tokens.muted),
         ),
         const SizedBox(height: 12),
-        LabeledField(
-          label: 'Toplam Adet',
-          child: TextField(controller: quantity, keyboardType: TextInputType.number, style: const TextStyle(fontSize: 16)),
+        FormRow(
+          left: LabeledField(
+            label: 'Toplam Adet',
+            child: TextField(
+              controller: quantity,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          right: LabeledField(
+            label: 'Kalan Adet',
+            child: TextField(
+              controller: remaining,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
         ),
-        LabeledField(
-          label: 'Kalan Adet',
-          hint: 'Kalan adet toplam adetten büyük olamaz.',
-          child: TextField(controller: remaining, keyboardType: TextInputType.number, style: const TextStyle(fontSize: 16)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            'Kalan adet toplam adetten büyük olamaz.',
+            style: TextStyle(fontSize: 11, color: context.tokens.muted),
+          ),
         ),
         LabeledField(
           label: 'Donuk Depoya Giriş',
-          child: DateTimeField(value: frozenAt, onChanged: (v) { frozenAt = v; rebuild(); }),
+          child: DateTimeField(
+            value: frozenAt,
+            onChanged: (v) {
+              frozenAt = v;
+              rebuild();
+            },
+          ),
         ),
         if (thawStart != null)
           LabeledField(
             label: 'Çözülme Başlangıcı',
-            child: DateTimeField(value: thawStart, onChanged: (v) { thawStart = v; rebuild(); }),
+            child: DateTimeField(
+              value: thawStart,
+              onChanged: (v) {
+                thawStart = v;
+                rebuild();
+              },
+            ),
           ),
         if (thawFinish != null)
           LabeledField(
             label: 'Çözülme Bitişi',
-            child: DateTimeField(value: thawFinish, onChanged: (v) { thawFinish = v; rebuild(); }),
+            child: DateTimeField(
+              value: thawFinish,
+              onChanged: (v) {
+                thawFinish = v;
+                rebuild();
+              },
+            ),
           ),
         if (cabinetAt != null)
           LabeledField(
@@ -320,15 +397,25 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
         if (sktEnd != null)
           LabeledField(
             label: 'SKT Bitiş',
-            child: DateTimeField(value: sktEnd, onChanged: (v) { sktEnd = v; rebuild(); }),
+            child: DateTimeField(
+              value: sktEnd,
+              onChanged: (v) {
+                sktEnd = v;
+                rebuild();
+              },
+            ),
           ),
       ],
       onSubmit: () async {
         final qty = int.tryParse(quantity.text.trim());
         final rem = int.tryParse(remaining.text.trim());
         if (qty == null || qty < 1) return 'Toplam adet en az 1 olmalıdır';
-        if (rem == null || rem < 0) return 'Kalan adet 0 veya daha büyük olmalıdır';
-        if (rem > qty) return 'Kalan adet toplam adetten büyük olamaz (toplam: $qty)';
+        if (rem == null || rem < 0) {
+            return 'Kalan adet 0 veya daha büyük olmalıdır';
+          }
+        if (rem > qty) {
+            return 'Kalan adet toplam adetten büyük olamaz (toplam: $qty)';
+          }
         if (frozenAt == null) return 'Donuk depoya giriş tarihi zorunludur';
 
         String? iso(DateTime? d) => d?.toUtc().toIso8601String();
@@ -369,20 +456,29 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
     builder: (ctx) {
       final t = ctx.tokens;
       Widget row(String label, String value) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 150,
-                  child: Text(label, style: TextStyle(fontSize: 13, color: t.muted)),
-                ),
-                Expanded(
-                  child: Text(value,
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: t.ink)),
-                ),
-              ],
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 150,
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 13, color: t.muted),
+              ),
             ),
-          );
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: t.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 
       return AlertDialog(
         title: Text('Ürün Detayı — ${detail.productName}'),
@@ -397,40 +493,152 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                 row('Miktar', '${detail.remaining} / ${detail.quantity} adet'),
                 row('Donuk Depoya Giriş', fmtDateTime(detail.enteredFrozenAt)),
                 if (detail.thawingStartedAt != null)
-                  row('Çözülme Başlangıcı', fmtDateTime(detail.thawingStartedAt)),
+                  row(
+                    'Çözülme Başlangıcı',
+                    fmtDateTime(detail.thawingStartedAt),
+                  ),
                 if (detail.thawingFinishAt != null)
                   row('Çözülme Bitişi', fmtDateTime(detail.thawingFinishAt)),
                 if (detail.foodCabinetEnteredAt != null)
-                  row('Food Dolabına Giriş', fmtDateTime(detail.foodCabinetEnteredAt)),
-                if (detail.sktEnd != null) row('SKT Bitiş', fmtDateTime(detail.sktEnd)),
-                if (detail.notes != null && detail.notes!.isNotEmpty) row('Not', detail.notes!),
+                  row(
+                    'Food Dolabına Giriş',
+                    fmtDateTime(detail.foodCabinetEnteredAt),
+                  ),
+                if (detail.sktEnd != null)
+                  row('SKT Bitiş', fmtDateTime(detail.sktEnd)),
+                if (detail.notes != null && detail.notes!.isNotEmpty)
+                  row('Not', detail.notes!),
                 const SizedBox(height: 12),
-                Text('Satış Geçmişi',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: t.ink)),
+                Text(
+                  'Satış Geçmişi',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: t.ink),
+                ),
                 const SizedBox(height: 8),
                 if (sales.isEmpty)
-                  Text('Henüz satış yok', style: TextStyle(color: t.muted, fontSize: 13))
+                  Text(
+                    'Henüz satış yok',
+                    style: TextStyle(color: t.muted, fontSize: 13),
+                  )
                 else
-                  ...sales.map((s) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(fmtDateTime(s.soldAt), style: TextStyle(fontSize: 13, color: t.ink))),
-                            Text('${s.quantity} adet', style: TextStyle(fontSize: 13, color: t.muted)),
-                            const SizedBox(width: 10),
-                            Text(s.unitPrice == null ? '-' : fmtMoney(s.unitPrice),
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.ink)),
-                          ],
-                        ),
-                      )),
+                  ...sales.map(
+                    (s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              fmtDateTime(s.soldAt),
+                              style: TextStyle(fontSize: 13, color: t.ink),
+                            ),
+                          ),
+                          Text(
+                            '${s.quantity} adet',
+                            style: TextStyle(fontSize: 13, color: t.muted),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            s.unitPrice == null ? '-' : fmtMoney(s.unitPrice),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: t.ink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Kapat')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Kapat'),
+          ),
         ],
       );
     },
   );
 }
+
+/// Cozulmeye alinan adedi duzeltir.
+///
+/// Kullanici "dogru adet kaci" girer; fark donuk depoya geri doner. 0 girilirse
+/// parti cozulmeden tamamen cikar. Fark once ayni partiden bolunmus donuk
+/// kardese eklenir, yoksa donma tarihi korunarak yeni donuk parti acilir.
+Future<bool?> showCorrectThawDialog(BuildContext context, Batch batch) {
+  final quantity = TextEditingController(text: batch.remaining.toString());
+
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => FormDialog(
+      title: 'Çözülme Adedini Düzelt',
+      submitLabel: 'Düzelt',
+      fields: (context, rebuild) {
+        final t = context.tokens;
+        final entered = int.tryParse(quantity.text.trim());
+        final back = entered == null || entered < 0 || entered > batch.remaining
+            ? null
+            : batch.remaining - entered;
+        return [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              '${batch.productName} — şu anda ${batch.remaining} adet çözülmede.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            ),
+          ),
+          LabeledField(
+            label: 'Doğru Adet',
+            hint: '0 yazarsanız ürün tamamen donuk depoya döner.',
+            child: TextField(
+              controller: quantity,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 16),
+              onChanged: (_) => rebuild(),
+            ),
+          ),
+          if (back != null && back > 0)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: t.primarySoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: t.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.ac_unit, size: 18, color: t.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$back adet donuk depoya geri dönecek. '
+                      'Dondurucuya giriş tarihi korunur.',
+                      style: TextStyle(fontSize: 12, color: t.ink),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ];
+      },
+      onSubmit: () async {
+        final n = int.tryParse(quantity.text.trim());
+        if (n == null || n < 0) return 'Doğru adet 0 veya daha büyük bir tam sayı olmalıdır';
+        if (n > batch.remaining) {
+          return 'Doğru adet mevcut adetten (${batch.remaining}) büyük olamaz';
+        }
+        if (n == batch.remaining) return 'Adet değişmedi';
+        try {
+          await repo.correctThawQuantity(batch, n);
+          return null;
+        } catch (e) {
+          return errorMessage(e);
+        }
+      },
+    ),
+  );
+}
+

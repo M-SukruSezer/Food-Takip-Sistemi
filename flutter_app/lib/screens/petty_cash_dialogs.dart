@@ -13,7 +13,10 @@ import '../models/petty_cash.dart';
 import '../widgets/dialogs.dart';
 
 /// Masraf ekleme penceresi: tutar, aciklama, tarih ve fis fotosu.
-Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status}) {
+Future<bool?> showExpenseDialog(
+  BuildContext context, {
+  PettyCashStatus? status,
+}) {
   final amount = TextEditingController();
   final description = TextEditingController();
   var spentAt = DateTime.now();
@@ -53,15 +56,34 @@ Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status})
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 'Bu hafta kalan: ${fmtMoney(status.remaining)}',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.muted),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: t.muted,
+                ),
               ),
             ),
-          LabeledField(
-            label: 'Tutar (TL)',
-            child: TextField(
-              controller: amount,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 16),
+          // Tutar ve tarih kisa; yan yana durunca form kisaliyor.
+          FormRow(
+            left: LabeledField(
+              label: 'Tutar (₺)',
+              child: TextField(
+                controller: amount,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            right: LabeledField(
+              label: 'Tarih',
+              child: DateTimeField(
+                value: spentAt,
+                onChanged: (v) {
+                  spentAt = v;
+                  rebuild();
+                },
+              ),
             ),
           ),
           LabeledField(
@@ -74,33 +96,32 @@ Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status})
             ),
           ),
           LabeledField(
-            label: 'Tarih',
-            child: DateTimeField(
-              value: spentAt,
-              onChanged: (v) {
-                spentAt = v;
-                rebuild();
-              },
-            ),
-          ),
-          LabeledField(
             label: 'Fiş / Fatura',
             hint: 'Görsel otomatik olarak küçültülüp sıkıştırılarak saklanır.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (imageError != null) ...[
-                  Text(imageError!, style: TextStyle(color: t.danger, fontSize: 13)),
+                  Text(
+                    imageError!,
+                    style: TextStyle(color: t.danger, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                 ],
                 if (preview != null) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-                    child: Image.memory(preview!, height: 140, fit: BoxFit.cover),
+                    child: Image.memory(
+                      preview!,
+                      height: 140,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   const SizedBox(height: 6),
-                  Text('${(receipt!.length / 1024).round()} KB olarak kaydedilecek',
-                      style: TextStyle(fontSize: 12, color: t.muted)),
+                  Text(
+                    '${(receipt!.length / 1024).round()} KB olarak kaydedilecek',
+                    style: TextStyle(fontSize: 12, color: t.muted),
+                  ),
                   const SizedBox(height: 8),
                 ],
                 Row(
@@ -109,7 +130,10 @@ Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status})
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => pick(camera: true),
-                          icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                          icon: const Icon(
+                            Icons.photo_camera_outlined,
+                            size: 18,
+                          ),
                           label: const Text('Çek'),
                         ),
                       ),
@@ -118,7 +142,10 @@ Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status})
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => pick(camera: false),
-                        icon: const Icon(Icons.photo_library_outlined, size: 18),
+                        icon: const Icon(
+                          Icons.photo_library_outlined,
+                          size: 18,
+                        ),
                         label: const Text('Galeri'),
                       ),
                     ),
@@ -143,7 +170,9 @@ Future<bool?> showExpenseDialog(BuildContext context, {PettyCashStatus? status})
       },
       onSubmit: () async {
         final value = num.tryParse(amount.text.trim().replaceAll(',', '.'));
-        if (value == null || value <= 0) return 'Tutar 0’dan büyük bir sayı olmalıdır';
+        if (value == null || value <= 0) {
+            return 'Tutar 0’dan büyük bir sayı olmalıdır';
+          }
         if (description.text.trim().isEmpty) return 'Açıklama zorunludur';
         if (status != null && status.hasLimit && value > status.remaining) {
           return 'Haftalık limit aşılıyor. Kalan: ${fmtMoney(status.remaining)}';
@@ -175,7 +204,8 @@ Future<bool?> showLimitsDialog(BuildContext context) async {
   if (!context.mounted) return null;
 
   final controllers = {
-    for (final l in limits) l.storeId: TextEditingController(text: l.weeklyAmount.toString()),
+    for (final l in limits)
+      l.storeId: TextEditingController(text: l.weeklyAmount.toString()),
   };
 
   return showDialog<bool>(
@@ -191,15 +221,19 @@ Future<bool?> showLimitsDialog(BuildContext context) async {
             style: TextStyle(fontSize: 13, color: context.tokens.muted),
           ),
         ),
-        ...limits.map((l) => LabeledField(
-              label: l.storeName,
-              child: TextField(
-                controller: controllers[l.storeId],
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontSize: 16),
-                decoration: const InputDecoration(suffixText: 'TL'),
+        ...limits.map(
+          (l) => LabeledField(
+            label: l.storeName,
+            child: TextField(
+              controller: controllers[l.storeId],
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-            )),
+              style: const TextStyle(fontSize: 16),
+              decoration: const InputDecoration(suffixText: 'TL'),
+            ),
+          ),
+        ),
       ],
       onSubmit: () async {
         for (final l in limits) {

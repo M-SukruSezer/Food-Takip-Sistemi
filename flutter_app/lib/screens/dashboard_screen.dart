@@ -52,19 +52,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
     if (_showOverview) {
       // Olcu etiketleri kritik degil: gelmezse blok yalnizca rakamlari gosterir.
-      repo.reportFields().then((f) {
-        if (mounted) setState(() => _reportFields = f);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .reportFields()
+          .then((f) {
+            if (mounted) setState(() => _reportFields = f);
+          })
+          .onError((Object _, StackTrace _) {});
     }
     if (session.user?.isSuperAdmin ?? false) {
       // Magaza listesi kritik degil: gelmezse secici gizli kalir.
-      repo.stores(silent: true).then((s) {
-        if (mounted) setState(() => _stores = s);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _stores = s);
+          })
+          .onError((Object _, StackTrace _) {});
     }
     // 60 saniyelik yenileme kullanicinin baslattigi islem degil: katman ve
     // bildirim olmadan doner, yoksa ekran her dakika kilitlenirdi.
-    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _load(silent: true));
+    _timer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _load(silent: true),
+    );
   }
 
   @override
@@ -81,7 +90,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         repo.sales7(storeId: _storeId, silent: silent),
         repo.statusBreakdown(storeId: _storeId, silent: silent),
         repo.productPerformance(storeId: _storeId, silent: silent),
-        if (session.user?.canManage ?? false) repo.pendingApprovalCount(silent: silent),
+        if (session.user?.canManage ?? false)
+          repo.pendingApprovalCount(silent: silent),
       ]);
       // Genel rapor ayri alinir: hata verirse ana sayfanin geri kalani
       // yine gorunsun.
@@ -89,8 +99,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         repo
             .managerOverview(storeId: _storeId, silent: true)
             .then((o) {
-          if (mounted) setState(() => _overview = o);
-        }).onError((Object _, StackTrace _) {});
+              if (mounted) setState(() => _overview = o);
+            })
+            .onError((Object _, StackTrace _) {});
       }
       if (!mounted) return;
       setState(() {
@@ -123,7 +134,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 AppAlert(message: _error!),
                 const SizedBox(height: 12),
-                FilledButton(onPressed: () => _load(), child: const Text('Tekrar Dene')),
+                FilledButton(
+                  onPressed: () => _load(),
+                  child: const Text('Tekrar Dene'),
+                ),
               ],
             ),
           ),
@@ -142,7 +156,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           if (c.expiredQty > 0) ...[
             AppAlert(
-              message: '${c.expiredQty} adet ürünün SKT\'si doldu! Satışa sunulmamalı, hemen zayi verilmeli.',
+              message:
+                  '${c.expiredQty} adet ürünün SKT\'si doldu! Satışa sunulmamalı, hemen zayi verilmeli.',
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -150,7 +165,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             AppAlert(
               danger: false,
               icon: Icons.fact_check_outlined,
-              message: '$_pendingApprovals erken aktarım isteği onayını bekliyor.',
+              message:
+                  '$_pendingApprovals erken aktarım isteği onayını bekliyor.',
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -168,10 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _StatGrid(counts: c, soldToday: data.soldToday),
           const SizedBox(height: AppTokens.gap),
           if (_showOverview && _overview != null) ...[
-            ManagerOverviewBlock(
-              overview: _overview!,
-              fields: _reportFields,
-            ),
+            ManagerOverviewBlock(overview: _overview!, fields: _reportFields),
             const SizedBox(height: AppTokens.gap),
           ],
           if (_summary != null) ...[
@@ -182,8 +195,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Son 7 Günlük Satış',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.ink)),
+                Text(
+                  'Son 7 Günlük Satış',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
                 const SizedBox(height: 14),
                 MiniBarChart(
                   label: 'Satış Adedi',
@@ -205,11 +224,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: AppTokens.gap),
-          if (_perf != null) _PerformanceBlock(
-            perf: _perf!,
-            monthly: _monthly,
-            onPeriodChanged: (v) => setState(() => _monthly = v),
-          ),
+          if (_perf != null)
+            _PerformanceBlock(
+              perf: _perf!,
+              monthly: _monthly,
+              onPeriodChanged: (v) => setState(() => _monthly = v),
+            ),
         ],
       ),
     );
@@ -217,7 +237,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _StoreSelector extends StatelessWidget {
-  const _StoreSelector({required this.stores, required this.value, required this.onChanged});
+  const _StoreSelector({
+    required this.stores,
+    required this.value,
+    required this.onChanged,
+  });
 
   final List<StoreOption> stores;
   final int? value;
@@ -237,8 +261,16 @@ class _StoreSelector extends StatelessWidget {
                 value: value,
                 isExpanded: true,
                 items: [
-                  const DropdownMenuItem<int?>(value: null, child: Text('Tüm Mağazalar')),
-                  ...stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Tüm Mağazalar'),
+                  ),
+                  ...stores.map(
+                    (s) => DropdownMenuItem<int?>(
+                      value: s.id,
+                      child: Text(s.name),
+                    ),
+                  ),
                 ],
                 onChanged: onChanged,
               ),
@@ -261,37 +293,55 @@ class _StatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final width = MediaQuery.sizeOf(context).width;
-    final columns = width < 641 ? 2 : (width < 900 ? 3 : (width < 1200 ? 3 : 6));
+    final columns = width < 641
+        ? 2
+        : (width < 900 ? 3 : (width < 1200 ? 3 : 6));
     // Her kutu ilgili ekrani acar; stok kutulari Urunler/Stok'un dogru
     // sekmesine, satis kutulari bugune filtreli Hareket Raporu'na gider.
     final cards = <Widget>[
       StatCard(
-        label: 'Donuk Depo', value: '${counts.frozenQty}', sub: '${counts.frozen} kayıt',
-        icon: Icons.ac_unit, valueColor: t.info,
+        label: 'Donuk Depo',
+        value: '${counts.frozenQty}',
+        sub: '${counts.frozen} kayıt',
+        icon: Icons.ac_unit,
+        valueColor: t.info,
         onTap: () => context.go('/batches?tab=frozen'),
       ),
       StatCard(
-        label: 'Çözülme', value: '${counts.thawingQty}', sub: '${counts.thawing} kayıt',
-        icon: Icons.hourglass_bottom, valueColor: t.warning,
+        label: 'Çözülme',
+        value: '${counts.thawingQty}',
+        sub: '${counts.thawing} kayıt',
+        icon: Icons.hourglass_bottom,
+        valueColor: t.warning,
         onTap: () => context.go('/batches?tab=thawing'),
       ),
       StatCard(
-        label: 'Food Dolabı', value: '${counts.cabinetQty}', sub: '${counts.cabinet} kayıt',
-        icon: Icons.kitchen_outlined, valueColor: t.success,
+        label: 'Food Dolabı',
+        value: '${counts.cabinetQty}',
+        sub: '${counts.cabinet} kayıt',
+        icon: Icons.kitchen_outlined,
+        valueColor: t.success,
         onTap: () => context.go('/batches?tab=food_cabinet'),
       ),
       StatCard(
-        label: 'SKT Geçen', value: '${counts.expiredQty}', sub: 'zayi verilmeli',
-        icon: Icons.warning_amber_rounded, valueColor: t.danger,
+        label: 'SKT Geçen',
+        value: '${counts.expiredQty}',
+        sub: 'zayi verilmeli',
+        icon: Icons.warning_amber_rounded,
+        valueColor: t.danger,
         onTap: () => context.go('/recommendations'),
       ),
       StatCard(
-        label: 'Bugün Satılan', value: '${soldToday.qty} adet',
-        sub: '${fmtMoney(soldToday.revenue)} ciro', icon: Icons.payments_outlined,
+        label: 'Bugün Satılan',
+        value: '${soldToday.qty} adet',
+        sub: '${fmtMoney(soldToday.revenue)} ciro',
+        icon: Icons.payments_outlined,
         onTap: () => context.go('/sales?range=today&kind=sale'),
       ),
       StatCard(
-        label: 'Bugünkü İşlem', value: '${soldToday.count}', sub: 'satış kaydı',
+        label: 'Bugünkü İşlem',
+        value: '${soldToday.count}',
+        sub: 'satış kaydı',
         icon: Icons.shopping_bag_outlined,
         onTap: () => context.go('/sales?range=today'),
       ),
@@ -327,13 +377,18 @@ class _SummaryBlock extends StatelessWidget {
         childAspectRatio: width < 641 ? 1.55 : 1.8,
         children: [
           StatCard(
-            label: summary.storeName ?? 'Mağaza', value: '${summary.soldQty} adet',
-            sub: '${fmtMoney(summary.revenue)} ciro', icon: Icons.payments_outlined,
+            label: summary.storeName ?? 'Mağaza',
+            value: '${summary.soldQty} adet',
+            sub: '${fmtMoney(summary.revenue)} ciro',
+            icon: Icons.payments_outlined,
             onTap: () => context.go('/sales?kind=sale'),
           ),
           StatCard(
-            label: 'Zayi', value: '${summary.discardedQty}', sub: 'adet',
-            icon: Icons.delete_outline, valueColor: t.danger,
+            label: 'Zayi',
+            value: '${summary.discardedQty}',
+            sub: 'adet',
+            icon: Icons.delete_outline,
+            valueColor: t.danger,
             onTap: () => context.go('/sales?kind=discard'),
           ),
         ],
@@ -355,15 +410,24 @@ class _SummaryBlock extends StatelessWidget {
             DataColumn(label: Text('Zayi')),
           ],
           rows: summary.stores
-              .map((s) => DataRow(cells: [
-                    DataCell(Text(s.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+              .map(
+                (s) => DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        s.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                     DataCell(Text('${s.frozenQty}')),
                     DataCell(Text('${s.thawingQty}')),
                     DataCell(Text('${s.cabinetQty}')),
                     DataCell(Text('${s.soldQty} (${s.soldCount})')),
                     DataCell(Text(fmtMoney(s.revenue))),
                     DataCell(Text('${s.discardedQty}')),
-                  ]))
+                  ],
+                ),
+              )
               .toList(),
         ),
       ),
@@ -380,7 +444,10 @@ class _StatusBreakdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     if (slices.isEmpty) {
-      return Text('Veri bulunamadı', style: TextStyle(color: t.muted, fontSize: 13));
+      return Text(
+        'Veri bulunamadı',
+        style: TextStyle(color: t.muted, fontSize: 13),
+      );
     }
     final max = slices.map((s) => s.quantity).reduce((a, b) => a > b ? a : b);
     const labels = {
@@ -394,48 +461,70 @@ class _StatusBreakdown extends StatelessWidget {
     // Cubuk rengi kalemi ayirt ettirir: aktif stok marka rengi, satis yesil,
     // ikram turuncu, zayi kirmizi.
     Color toneFor(String status) => switch (status) {
-          'sold' => t.success,
-          'ikram' => t.warning,
-          'discarded' => t.danger,
-          _ => t.primary,
-        };
+      'sold' => t.success,
+      'ikram' => t.warning,
+      'discarded' => t.danger,
+      _ => t.primary,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Durum Dağılımı',
-            style: TextStyle(color: t.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(
+          'Durum Dağılımı',
+          style: TextStyle(
+            color: t.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 2),
         // Donuk/cozulme/dolap anlik stok; satis, ikram ve zayi ise toplam.
-        Text('stok anlık · satış, ikram ve zayi toplam',
-            style: TextStyle(color: t.muted, fontSize: 11)),
+        Text(
+          'stok anlık · satış, ikram ve zayi toplam',
+          style: TextStyle(color: t.muted, fontSize: 11),
+        ),
         const SizedBox(height: 8),
-        ...slices.map((s) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 96,
-                    child: Text(labels[s.status] ?? s.status,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: t.ink)),
+        ...slices.map(
+          (s) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(
+                    labels[s.status] ?? s.status,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: t.ink),
                   ),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        value: max == 0 ? 0 : (s.quantity / max).clamp(0.04, 1).toDouble(),
-                        minHeight: 7,
-                        backgroundColor: t.bg,
-                        valueColor: AlwaysStoppedAnimation<Color>(toneFor(s.status)),
+                ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: max == 0
+                          ? 0
+                          : (s.quantity / max).clamp(0.04, 1).toDouble(),
+                      minHeight: 7,
+                      backgroundColor: t.bg,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        toneFor(s.status),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Text('${s.quantity}',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
-                ],
-              ),
-            )),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${s.quantity}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -458,9 +547,27 @@ class _PerformanceBlock extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final p = monthly ? perf.month : perf.week;
     final lists = [
-      RankList(title: 'En Çok Satan', icon: Icons.emoji_events_outlined, rows: p.best, tone: RankTone.up, emptyText: 'Bu dönemde satış yok'),
-      RankList(title: 'En Az Satan', icon: Icons.trending_down, rows: p.worst, tone: RankTone.down, emptyText: 'Bu dönemde satış yok'),
-      RankList(title: 'En Çok Zayi', icon: Icons.delete_outline, rows: p.topWasted, tone: RankTone.waste, emptyText: 'Bu dönemde zayi yok'),
+      RankList(
+        title: 'En Çok Satan',
+        icon: Icons.emoji_events_outlined,
+        rows: p.best,
+        tone: RankTone.up,
+        emptyText: 'Bu dönemde satış yok',
+      ),
+      RankList(
+        title: 'En Az Satan',
+        icon: Icons.trending_down,
+        rows: p.worst,
+        tone: RankTone.down,
+        emptyText: 'Bu dönemde satış yok',
+      ),
+      RankList(
+        title: 'En Çok Zayi',
+        icon: Icons.delete_outline,
+        rows: p.topWasted,
+        tone: RankTone.waste,
+        emptyText: 'Bu dönemde zayi yok',
+      ),
     ];
 
     return AppCard(
@@ -471,8 +578,14 @@ class _PerformanceBlock extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  monthly ? 'Ürün Performansı — Son 30 Gün' : 'Ürün Performansı — Son 7 Gün',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.ink),
+                  monthly
+                      ? 'Ürün Performansı — Son 30 Gün'
+                      : 'Ürün Performansı — Son 7 Gün',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
                 ),
               ),
               SegmentedButton<bool>(

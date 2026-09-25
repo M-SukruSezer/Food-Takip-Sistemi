@@ -44,9 +44,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     super.initState();
     _load();
     if (_isSuper) {
-      repo.stores(silent: true).then((s) {
-        if (mounted) setState(() => _stores = s);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _stores = s);
+          })
+          .onError((Object _, StackTrace _) {});
     }
   }
 
@@ -126,7 +129,12 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Durum'),
                   items: _filters.entries
-                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.key,
+                          child: Text(e.value),
+                        ),
+                      )
                       .toList(),
                   onChanged: (v) {
                     setState(() => _filter = v ?? 'pending');
@@ -140,8 +148,16 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                     isExpanded: true,
                     decoration: const InputDecoration(labelText: 'Mağaza'),
                     items: [
-                      const DropdownMenuItem<int?>(value: null, child: Text('Tüm Mağazalar')),
-                      ..._stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('Tüm Mağazalar'),
+                      ),
+                      ..._stores.map(
+                        (s) => DropdownMenuItem<int?>(
+                          value: s.id,
+                          child: Text(s.name),
+                        ),
+                      ),
                     ],
                     onChanged: (v) {
                       setState(() => _storeId = v);
@@ -169,60 +185,78 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
         ],
       ),
       children: _items
-          .map((item) => AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(item.productName ?? 'Ürün',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w700, color: t.ink)),
-                        ),
-                        Pill(text: item.statusLabel, color: _statusColor(item.status, t)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(item.reason.isEmpty ? 'Neden yazılmamış' : item.reason,
-                        style: TextStyle(fontSize: 14, color: t.ink)),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        Pill(text: '${item.remaining} adet', color: t.info),
-                        if (item.thawRemainingHours != null)
-                          Pill(
-                            text: 'çözülmeye ${formatHours(item.thawRemainingHours)}',
-                            color: t.warning,
-                          ),
-                        if (_isSuper && item.storeName != null)
-                          Pill(text: item.storeName!, color: t.primary),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${fmtDateTime(item.requestedAt)} · ${item.requestedByName ?? 'bilinmiyor'} istedi',
-                      style: TextStyle(fontSize: 12, color: t.muted),
-                    ),
-                    if (!item.pending && (item.decidedByName != null || item.decisionNote != null))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
+          .map(
+            (item) => AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
                         child: Text(
-                          [
-                            if (item.decidedByName != null) '${item.decidedByName} karar verdi',
-                            if (item.decisionNote?.isNotEmpty == true) item.decisionNote!,
-                          ].join(' — '),
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          item.productName ?? 'Ürün',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
                         ),
                       ),
-                    if (item.pending) ...[
-                      const SizedBox(height: 10),
-                      CardActions(children: [
+                      Pill(
+                        text: item.statusLabel,
+                        color: _statusColor(item.status, t),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.reason.isEmpty ? 'Neden yazılmamış' : item.reason,
+                    style: TextStyle(fontSize: 14, color: t.ink),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Pill(text: '${item.remaining} adet', color: t.info),
+                      if (item.thawRemainingHours != null)
+                        Pill(
+                          text:
+                              'çözülmeye ${formatHours(item.thawRemainingHours)}',
+                          color: t.warning,
+                        ),
+                      if (_isSuper && item.storeName != null)
+                        Pill(text: item.storeName!, color: t.primary),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${fmtDateTime(item.requestedAt)} · ${item.requestedByName ?? 'bilinmiyor'} istedi',
+                    style: TextStyle(fontSize: 12, color: t.muted),
+                  ),
+                  if (!item.pending &&
+                      (item.decidedByName != null || item.decisionNote != null))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        [
+                          if (item.decidedByName != null)
+                            '${item.decidedByName} karar verdi',
+                          if (item.decisionNote?.isNotEmpty == true)
+                            item.decisionNote!,
+                        ].join(' — '),
+                        style: TextStyle(fontSize: 12, color: t.muted),
+                      ),
+                    ),
+                  if (item.pending) ...[
+                    const SizedBox(height: 10),
+                    CardActions(
+                      children: [
                         FilledButton(
-                          style: FilledButton.styleFrom(backgroundColor: t.success),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: t.success,
+                          ),
                           onPressed: () => _approve(item),
                           child: const Text('Onayla'),
                         ),
@@ -234,11 +268,13 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                           onPressed: () => _reject(item),
                           child: const Text('Reddet'),
                         ),
-                      ]),
-                    ],
+                      ],
+                    ),
                   ],
-                ),
-              ))
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -287,7 +323,10 @@ Future<bool?> showRejectDialog(BuildContext context, TransferApproval item) {
       ],
       onSubmit: () async {
         try {
-          await repo.rejectTransfer(item, note.text.trim().isEmpty ? null : note.text.trim());
+          await repo.rejectTransfer(
+            item,
+            note.text.trim().isEmpty ? null : note.text.trim(),
+          );
           return null;
         } catch (e) {
           return errorMessage(e);

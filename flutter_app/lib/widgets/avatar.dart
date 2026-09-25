@@ -25,7 +25,11 @@ class Avatar extends StatelessWidget {
 
   String get _initials {
     final parts = (user?.fullName ?? '').trim().split(RegExp(r'\s+'));
-    final letters = parts.where((p) => p.isNotEmpty).take(2).map((p) => p[0]).join();
+    final letters = parts
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .map((p) => p[0])
+        .join();
     return letters.isEmpty ? '?' : letters.toUpperCase();
   }
 

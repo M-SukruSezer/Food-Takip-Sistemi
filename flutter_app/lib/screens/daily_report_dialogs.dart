@@ -18,7 +18,8 @@ String formatReportValue(num? value, String type) {
   };
 }
 
-String dayKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}'
+String dayKey(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}'
     '-${d.month.toString().padLeft(2, '0')}'
     '-${d.day.toString().padLeft(2, '0')}';
 
@@ -40,11 +41,14 @@ Future<bool?> showDailyReportDialog(
 
   final editing = existing != null;
   var date = editing ? DateTime.parse(existing.date) : DateTime.now();
-  final controllers = {for (final f in fields.entry) f.key: TextEditingController()};
+  final controllers = {
+    for (final f in fields.entry) f.key: TextEditingController(),
+  };
   var loadedFor = '';
   var system = SystemFoodValues.empty;
 
-  String textFor(ReportField f, num v) => f.isInt ? v.toInt().toString() : v.toString();
+  String textFor(ReportField f, num v) =>
+      f.isInt ? v.toInt().toString() : v.toString();
 
   if (editing) {
     for (final f in fields.entry) {
@@ -91,8 +95,10 @@ Future<bool?> showDailyReportDialog(
             child: editing
                 ? InputDecorator(
                     decoration: const InputDecoration(),
-                    child: Text(fmtDate(existing.date),
-                        style: const TextStyle(fontSize: 16)),
+                    child: Text(
+                      fmtDate(existing.date),
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   )
                 : DateTimeField(
                     value: date,
@@ -102,18 +108,27 @@ Future<bool?> showDailyReportDialog(
                     },
                   ),
           ),
-          ...fields.entry.map((f) => LabeledField(
-                label: f.label,
-                child: TextField(
-                  controller: controllers[f.key],
-                  keyboardType: TextInputType.numberWithOptions(decimal: !f.isInt),
-                  style: const TextStyle(fontSize: 16),
-                  decoration: InputDecoration(
-                    suffixText: f.type == 'money' ? 'TL' : null,
-                    hintText: f.isInt ? 'adet' : null,
+          // Sayisal alanlar kisa; ikili satirlarda form yuksekligi yariya iner.
+          ...pairFields(
+            fields.entry
+                .map<Widget>(
+                  (f) => LabeledField(
+                    label: f.label,
+                    child: TextField(
+                      controller: controllers[f.key],
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: !f.isInt,
+                      ),
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        suffixText: f.type == 'money' ? '₺' : null,
+                        hintText: f.isInt ? 'adet' : null,
+                      ),
+                    ),
                   ),
-                ),
-              )),
+                )
+                .toList(),
+          ),
           // Sistemden gelen food alanlari: okunur, girilmez.
           if (fields.system.isNotEmpty)
             Container(
@@ -135,32 +150,38 @@ Future<bool?> showDailyReportDialog(
                         child: Text(
                           'Sistemden gelen değerler',
                           style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: t.primary),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: t.primary,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  ...fields.system.map((f) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(f.label,
-                                  style: TextStyle(fontSize: 13, color: t.muted)),
+                  ...fields.system.map(
+                    (f) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              f.label,
+                              style: TextStyle(fontSize: 13, color: t.muted),
                             ),
-                            Text(
-                              formatReportValue(system[f.key], f.type),
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.ink),
+                          ),
+                          Text(
+                            formatReportValue(system[f.key], f.type),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
                             ),
-                          ],
-                        ),
-                      )),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -181,8 +202,12 @@ Future<bool?> showDailyReportDialog(
           final raw = controllers[f.key]!.text.trim().replaceAll(',', '.');
           if (raw.isEmpty) return '${f.label} zorunludur';
           final n = num.tryParse(raw);
-          if (n == null || n < 0) return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
-          if (f.isInt && n != n.roundToDouble()) return '${f.label} tam sayı olmalıdır';
+          if (n == null || n < 0) {
+              return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
+            }
+          if (f.isInt && n != n.roundToDouble()) {
+              return '${f.label} tam sayı olmalıdır';
+            }
           values[f.key] = f.isInt ? n.toInt() : n;
         }
         try {
@@ -208,26 +233,39 @@ Future<void> showDailyReportDetail(
 ) {
   final t = context.tokens;
   Widget row(String label, String value, {bool bold = false}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(fontSize: 13, color: bold ? t.ink : t.muted)),
-            ),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w700, color: bold ? t.primary : t.ink)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: bold ? t.ink : t.muted),
+          ),
         ),
-      );
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: bold ? t.primary : t.ink,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget heading(String text) => Padding(
-        padding: const EdgeInsets.only(top: 10, bottom: 2),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 11, fontWeight: FontWeight.w700, color: t.muted, letterSpacing: .4)),
-      );
+    padding: const EdgeInsets.only(top: 10, bottom: 2),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: t.muted,
+        letterSpacing: .4,
+      ),
+    ),
+  );
 
   return showDialog<void>(
     context: context,
@@ -240,32 +278,51 @@ Future<void> showDailyReportDetail(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...fields.entry
-                  .map((f) => row(f.label, formatReportValue(report.values[f.key], f.type))),
+              ...fields.entry.map(
+                (f) => row(
+                  f.label,
+                  formatReportValue(report.values[f.key], f.type),
+                ),
+              ),
               if (fields.system.isNotEmpty) ...[
                 heading('SİSTEMDEN'),
-                ...fields.system
-                    .map((f) => row(f.label, formatReportValue(report.values[f.key], f.type))),
+                ...fields.system.map(
+                  (f) => row(
+                    f.label,
+                    formatReportValue(report.values[f.key], f.type),
+                  ),
+                ),
               ],
               const Divider(height: 20),
-              ...fields.derived.map((f) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      row(f.label, formatReportValue(report.metrics[f.key], f.type), bold: true),
-                      if (f.formula != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(f.formula!,
-                              style: TextStyle(fontSize: 11, color: t.muted)),
+              ...fields.derived.map(
+                (f) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    row(
+                      f.label,
+                      formatReportValue(report.metrics[f.key], f.type),
+                      bold: true,
+                    ),
+                    if (f.formula != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          f.formula!,
+                          style: TextStyle(fontSize: 11, color: t.muted),
                         ),
-                    ],
-                  )),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
       actions: [
-        FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Kapat')),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Kapat'),
+        ),
       ],
     ),
   );

@@ -105,7 +105,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 22),
                         if (_error != null) ...[
-                          _ErrorPill(message: _error!, card: t.card, danger: t.danger),
+                          _ErrorPill(
+                            message: _error!,
+                            card: t.card,
+                            danger: t.danger,
+                          ),
                           const SizedBox(height: 12),
                         ],
                         _PillField(
@@ -142,11 +146,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               minHeight: AppTokens.tap,
                             ),
                             icon: Icon(
-                              _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              _obscure
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
                               size: 20,
                               color: t.muted,
                             ),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                             tooltip: 'Şifreyi göster',
                           ),
                         ),
@@ -158,9 +165,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Flexible(
                               child: InkWell(
-                                onTap: () => setState(() => _remember = !_remember),
+                                onTap: () =>
+                                    setState(() => _remember = !_remember),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -169,14 +179,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                         height: AppTokens.tap,
                                         child: Checkbox(
                                           value: _remember,
-                                          onChanged: (v) => setState(() => _remember = v ?? false),
-                                          side: BorderSide(color: onPanel, width: 2),
-                                          checkColor: panel,
-                                          fillColor: WidgetStateProperty.resolveWith(
-                                            (states) => states.contains(WidgetState.selected)
-                                                ? onPanel
-                                                : Colors.transparent,
+                                          onChanged: (v) => setState(
+                                            () => _remember = v ?? false,
                                           ),
+                                          side: BorderSide(
+                                            color: onPanel,
+                                            width: 2,
+                                          ),
+                                          checkColor: panel,
+                                          fillColor:
+                                              WidgetStateProperty.resolveWith(
+                                                (states) =>
+                                                    states.contains(
+                                                      WidgetState.selected,
+                                                    )
+                                                    ? onPanel
+                                                    : Colors.transparent,
+                                              ),
                                         ),
                                       ),
                                       Flexible(
@@ -198,11 +217,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextButton(
                               style: TextButton.styleFrom(
                                 minimumSize: const Size(0, AppTokens.tap),
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
                                 foregroundColor: onPanel,
                               ),
-                              onPressed: () =>
-                                  toast('Şifre sıfırlama için yöneticinle iletişime geç'),
+                              onPressed: () => toast(
+                                'Şifre sıfırlama için yöneticinle iletişime geç',
+                              ),
                               child: const Text(
                                 'Şifremi unuttum?',
                                 style: TextStyle(
@@ -223,13 +245,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: FilledButton.styleFrom(
                               backgroundColor: t.ink,
                               foregroundColor: t.card,
-                              disabledBackgroundColor: t.ink.withValues(alpha: 0.55),
-                              disabledForegroundColor: t.card.withValues(alpha: 0.8),
+                              disabledBackgroundColor: t.ink.withValues(
+                                alpha: 0.55,
+                              ),
+                              disabledForegroundColor: t.card.withValues(
+                                alpha: 0.8,
+                              ),
                               shape: const StadiumBorder(),
-                              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             onPressed: _busy ? null : _submit,
-                            child: Text(_busy ? 'Giriş yapılıyor...' : 'Giriş Yap'),
+                            child: Text(
+                              _busy ? 'Giriş yapılıyor...' : 'Giriş Yap',
+                            ),
                           ),
                         ),
                       ],
@@ -261,7 +292,10 @@ class _Art extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final height = (MediaQuery.sizeOf(context).height * 0.30).clamp(170.0, 280.0);
+    final height = (MediaQuery.sizeOf(context).height * 0.30).clamp(
+      170.0,
+      280.0,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -273,7 +307,10 @@ class _Art extends StatelessWidget {
             child: Container(
               padding: dark ? EdgeInsets.all(height * _inset) : EdgeInsets.zero,
               decoration: dark
-                  ? const BoxDecoration(color: Color(0xFFFFFFFF), shape: BoxShape.circle)
+                  ? const BoxDecoration(
+                      color: Color(0xFFFFFFFF),
+                      shape: BoxShape.circle,
+                    )
                   : null,
               child: const LoginArt(),
             ),
@@ -371,11 +408,18 @@ class _PillFieldState extends State<_PillField> {
               autofillHints: widget.autofill,
               textInputAction: widget.textInputAction,
               onSubmitted: widget.onSubmitted,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: widget.ink),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: widget.ink,
+              ),
               decoration: InputDecoration(
                 hintText: widget.hint,
-                hintStyle:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: widget.muted),
+                hintStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: widget.muted,
+                ),
                 // Hap govdesi Container'da; alanin kendi cercevesi olmamali.
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -386,7 +430,10 @@ class _PillFieldState extends State<_PillField> {
               ),
             ),
           ),
-          if (widget.trailing != null) widget.trailing! else const SizedBox(width: 18),
+          if (widget.trailing != null)
+            widget.trailing!
+          else
+            const SizedBox(width: 18),
         ],
       ),
     );
@@ -395,7 +442,11 @@ class _PillFieldState extends State<_PillField> {
 
 /// Panel uzerinde okunur kalsin diye hata beyaz zeminde gosterilir.
 class _ErrorPill extends StatelessWidget {
-  const _ErrorPill({required this.message, required this.card, required this.danger});
+  const _ErrorPill({
+    required this.message,
+    required this.card,
+    required this.danger,
+  });
 
   final String message;
   final Color card;
@@ -415,8 +466,14 @@ class _ErrorPill extends StatelessWidget {
           Icon(Icons.error_outline, size: 18, color: danger),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(message,
-                style: TextStyle(color: danger, fontSize: 14, fontWeight: FontWeight.w600)),
+            child: Text(
+              message,
+              style: TextStyle(
+                color: danger,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

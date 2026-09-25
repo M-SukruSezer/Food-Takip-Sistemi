@@ -69,7 +69,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         .toList();
   }
 
-  int _sum(Iterable<Batch> list) => list.fold<int>(0, (a, b) => a + b.remaining);
+  int _sum(Iterable<Batch> list) =>
+      list.fold<int>(0, (a, b) => a + b.remaining);
 
   Future<void> _sell(Batch b) async {
     final ok = await _confirm(
@@ -108,7 +109,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
       title: 'Zayi Gir',
       confirmLabel: 'Zayi Gir',
       danger: true,
-      body: Text('${b.productName} (${b.remaining} adet) için zayi girilecek. Onaylıyor musunuz?'),
+      body: Text(
+        '${b.productName} (${b.remaining} adet) için zayi girilecek. Onaylıyor musunuz?',
+      ),
     );
     if (ok != true) return;
     try {
@@ -138,7 +141,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               TextSpan(
-                text: ' satılacak. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
+                text:
+                    ' satılacak. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
               ),
             ],
           ),
@@ -187,7 +191,8 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               TextSpan(
-                text: ' edilecek. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
+                text:
+                    ' edilecek. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
               ),
             ],
           ),
@@ -233,9 +238,14 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         title: Text(title),
         content: body,
         actions: [
-          OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç'),
+          ),
           FilledButton(
-            style: danger ? FilledButton.styleFrom(backgroundColor: t.danger) : null,
+            style: danger
+                ? FilledButton.styleFrom(backgroundColor: t.danger)
+                : null,
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(confirmLabel),
           ),
@@ -256,7 +266,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             children: [
               AppAlert(message: _error!),
               const SizedBox(height: 12),
-              FilledButton(onPressed: () => _load(), child: const Text('Tekrar Dene')),
+              FilledButton(
+                onPressed: () => _load(),
+                child: const Text('Tekrar Dene'),
+              ),
             ],
           ),
         ),
@@ -265,7 +278,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
     final shown = _shown;
     final expired = _items.where((b) => b.isExpired).toList();
-    final critical = shown.where((b) => b.urgency == 'critical' || b.isExpired).toList();
+    final critical = shown
+        .where((b) => b.urgency == 'critical' || b.isExpired)
+        .toList();
     final warning = shown.where((b) => b.urgency == 'warning').toList();
     final normal = shown.where((b) => b.urgency == 'normal').toList();
     final filtering = _search.trim().isNotEmpty;
@@ -341,8 +356,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                   showStore: session.user?.isSuperAdmin ?? false,
                   onSell: () => _sell(b),
                   // Yetkisi olmayan kullanicida dugme hic cizilmez.
-                  onIkram: (session.user?.can('ikram') ?? false) ? () => _ikram(b) : null,
-                  onDiscard: (session.user?.can('discard') ?? false) ? () => _discard(b) : null,
+                  onIkram: (session.user?.can('ikram') ?? false)
+                      ? () => _ikram(b)
+                      : null,
+                  onDiscard: (session.user?.can('discard') ?? false)
+                      ? () => _discard(b)
+                      : null,
                 ),
               ),
             ),
@@ -373,9 +392,24 @@ class _TierRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final tiles = [
-      _Tier(color: t.danger, label: 'Son Gün', value: critical, count: criticalCount),
-      _Tier(color: t.warning, label: '2 Gün', value: warning, count: warningCount),
-      _Tier(color: t.success, label: '3 Gün', value: normal, count: normalCount),
+      _Tier(
+        color: t.danger,
+        label: 'Son Gün',
+        value: critical,
+        count: criticalCount,
+      ),
+      _Tier(
+        color: t.warning,
+        label: '2 Gün',
+        value: warning,
+        count: warningCount,
+      ),
+      _Tier(
+        color: t.success,
+        label: '3 Gün',
+        value: normal,
+        count: normalCount,
+      ),
     ];
     return Row(
       children: [
@@ -389,7 +423,12 @@ class _TierRow extends StatelessWidget {
 }
 
 class _Tier extends StatelessWidget {
-  const _Tier({required this.color, required this.label, required this.value, required this.count});
+  const _Tier({
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.count,
+  });
 
   final Color color;
   final String label;
@@ -424,7 +463,11 @@ class _Tier extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   // React tarafinda 10px'ti ve okunmuyordu; 11px taban.
-                  style: TextStyle(fontSize: 11, color: t.muted, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: t.muted,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -432,7 +475,11 @@ class _Tier extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '$value',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -499,10 +546,17 @@ class _RecommendationCard extends StatelessWidget {
                       children: [
                         Text(
                           batch.productName,
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: t.ink),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: t.ink,
+                          ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: badge.color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(999),
@@ -540,7 +594,10 @@ class _RecommendationCard extends StatelessWidget {
                           ),
                         ),
                         if (showStore && batch.storeName != null)
-                          Text(batch.storeName!, style: TextStyle(fontSize: 12, color: t.muted)),
+                          Text(
+                            batch.storeName!,
+                            style: TextStyle(fontSize: 12, color: t.muted),
+                          ),
                       ],
                     ),
                     // SKT'si gecmis urun + zayi yetkisi yok: hic dugme kalmaz,
@@ -556,7 +613,9 @@ class _RecommendationCard extends StatelessWidget {
                         if (!batch.isExpired)
                           Expanded(
                             child: FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: t.success),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: t.success,
+                              ),
                               onPressed: onSell,
                               child: const Text('Satış'),
                             ),
@@ -564,7 +623,10 @@ class _RecommendationCard extends StatelessWidget {
                         if (!batch.isExpired && onIkram != null) ...[
                           const SizedBox(width: 8),
                           Expanded(
-                            child: OutlinedButton(onPressed: onIkram, child: const Text('İkram')),
+                            child: OutlinedButton(
+                              onPressed: onIkram,
+                              child: const Text('İkram'),
+                            ),
                           ),
                         ],
                         if (onDiscard != null) ...[

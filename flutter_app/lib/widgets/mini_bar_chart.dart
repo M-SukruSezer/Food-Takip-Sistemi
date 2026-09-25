@@ -30,7 +30,14 @@ class MiniBarChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: t.muted, fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: TextStyle(
+            color: t.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 8),
         SizedBox(
           height: narrow ? 132 : 160,
@@ -50,7 +57,11 @@ class MiniBarChart extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         // React tarafinda bu etiketler 9px'ti ve okunmuyordu; 10px taban.
-                        style: TextStyle(fontSize: 10, color: t.muted, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: t.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 3),
                       Expanded(
@@ -60,14 +71,18 @@ class MiniBarChart extends StatelessWidget {
                           child: Container(
                             decoration: BoxDecoration(
                               color: barColor,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(6),
+                              ),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        dates.length > i ? fmtDate(dates[i]).substring(0, 5) : '',
+                        dates.length > i
+                            ? fmtDate(dates[i]).substring(0, 5)
+                            : '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 10, color: t.muted),

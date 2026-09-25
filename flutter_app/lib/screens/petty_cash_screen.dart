@@ -75,7 +75,9 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
       context,
       title: 'Masrafı Sil',
       confirmLabel: 'Sil',
-      body: Text('${fmtMoney(e.amount)} — ${e.description}\n\nBu kayıt silinecek.'),
+      body: Text(
+        '${fmtMoney(e.amount)} — ${e.description}\n\nBu kayıt silinecek.',
+      ),
     );
     if (ok != true) return;
     try {
@@ -103,10 +105,14 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(14),
-              child: Text('${fmtMoney(e.amount)} — ${e.description}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                '${fmtMoney(e.amount)} — ${e.description}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
-            Flexible(child: InteractiveViewer(child: Image.memory(_decode(data!)))),
+            Flexible(
+              child: InteractiveViewer(child: Image.memory(_decode(data!))),
+            ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: TextButton(
@@ -120,7 +126,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
     );
   }
 
-  static Uint8List _decode(String dataUrl) => base64Decode(dataUrl.split(',').last);
+  static Uint8List _decode(String dataUrl) =>
+      base64Decode(dataUrl.split(',').last);
 
   @override
   Widget build(BuildContext context) {
@@ -146,8 +153,10 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('Mağazaların haftalık limitlerini buradan belirleyin.',
-                        style: TextStyle(fontSize: 13, color: t.muted)),
+                    child: Text(
+                      'Mağazaların haftalık limitlerini buradan belirleyin.',
+                      style: TextStyle(fontSize: 13, color: t.muted),
+                    ),
                   ),
                   OutlinedButton(
                     onPressed: () async {
@@ -165,48 +174,63 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
             AppAlert(
               danger: false,
               icon: Icons.info_outline,
-              message: 'Masraf girişi yalnızca Store Manager ve Shift Supervisor '
+              message:
+                  'Masraf girişi yalnızca Store Manager ve Shift Supervisor '
                   'kullanıcılarına açıktır; buradan kayıtları görüntüleyebilirsiniz.',
             ),
           ],
         ],
       ),
       children: _page.items
-          .map((e) => AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(e.description,
-                              style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+          .map(
+            (e) => AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          e.description,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
                         ),
-                        Text(fmtMoney(e.amount),
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700, color: t.danger)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        if (e.hasReceipt)
-                          Pill(text: 'fişli', color: t.success)
-                        else
-                          Pill(text: 'fiş yok', color: t.muted),
-                        if (_isSuper && e.storeName != null)
-                          Pill(text: e.storeName!, color: t.primary),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text('${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
-                        style: TextStyle(fontSize: 12, color: t.muted)),
-                    const SizedBox(height: 10),
-                    CardActions(children: [
+                      ),
+                      Text(
+                        fmtMoney(e.amount),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (e.hasReceipt)
+                        Pill(text: 'fişli', color: t.success)
+                      else
+                        Pill(text: 'fiş yok', color: t.muted),
+                      if (_isSuper && e.storeName != null)
+                        Pill(text: e.storeName!, color: t.primary),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
+                    style: TextStyle(fontSize: 12, color: t.muted),
+                  ),
+                  const SizedBox(height: 10),
+                  CardActions(
+                    children: [
                       OutlinedButton(
                         onPressed: e.hasReceipt ? () => _showReceipt(e) : null,
                         child: const Text('Fişi Gör'),
@@ -219,10 +243,12 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         onPressed: () => _delete(e),
                         child: const Text('Sil'),
                       ),
-                    ]),
-                  ],
-                ),
-              ))
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -239,7 +265,8 @@ class _LimitCard extends StatelessWidget {
     final t = context.tokens;
     if (!status.hasLimit) {
       return AppAlert(
-        message: 'Bu mağaza için haftalık petty cash limiti tanımlanmamış. '
+        message:
+            'Bu mağaza için haftalık petty cash limiti tanımlanmamış. '
             'Masraf girilebilmesi için Ana Yöneticinin limit belirlemesi gerekir.',
       );
     }
@@ -252,11 +279,23 @@ class _LimitCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Bu Hafta',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+                child: Text(
+                  'Bu Hafta',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
               ),
-              Text('${fmtMoney(status.spentThisWeek)} / ${fmtMoney(status.weeklyLimit)}',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: t.muted)),
+              Text(
+                '${fmtMoney(status.spentThisWeek)} / ${fmtMoney(status.weeklyLimit)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: t.muted,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -266,17 +305,24 @@ class _LimitCard extends StatelessWidget {
               value: status.usedRatio,
               minHeight: 10,
               backgroundColor: t.bg,
-              valueColor: AlwaysStoppedAnimation<Color>(tight ? t.danger : t.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                tight ? t.danger : t.primary,
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text('Kalan: ${fmtMoney(status.remaining)}',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: tight ? t.danger : t.success)),
-          Text('Hafta başlangıcı: ${fmtDate(status.weekStart)}',
-              style: TextStyle(fontSize: 12, color: t.muted)),
+          Text(
+            'Kalan: ${fmtMoney(status.remaining)}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: tight ? t.danger : t.success,
+            ),
+          ),
+          Text(
+            'Hafta başlangıcı: ${fmtDate(status.weekStart)}',
+            style: TextStyle(fontSize: 12, color: t.muted),
+          ),
         ],
       ),
     );

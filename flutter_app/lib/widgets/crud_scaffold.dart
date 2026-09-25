@@ -59,7 +59,10 @@ class CrudScaffold extends StatelessWidget {
             children: [
               AppAlert(message: error!),
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: const Text('Tekrar Dene')),
+              FilledButton(
+                onPressed: onRetry,
+                child: const Text('Tekrar Dene'),
+              ),
             ],
           ),
         ),
@@ -76,8 +79,14 @@ class CrudScaffold extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(title,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.ink)),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: t.ink,
+                    ),
+                  ),
                 ),
                 if (onAdd != null)
                   FilledButton.icon(
@@ -94,7 +103,12 @@ class CrudScaffold extends StatelessWidget {
           ],
           const SizedBox(height: AppTokens.gap),
           if (children.isEmpty)
-            AppCard(child: Text(emptyText ?? 'Kayıt bulunamadı.', style: TextStyle(color: t.muted)))
+            AppCard(
+              child: Text(
+                emptyText ?? 'Kayıt bulunamadı.',
+                style: TextStyle(color: t.muted),
+              ),
+            )
           else if (grid && columns > 1)
             // Sabit en-boy oranli izgara kart icerigini kesiyordu (uzun urun
             // adi ya da iki satirlik aciklamada tasma). Bunun yerine her satir
@@ -102,7 +116,11 @@ class CrudScaffold extends StatelessWidget {
             // kartlar birbirine esit kaliyor.
             Column(
               children: [
-                for (var start = 0; start < children.length; start += columns) ...[
+                for (
+                  var start = 0;
+                  start < children.length;
+                  start += columns
+                ) ...[
                   if (start > 0) const SizedBox(height: AppTokens.gap),
                   IntrinsicHeight(
                     child: Row(
@@ -154,8 +172,14 @@ class Pill extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(text,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
     );
   }
 }

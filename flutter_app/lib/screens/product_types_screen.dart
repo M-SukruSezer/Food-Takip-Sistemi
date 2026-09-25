@@ -37,9 +37,12 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
     // Magaza listesi yalnizca Ana Yoneticiye acik (sunucu 403 doner); yetkili
     // mudur zaten kendi magazasina yazar, listeye ihtiyaci yok.
     if (session.user?.isSuperAdmin ?? false) {
-      repo.stores(silent: true).then((s) {
-        if (mounted) setState(() => _stores = s);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _stores = s);
+          })
+          .onError((Object _, StackTrace _) {});
     }
   }
 
@@ -62,7 +65,11 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
   }
 
   Future<void> _edit([ProductType? type]) async {
-    final ok = await showProductTypeDialog(context, type: type, stores: _stores);
+    final ok = await showProductTypeDialog(
+      context,
+      type: type,
+      stores: _stores,
+    );
     if (ok == true) {
       toastSaved(type == null ? 'Çeşit eklendi' : 'Çeşit güncellendi');
       await _load(silent: true);
@@ -116,46 +123,62 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
             )
           : null,
       children: _items
-          .map((type) => AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(type.name,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.ink)),
+          .map(
+            (type) => AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          type.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
                         ),
-                        if (!type.active) Pill(text: 'pasif', color: t.danger),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      type.description?.isNotEmpty == true ? type.description! : 'Açıklama yok',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13, color: t.muted),
-                    ),
+                      ),
+                      if (!type.active) Pill(text: 'pasif', color: t.danger),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    type.description?.isNotEmpty == true
+                        ? type.description!
+                        : 'Açıklama yok',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: t.muted),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Pill(text: 'SKT: ${type.sktDays} gün', color: t.warning),
+                      type.hasPrice
+                          ? Pill(
+                              text: fmtMoney(type.unitPrice),
+                              color: t.success,
+                            )
+                          : Pill(text: 'Fiyat yok', color: t.danger),
+                      if (type.isGlobal)
+                        Pill(text: 'Genel', color: t.info)
+                      else if (_canManage && type.storeName != null)
+                        Pill(text: type.storeName!, color: t.info),
+                    ],
+                  ),
+                  if (_canManage) ...[
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                    CardActions(
                       children: [
-                        Pill(text: 'SKT: ${type.sktDays} gün', color: t.warning),
-                        type.hasPrice
-                            ? Pill(text: fmtMoney(type.unitPrice), color: t.success)
-                            : Pill(text: 'Fiyat yok', color: t.danger),
-                        if (type.isGlobal)
-                          Pill(text: 'Genel', color: t.info)
-                        else if (_canManage && type.storeName != null)
-                          Pill(text: type.storeName!, color: t.info),
-                      ],
-                    ),
-                    if (_canManage) ...[
-                      const SizedBox(height: 10),
-                      CardActions(children: [
-                        OutlinedButton(onPressed: () => _edit(type), child: const Text('Düzenle')),
+                        OutlinedButton(
+                          onPressed: () => _edit(type),
+                          child: const Text('Düzenle'),
+                        ),
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: t.danger,
@@ -164,11 +187,13 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
                           onPressed: () => _delete(type),
                           child: const Text('Sil'),
                         ),
-                      ]),
-                    ],
+                      ],
+                    ),
                   ],
-                ),
-              ))
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -183,7 +208,8 @@ Future<bool?> showProductTypeDialog(
   final name = TextEditingController(text: type?.name ?? '');
   final skt = TextEditingController(text: '${type?.sktDays ?? 3}');
   final price = TextEditingController(
-      text: type?.unitPrice == null ? '' : type!.unitPrice!.toString());
+    text: type?.unitPrice == null ? '' : type!.unitPrice!.toString(),
+  );
   final description = TextEditingController(text: type?.description ?? '');
   var active = type?.active ?? true;
   int? storeId = type?.storeId;
@@ -197,30 +223,43 @@ Future<bool?> showProductTypeDialog(
       fields: (context, rebuild) => [
         LabeledField(
           label: 'Ürün Adı',
-          child: TextField(controller: name, style: const TextStyle(fontSize: 16)),
-        ),
-        LabeledField(
-          label: 'SKT Süresi (gün)',
-          hint: '1 ile 14 arasında olmalıdır.',
           child: TextField(
-            controller: skt,
-            keyboardType: TextInputType.number,
+            controller: name,
             style: const TextStyle(fontSize: 16),
           ),
         ),
-        LabeledField(
-          label: 'Satış Fiyatı (TL)',
-          hint: 'Satış yapıldığında ciro bu fiyattan otomatik hesaplanır. '
-              'Boş bırakılırsa ciroya 0 TL yazılır.',
-          child: TextField(
-            controller: price,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 16),
+        // Kisa sayisal alanlar yan yana.
+        FormRow(
+          left: LabeledField(
+            label: 'SKT Süresi (gün)',
+            hint: '1 ile 14 arasında olmalıdır.',
+            child: TextField(
+              controller: skt,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          right: LabeledField(
+            label: 'Satış Fiyatı (TL)',
+            hint:
+                'Satış yapıldığında ciro bu fiyattan otomatik hesaplanır. '
+                'Boş bırakılırsa ciroya 0 TL yazılır.',
+            child: TextField(
+              controller: price,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
         ),
         LabeledField(
           label: 'Açıklama (opsiyonel)',
-          child: TextField(controller: description, maxLines: 2, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: description,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
         if (isSuper)
           LabeledField(
@@ -230,8 +269,15 @@ Future<bool?> showProductTypeDialog(
               isExpanded: true,
               items: [
                 const DropdownMenuItem<int?>(
-                    value: null, child: Text('Genel — tüm mağazalar kullanabilir')),
-                ...stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text('Yalnızca: ${s.name}'))),
+                  value: null,
+                  child: Text('Genel — tüm mağazalar kullanabilir'),
+                ),
+                ...stores.map(
+                  (s) => DropdownMenuItem<int?>(
+                    value: s.id,
+                    child: Text('Yalnızca: ${s.name}'),
+                  ),
+                ),
               ],
               onChanged: (v) {
                 storeId = v;
@@ -269,7 +315,9 @@ Future<bool?> showProductTypeDialog(
             name: name.text.trim(),
             sktDays: days,
             unitPrice: unitPrice,
-            description: description.text.trim().isEmpty ? null : description.text.trim(),
+            description: description.text.trim().isEmpty
+                ? null
+                : description.text.trim(),
             active: active,
             storeId: storeId,
             includeStore: isSuper,

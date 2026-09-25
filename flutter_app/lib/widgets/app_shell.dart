@@ -40,7 +40,10 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _loadCount();
-    _countTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadCount());
+    _countTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _loadCount(),
+    );
   }
 
   @override
@@ -83,7 +86,10 @@ class _AppShellState extends State<AppShell> {
             ),
       bottomNavigationBar: wide
           ? null
-          : _BottomBar(location: location, recommendationCount: _recommendationCount),
+          : _BottomBar(
+              location: location,
+              recommendationCount: _recommendationCount,
+            ),
       body: SafeArea(
         child: Row(
           children: [
@@ -92,7 +98,8 @@ class _AppShellState extends State<AppShell> {
                 items: items,
                 location: location,
                 rail: _isRail(width),
-                onToggleRail: () => setState(() => _railOverride = !_isRail(width)),
+                onToggleRail: () =>
+                    setState(() => _railOverride = !_isRail(width)),
               ),
             Expanded(
               child: Column(
@@ -107,7 +114,9 @@ class _AppShellState extends State<AppShell> {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 1440),
                         child: Padding(
-                          padding: EdgeInsets.all(width < 641 ? 12 : (width < 900 ? 16 : 18)),
+                          padding: EdgeInsets.all(
+                            width < 641 ? 12 : (width < 900 ? 16 : 18),
+                          ),
                           child: widget.child,
                         ),
                       ),
@@ -161,7 +170,9 @@ class _SideNav extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 16),
                 child: Row(
-                  mainAxisAlignment: rail ? MainAxisAlignment.center : MainAxisAlignment.start,
+                  mainAxisAlignment: rail
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.start,
                   children: [
                     if (!rail)
                       Expanded(
@@ -179,7 +190,9 @@ class _SideNav extends StatelessWidget {
                       IconButton(
                         tooltip: rail ? 'Menüyü genişlet' : 'Menüyü daralt',
                         onPressed: onToggleRail,
-                        icon: Icon(rail ? Icons.chevron_right : Icons.chevron_left),
+                        icon: Icon(
+                          rail ? Icons.chevron_right : Icons.chevron_left,
+                        ),
                         color: t.sidebarMuted,
                         constraints: const BoxConstraints(
                           minWidth: AppTokens.tap,
@@ -193,7 +206,10 @@ class _SideNav extends StatelessWidget {
             Divider(height: 1, color: t.sidebarBorder),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: rail ? 8 : 12, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: rail ? 8 : 12,
+                  vertical: 12,
+                ),
                 children: items.map((item) {
                   final active = location == item.path;
                   return Padding(
@@ -203,17 +219,25 @@ class _SideNav extends StatelessWidget {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppTokens.radiusSm),
                         onTap: () {
-                          if (Scaffold.of(context).hasDrawer) Navigator.of(context).pop();
+                          if (Scaffold.of(context).hasDrawer) {
+                              Navigator.of(context).pop();
+                            }
                           context.go(item.path);
                         },
                         child: Container(
-                          constraints: const BoxConstraints(minHeight: AppTokens.tap),
-                          padding: EdgeInsets.symmetric(horizontal: rail ? 0 : 14),
+                          constraints: const BoxConstraints(
+                            minHeight: AppTokens.tap,
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: rail ? 0 : 14,
+                          ),
                           decoration: BoxDecoration(
                             // primary600 uzerinde beyaz yazi 3.3 kontrast
                             // veriyordu (AA siniri 4.5); primary ile 5.02.
                             color: active ? t.primary : null,
-                            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusSm,
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: rail
@@ -273,7 +297,10 @@ class _SideNav extends StatelessWidget {
                               Text(
                                 roleLabels[user?.role] ?? '',
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: t.sidebarMuted, fontSize: 12),
+                                style: TextStyle(
+                                  color: t.sidebarMuted,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -313,7 +340,10 @@ class _TopBar extends StatelessWidget {
               tooltip: 'Menü',
               onPressed: onMenu,
               icon: const Icon(Icons.menu),
-              constraints: const BoxConstraints(minWidth: AppTokens.tap, minHeight: AppTokens.tap),
+              constraints: const BoxConstraints(
+                minWidth: AppTokens.tap,
+                minHeight: AppTokens.tap,
+              ),
             ),
           const Spacer(),
           // Kullanici blogu Profilim ekranina goturur: sifre ve tema orada.
@@ -321,7 +351,10 @@ class _TopBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             onTap: () => context.go('/profile'),
             child: Container(
-              constraints: const BoxConstraints(minHeight: AppTokens.tap, maxWidth: 230),
+              constraints: const BoxConstraints(
+                minHeight: AppTokens.tap,
+                maxWidth: 230,
+              ),
               padding: const EdgeInsets.fromLTRB(6, 4, 12, 4),
               decoration: BoxDecoration(
                 border: Border.all(color: t.border),
@@ -417,7 +450,9 @@ class _BottomBar extends StatelessWidget {
                   item: item,
                   active: location == item.path,
                   // Rozet yalnizca oneri listesinde.
-                  badge: item.path == '/recommendations' ? recommendationCount : 0,
+                  badge: item.path == '/recommendations'
+                      ? recommendationCount
+                      : 0,
                 ),
               );
             }).toList(),
@@ -431,7 +466,11 @@ class _BottomBar extends StatelessWidget {
 /// Tek sekme. Aktif durumda ikon ve etiketin ikisini birden kapsayan yumusak
 /// bir hap cizilir (React'teki .bottom-nav a.active ile ayni gorunum).
 class _BottomTab extends StatelessWidget {
-  const _BottomTab({required this.item, required this.active, required this.badge});
+  const _BottomTab({
+    required this.item,
+    required this.active,
+    required this.badge,
+  });
 
   final NavItem item;
   final bool active;
@@ -467,7 +506,12 @@ class _BottomTab extends StatelessWidget {
                     Avatar(user: session.user, size: 24)
                   else
                     Icon(item.icon, size: 24, color: color),
-                  if (badge > 0) Positioned(top: -8, left: 12, child: _NavBadge(count: badge)),
+                  if (badge > 0)
+                    Positioned(
+                      top: -8,
+                      left: 12,
+                      child: _NavBadge(count: badge),
+                    ),
                 ],
               ),
             ),
@@ -476,7 +520,11 @@ class _BottomTab extends StatelessWidget {
               item.shortLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -498,7 +546,10 @@ class _NavBadge extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minWidth: 18),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: t.danger, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: t.danger,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Text(
         count > 99 ? '99+' : '$count',
         textAlign: TextAlign.center,

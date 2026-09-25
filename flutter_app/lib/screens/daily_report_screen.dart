@@ -34,15 +34,20 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   static const _entryRoles = ['store_manager', 'shift_supervisor'];
 
   bool get _canEnter => _entryRoles.contains(session.user?.role);
-  bool get _showStore => !(session.user?.storeId != null && !(session.user?.isMultiStore ?? false));
+  bool get _showStore =>
+      !(session.user?.storeId != null &&
+          !(session.user?.isMultiStore ?? false));
 
   @override
   void initState() {
     super.initState();
     _load();
-    repo.reportFields().then((f) {
-      if (mounted) setState(() => _fields = f);
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .reportFields()
+        .then((f) {
+          if (mounted) setState(() => _fields = f);
+        })
+        .onError((Object _, StackTrace _) {});
   }
 
   Future<void> _load({bool silent = false}) async {
@@ -72,7 +77,11 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   }
 
   Future<void> _edit(DailyReport item) async {
-    final ok = await showDailyReportDialog(context, fields: _fields, existing: item);
+    final ok = await showDailyReportDialog(
+      context,
+      fields: _fields,
+      existing: item,
+    );
     if (ok == true) {
       toastSaved('Rapor güncellendi');
       await _load(silent: true);
@@ -84,8 +93,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
       context,
       title: 'Raporu Sil',
       confirmLabel: 'Sil',
-      body: Text('${fmtDate(item.date)} — ${fmtMoney(item.values['net_sales'])}'
-          '\n\nBu günün raporu silinecek.'),
+      body: Text(
+        '${fmtDate(item.date)} — ${fmtMoney(item.values['net_sales'])}'
+        '\n\nBu günün raporu silinecek.',
+      ),
     );
     if (ok != true) return;
     try {
@@ -151,8 +162,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text('${fmtDate(_page.from)} – ${fmtDate(_page.to)} · ${summary.days} gün',
-                    style: TextStyle(fontSize: 13, color: t.muted)),
+                Text(
+                  '${fmtDate(_page.from)} – ${fmtDate(_page.to)} · ${summary.days} gün',
+                  style: TextStyle(fontSize: 13, color: t.muted),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -167,7 +180,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _export(true),
-                        icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                        icon: const Icon(
+                          Icons.picture_as_pdf_outlined,
+                          size: 18,
+                        ),
                         label: const Text('PDF'),
                       ),
                     ),
@@ -183,64 +199,84 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
         ],
       ),
       children: _page.items
-          .map((item) => AppCard(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(fmtDate(item.date),
-                              style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+          .map(
+            (item) => AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          fmtDate(item.date),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
                         ),
-                        Text(fmtMoney(item.values['net_sales']),
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700, color: t.success)),
-                      ],
-                    ),
-                    if (_showStore && item.storeName != null) ...[
-                      const SizedBox(height: 4),
-                      Text(item.storeName!, style: TextStyle(fontSize: 12, color: t.muted)),
+                      ),
+                      Text(
+                        fmtMoney(item.values['net_sales']),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.success,
+                        ),
+                      ),
                     ],
-                    const SizedBox(height: 8),
-                    _MetricWrap(fields: _fields, report: item),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${fmtInt(item.values['adt'])} fiş · '
-                            '${fmtInt(item.values['product_qty'])} ürün · '
-                            '${item.createdByName ?? 'bilinmiyor'}',
-                            style: TextStyle(fontSize: 12, color: t.muted),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => showDailyReportDetail(context, item, _fields),
-                          child: const Text('Detay'),
-                        ),
-                        // Girisi yapan roller kendi kayitlarini duzeltebilir.
-                        if (_canEnter) ...[
-                          IconButton(
-                            tooltip: 'Düzenle',
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => _edit(item),
-                            icon: const Icon(Icons.edit_outlined, size: 19),
-                          ),
-                          IconButton(
-                            tooltip: 'Sil',
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => _delete(item),
-                            icon: Icon(Icons.delete_outline, size: 19, color: t.danger),
-                          ),
-                        ],
-                      ],
+                  ),
+                  if (_showStore && item.storeName != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      item.storeName!,
+                      style: TextStyle(fontSize: 12, color: t.muted),
                     ),
                   ],
-                ),
-              ))
+                  const SizedBox(height: 8),
+                  _MetricWrap(fields: _fields, report: item),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${fmtInt(item.values['adt'])} fiş · '
+                          '${fmtInt(item.values['product_qty'])} ürün · '
+                          '${item.createdByName ?? 'bilinmiyor'}',
+                          style: TextStyle(fontSize: 12, color: t.muted),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            showDailyReportDetail(context, item, _fields),
+                        child: const Text('Detay'),
+                      ),
+                      // Girisi yapan roller kendi kayitlarini duzeltebilir.
+                      if (_canEnter) ...[
+                        IconButton(
+                          tooltip: 'Düzenle',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _edit(item),
+                          icon: const Icon(Icons.edit_outlined, size: 19),
+                        ),
+                        IconButton(
+                          tooltip: 'Sil',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 19,
+                            color: t.danger,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -260,10 +296,13 @@ class _MetricWrap extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: fields.derived
-          .map((f) => Pill(
-                text: '${f.label}: ${formatReportValue(report.metrics[f.key], f.type)}',
-                color: f.key == 'food_markout_pct' ? t.danger : t.info,
-              ))
+          .map(
+            (f) => Pill(
+              text:
+                  '${f.label}: ${formatReportValue(report.metrics[f.key], f.type)}',
+              color: f.key == 'food_markout_pct' ? t.danger : t.info,
+            ),
+          )
           .toList(),
     );
   }
@@ -283,26 +322,40 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Dönem Özeti',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+          Text(
+            'Dönem Özeti',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Oranlar günlerin ortalaması değil, toplam veriden hesaplanır.',
-              style: TextStyle(fontSize: 12, color: t.muted)),
+          Text(
+            'Oranlar günlerin ortalaması değil, toplam veriden hesaplanır.',
+            style: TextStyle(fontSize: 12, color: t.muted),
+          ),
           const SizedBox(height: 12),
-          ...fields.entry.map((f) => _Row(
-                label: f.label,
-                value: formatReportValue(summary.totals[f.key], f.type),
-              )),
-          ...fields.system.map((f) => _Row(
-                label: f.label,
-                value: formatReportValue(summary.totals[f.key], f.type),
-              )),
+          ...fields.entry.map(
+            (f) => _Row(
+              label: f.label,
+              value: formatReportValue(summary.totals[f.key], f.type),
+            ),
+          ),
+          ...fields.system.map(
+            (f) => _Row(
+              label: f.label,
+              value: formatReportValue(summary.totals[f.key], f.type),
+            ),
+          ),
           const Divider(height: 20),
-          ...fields.derived.map((f) => _Row(
-                label: f.label,
-                value: formatReportValue(summary.metrics[f.key], f.type),
-                bold: true,
-              )),
+          ...fields.derived.map(
+            (f) => _Row(
+              label: f.label,
+              value: formatReportValue(summary.metrics[f.key], f.type),
+              bold: true,
+            ),
+          ),
         ],
       ),
     );
@@ -324,15 +377,23 @@ class _Row extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: bold ? t.ink : t.muted,
-                    fontWeight: bold ? FontWeight.w600 : FontWeight.w500)),
-          ),
-          Text(value,
+            child: Text(
+              label,
               style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: bold ? t.primary : t.ink)),
+                fontSize: 13,
+                color: bold ? t.ink : t.muted,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: bold ? t.primary : t.ink,
+            ),
+          ),
         ],
       ),
     );

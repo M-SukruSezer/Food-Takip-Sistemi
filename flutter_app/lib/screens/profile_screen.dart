@@ -143,13 +143,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user.fullName,
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.ink)),
+                    Text(
+                      user.fullName,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(roleLabels[user.role] ?? user.role,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.primary)),
-                    Text('@${user.username} · ${user.storeName ?? 'Merkezi'}',
-                        style: TextStyle(fontSize: 13, color: t.muted)),
+                    Text(
+                      roleLabels[user.role] ?? user.role,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: t.primary,
+                      ),
+                    ),
+                    Text(
+                      '@${user.username} · ${user.storeName ?? 'Merkezi'}',
+                      style: TextStyle(fontSize: 13, color: t.muted),
+                    ),
                   ],
                 ),
               ),
@@ -176,7 +190,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _savingAvatar ? null : _pickAvatar,
                       icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                      label: Text(user.avatar == null ? 'Fotoğraf Yükle' : 'Fotoğrafı Değiştir'),
+                      label: Text(
+                        user.avatar == null
+                            ? 'Fotoğraf Yükle'
+                            : 'Fotoğrafı Değiştir',
+                      ),
                     ),
                   ),
                   if (user.avatar != null) ...[
@@ -270,11 +288,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 10),
                     _PasswordField(label: 'Yeni Şifre', controller: _next),
                     const SizedBox(height: 10),
-                    _PasswordField(label: 'Yeni Şifre (Tekrar)', controller: _confirm),
+                    _PasswordField(
+                      label: 'Yeni Şifre (Tekrar)',
+                      controller: _confirm,
+                    ),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: _savingPassword ? null : _changePassword,
-                      child: Text(_savingPassword ? 'Kaydediliyor...' : 'Şifreyi Güncelle'),
+                      child: Text(
+                        _savingPassword
+                            ? 'Kaydediliyor...'
+                            : 'Şifreyi Güncelle',
+                      ),
                     ),
                   ],
                 ),
@@ -324,8 +349,14 @@ class _SectionTitle extends StatelessWidget {
     final t = context.tokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(text,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: t.ink,
+        ),
+      ),
     );
   }
 }

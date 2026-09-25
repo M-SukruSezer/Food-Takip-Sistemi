@@ -59,7 +59,9 @@ class _StoresScreenState extends State<StoresScreen> {
       context,
       title: 'Mağazayı Sil',
       confirmLabel: 'Sil',
-      body: Text('${store.name} silinecek. Bu mağazaya tanımlı ürün çeşitleri de silinir.'),
+      body: Text(
+        '${store.name} silinecek. Bu mağazaya tanımlı ürün çeşitleri de silinir.',
+      ),
     );
     if (ok != true) return;
     try {
@@ -85,12 +87,14 @@ class _StoresScreenState extends State<StoresScreen> {
       emptyText: 'Henüz mağaza eklenmemiş.',
       grid: true,
       children: _items
-          .map((store) => AppCardStore(
-                store: store,
-                onEdit: () => _edit(store),
-                onDelete: store.deletable ? () => _delete(store) : null,
-                inkColor: t.ink,
-              ))
+          .map(
+            (store) => AppCardStore(
+              store: store,
+              onEdit: () => _edit(store),
+              onDelete: store.deletable ? () => _delete(store) : null,
+              inkColor: t.ink,
+            ),
+          )
           .toList(),
     );
   }
@@ -121,41 +125,65 @@ class AppCardStore extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(store.name,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: inkColor)),
+                child: Text(
+                  store.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: inkColor,
+                  ),
+                ),
               ),
-              Pill(text: store.active ? 'aktif' : 'pasif', color: store.active ? t.success : t.danger),
+              Pill(
+                text: store.active ? 'aktif' : 'pasif',
+                color: store.active ? t.success : t.danger,
+              ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(store.address?.isNotEmpty == true ? store.address! : 'Adres girilmemiş',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13, color: t.muted)),
-          Text(store.phone?.isNotEmpty == true ? store.phone! : 'Telefon girilmemiş',
-              style: TextStyle(fontSize: 13, color: t.muted)),
+          Text(
+            store.address?.isNotEmpty == true
+                ? store.address!
+                : 'Adres girilmemiş',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
+          Text(
+            store.phone?.isNotEmpty == true
+                ? store.phone!
+                : 'Telefon girilmemiş',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               Pill(text: '${store.userCount} personel', color: t.info),
-              Pill(text: '${store.activeBatchCount} aktif ürün', color: t.warning),
+              Pill(
+                text: '${store.activeBatchCount} aktif ürün',
+                color: t.warning,
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          CardActions(children: [
-            OutlinedButton(onPressed: onEdit, child: const Text('Düzenle')),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: onDelete == null ? t.muted : t.danger,
-                side: BorderSide(color: onDelete == null ? t.border : t.danger),
+          CardActions(
+            children: [
+              OutlinedButton(onPressed: onEdit, child: const Text('Düzenle')),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: onDelete == null ? t.muted : t.danger,
+                  side: BorderSide(
+                    color: onDelete == null ? t.border : t.danger,
+                  ),
+                ),
+                onPressed: onDelete,
+                child: const Text('Sil'),
               ),
-              onPressed: onDelete,
-              child: const Text('Sil'),
-            ),
-          ]),
+            ],
+          ),
         ],
       ),
     );
@@ -176,11 +204,18 @@ Future<bool?> showStoreDialog(BuildContext context, {Store? store}) {
       fields: (context, rebuild) => [
         LabeledField(
           label: 'Mağaza Adı',
-          child: TextField(controller: name, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: name,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
         LabeledField(
           label: 'Adres (opsiyonel)',
-          child: TextField(controller: address, maxLines: 2, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: address,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
         LabeledField(
           label: 'Telefon (opsiyonel)',

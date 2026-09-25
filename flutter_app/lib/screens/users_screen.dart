@@ -30,7 +30,6 @@ class _UsersScreenState extends State<UsersScreen> {
   String? _error;
   bool _loaded = false;
 
-
   @override
   void initState() {
     super.initState();
@@ -38,9 +37,12 @@ class _UsersScreenState extends State<UsersScreen> {
     // Magaza listesi hem filtre hem de cok magazali rol atamasi icin gerekli;
     // sunucu zaten yalnizca erisilen magazalari donuyor.
     if (session.user?.canManage ?? false) {
-      repo.stores(silent: true).then((s) {
-        if (mounted) setState(() => _stores = s);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _stores = s);
+          })
+          .onError((Object _, StackTrace _) {});
     }
   }
 
@@ -89,9 +91,11 @@ class _UsersScreenState extends State<UsersScreen> {
       danger: user.active,
       title: user.active ? 'Kullanıcıyı Pasife Al' : 'Kullanıcıyı Aktifleştir',
       confirmLabel: user.active ? 'Pasife Al' : 'Aktifleştir',
-      body: Text(user.active
-          ? '${user.fullName} artık sisteme giriş yapamayacak.'
-          : '${user.fullName} yeniden giriş yapabilecek.'),
+      body: Text(
+        user.active
+            ? '${user.fullName} artık sisteme giriş yapamayacak.'
+            : '${user.fullName} yeniden giriş yapabilecek.',
+      ),
     );
     if (ok != true) return;
     try {
@@ -107,8 +111,10 @@ class _UsersScreenState extends State<UsersScreen> {
       context,
       title: 'Kullanıcıyı Sil',
       confirmLabel: 'Sil',
-      body: Text('${user.fullName} (${user.username}) kalıcı olarak silinecek. '
-          'Geçmiş hareket kayıtları korunur.'),
+      body: Text(
+        '${user.fullName} (${user.username}) kalıcı olarak silinecek. '
+        'Geçmiş hareket kayıtları korunur.',
+      ),
     );
     if (ok != true) return;
     try {
@@ -132,7 +138,9 @@ class _UsersScreenState extends State<UsersScreen> {
       onRefresh: () => _load(silent: true),
       addLabel: 'Yeni Kullanıcı',
       onAdd: _create,
-      emptyText: _search.isEmpty ? 'Kullanıcı bulunamadı.' : 'Aramanıza uyan kullanıcı yok.',
+      emptyText: _search.isEmpty
+          ? 'Kullanıcı bulunamadı.'
+          : 'Aramanıza uyan kullanıcı yok.',
       banner: _items.length > 6 || _search.isNotEmpty
           ? AppCard(
               padding: const EdgeInsets.all(12),
@@ -163,11 +171,19 @@ class _UsersScreenState extends State<UsersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user.fullName,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: t.ink)),
-                        Text('@${user.username}',
-                            style: TextStyle(fontSize: 13, color: t.muted)),
+                        Text(
+                          user.fullName,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
+                        ),
+                        Text(
+                          '@${user.username}',
+                          style: TextStyle(fontSize: 13, color: t.muted),
+                        ),
                       ],
                     ),
                   ),
@@ -187,7 +203,9 @@ class _UsersScreenState extends State<UsersScreen> {
                     text: user.isMultiStore
                         ? '${user.storeIds.length} mağaza sorumlusu'
                         : (user.storeName ??
-                            (user.role == 'super_admin' ? 'Tüm mağazalar' : 'Mağaza atanmamış')),
+                              (user.role == 'super_admin'
+                                  ? 'Tüm mağazalar'
+                                  : 'Mağaza atanmamış')),
                     color: t.warning,
                   ),
                 ],
@@ -203,7 +221,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 ),
               if (perm.reason != null) ...[
                 const SizedBox(height: 4),
-                Text(perm.reason!, style: TextStyle(fontSize: 12, color: t.muted)),
+                Text(
+                  perm.reason!,
+                  style: TextStyle(fontSize: 12, color: t.muted),
+                ),
               ],
               const SizedBox(height: 10),
               // Islemler telefonda iki satira sarilir; her dugme tam dokunma boyunda.
@@ -216,17 +237,23 @@ class _UsersScreenState extends State<UsersScreen> {
                     child: const Text('Düzenle'),
                   ),
                   OutlinedButton(
-                    onPressed: perm.canResetPassword ? () => _resetPassword(user) : null,
+                    onPressed: perm.canResetPassword
+                        ? () => _resetPassword(user)
+                        : null,
                     child: const Text('Şifre'),
                   ),
                   OutlinedButton(
-                    onPressed: perm.canToggleActive ? () => _toggle(user) : null,
+                    onPressed: perm.canToggleActive
+                        ? () => _toggle(user)
+                        : null,
                     child: Text(user.active ? 'Pasife Al' : 'Aktifleştir'),
                   ),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: perm.canDelete ? t.danger : t.muted,
-                      side: BorderSide(color: perm.canDelete ? t.danger : t.border),
+                      side: BorderSide(
+                        color: perm.canDelete ? t.danger : t.border,
+                      ),
                     ),
                     onPressed: perm.canDelete ? () => _delete(user) : null,
                     child: const Text('Sil'),
@@ -262,7 +289,9 @@ Future<bool?> showUserDialog(
     ...(user?.permissions ?? const ['discard', 'ikram']),
   };
   final grantable = grantablePermissions(current);
-  int? storeId = user?.storeId ?? (current?.isSuperAdmin == true ? null : current?.storeId);
+  int? storeId =
+      user?.storeId ??
+      (current?.isSuperAdmin == true ? null : current?.storeId);
   var active = user?.active ?? true;
   final selectedStores = <int>{...(user?.storeIds ?? const <int>[])};
   final isSuper = current?.isSuperAdmin ?? false;
@@ -276,24 +305,30 @@ Future<bool?> showUserDialog(
       fields: (context, rebuild) => [
         LabeledField(
           label: 'Ad Soyad',
-          child: TextField(controller: fullName, style: const TextStyle(fontSize: 16)),
+          child: TextField(
+            controller: fullName,
+            style: const TextStyle(fontSize: 16),
+          ),
         ),
         if (user == null) ...[
-          LabeledField(
-            label: 'Kullanıcı Adı',
-            child: TextField(
-              controller: username,
-              autocorrect: false,
-              style: const TextStyle(fontSize: 16),
+          // Kisa alanlar yan yana: cep ekraninda form yuksekligi dususu.
+          FormRow(
+            left: LabeledField(
+              label: 'Kullanıcı Adı',
+              child: TextField(
+                controller: username,
+                autocorrect: false,
+                style: const TextStyle(fontSize: 16),
+              ),
             ),
-          ),
-          LabeledField(
-            label: 'Şifre',
-            hint: 'En az 6 karakter olmalıdır.',
-            child: TextField(
-              controller: password,
-              obscureText: true,
-              style: const TextStyle(fontSize: 16),
+            right: LabeledField(
+              label: 'Şifre',
+              hint: 'En az 6 karakter.',
+              child: TextField(
+                controller: password,
+                obscureText: true,
+                style: const TextStyle(fontSize: 16),
+              ),
             ),
           ),
         ],
@@ -304,7 +339,12 @@ Future<bool?> showUserDialog(
             initialValue: roles.contains(role) ? role : roles.first,
             isExpanded: true,
             items: roles
-                .map((r) => DropdownMenuItem(value: r, child: Text(roleLabels[r] ?? r)))
+                .map(
+                  (r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(roleLabels[r] ?? r),
+                  ),
+                )
                 .toList(),
             onChanged: lockRole
                 ? null
@@ -342,15 +382,23 @@ Future<bool?> showUserDialog(
               }).toList(),
             ),
           )
-        else if (isSuper && !multiStoreRoles.contains(role) && role != 'super_admin')
+        else if (isSuper &&
+            !multiStoreRoles.contains(role) &&
+            role != 'super_admin')
           LabeledField(
             label: 'Mağaza',
             child: DropdownButtonFormField<int?>(
               initialValue: storeId,
               isExpanded: true,
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Mağaza atanmamış')),
-                ...stores.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Mağaza atanmamış'),
+                ),
+                ...stores.map(
+                  (s) =>
+                      DropdownMenuItem<int?>(value: s.id, child: Text(s.name)),
+                ),
               ],
               onChanged: (v) {
                 storeId = v;
@@ -382,8 +430,10 @@ Future<bool?> showUserDialog(
                           rebuild();
                         }
                       : null,
-                  title: Text(permissionLabels[permission] ?? permission,
-                      style: const TextStyle(fontSize: 14)),
+                  title: Text(
+                    permissionLabels[permission] ?? permission,
+                    style: const TextStyle(fontSize: 14),
+                  ),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
@@ -407,27 +457,39 @@ Future<bool?> showUserDialog(
         try {
           if (user == null) {
             if (username.text.trim().isEmpty) return 'Kullanıcı adı zorunludur';
-            if (password.text.length < 6) return 'Şifre en az 6 karakter olmalıdır';
+            if (password.text.length < 6) {
+                return 'Şifre en az 6 karakter olmalıdır';
+              }
             await repo.createUser(
               username: username.text.trim(),
               password: password.text,
               fullName: fullName.text.trim(),
               role: role,
-              storeId: multiStoreRoles.contains(role) || role == 'super_admin' ? null : storeId,
+              storeId: multiStoreRoles.contains(role) || role == 'super_admin'
+                  ? null
+                  : storeId,
               active: true,
               permissions: role == 'super_admin' ? null : selected.toList(),
-              storeIds: multiStoreRoles.contains(role) ? selectedStores.toList() : null,
+              storeIds: multiStoreRoles.contains(role)
+                  ? selectedStores.toList()
+                  : null,
             );
           } else {
             await repo.updateUser(
               id: user.id,
               fullName: fullName.text.trim(),
               role: role,
-              active: permissionsFor(current, user).canToggleActive ? active : null,
-              storeId: multiStoreRoles.contains(role) || role == 'super_admin' ? null : storeId,
+              active: permissionsFor(current, user).canToggleActive
+                  ? active
+                  : null,
+              storeId: multiStoreRoles.contains(role) || role == 'super_admin'
+                  ? null
+                  : storeId,
               includeStore: isSuper,
               permissions: role == 'super_admin' ? null : selected.toList(),
-              storeIds: multiStoreRoles.contains(role) ? selectedStores.toList() : null,
+              storeIds: multiStoreRoles.contains(role)
+                  ? selectedStores.toList()
+                  : null,
             );
           }
           return null;
@@ -450,27 +512,31 @@ Future<bool?> showPasswordResetDialog(BuildContext context, ManagedUser user) {
       title: '${user.fullName} — Şifre Belirle',
       submitLabel: 'Şifreyi Kaydet',
       fields: (context, rebuild) => [
-        LabeledField(
-          label: 'Yeni Şifre',
-          hint: 'En az 6 karakter olmalıdır.',
-          child: TextField(
-            controller: password,
-            obscureText: true,
-            style: const TextStyle(fontSize: 16),
+        FormRow(
+          left: LabeledField(
+            label: 'Yeni Şifre',
+            hint: 'En az 6 karakter.',
+            child: TextField(
+              controller: password,
+              obscureText: true,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
-        ),
-        LabeledField(
-          label: 'Yeni Şifre (tekrar)',
-          child: TextField(
-            controller: repeat,
-            obscureText: true,
-            style: const TextStyle(fontSize: 16),
+          right: LabeledField(
+            label: 'Tekrar',
+            child: TextField(
+              controller: repeat,
+              obscureText: true,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
         ),
       ],
       onSubmit: () async {
         if (password.text.length < 6) return 'Şifre en az 6 karakter olmalıdır';
-        if (password.text != repeat.text) return 'Şifreler birbiriyle aynı değil';
+        if (password.text != repeat.text) {
+            return 'Şifreler birbiriyle aynı değil';
+          }
         try {
           await repo.resetUserPassword(user.id, password.text);
           return null;
@@ -501,7 +567,11 @@ class _Initials extends StatelessWidget {
       decoration: BoxDecoration(color: t.primarySoft, shape: BoxShape.circle),
       child: Text(
         letters.isEmpty ? '?' : letters,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: t.primaryDark),
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: t.primaryDark,
+        ),
       ),
     );
   }

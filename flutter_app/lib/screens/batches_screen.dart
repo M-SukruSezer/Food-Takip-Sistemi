@@ -50,13 +50,21 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final requested = _tabs.indexWhere((t) => t.id == widget.initialTab);
     if (requested >= 0) _tab = requested;
     _load();
-    repo.productTypes(silent: true).then((list) {
-      if (mounted) setState(() => _types = list.where((t) => t.active).toList());
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .productTypes(silent: true)
+        .then((list) {
+          if (mounted) {
+              setState(() => _types = list.where((t) => t.active).toList());
+            }
+        })
+        .onError((Object _, StackTrace _) {});
     if (session.user?.isSuperAdmin ?? false) {
-      repo.stores(silent: true).then((list) {
-        if (mounted) setState(() => _stores = list);
-      }).onError((Object _, StackTrace _) {});
+      repo
+          .stores(silent: true)
+          .then((list) {
+            if (mounted) setState(() => _stores = list);
+          })
+          .onError((Object _, StackTrace _) {});
     }
   }
 
@@ -89,6 +97,29 @@ class _BatchesScreenState extends State<BatchesScreen> {
   Future<void> _after(Future<bool?> action) async {
     final ok = await action;
     if (ok == true) await _load(silent: true);
+  }
+
+  /// Parti silme geri alinamaz: bagli satis ve zayi kayitlari da gider.
+  /// Bu yuzden onay metninde ne silinecegi acikca yaziliyor.
+  Future<void> _deleteBatch(Batch b) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Kaydı Sil',
+      confirmLabel: 'Sil',
+      body: Text(
+        '${b.productName} (${statusLabels[b.status] ?? b.status}, ${b.remaining} adet kalan) '
+        'kaydı silinecek.\n\nBu partiye ait satış, ikram ve zayi kayıtları da '
+        'silinir. İşlem geri alınamaz.\n\nYalnızca adet yanlışsa silmek yerine '
+        '"Tarih / Adet Düzelt" kullanın.',
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await repo.deleteBatch(b);
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
+    await _load(silent: true);
   }
 
   Future<void> _completeThaw(Batch b) async {
@@ -125,13 +156,25 @@ class _BatchesScreenState extends State<BatchesScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Ürünler',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: t.ink)),
+                    child: Text(
+                      'Ürünler',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
                   ),
                   FilledButton.icon(
                     onPressed: _types.isEmpty
                         ? null
-                        : () => _after(showAddBatchDialog(context, types: _types, stores: _stores)),
+                        : () => _after(
+                            showAddBatchDialog(
+                              context,
+                              types: _types,
+                              stores: _stores,
+                            ),
+                          ),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Yeni Ürün'),
                   ),
@@ -168,52 +211,68 @@ class _BatchesScreenState extends State<BatchesScreen> {
           child: !_loaded
               ? const SizedBox.shrink()
               : _error != null && _items.isEmpty
-                  ? Center(
-                      child: AppCard(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AppAlert(message: _error!),
-                            const SizedBox(height: 12),
-                            FilledButton(onPressed: () => _load(), child: const Text('Tekrar Dene')),
-                          ],
+              ? Center(
+                  child: AppCard(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppAlert(message: _error!),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () => _load(),
+                          child: const Text('Tekrar Dene'),
                         ),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => _load(silent: true),
-                      child: _shown.isEmpty
-                          ? ListView(
-                              children: [
-                                AppCard(
-                                  child: Text(
-                                    _items.isEmpty
-                                        ? 'Bu sekmede kayıt bulunamadı.'
-                                        : '"$_search" ile eşleşen ürün bulunamadı.',
-                                    style: TextStyle(color: t.muted),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : ListView.separated(
-                              padding: EdgeInsets.zero,
-                              itemCount: _shown.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: AppTokens.gap),
-                              itemBuilder: (context, i) => _BatchCard(
-                                batch: _shown[i],
-                                showStore: isSuper,
-                                canAdjust: session.user?.can('adjust_batches') ?? false,
-                                canDiscard: session.user?.can('discard') ?? false,
-                                onDetail: () => showBatchDetail(context, _shown[i]),
-                                onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
-                                onThaw: () => _after(showThawDialog(context, _shown[i])),
-                                onCompleteThaw: () => _completeThaw(_shown[i]),
-                                onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
-                                onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
-                                onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
+                      ],
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _load(silent: true),
+                  child: _shown.isEmpty
+                      ? ListView(
+                          children: [
+                            AppCard(
+                              child: Text(
+                                _items.isEmpty
+                                    ? 'Bu sekmede kayıt bulunamadı.'
+                                    : '"$_search" ile eşleşen ürün bulunamadı.',
+                                style: TextStyle(color: t.muted),
                               ),
                             ),
-                    ),
+                          ],
+                        )
+                      : ListView.separated(
+                          padding: EdgeInsets.zero,
+                          itemCount: _shown.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppTokens.gap),
+                          itemBuilder: (context, i) => _BatchCard(
+                            batch: _shown[i],
+                            showStore: isSuper,
+                            canAdjust:
+                                session.user?.can('adjust_batches') ?? false,
+                            canDiscard: session.user?.can('discard') ?? false,
+                            canDelete: session.user?.isSuperAdmin ?? false,
+                            onDetail: () => showBatchDetail(context, _shown[i]),
+                            onAdjust: () =>
+                                _after(showAdjustDialog(context, _shown[i])),
+                            onThaw: () =>
+                                _after(showThawDialog(context, _shown[i])),
+                            onCompleteThaw: () => _completeThaw(_shown[i]),
+                            onAddStock: () =>
+                                _after(showStockAddDialog(context, _shown[i])),
+                            onEarlyRequest: () => _after(
+                              showEarlyRequestDialog(context, _shown[i]),
+                            ),
+                            onDiscard: () =>
+                                _after(showDiscardDialog(context, _shown[i])),
+                            onCorrectThaw: () => _after(
+                              showCorrectThawDialog(context, _shown[i]),
+                            ),
+                            onDelete: () => _deleteBatch(_shown[i]),
+                          ),
+                        ),
+                ),
         ),
       ],
     );
@@ -221,7 +280,11 @@ class _BatchesScreenState extends State<BatchesScreen> {
 }
 
 class _TabBar extends StatelessWidget {
-  const _TabBar({required this.tabs, required this.index, required this.onChanged});
+  const _TabBar({
+    required this.tabs,
+    required this.index,
+    required this.onChanged,
+  });
 
   final List<({String label, IconData icon})> tabs;
   final int index;
@@ -255,7 +318,11 @@ class _TabBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(tabs[i].icon, size: 15, color: active ? Colors.white : t.ink),
+                Icon(
+                  tabs[i].icon,
+                  size: 15,
+                  color: active ? Colors.white : t.ink,
+                ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -283,6 +350,7 @@ class _BatchCard extends StatelessWidget {
     required this.showStore,
     required this.canAdjust,
     required this.canDiscard,
+    required this.canDelete,
     required this.onDetail,
     required this.onAdjust,
     required this.onThaw,
@@ -290,12 +358,17 @@ class _BatchCard extends StatelessWidget {
     required this.onAddStock,
     required this.onEarlyRequest,
     required this.onDiscard,
+    required this.onCorrectThaw,
+    required this.onDelete,
   });
 
   final Batch batch;
   final bool showStore;
   final bool canAdjust;
   final bool canDiscard;
+
+  /// Parti silme yalnizca ana yoneticide; geri alinamaz.
+  final bool canDelete;
   final VoidCallback onDetail;
   final VoidCallback onAdjust;
   final VoidCallback onThaw;
@@ -303,6 +376,8 @@ class _BatchCard extends StatelessWidget {
   final VoidCallback onAddStock;
   final VoidCallback onEarlyRequest;
   final VoidCallback onDiscard;
+  final VoidCallback onCorrectThaw;
+  final VoidCallback onDelete;
 
   ({String text, Color color}) _badge(AppTokens t) {
     if (batch.status == 'food_cabinet') {
@@ -325,45 +400,91 @@ class _BatchCard extends StatelessWidget {
   /// Satirda yalnizca o an anlamli olan ana islem durur; gerisi menude.
   /// Karar batch_actions.dart icindeki saf fonksiyondan gelir.
   Widget? _primaryWidget(AppTokens t, BatchAction? action) => switch (action) {
-        BatchAction.thaw => FilledButton(onPressed: onThaw, child: const Text('Çözülmeye Al')),
-        BatchAction.completeThaw => FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: t.success),
-            onPressed: onCompleteThaw,
-            child: const Text('Food Dolabına Al'),
-          ),
-        BatchAction.awaitingApproval => Container(
-            constraints: const BoxConstraints(minHeight: AppTokens.tap),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: t.warning.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-            ),
-            child: Text('Onay Bekliyor',
-                style: TextStyle(color: t.warning, fontWeight: FontWeight.w700, fontSize: 13)),
-          ),
-        _ => null,
-      };
+    BatchAction.thaw => FilledButton(
+      onPressed: onThaw,
+      child: const Text('Çözülmeye Al'),
+    ),
+    BatchAction.completeThaw => FilledButton(
+      style: FilledButton.styleFrom(backgroundColor: t.success),
+      onPressed: onCompleteThaw,
+      child: const Text('Food Dolabına Al'),
+    ),
+    BatchAction.awaitingApproval => Container(
+      constraints: const BoxConstraints(minHeight: AppTokens.tap),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: t.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+      ),
+      child: Text(
+        'Onay Bekliyor',
+        style: TextStyle(
+          color: t.warning,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
+      ),
+    ),
+    _ => null,
+  };
 
   _MenuEntry _entry(BatchAction a) => switch (a) {
-        BatchAction.detail => (label: 'Detay', icon: Icons.info_outline, danger: false, onTap: onDetail),
-        BatchAction.adjust => (label: 'Tarih / Adet Düzelt', icon: Icons.edit_outlined, danger: false, onTap: onAdjust),
-        BatchAction.addStock => (label: 'Stok Ekle', icon: Icons.add_box_outlined, danger: false, onTap: onAddStock),
-        BatchAction.earlyRequest => (
-            label: 'Erken Aktarım İste (${formatHours(batch.thawRemainingHours)})',
-            icon: Icons.hourglass_bottom,
-            danger: false,
-            onTap: onEarlyRequest
-          ),
-        BatchAction.discard => (label: 'Zayi Gir', icon: Icons.delete_outline, danger: true, onTap: onDiscard),
-        _ => (label: '-', icon: Icons.help_outline, danger: false, onTap: onDetail),
-      };
+    BatchAction.detail => (
+      label: 'Detay',
+      icon: Icons.info_outline,
+      danger: false,
+      onTap: onDetail,
+    ),
+    BatchAction.adjust => (
+      label: 'Tarih / Adet Düzelt',
+      icon: Icons.edit_outlined,
+      danger: false,
+      onTap: onAdjust,
+    ),
+    BatchAction.addStock => (
+      label: 'Stok Ekle',
+      icon: Icons.add_box_outlined,
+      danger: false,
+      onTap: onAddStock,
+    ),
+    BatchAction.earlyRequest => (
+      label: 'Erken Aktarım İste (${formatHours(batch.thawRemainingHours)})',
+      icon: Icons.hourglass_bottom,
+      danger: false,
+      onTap: onEarlyRequest,
+    ),
+    BatchAction.discard => (
+      label: 'Zayi Gir',
+      icon: Icons.delete_outline,
+      danger: true,
+      onTap: onDiscard,
+    ),
+    BatchAction.correctThaw => (
+      label: 'Çözülme Adedini Düzelt',
+      icon: Icons.undo,
+      danger: false,
+      onTap: onCorrectThaw,
+    ),
+    BatchAction.deleteBatch => (
+      label: 'Kaydı Sil',
+      icon: Icons.delete_forever_outlined,
+      danger: true,
+      onTap: onDelete,
+    ),
+    _ => (label: '-', icon: Icons.help_outline, danger: false, onTap: onDetail),
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final badge = _badge(t);
-    final actions = batchActionsFor(batch, canAdjust: canAdjust, canDiscard: canDiscard);
+    final actions = batchActionsFor(
+      batch,
+      canAdjust: canAdjust,
+      canDiscard: canDiscard,
+      canDelete: canDelete,
+    );
     final primary = _primaryWidget(t, actions.primary);
 
     return Container(
@@ -380,17 +501,32 @@ class _BatchCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(batch.productName,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: t.ink)),
+                child: Text(
+                  batch.productName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: t.ink,
+                  ),
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: badge.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(badge.text,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: badge.color)),
+                child: Text(
+                  badge.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: badge.color,
+                  ),
+                ),
               ),
             ],
           ),
@@ -400,9 +536,14 @@ class _BatchCard extends StatelessWidget {
             runSpacing: 4,
             children: [
               _meta(t, 'Adet', '${batch.remaining}/${batch.quantity}'),
-              if (showStore && batch.storeName != null) _meta(t, 'Mağaza', batch.storeName!),
+              if (showStore && batch.storeName != null)
+                _meta(t, 'Mağaza', batch.storeName!),
               if (batch.sktEnd != null)
-                _meta(t, 'SKT', '${fmtDateTime(batch.sktEnd)} · ${formatHours(batch.remainingHours)}'),
+                _meta(
+                  t,
+                  'SKT',
+                  '${fmtDateTime(batch.sktEnd)} · ${formatHours(batch.remainingHours)}',
+                ),
               if (batch.status == 'thawing' && !batch.thawReady)
                 _meta(t, 'Çözülmeye', formatHours(batch.thawRemainingHours)),
             ],
@@ -421,15 +562,32 @@ class _BatchCard extends StatelessWidget {
     );
   }
 
-  Widget _meta(AppTokens t, String label, String value) => Text.rich(TextSpan(children: [
-        TextSpan(text: '$label: ', style: TextStyle(fontSize: 12, color: t.muted)),
+  Widget _meta(AppTokens t, String label, String value) => Text.rich(
+    TextSpan(
+      children: [
         TextSpan(
-            text: value,
-            style: TextStyle(fontSize: 12, color: t.ink, fontWeight: FontWeight.w600)),
-      ]));
+          text: '$label: ',
+          style: TextStyle(fontSize: 12, color: t.muted),
+        ),
+        TextSpan(
+          text: value,
+          style: TextStyle(
+            fontSize: 12,
+            color: t.ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
-typedef _MenuEntry = ({String label, IconData icon, bool danger, VoidCallback onTap});
+typedef _MenuEntry = ({
+  String label,
+  IconData icon,
+  bool danger,
+  VoidCallback onTap,
+});
 
 class _ActionMenu extends StatelessWidget {
   const _ActionMenu({required this.items});
@@ -451,7 +609,11 @@ class _ActionMenu extends StatelessWidget {
             height: AppTokens.tap,
             child: Row(
               children: [
-                Icon(items[i].icon, size: 18, color: items[i].danger ? t.danger : t.ink),
+                Icon(
+                  items[i].icon,
+                  size: 18,
+                  color: items[i].danger ? t.danger : t.ink,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

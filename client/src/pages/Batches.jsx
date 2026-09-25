@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2, Search } from 'lucide-react';
+import { Snowflake, Hourglass, Refrigerator, History, PencilLine, Info, PackagePlus, Trash2, Search, Undo2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, StatusBadge, Confirm, toast, ActionMenu } from '../components/ui';
-import { fmtDateTime, formatHours, errorMessage, toLocalInput, fromLocalInput, addDaysIso, can } from '../format';
+import { fmtDateTime, formatHours, errorMessage, toLocalInput, fromLocalInput, addDaysIso, can, STATUS_LABELS } from '../format';
 
 const TABS = [
   { id: 'frozen', label: 'Donuk Depo', ico: Snowflake },
@@ -32,6 +32,7 @@ export default function Batches() {
   const [earlyRequest, setEarlyRequest] = useState(null);
   const [stockBatch, setStockBatch] = useState(null);
   const [adjustBatch, setAdjustBatch] = useState(null);
+  const [correctThaw, setCorrectThaw] = useState(null);
   const [reload, setReload] = useState(0);
 
   const load = useCallback(() => {
@@ -147,8 +148,21 @@ export default function Batches() {
                             <Hourglass size={16} /> Erken Aktarım İste ({formatHours(b.thaw_remaining_hours)})
                           </button>
                         )}
+                        {/* Cozulme adedi duzeltmesi yalnizca cozulme surecinde
+                            anlamli: food dolabina gecmis urun tekrar dondurulamaz. */}
+                        {b.status === 'thawing' && can(user, 'adjust_batches') && (
+                          <button onClick={() => setCorrectThaw(b)}>
+                            <Undo2 size={16} /> Çözülme Adedini Düzelt
+                          </button>
+                        )}
                         {['frozen', 'thawing', 'food_cabinet'].includes(b.status) && can(user, 'discard') && (
                           <button className="danger" onClick={() => setConfirmDiscard(b)}><Trash2 size={16} /> Zayi Gir</button>
+                        )}
+                        {/* Silme geri alinamaz; yalnizca ana yoneticide. */}
+                        {user.role === 'super_admin' && (
+                          <button className="danger" onClick={() => removeBatch(b)}>
+                            <Trash2 size={16} /> Kaydı Sil
+                          </button>
                         )}
                       </ActionMenu>
                     </div>
@@ -214,6 +228,14 @@ export default function Batches() {
           batch={stockBatch}
           onClose={() => setStockBatch(null)}
           onDone={() => { setStockBatch(null); setReload((n) => n + 1); }}
+        />
+      )}
+
+      {correctThaw && (
+        <CorrectThawModal
+          batch={correctThaw}
+          onClose={() => setCorrectThaw(null)}
+          onDone={() => { setCorrectThaw(null); setReload((n) => n + 1); }}
         />
       )}
     </div>
@@ -572,6 +594,77 @@ function AdjustModal({ batch, onClose, onDone }) {
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? 'Kaydediliyor...' : 'Düzeltmeyi Kaydet'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/// Cozulmeye alinan adedi duzeltir; fark donuk depoya geri doner.
+///
+/// 0 girilirse parti cozulmeden tamamen cikar. Fark once ayni partiden
+/// bolunmus donuk kardese eklenir, yoksa donma tarihi korunarak yeni donuk
+/// parti acilir.
+function CorrectThawModal({ batch, onClose, onDone }) {
+  const [quantity, setQuantity] = useState(String(batch.remaining));
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const entered = Number.parseInt(quantity, 10);
+  const back = Number.isInteger(entered) && entered >= 0 && entered <= batch.remaining
+    ? batch.remaining - entered
+    : null;
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr('');
+    if (!Number.isInteger(entered) || entered < 0) {
+      setErr('Doğru adet 0 veya daha büyük bir tam sayı olmalıdır'); return;
+    }
+    if (entered > batch.remaining) {
+      setErr(`Doğru adet mevcut adetten (${batch.remaining}) büyük olamaz`); return;
+    }
+    if (entered === batch.remaining) { setErr('Adet değişmedi'); return; }
+    setBusy(true);
+    try {
+      await api.post(`/batches/${batch.id}/correct-thaw-quantity`, { quantity: entered },
+        { noToast: true, busyMessage: 'Adet düzeltiliyor...' });
+      toast('Adet düzeltildi');
+      onDone();
+    } catch (er) {
+      setErr(errorMessage(er));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title="Çözülme Adedini Düzelt" onClose={onClose}>
+      <form onSubmit={submit}>
+        {err && <div className="alert error">{err}</div>}
+        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+          {batch.product_name} — şu anda {batch.remaining} adet çözülmede.
+        </p>
+        <div className="field">
+          <label>Doğru Adet</label>
+          <input value={quantity} onChange={(e) => setQuantity(e.target.value)}
+            inputMode="numeric" required />
+          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+            0 yazarsanız ürün tamamen donuk depoya döner.
+          </p>
+        </div>
+        {back !== null && back > 0 && (
+          <div className="system-box">
+            <p className="system-box-title">
+              {back} adet donuk depoya geri dönecek. Dondurucuya giriş tarihi korunur.
+            </p>
+          </div>
+        )}
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Düzeltiliyor...' : 'Düzelt'}
           </button>
         </div>
       </form>
