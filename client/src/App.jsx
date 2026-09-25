@@ -12,6 +12,8 @@ import Users from './pages/Users';
 import PettyCash from './pages/PettyCash';
 import DailyReport from './pages/DailyReport';
 import StockCoverage from './pages/StockCoverage';
+import Pdks from './pages/Pdks';
+import PdksAdmin from './pages/PdksAdmin';
 import Stores from './pages/Stores';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
@@ -56,6 +58,9 @@ export default function App() {
         <Route path="petty-cash" element={<Guard roles={PETTY_CASH_ROLES}><PettyCash /></Guard>} />
         <Route path="daily-report" element={<Guard roles={REPORT_PANEL_ROLES}><DailyReport /></Guard>} />
         <Route path="stock-coverage" element={<Guard roles={REPORT_PANEL_ROLES}><StockCoverage /></Guard>} />
+        {/* Devam takibi: personel ekrani herkeste, yonetim ekrani yonetici rollerinde. */}
+        <Route path="pdks" element={<Guard roles={ALL_ROLES}><Pdks /></Guard>} />
+        <Route path="pdks-admin" element={<Guard roles={MANAGER_ROLES}><PdksAdmin /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />
         <Route path="approvals" element={<Guard roles={MANAGER_ROLES}><Approvals /></Guard>} />

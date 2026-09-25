@@ -4,6 +4,15 @@
          "Sunucuya ulasilamiyor" hatasi veriyordu. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- PDKS: giris/cikis dogrulamasi icin. Konum yalnizca islem aninda
+         aliniyor, arka planda izleme yok; bu yuzden ACCESS_BACKGROUND_LOCATION
+         ISTENMIYOR. Kamera QR okutmak icin. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+
     <application
         android:label="Operasyon Takip"
         android:name="${applicationName}"

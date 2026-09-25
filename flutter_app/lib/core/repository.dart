@@ -7,6 +7,7 @@ import '../models/daily_report.dart';
 import '../models/dashboard.dart';
 import '../models/manager_overview.dart';
 import '../models/movement.dart';
+import '../models/pdks.dart';
 import '../models/petty_cash.dart';
 import '../models/product_type.dart';
 import '../models/store.dart';
@@ -480,6 +481,168 @@ class Repository {
       '/discards/$discardId',
       options: apiOptions(successMessage: 'Kayıt silindi, adet stoka döndü'),
     );
+  }
+
+  // ---- PDKS (Personel Devam Kontrol Sistemi) ----
+
+  Future<PdksStatus> pdksStatus({bool silent = false}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/me',
+      options: apiOptions(silent: silent),
+    );
+    return PdksStatus.fromJson(r.data ?? const {});
+  }
+
+  /// Konumla giris/cikis.
+  ///
+  /// [isMocked] cihazin sahte konum bayragi. Bilinmiyorsa null gonderilir:
+  /// sunucu "bilinmiyor" ile "sahte degil" arasini ayirt ediyor.
+  Future<void> pdksPunchGps({
+    required bool entry,
+    required double latitude,
+    required double longitude,
+    double? accuracy,
+    bool? isMocked,
+  }) async {
+    await api.dio.post(
+      entry ? '/pdks/check-in' : '/pdks/check-out',
+      data: {
+        'method': 'GPS',
+        'latitude': latitude,
+        'longitude': longitude,
+        'accuracy': ?accuracy,
+        'is_mocked': ?isMocked,
+      },
+      options: apiOptions(noToast: true, busyMessage: 'Konum doğrulanıyor...'),
+    );
+  }
+
+  /// QR ile giris/cikis. Sabit basili kodda konum da zorunlu oldugu icin
+  /// varsa gonderilir.
+  Future<void> pdksPunchQr({
+    required bool entry,
+    required String token,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
+    bool? isMocked,
+  }) async {
+    await api.dio.post(
+      entry ? '/pdks/check-in' : '/pdks/check-out',
+      data: {
+        'method': 'QR',
+        'qr_token': token,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+        'accuracy': ?accuracy,
+        'is_mocked': ?isMocked,
+      },
+      options: apiOptions(noToast: true, busyMessage: 'QR doğrulanıyor...'),
+    );
+  }
+
+  /// Personelin kioskta okutacagi kisisel kodu.
+  Future<QrToken> pdksMyQr() async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/me/qr',
+      options: apiOptions(noToast: true),
+    );
+    return QrToken.fromJson(r.data ?? const {});
+  }
+
+  /// Kioskta gosterilecek magaza kodu.
+  Future<QrToken> pdksKioskQr({int? storeId}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/qr/current',
+      queryParameters: {'storeId': ?storeId?.toString()},
+      options: apiOptions(noToast: true),
+    );
+    return QrToken.fromJson(r.data ?? const {});
+  }
+
+  Future<PdksBalance> pdksBalance({int? userId, bool silent = true}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/requests/balances',
+      queryParameters: {'userId': ?userId?.toString()},
+      options: apiOptions(silent: silent),
+    );
+    return PdksBalance.fromJson(r.data ?? const {});
+  }
+
+  Future<List<PersonnelRequest>> pdksRequests({String? status, bool silent = true}) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/pdks/requests',
+      queryParameters: {'status': ?status},
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => PersonnelRequest.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> pdksCreateRequest(Map<String, Object?> body) async {
+    await api.dio.post(
+      '/pdks/requests',
+      data: body,
+      options: apiOptions(noToast: true, busyMessage: 'Talep gönderiliyor...'),
+    );
+  }
+
+  Future<void> pdksDecideRequest(int id, bool approve, {String? note}) async {
+    await api.dio.post(
+      '/pdks/requests/$id/${approve ? 'approve' : 'reject'}',
+      data: note == null ? null : {'note': note},
+      options: apiOptions(
+        noToast: !approve,
+        successMessage: approve ? 'Talep onaylandı' : null,
+        busyMessage: approve ? 'Onaylanıyor...' : 'Reddediliyor...',
+      ),
+    );
+  }
+
+  Future<void> pdksCancelRequest(int id) async {
+    await api.dio.post(
+      '/pdks/requests/$id/cancel',
+      options: apiOptions(successMessage: 'Talep geri alındı'),
+    );
+  }
+
+  Future<List<ShiftAssignment>> pdksAssignments({
+    required String from,
+    required String to,
+    int? userId,
+    bool silent = true,
+  }) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/pdks/assignments',
+      queryParameters: {'from': from, 'to': to, 'userId': ?userId?.toString()},
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => ShiftAssignment.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<PresenceSnapshot> pdksNow({bool silent = true}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/now',
+      options: apiOptions(silent: silent),
+    );
+    return PresenceSnapshot.fromJson(r.data ?? const {});
+  }
+
+  Future<TimesheetReport> pdksTimesheet({
+    required String from,
+    required String to,
+    int? userId,
+    bool silent = false,
+  }) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/timesheet',
+      queryParameters: {'from': from, 'to': to, 'userId': ?userId?.toString()},
+      options: apiOptions(silent: silent),
+    );
+    return TimesheetReport.fromJson(r.data ?? const {});
   }
 
   // ---- Petty Cash ----

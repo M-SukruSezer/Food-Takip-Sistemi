@@ -14,6 +14,8 @@ import 'screens/login_screen.dart';
 import 'screens/recommendations_screen.dart';
 import 'screens/logs_screen.dart';
 import 'screens/daily_report_screen.dart';
+import 'screens/pdks_admin_screen.dart';
+import 'screens/pdks_screen.dart';
 import 'screens/petty_cash_screen.dart';
 import 'screens/product_types_screen.dart';
 import 'screens/profile_screen.dart';
@@ -52,6 +54,8 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/petty-cash': (s) => const PettyCashScreen(),
   '/daily-report': (s) => const DailyReportScreen(),
   '/stock-coverage': (s) => const StockCoverageScreen(),
+  '/pdks': (s) => const PdksScreen(),
+  '/pdks-admin': (s) => const PdksAdminScreen(),
   '/profile': (s) => const ProfileScreen(),
 };
 

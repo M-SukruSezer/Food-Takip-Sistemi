@@ -49,6 +49,9 @@ dependencies:
   share_plus: ^13.3.0
   path_provider: ^2.1.6
   syncfusion_flutter_xlsio: ^34.2.9
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.4.2
+  geolocator: ^14.0.3
 
 dev_dependencies:
   flutter_test:

@@ -61,6 +61,8 @@ const navGroups = <NavGroup>[
     NavItem(path: '/batches', label: 'Ürünler', shortLabel: 'Ürünler', icon: Icons.inventory_2_outlined, roles: allRoles, inBottomBar: true),
     NavItem(path: '/recommendations', label: 'Öneri Satış Listesi', shortLabel: 'Öneri', icon: Icons.local_fire_department_outlined, roles: allRoles, inBottomBar: true),
     NavItem(path: '/approvals', label: 'Onaylar', shortLabel: 'Onaylar', icon: Icons.fact_check_outlined, roles: managerRoles),
+    // Devam takibi (PDKS): personel ekrani herkeste.
+    NavItem(path: '/pdks', label: 'Devam Takibi', shortLabel: 'Devam', icon: Icons.schedule_outlined, roles: allRoles),
   ]),
   NavGroup(title: 'Kasa ve Raporlar', items: [
     // Masraf girisi Store Manager ve Shift Supervisor'da; ust kademeler
@@ -75,6 +77,7 @@ const navGroups = <NavGroup>[
     NavItem(path: '/product-types', label: 'Pasta Çeşitleri', shortLabel: 'Çeşitler', icon: Icons.cake_outlined, roles: managerRoles),
     NavItem(path: '/users', label: 'Kullanıcılar', shortLabel: 'Kullanıcılar', icon: Icons.group_outlined, roles: managerRoles),
     NavItem(path: '/stores', label: 'Mağazalar', shortLabel: 'Mağazalar', icon: Icons.store_outlined, roles: ['super_admin']),
+    NavItem(path: '/pdks-admin', label: 'Devam Yönetimi', shortLabel: 'Devam Yön.', icon: Icons.how_to_reg_outlined, roles: managerRoles),
   ]),
   NavGroup(items: [
     NavItem(path: '/profile', label: 'Profilim', shortLabel: 'Profil', icon: Icons.account_circle_outlined, roles: allRoles),

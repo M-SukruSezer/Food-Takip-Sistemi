@@ -2601,3 +2601,89 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   :root { --fab-bottom: 0px; }
 }
 
+/* ---------- PDKS ---------- */
+
+/* QR kod beyaz zeminde durmali: koyu temada okunamaz hale gelir. */
+.qr-box {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.qr-box canvas { display: block; }
+.qr-label { margin: 0; font-size: 12px; color: #4b5563; text-align: center; }
+
+.qr-scanner { display: flex; flex-direction: column; gap: 10px; }
+.qr-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 60vh;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+.qr-viewport video { width: 100%; height: 100%; object-fit: cover; }
+/* Hedef cercevesi: kullanici kodu nereye tutacagini bilsin. */
+.qr-frame {
+  position: absolute;
+  inset: 18%;
+  border: 3px solid rgba(255, 255, 255, .9);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .35);
+}
+
+.pdks-status { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pdks-since { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--ok-text); }
+.pdks-actions {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px;
+}
+.pdks-actions .btn { flex: 1 1 200px; }
+.btn-lg { padding: 14px 18px; font-size: 15px; }
+
+.pdks-log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pdks-log-list li {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px;
+}
+
+/* Personel secici: uzun listede kaydirilabilir kalsin. */
+.pdks-picker {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px;
+  max-height: 220px; overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg);
+}
+.pdks-pick { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; }
+
+/* Vardiya takvimi */
+.cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-head {
+  margin-bottom: 4px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  color: var(--muted); text-align: center;
+}
+.cal-cell {
+  min-height: 62px;
+  padding: 4px 5px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cal-cell.empty { border: 0; background: none; }
+.cal-cell.on { border-color: var(--primary); background: var(--primary-soft); }
+.cal-cell.off { background: var(--bg); }
+.cal-day { font-size: 12px; font-weight: 700; color: var(--ink); }
+.cal-cell em { font-size: 10px; font-style: normal; color: var(--muted); line-height: 1.3; }
+
+@media (max-width: 560px) {
+  .cal-cell { min-height: 48px; padding: 3px; }
+  .cal-cell em { font-size: 9px; }
+  .pdks-actions .btn { flex: 1 1 100%; }
+}
+

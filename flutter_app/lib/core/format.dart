@@ -26,6 +26,18 @@ String fmtMoney(num? value) {
 
 String fmtInt(num? value) => _int.format(value ?? 0);
 
+/// Dakikayi "8s 30dk" bicimine cevirir. Puantajda sure gosterimi.
+String fmtDuration(int? minutes) {
+  if (minutes == null || minutes == 0) return '-';
+  final abs = minutes.abs();
+  final h = abs ~/ 60;
+  final m = abs % 60;
+  final sign = minutes < 0 ? '-' : '';
+  if (h == 0) return '$sign$m dk';
+  if (m == 0) return '$sign${h}s';
+  return '$sign${h}s ${m}dk';
+}
+
 String formatHours(num? hours) {
   if (hours == null) return '-';
   if (hours <= 0) return 'Süre doldu';

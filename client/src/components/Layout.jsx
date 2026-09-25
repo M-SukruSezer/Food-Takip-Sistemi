@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
@@ -22,6 +22,7 @@ const NAV_GROUPS = [
       { to: '/batches', label: 'Ürünler', ico: Package, roles: ALL_ROLES },
       { to: '/recommendations', label: 'Öneri Satış Listesi', ico: Flame, roles: ALL_ROLES },
       { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
+      { to: '/pdks', label: 'Devam Takibi', ico: Clock, roles: ALL_ROLES },
     ],
   },
   {
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
       { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: MANAGER_ROLES },
       { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
       { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
+      { to: '/pdks-admin', label: 'Devam Yönetimi', ico: UserCheck, roles: MANAGER_ROLES },
     ],
   },
   {
