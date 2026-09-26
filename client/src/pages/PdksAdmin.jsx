@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Users, ClipboardCheck, Table2, CalendarClock, Settings, QrCode as QrIcon,
   MapPin, Plus, Trash2, RefreshCw, CalendarDays, ShieldCheck,
-  Wallet, FileSpreadsheet, FileText, Pencil, Coffee,
+  Wallet, FileSpreadsheet, FileText, Pencil, Coffee, Repeat, AlertTriangle,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -762,10 +762,203 @@ function PersonelModal({ kisi, onClose, onDone }) {
 
 // ---- Vardiyalar ----
 
+/// Otomatik vardiya dongüsü.
+///
+/// Iki adim: once ONIZLEME (dry_run), sonra uygulama. 20 kisi x 8 hafta bir
+/// islemde 1000+ satir yaziyor ve geri almasi zor; yonetici ne olacagini
+/// gormeden onaylamamali. "Uygula" dugmesi onizleme yapilmadan ETKIN DEGIL.
+function DonguModal({ vardiyalar, onClose, onDone }) {
+  const [adimlar, setAdimlar] = useState([{ shift_id: '', weeks: 2 }]);
+  const [personel, setPersonel] = useState([]);
+  const [secili, setSecili] = useState([]);
+  const [from, setFrom] = useState(bugun);
+  const [to, setTo] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 27);
+    return d.toISOString().slice(0, 10);
+  });
+  const [onizleme, setOnizleme] = useState(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.get('/pdks/profiles', { silent: true }).then((r) => setPersonel(r.data)).catch(() => {});
+  }, []);
+
+  // Kural ya da kapsam degisirse onizleme GECERSIZ olur: eski onizlemeyi
+  // onaylatmak yanlis plani uygulamak olurdu.
+  useEffect(() => { setOnizleme(null); }, [adimlar, secili, from, to]);
+
+  async function calistir(dryRun) {
+    setErr('');
+    if (secili.length === 0) { setErr('En az bir personel seçin'); return; }
+    setBusy(true);
+    try {
+      const r = await api.post('/pdks/shifts/automate', {
+        pattern: adimlar.map((a) => ({
+          // Bos secim "komple tatil haftasi" demek.
+          shift_id: a.shift_id === '' ? null : Number(a.shift_id),
+          weeks: Number(a.weeks),
+        })),
+        user_ids: secili,
+        anchor: from,
+        from,
+        to,
+        dry_run: dryRun,
+      }, {
+        noToast: true,
+        busyMessage: dryRun ? 'Plan hesaplanıyor...' : 'Uygulanıyor...',
+      });
+      if (dryRun) {
+        setOnizleme(r.data);
+      } else {
+        toast(`${r.data.assigned} gün atandı, personele bildirim gönderildi`);
+        onDone();
+      }
+    } catch (e) {
+      setErr(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const haftaToplam = adimlar.reduce((a, x) => a + (Number(x.weeks) || 0), 0);
+
+  return (
+    <Modal title="Otomatik Vardiya Döngüsü" onClose={onClose}>
+      <div className="form-grid">
+        {err && <div className="alert error">{err}</div>}
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ display: 'block', marginBottom: 6 }}>
+            Döngü — {haftaToplam} hafta
+          </label>
+          {adimlar.map((a, i) => (
+            <div key={i} className="dongu-adim">
+              <select
+                value={a.shift_id}
+                onChange={(e) => setAdimlar(adimlar.map((x, j) => (j === i ? { ...x, shift_id: e.target.value } : x)))}
+                aria-label={`${i + 1}. adım vardiyası`}
+              >
+                <option value="">— komple tatil haftası —</option>
+                {vardiyalar.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({(v.start_time || '').slice(0, 5)}–{(v.end_time || '').slice(0, 5)})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number" min="1" max="8" value={a.weeks}
+                onChange={(e) => setAdimlar(adimlar.map((x, j) => (j === i ? { ...x, weeks: e.target.value } : x)))}
+                aria-label={`${i + 1}. adım hafta sayısı`}
+              />
+              <span className="muted">hafta</span>
+              {adimlar.length > 1 && (
+                <button type="button" className="btn btn-sm btn-secondary"
+                  aria-label={`${i + 1}. adımı kaldır`}
+                  onClick={() => setAdimlar(adimlar.filter((_, j) => j !== i))}>
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+          {adimlar.length < 12 && (
+            <button type="button" className="btn btn-sm btn-secondary"
+              onClick={() => setAdimlar([...adimlar, { shift_id: '', weeks: 1 }])}>
+              <Plus size={14} /> Adım ekle
+            </button>
+          )}
+          <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+            Örnek: 2 hafta gündüz + 1 hafta gece. Döngü, başlangıç tarihinin
+            haftasından itibaren tekrar eder. Personelin hafta tatili günleri
+            döngüden bağımsız korunur; onaylı izin ve resmi tatil günleri
+            atlanır.
+          </p>
+        </div>
+
+        <label>Başlangıç <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label>Bitiş <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ display: 'block', marginBottom: 6 }}>
+            Personel ({secili.length} seçili)
+          </label>
+          <div className="checklist">
+            {personel.map((p) => (
+              <label key={p.user_id} className="check-row">
+                <input
+                  type="checkbox"
+                  checked={secili.includes(p.user_id)}
+                  onChange={(e) => setSecili(e.target.checked
+                    ? [...secili, p.user_id]
+                    : secili.filter((x) => x !== p.user_id))}
+                />
+                <span>{p.full_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {onizleme && (
+          <div className="surface-panel" style={{ gridColumn: '1 / -1' }}>
+            <strong>Önizleme — {onizleme.assigned} gün yazılacak</strong>
+            <ul className="pdks-log-list">
+              {onizleme.users.map((u) => (
+                <li key={u.user_id}>
+                  <strong>{u.full_name}</strong>
+                  <span className="muted">{u.work_days} çalışma + {u.day_off_days} tatil</span>
+                  {u.skipped_dates.length > 0 && (
+                    <span className="badge warning"
+                      title={u.skipped_dates.map((d) => `${d.date}: ${d.reason}`).join('\n')}>
+                      {u.skipped_dates.length} gün atlandı
+                      {' '}({[...new Set(u.skipped_dates.map((d) => d.reason))].join(', ')})
+                    </span>
+                  )}
+                  {u.warned_dates.length > 0 && (
+                    <span className="badge critical"
+                      title={u.warned_dates.map((d) => `${d.date}: ${d.reason}`).join('\n')}>
+                      <AlertTriangle size={12} /> {u.warned_dates.length} gün uyarılı
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {onizleme.skipped.length > 0 && (
+              <div className="alert warning">
+                {onizleme.skipped.length} personel atlandı
+                {' '}({[...new Set(onizleme.skipped.map((s) => s.reason))].join(', ')}).
+              </div>
+            )}
+            <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+              Uygulandığında bu günlerin mevcut planı <strong>değiştirilir</strong> ve
+              personele bildirim gönderilir.
+            </p>
+          </div>
+        )}
+
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="button" className="btn btn-secondary" disabled={busy}
+            onClick={() => calistir(true)}>
+            Önizle
+          </button>
+          <button type="button" className="btn btn-primary"
+            disabled={busy || !onizleme}
+            title={onizleme ? undefined : 'Önce önizleyin'}
+            onClick={() => calistir(false)}>
+            Uygula
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Vardiyalar({ isSuper }) {
   const [liste, setListe] = useState([]);
   const [form, setForm] = useState(null);
   const [atama, setAtama] = useState(false);
+  const [dongu, setDongu] = useState(false);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -788,6 +981,12 @@ function Vardiyalar({ isSuper }) {
           <div className="row-actions">
             <button className="btn btn-sm btn-secondary" onClick={() => setAtama(true)}>
               <CalendarClock size={14} /> Toplu Ata
+            </button>
+            <button className="btn btn-sm btn-secondary"
+              disabled={liste.filter((s) => s.active).length === 0}
+              title={liste.filter((s) => s.active).length === 0 ? 'Önce vardiya tanımlayın' : undefined}
+              onClick={() => setDongu(true)}>
+              <Repeat size={14} /> Döngü Kur
             </button>
             <button className="btn btn-sm btn-primary" onClick={() => setForm({})}>
               <Plus size={14} /> Yeni Vardiya
@@ -848,6 +1047,10 @@ function Vardiyalar({ isSuper }) {
       {atama && (
         <AtamaModal vardiyalar={liste.filter((s) => s.active)}
           onClose={() => setAtama(false)} onDone={() => setAtama(false)} />
+      )}
+      {dongu && (
+        <DonguModal vardiyalar={liste.filter((s) => s.active)}
+          onClose={() => setDongu(false)} onDone={() => setDongu(false)} />
       )}
     </>
   );

@@ -243,20 +243,34 @@ function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
   const [secim, setSecim] = useState(tatilVar ? 'HT' : mevcutId ? String(mevcutId) : '');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // Sunucu cakisma bildirdiginde (409) sebepler burada tutulur ve kullaniciya
+  // "yine de ata" secenegi sunulur. Sessizce zorlamak yanlis olurdu: izinli
+  // personele vardiya yazmak bilincli bir karar olmali.
+  const [cakisma, setCakisma] = useState(null);
 
-  async function kaydet() {
+  async function kaydet(force = false) {
     setErr('');
     setBusy(true);
     try {
-      await api.put('/pdks/assignments/cell', {
+      const r = await api.put('/pdks/assignments/cell', {
         user_id: kisi.user.id,
         work_date: gun,
         is_day_off: secim === 'HT',
         shift_id: secim === 'HT' || secim === '' ? null : Number(secim),
-      }, { successMessage: 'Plan güncellendi' });
+        force,
+      }, { successMessage: 'Plan güncellendi', noToast: false });
+      // Engellemeyen uyarilar (saatlik izin, yarim tatil) atama yapilsa da
+      // bildiriliyor.
+      for (const u of r.data.warnings || []) toast(u.detail || u.label);
       onDone();
     } catch (e) {
-      setErr(errorMessage(e));
+      const d = e.response && e.response.data;
+      if (e.response && e.response.status === 409 && d && d.code === 'SHIFT_CONFLICT') {
+        setCakisma(d);
+        setErr('');
+      } else {
+        setErr(errorMessage(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -269,6 +283,31 @@ function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
     >
       <div className="form-grid">
         {err && <div className="alert error">{err}</div>}
+
+        {cakisma && (
+          <div className="alert warning" style={{ gridColumn: '1 / -1' }}>
+            <strong>Çakışma var</strong>
+            <ul className="cakisma-list">
+              {cakisma.conflicts.filter((c) => c.level === 'block').map((c, i) => (
+                <li key={i}>{c.detail}</li>
+              ))}
+            </ul>
+            <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+              Yine de atarsanız bu karar hareket kayıtlarına
+              {' '}<strong>çakışmaya rağmen atandı</strong> olarak yazılır.
+            </p>
+            <div className="form-actions" style={{ marginTop: 8 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setCakisma(null)}>
+                Vazgeç
+              </button>
+              <button type="button" className="btn btn-danger" disabled={busy}
+                onClick={() => { setCakisma(null); kaydet(true); }}>
+                Yine de ata
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="cell-options">
           {vardiyalar.map((v) => {
             const uy = vardiyaUyari(v);
@@ -318,7 +357,8 @@ function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
         </div>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="button" className="btn btn-primary" disabled={busy} onClick={kaydet}>
+          <button type="button" className="btn btn-primary" disabled={busy}
+            onClick={() => kaydet(false)}>
             Kaydet
           </button>
         </div>

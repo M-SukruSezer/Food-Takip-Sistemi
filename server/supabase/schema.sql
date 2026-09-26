@@ -527,3 +527,32 @@ ALTER TABLE pdks_profiles ADD CONSTRAINT pdks_profiles_wage_check
     AND (hourly_rate IS NULL OR hourly_rate >= 0)
     AND (meal_daily IS NULL OR meal_daily >= 0)
   );
+
+-- Bildirimler.
+--
+-- Gercek push/e-posta saglayicisi henuz bagli degil; bildirim once BURAYA
+-- yaziliyor, sonra kayitli tasiyicilara veriliyor. Kalici olmasinin sebebi:
+-- yalnizca gunluge yazan bir "bildirim gonderildi" iddiasi gozlemlenemez ve
+-- test edilemez. Calisan kendi panelinden bu kayitlari goruyor.
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  -- Ilgili kayda gitmek icin ek veri; users.permissions ile ayni desende
+  -- JSON metin.
+  data TEXT,
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_kind_check;
+ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check
+  CHECK (kind IN ('SHIFT_PUBLISHED', 'SHIFT_CHANGED', 'SHIFT_REMOVED'));
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user
+  ON notifications(user_id, created_at DESC);
+-- Okunmamislari saymak icin: kismi indeks, okunmuslar indekse girmiyor.
+CREATE INDEX IF NOT EXISTS idx_notifications_unread
+  ON notifications(user_id) WHERE read_at IS NULL;

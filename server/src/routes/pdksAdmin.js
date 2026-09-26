@@ -9,6 +9,9 @@ const t = require('../pdks/time');
 const bal = require('../pdks/balance');
 const pay = require('../pdks/payroll');
 const cls = require('../pdks/shiftClass');
+const conflict = require('../pdks/conflict');
+const rotation = require('../pdks/rotation');
+const notify = require('../pdks/notify');
 const kvkk = require('../pdks/kvkk');
 
 const router = express.Router();
@@ -246,11 +249,15 @@ router.post('/assignments', requireManager, async (req, res) => {
     }
 
     const off = new Set(bal.parseWeeklyOff(u.weekly_off_days));
-    // Onayli izinler: o gunlere vardiya yazilmaz.
+    // Onayli izinler. SAATLIK_IZIN de cekiliyor: onceki surumde yalnizca
+    // gunluk izne bakiliyordu ve saatlik izni olan gune vardiya, hicbir
+    // uyari verilmeden yaziliyordu. Saatlik izin gunu KAPATMADIGI icin engel
+    // degil uyari uretiyor (bkz. pdks/conflict.js).
     const leaves = await queryAll(
-      `SELECT start_at, end_at FROM personnel_requests
-       WHERE user_id = ? AND type = 'IZIN' AND status = 'APPROVED'
-         AND start_at <= ? AND end_at >= ?`, u.id, to, from);
+      `SELECT type, start_at, end_at, hours FROM personnel_requests
+       WHERE user_id = ? AND status = 'APPROVED'
+         AND type IN ('IZIN', 'SAATLIK_IZIN')
+         AND start_at <= ? AND end_at >= ?`, u.id, t.shiftDate(to, 1), t.shiftDate(from, -1));
     // Resmi tatiller de atlanir. Tatilde acik olan magaza icin yonetici o
     // gunu tek tek atayabilir; toplu atamada varsayilan olarak atlanmasi
     // yanlis planlamayi engelliyor.
@@ -262,16 +269,25 @@ router.post('/assignments', requireManager, async (req, res) => {
 
     let count = 0;
     const skippedDates = [];
+    const warnedDates = [];
     await transaction(async (client) => {
       let cursor = from;
       for (let guard = 0; guard < 400 && cursor <= to; guard++) {
         const [y, m, d] = cursor.split('-').map(Number);
         const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-        const onLeave = leaves.some((l) => cursor >= l.start_at && cursor <= l.end_at);
-        // Yarim tatilde calisilir; yalnizca tam tatil atlanir.
-        const onHoliday = holidays[cursor] != null && holidays[cursor].half !== true;
 
-        if (isDayOff || (!off.has(dow) && !onLeave && !onHoliday)) {
+        // Kural tek yerde: hucre ucu, toplu atama ve otomatik dongü ayni
+        // servisi kullaniyor.
+        const c = conflict.checkDay({
+          workDate: cursor,
+          leaves,
+          holiday: holidays[cursor] ?? null,
+          weeklyOff: off.has(dow),
+        });
+
+        // Hafta tatili ATAMASI cakismadan etkilenmez: "bu gunu tatil yap"
+        // islemi zaten cakismayi ortadan kaldiriyor.
+        if (isDayOff || !c.blocked) {
           // Ayni gune ayni vardiya varsa tekrar yazilmaz.
           await execute(`
             INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, note, assigned_by)
@@ -279,19 +295,19 @@ router.post('/assignments', requireManager, async (req, res) => {
             ON CONFLICT (user_id, work_date, shift_id) DO NOTHING`,
             [u.id, shiftId, cursor, isDayOff ? 1 : 0, body.note || null, req.user.id], client);
           count++;
+          // Engellemeyen uyarilar (saatlik izin, yarim tatil) atama yapilsa da
+          // bildiriliyor: yonetici planin uzerinde bir sey oldugunu gormeli.
+          const uyari = c.reasons.filter((r) => r.level === conflict.WARN);
+          if (!isDayOff && uyari.length > 0) {
+            warnedDates.push({
+              date: cursor,
+              reason: uyari.map((r) => r.label).join(' + '),
+            });
+          }
         } else {
-          // Atlanan gunun SEBEBI bildirilir. Hafta tatili dali eksikti: gun
-          // atlaniyordu ama skipped_dates bos donuyor, yonetici "7 gun
-          // istedim, 6 gun yazildi" farkinin sebebini goremiyordu.
-          //
-          // Birden fazla sebep ust uste gelebilir (Pazar'a denk gelen resmi
-          // tatil gibi); hepsi yazilir ki gun tek sebeple aciklanmis
-          // gorunmesin.
-          const sebepler = [];
-          if (off.has(dow)) sebepler.push('hafta tatili');
-          if (onLeave) sebepler.push('onaylı izin');
-          if (onHoliday) sebepler.push(`resmi tatil (${holidays[cursor].name})`);
-          skippedDates.push({ date: cursor, reason: sebepler.join(' + ') });
+          // Atlanan gunun SEBEBI bildirilir; birden fazla sebep ust uste
+          // gelebilir (Pazar'a denk gelen resmi tatil gibi) ve hepsi yazilir.
+          skippedDates.push({ date: cursor, reason: conflict.blockLabel(c) });
         }
         cursor = t.shiftDate(cursor, 1);
       }
@@ -301,6 +317,8 @@ router.post('/assignments', requireManager, async (req, res) => {
     result.users.push({
       user_id: u.id, full_name: u.full_name, days: count,
       skipped_dates: skippedDates,
+      // Atandi ama uzerinde bir uyari var (orn. o gun saatlik izni mevcut).
+      warned_dates: warnedDates,
     });
   }
 
@@ -367,6 +385,67 @@ router.put('/assignments/cell', requireManager, async (req, res) => {
     });
   }
 
+  // CAKISMA KONTROLU (yillik izin / saatlik izin / resmi tatil / hafta tatili).
+  //
+  // Yalnizca VARDIYA atarken bakiliyor: hafta tatili yazmak ya da gunu
+  // bosaltmak zaten cakismayi ortadan kaldiran islemler.
+  //
+  // Engel varsa 409 doner ve sebepleri bildirir. Yonetici bilerek gecmek
+  // isterse force:true ile atiyor; bu durum denetim izine ACIKCA yaziliyor
+  // cunku izinli personele vardiya yazmak sonradan aciklanmasi gereken bir
+  // karardir.
+  let cakisma = { blocked: false, reasons: [] };
+  if (shiftId !== null) {
+    const profil = await queryOne(
+      'SELECT weekly_off_days FROM pdks_profiles WHERE user_id = ?', userId);
+    const [y, m, d] = workDate.split('-').map(Number);
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const off = new Set(bal.parseWeeklyOff(profil ? profil.weekly_off_days : null));
+
+    // Onayli izinler: gunluk izin gun bazinda, saatlik izin ISO damgali.
+    // Iki tur ayni sorguda cekiliyor; aralik gunun iki yanina birer gun
+    // genisletildi ki saat dilimi kaymasi olan saatlik izin kaybolmasin.
+    const onceki = t.shiftDate(workDate, -1);
+    const sonraki = t.shiftDate(workDate, 1);
+    const leaves = await queryAll(`
+      SELECT type, start_at, end_at, hours FROM personnel_requests
+      WHERE user_id = ? AND status = 'APPROVED'
+        AND type IN ('IZIN', 'SAATLIK_IZIN')
+        AND start_at <= ? AND end_at >= ?`, userId, sonraki, onceki);
+
+    const holidayRows = await queryAll(`
+      SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+      WHERE holiday_date = ? AND (store_id IS NULL OR store_id = ?)`,
+      workDate, user.store_id);
+
+    cakisma = conflict.checkDay({
+      workDate,
+      leaves,
+      holiday: bal.holidayMap(holidayRows)[workDate] ?? null,
+      weeklyOff: off.has(dow),
+    });
+
+    if (cakisma.blocked && body.force !== true) {
+      return res.status(409).json({
+        error: `${user.full_name} ${workDate} günü için vardiya atanamaz: `
+          + `${conflict.blockLabel(cakisma)}.`,
+        code: 'SHIFT_CONFLICT',
+        conflicts: cakisma.reasons,
+        // Istemci bunu gorup "yine de ata" onayi sunuyor.
+        can_force: true,
+      });
+    }
+  }
+
+  // Bildirimde "X yerine Y" diyebilmek icin gunun ONCEKI hali okunuyor.
+  const oncekiler = await queryAll(`
+    SELECT us.is_day_off, s.name, s.start_time, s.end_time
+    FROM user_shifts us LEFT JOIN shifts s ON s.id = us.shift_id
+    WHERE us.user_id = ? AND us.work_date = ?`, userId, workDate);
+  const oncekiEtiket = oncekiler.length === 0 ? null
+    : oncekiler.some((o) => o.is_day_off) ? 'hafta tatili'
+      : oncekiler.map((o) => `${o.name} ${o.start_time}-${o.end_time}`).join(' + ');
+
   // Tek islem: gunu temizle, sonra istenen hali yaz. Yarim kalmasin diye
   // islem (transaction) icinde.
   await transaction(async (client) => {
@@ -382,14 +461,35 @@ router.put('/assignments/cell', requireManager, async (req, res) => {
   });
 
   const ne = isDayOff ? 'hafta tatili' : shift ? `${shift.name} (${shift.start_time}-${shift.end_time})` : 'boşaltıldı';
+  // Zorlanan atama denetim izinde AYRICA isaretleniyor: izinli personele
+  // vardiya yazmak sonradan aciklanmasi gereken bir karar.
+  const zorlandi = cakisma.blocked && body.force === true;
   await logActivity(req.user, 'VARDIYA_HUCRE', 'shift', shiftId,
-    `${user.full_name} ${workDate}: ${ne}`, user.store_id);
+    `${user.full_name} ${workDate}: ${ne}`
+    + (zorlandi ? ` — ÇAKIŞMAYA RAĞMEN atandı (${conflict.blockLabel(cakisma)})` : '')
+    + (cakisma.reasons.some((r) => r.level === conflict.WARN)
+      ? ` — uyarı: ${cakisma.reasons.filter((r) => r.level === conflict.WARN).map((r) => r.label).join(', ')}`
+      : ''),
+    user.store_id);
+
+  // Calisana bildirim. Yan etki: patlarsa atama yine gecerli
+  // (notify.publish hatalari yutuyor ve sayisini donduruyor).
+  await notify.shiftChanged({
+    userId,
+    workDate,
+    oldLabel: oncekiEtiket,
+    newLabel: isDayOff ? 'hafta tatili' : shift ? `${shift.name} ${shift.start_time}-${shift.end_time}` : null,
+    byName: req.user.full_name,
+  });
 
   res.json({
     ok: true,
     user_id: userId,
     work_date: workDate,
     is_day_off: isDayOff,
+    forced: zorlandi,
+    // Engellemeyen uyarilar (saatlik izin, yarim tatil) istemcide gosteriliyor.
+    warnings: cakisma.reasons.filter((r) => r.level === conflict.WARN),
     shift: shift && {
       id: shift.id, name: shift.name,
       start_time: shift.start_time, end_time: shift.end_time,
@@ -399,6 +499,186 @@ router.put('/assignments/cell', requireManager, async (req, res) => {
       warnings: cls.uyarilar(shift),
     },
   });
+});
+
+/// Otomatik vardiya dongüsu: kurala gore ileriki haftalari uretir.
+///
+/// Govde:
+///   pattern    [{ shift_id, weeks }]  shift_id null = komple tatil haftasi
+///   user_ids   [id]
+///   anchor     dongünün BASLADIGI tarih (o tarihin haftasi 1. adim)
+///   from, to   uretilecek aralik
+///   dry_run    true ise HICBIR SEY yazilmaz, yalnizca plan ve cakismalar doner
+///
+/// dry_run neden var: 20 kisi x 8 hafta bir islemde 1000+ satir yaziyor.
+/// Yonetici once ne olacagini gormeli — geri almasi zor bir islemi korü
+/// korüne tetiklemek yerine.
+router.post('/shifts/automate', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const userIds = Array.isArray(body.user_ids) ? body.user_ids.map(Number) : [];
+  const from = String(body.from || '');
+  const to = String(body.to || '');
+  const anchor = String(body.anchor || from);
+  const dryRun = body.dry_run === true;
+
+  if (userIds.length === 0 || userIds.some((id) => !Number.isInteger(id))) {
+    return res.status(400).json({ error: 'En az bir personel seçilmelidir' });
+  }
+  if (userIds.length > 100) {
+    return res.status(400).json({ error: 'Tek seferde en fazla 100 personel' });
+  }
+  for (const [ad, v] of [['Başlangıç', from], ['Bitiş', to], ['Döngü başlangıcı', anchor]]) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      return res.status(400).json({ error: `${ad} tarihi YYYY-AA-GG biçiminde olmalıdır` });
+    }
+  }
+  if (to < from) return res.status(400).json({ error: 'Bitiş tarihi başlangıçtan önce olamaz' });
+  const kuralHatasi = rotation.validatePattern(body.pattern);
+  if (kuralHatasi) return res.status(400).json({ error: kuralHatasi });
+
+  // 16 haftalik ust sinir: daha uzunu tek istekte yazmak hem sunucuyu hem
+  // yoneticinin gozden gecirme yetenegini asiyor.
+  const gunSayisi = bal.countLeaveDays(from, to, []) ?? 0;
+  if (gunSayisi > 112) {
+    return res.status(400).json({ error: 'Aralık en fazla 16 hafta olabilir' });
+  }
+
+  // Kuraldaki vardiyalar gercekten var mi ve bu magazaya mi ait?
+  const shiftIds = [...new Set(body.pattern
+    .map((x) => x.shift_id).filter((v) => v !== null).map(Number))];
+  const shifts = shiftIds.length === 0 ? [] : await queryAll(
+    `SELECT * FROM shifts WHERE id IN (${shiftIds.map(() => '?').join(',')}) AND active = 1`,
+    ...shiftIds);
+  if (shifts.length !== shiftIds.length) {
+    return res.status(404).json({ error: 'Döngüdeki vardiyalardan biri bulunamadı veya pasif' });
+  }
+  const shiftById = new Map(shifts.map((s) => [Number(s.id), s]));
+  for (const s of shifts) {
+    if (s.store_id !== null && !allowsStore(req, s.store_id)) {
+      return res.status(403).json({ error: `"${s.name}" vardiyasına erişim yetkiniz yok` });
+    }
+  }
+
+  const users = await queryAll(
+    `SELECT u.id, u.full_name, u.store_id, u.active, p.weekly_off_days
+     FROM users u LEFT JOIN pdks_profiles p ON p.user_id = u.id
+     WHERE u.id IN (${userIds.map(() => '?').join(',')})`, ...userIds);
+
+  const sonuc = { dry_run: dryRun, assigned: 0, users: [], skipped: [] };
+
+  for (const u of users) {
+    if (!u.active) { sonuc.skipped.push({ user_id: u.id, reason: 'pasif personel' }); continue; }
+    if (!allowsStore(req, u.store_id)) {
+      sonuc.skipped.push({ user_id: u.id, reason: 'mağaza yetkisi yok' });
+      continue;
+    }
+    for (const s of shifts) {
+      if (s.store_id !== null && Number(s.store_id) !== Number(u.store_id)) {
+        sonuc.skipped.push({
+          user_id: u.id, full_name: u.full_name,
+          reason: `"${s.name}" vardiyası başka mağazaya ait`,
+        });
+      }
+    }
+    if (sonuc.skipped.some((x) => x.user_id === u.id)) continue;
+
+    const off = bal.parseWeeklyOff(u.weekly_off_days);
+    let plan;
+    try {
+      plan = rotation.generate({ pattern: body.pattern, anchor, from, to, weeklyOff: off });
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+
+    // Cakisma verisi: izinler ve resmi tatiller aralik icin BIR KEZ cekiliyor.
+    const leaves = await queryAll(`
+      SELECT type, start_at, end_at, hours FROM personnel_requests
+      WHERE user_id = ? AND status = 'APPROVED'
+        AND type IN ('IZIN', 'SAATLIK_IZIN')
+        AND start_at <= ? AND end_at >= ?`,
+      u.id, t.shiftDate(to, 1), t.shiftDate(from, -1));
+    const holidays = bal.holidayMap(await queryAll(`
+      SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+      WHERE holiday_date >= ? AND holiday_date <= ?
+        AND (store_id IS NULL OR store_id = ?)`, from, to, u.store_id));
+
+    const yazilacak = [];
+    const atlanan = [];
+    const uyarili = [];
+    for (const g of plan) {
+      if (g.is_day_off) {
+        yazilacak.push(g);
+        continue;
+      }
+      const c = conflict.checkDay({
+        workDate: g.work_date,
+        leaves,
+        holiday: holidays[g.work_date] ?? null,
+        // Hafta tatili zaten plan uretilirken uygulandi; burada tekrar
+        // bakmak ayni gunu iki kez atlamak olurdu.
+        weeklyOff: false,
+      });
+      if (c.blocked) {
+        atlanan.push({ date: g.work_date, reason: conflict.blockLabel(c) });
+        continue;
+      }
+      const uy = c.reasons.filter((r) => r.level === conflict.WARN);
+      if (uy.length) uyarili.push({ date: g.work_date, reason: uy.map((r) => r.label).join(' + ') });
+      yazilacak.push(g);
+    }
+
+    if (!dryRun) {
+      await transaction(async (client) => {
+        for (const g of yazilacak) {
+          // Otomatik dongü o gunu YENIDEN KURUYOR: once temizle, sonra yaz.
+          // Aksi halde elle yapilmis eski atama yaninda kalir ve gun iki
+          // vardiya tasir.
+          await execute('DELETE FROM user_shifts WHERE user_id = ? AND work_date = ?',
+            [u.id, g.work_date], client);
+          await execute(`
+            INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, note, assigned_by)
+            VALUES (?,?,?,?,?,?)`,
+            [u.id, g.shift_id, g.work_date, g.is_day_off ? 1 : 0,
+              body.note || 'otomatik döngü', req.user.id], client);
+        }
+      });
+    }
+
+    sonuc.assigned += yazilacak.length;
+    sonuc.users.push({
+      user_id: u.id,
+      full_name: u.full_name,
+      days: yazilacak.length,
+      work_days: yazilacak.filter((g) => !g.is_day_off).length,
+      day_off_days: yazilacak.filter((g) => g.is_day_off).length,
+      skipped_dates: atlanan,
+      warned_dates: uyarili,
+      // dry_run'da plan geri doner ki yonetici gormeden onaylamasin.
+      plan: dryRun
+        ? yazilacak.map((g) => ({
+          ...g,
+          shift_name: g.shift_id ? (shiftById.get(g.shift_id) || {}).name ?? null : null,
+        }))
+        : undefined,
+    });
+
+    if (!dryRun && yazilacak.length > 0) {
+      // Bildirim YAN ETKI: patlasa bile atama gecerli kalmali.
+      await notify.shiftPublished({
+        userId: u.id, from, to,
+        days: yazilacak.length,
+        byName: req.user.full_name,
+      });
+    }
+  }
+
+  if (!dryRun) {
+    await logActivity(req.user, 'VARDIYA_OTOMATIK', 'shift', null,
+      `${from} - ${to}: ${sonuc.users.length} personele ${sonuc.assigned} gün`
+      + ` (döngü ${rotation.patternWeeks(body.pattern)} hafta)`, req.user.store_id);
+  }
+
+  res.status(dryRun ? 200 : 201).json(sonuc);
 });
 
 router.delete('/assignments/:id', requireManager, async (req, res) => {

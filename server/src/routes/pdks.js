@@ -436,3 +436,47 @@ module.exports.KIOSK_ROLES = KIOSK_ROLES;
 // Gece vardiyasinda kaydin hangi is gunune yazilacagi bu adimin en ince
 // mantigi; duvar saatinden bagimsiz test edilebilmesi icin disa aciliyor.
 module.exports.resolveWorkDate = resolveWorkDate;
+
+// ---- Calisan bildirimleri ----
+
+/// Kendi bildirimlerim.
+///
+/// Yalnizca KENDI kayitlari: user_id sabit req.user.id, sorgu parametresiyle
+/// baskasinin bildirimleri istenemiyor.
+router.get('/notifications', async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 30, 100);
+  const rows = await queryAll(
+    `SELECT id, kind, title, body, data, read_at, created_at
+     FROM notifications WHERE user_id = ?
+     ORDER BY created_at DESC, id DESC LIMIT ?`, req.user.id, limit);
+  const unread = await queryOne(
+    'SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND read_at IS NULL',
+    req.user.id);
+  res.json({
+    unread: Number(unread.c),
+    items: rows.map((r) => ({
+      ...r,
+      data: r.data ? JSON.parse(r.data) : null,
+      read: r.read_at != null,
+    })),
+  });
+});
+
+/// Bildirimi okundu isaretle.
+router.post('/notifications/:id/read', async (req, res) => {
+  const r = await execute(
+    `UPDATE notifications SET read_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+     WHERE id = ? AND user_id = ? AND read_at IS NULL`,
+    Number(req.params.id), req.user.id);
+  // Baskasinin bildirimi bulunamamis gibi davraniyor: kimlik sizmasin.
+  if (!r.changes) return res.status(404).json({ error: 'Bildirim bulunamadı' });
+  res.json({ ok: true });
+});
+
+/// Tumunu okundu isaretle.
+router.post('/notifications/read-all', async (req, res) => {
+  const r = await execute(
+    `UPDATE notifications SET read_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+     WHERE user_id = ? AND read_at IS NULL`, req.user.id);
+  res.json({ ok: true, marked: r.changes });
+});
