@@ -45,16 +45,20 @@ function geceDakikasi(startHhmm, endHhmm) {
 
 /// Vardiya kategorisi. Baslangic saatine gore; cizelgede renk bundan cikar.
 ///
-/// Gece kategorisi baslangica DEGIL gece donemine dusen sureye gore: 16:00
-/// baslayip 00:30 biten vardiya aksam gibi gorunur ama 4,5 saati gece
-/// donemindedir ve gece calismasi sayilir.
+/// 'kapanis' kategorisi baslangica DEGIL gece donemine dusen sureye gore:
+/// 16:00 baslayip 00:30 biten vardiya aksam gibi gorunur ama 4,5 saati gece
+/// donemindedir.
+///
+/// ADLANDIRMA: isletme bu vardiyaya "kapanis" diyor, kategori adi da o.
+/// Yasal hesaplar (m.69 gece calismasi siniri) DEGISMEDI — yalnizca etiket
+/// isletmenin dilinde; geceDakikasi ve uyarilar aynen calisiyor.
 function kategori(startHhmm, endHhmm) {
   const b = t.parseHhmm(startHhmm);
   if (b === null) return 'bilinmiyor';
   const gece = geceDakikasi(startHhmm, endHhmm);
   const sure = sheet.shiftSpanMinutes(startHhmm, endHhmm) ?? 0;
-  // Suresinin en az ucte biri gece donemindeyse gece vardiyasi sayilir.
-  if (sure > 0 && gece >= sure / 3) return 'gece';
+  // Suresinin en az ucte biri gece donemindeyse kapanis vardiyasi sayilir.
+  if (sure > 0 && gece >= sure / 3) return 'kapanis';
   if (b < 12 * 60) return 'sabah';
   if (b < 16 * 60) return 'gunduz';
   return 'aksam';
@@ -78,8 +82,8 @@ function uyarilar(shift) {
   if (gece > GECE_AZAMI) {
     liste.push({
       kod: 'GECE_ASIM',
-      etiket: 'gece 7,5 sa aşımı',
-      aciklama: `Gece dönemine düşen süre ${Math.round(gece / 6) / 10} saat; 4857 m.69'a göre en fazla 7,5 saat.`,
+      etiket: 'kapanış 7,5 sa aşımı',
+      aciklama: `20:00-06:00 arasına düşen süre ${Math.round(gece / 6) / 10} saat; 4857 m.69'a göre en fazla 7,5 saat.`,
     });
   }
   const tanimli = Number(shift.break_duration_minutes) || 0;

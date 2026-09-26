@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Moon, Save,
+  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Save, Send,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -21,7 +21,7 @@ const KATEGORI = {
   sabah: { etiket: 'Sabah', sinif: 'k-sabah' },
   gunduz: { etiket: 'Gündüz', sinif: 'k-gunduz' },
   aksam: { etiket: 'Akşam', sinif: 'k-aksam' },
-  gece: { etiket: 'Gece', sinif: 'k-gece' },
+  kapanis: { etiket: 'Kapanış', sinif: 'k-kapanis' },
 };
 const GUN_UZUN = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
@@ -75,6 +75,7 @@ export default function Roster() {
   const [veri, setVeri] = useState(null);
   const [hata, setHata] = useState('');
   const [disa, setDisa] = useState(false);
+  const [paylasiyor, setPaylasiyor] = useState(false);
   const [vardiyalar, setVardiyalar] = useState([]);
   const [hucre, setHucre] = useState(null);
   // Bekleyen degisiklikler: "userId|tarih" -> hucre degisikligi.
@@ -190,6 +191,25 @@ export default function Roster() {
     setCakisma(null);
   }
 
+  /// Haftalik plani ekiple paylas: herkese kendi haftasinin bildirimi gider.
+  async function paylas() {
+    if (!veri || veri.people.length === 0) { toast('Paylaşılacak plan yok'); return; }
+    if (!window.confirm(
+      `${fmtDate(veri.from)} – ${fmtDate(veri.to)} haftasının planı ekibe bildirilecek.\n\n`
+      + 'Herkes kendi vardiyalarının özetini bildirim olarak alacak.'
+    )) return;
+    setPaylasiyor(true);
+    try {
+      const r = await api.post('/pdks/roster/publish',
+        { from: veri.from, to: veri.to }, { noToast: true });
+      toast(`Plan ${r.data.notified} kişiyle paylaşıldı`);
+    } catch (e) {
+      toast(errorMessage(e));
+    } finally {
+      setPaylasiyor(false);
+    }
+  }
+
   async function pdfAktar() {
     if (!veri || veri.people.length === 0) { toast('Dışa aktarılacak kayıt yok'); return; }
     setDisa(true);
@@ -211,31 +231,59 @@ export default function Roster() {
       const magazaAdi = veri.store || (magazalar.find((m) => String(m.id) === String(storeId)) || {}).name || '';
       doc.text(`${magazaAdi}${magazaAdi ? ' · ' : ''}${fmtDate(veri.from)} – ${fmtDate(veri.to)}`, 14, 20);
 
-      const basliklar = ['Personel', ...veri.dates.map((d) => `${gunAdi(d)}\n${d.slice(8)}.${d.slice(5, 7)}`), 'Planlı'];
+      // Basili cizelgenin sutun duzeni: calisma sekli ve gorev de yaziyor.
+      const basliklar = [
+        'ÇALIŞMA ŞEKLİ', 'GÖREV', 'AD SOYAD',
+        ...veri.dates.map((d) => `${gunAdi(d, true).toLocaleUpperCase('tr')}\n${d.slice(8)}.${d.slice(5, 7)}.${d.slice(0, 4)}`),
+        'PLANLI',
+      ];
       const satirlar = veri.people.map((p) => [
+        p.user.employment_type === 'PART_TIME' ? 'PART TIME' : 'FULL TIME',
+        p.user.duty || '',
         p.user.full_name,
         ...veri.dates.map((d) => hucreMetin(p.cells[d], veri.holidays[d])),
         saat(p.planned_minutes),
       ]);
-      const toplam = ['TOPLAM',
+      const toplam = ['', '', 'TOPLAM',
         ...veri.dates.map((d) => `${veri.totals[d].working} kişi`),
         saat(veri.people.reduce((a, p) => a + p.planned_minutes, 0))];
+
+      // Gun sutunlari isim sutunlarindan SONRA basliyor; renk eslemesi bu
+      // kaymayi kullaniyor.
+      const ILK_GUN = 3;
 
       autoTable(doc, {
         head: [basliklar],
         body: [...satirlar, toplam],
         startY: 25,
-        styles: { font: f, fontSize: 7, cellPadding: 2, valign: 'middle' },
-        headStyles: { font: f, fontStyle: 'bold', fontSize: 7, fillColor: [225, 228, 232], textColor: 20 },
-        columnStyles: { 0: { cellWidth: 42, halign: 'left' } },
+        styles: { font: f, fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center' },
+        headStyles: { font: f, fontStyle: 'bold', fontSize: 7, fillColor: [166, 166, 166], textColor: 20 },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 16 },
+          2: { cellWidth: 44, halign: 'left', fontStyle: 'italic' },
+        },
         didParseCell: (data) => {
-          if (data.row.index === satirlar.length) data.cell.styles.fontStyle = 'bold';
+          const sonSatir = data.row.index === satirlar.length;
+          if (sonSatir) { data.cell.styles.fontStyle = 'bold'; return; }
+          if (data.section !== 'body') return;
+          // Ekrandaki renklendirmenin aynisi ciktida da olsun.
+          const i = data.column.index - ILK_GUN;
+          if (i < 0 || i >= veri.dates.length) return;
+          const kisi = veri.people[data.row.index];
+          const renk = hucreRenk(kisi.cells[veri.dates[i]], veri.holidays[veri.dates[i]]);
+          if (renk) {
+            data.cell.styles.fillColor = renk.zemin;
+            data.cell.styles.textColor = renk.metin;
+            data.cell.styles.fontStyle = 'bold';
+          }
         },
       });
 
       doc.setFontSize(7);
       doc.text(
-        'Hafta tatili "HT", resmi tatil "RT" olarak işaretlenir. Gece vardiyası saatin yanında ")" ile gösterilir.',
+        'Hafta tatili "OFF", resmi tatil "RT" olarak işaretlenir. Hücre rengi vardiya kategorisini gösterir '
+        + '(sabah, gündüz, akşam, kapanış).',
         14, doc.lastAutoTable.finalY + 6,
       );
       doc.text(
@@ -260,9 +308,20 @@ export default function Roster() {
             <button className={mod === 'gun' ? 'active' : ''} onClick={() => setMod('gun')}>Günlük</button>
           </div>
           {veri && veri.can_edit && mod === 'hafta' && (
-            <button className="btn btn-secondary" disabled={disa} onClick={pdfAktar}>
-              <FileText size={16} /> PDF
-            </button>
+            <>
+              {/* Paylasim KAYDETMEDEN ayri bir adim: yonetici hafta boyunca
+                  duzenleyip kaydedebilir, plan kesinlestiginde bir kez
+                  paylasir. Bekleyen degisiklik varken kapali: paylasilan plan
+                  ekranda gorulenle ayni olmali. */}
+              <button className="btn btn-secondary" disabled={paylasiyor || bekleyenSayi > 0}
+                title={bekleyenSayi > 0 ? 'Önce değişiklikleri kaydedin' : 'Haftalık planı ekibe bildir'}
+                onClick={paylas}>
+                <Send size={16} /> {paylasiyor ? 'Paylaşılıyor...' : 'Tüm Ekiple Paylaş'}
+              </button>
+              <button className="btn btn-secondary" disabled={disa} onClick={pdfAktar}>
+                <FileText size={16} /> PDF
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -523,10 +582,38 @@ function netDakika(v) {
 function hucreMetin(hucreler, tatil) {
   if (tatil && tatil.half !== true) return 'RT';
   if (!hucreler || hucreler.length === 0) return '-';
-  if (hucreler.some((c) => c.is_day_off)) return 'HT';
+  if (hucreler.some((c) => c.is_day_off)) return 'OFF';
   return hucreler
-    .map((c) => `${(c.start_time || '').slice(0, 5)}-${(c.end_time || '').slice(0, 5)}${c.crosses_midnight ? ')' : ''}`)
+    .map((c) => `${(c.start_time || '').slice(0, 5)}-${(c.end_time || '').slice(0, 5)}`)
     .join(' / ');
+}
+
+/// PDF hucre rengi. Ekrandaki kategori renkleriyle AYNI aile; jsPDF CSS
+/// degiskeni okuyamadigi icin RGB olarak burada duruyor. Degerler acik tema
+/// tonlari: cikti beyaz kagida basiliyor, koyu tema tonlari orada okunmaz.
+///
+/// Metin rengi de veriliyor: yalnizca zemini boyayip siyah metin birakmak
+/// bazi tonlarda kucuk metin esiginin (4.5) altina duserdi.
+const PDF_RENK = {
+  sabah: { zemin: [219, 234, 254], metin: [30, 64, 175] },
+  gunduz: { zemin: [220, 252, 231], metin: [22, 101, 52] },
+  aksam: { zemin: [254, 243, 199], metin: [146, 64, 14] },
+  kapanis: { zemin: [237, 233, 254], metin: [91, 33, 182] },
+  // Isletmenin kendi cizelgesindeki macenta OFF hucresi. Metin SIYAH:
+  // olculdu, beyaz metin bu zeminde 3.14 kontrast veriyor ve kucuk metin
+  // esigi olan 4.5'in altinda kaliyor; siyah 6.70.
+  OFF: { zemin: [255, 0, 255], metin: [0, 0, 0] },
+  RT: { zemin: [254, 226, 226], metin: [153, 27, 27] },
+};
+
+/// Hucrenin PDF renk anahtari; hucreMetin ile AYNI onceligi izliyor ki
+/// metin "RT" derken renk baska seyi anlatmasin.
+function hucreRenk(hucreler, tatil) {
+  if (tatil && tatil.half !== true) return PDF_RENK.RT;
+  if (!hucreler || hucreler.length === 0) return null;
+  if (hucreler.some((c) => c.is_day_off)) return PDF_RENK.OFF;
+  const k = hucreler.find((c) => c.category)?.category;
+  return PDF_RENK[k] || null;
 }
 
 function HaftaTablosu({ veri, bekleyen = {}, onHucre }) {
@@ -585,8 +672,8 @@ function HaftaTablosu({ veri, bekleyen = {}, onHucre }) {
         </div>
       </div>
       <p className="muted" style={{ fontSize: 12 }}>
-        <strong>HT</strong> hafta tatili · <strong>RT</strong> resmi tatil ·
-        {' '}<Moon size={12} style={{ verticalAlign: -2 }} /> gece vardiyası (ertesi güne sarkar)
+        <strong>OFF</strong> hafta tatili · <strong>RT</strong> resmi tatil ·
+        {' '}<strong>Kapanış</strong> vardiyası ertesi güne sarkar
         <br />
         Planlı süreler <strong>net çalışmadır</strong>: ara dinlenmesi düşülmüştür (4857 m.68).
         Kırmızı çerçeveli hücre yasal sınır uyarısı taşır.
@@ -624,7 +711,7 @@ function Hucre({ hucreler: gelen, tatil, bekleyen, duzenle }) {
   if (tamTatil) {
     govde = <span className="roster-rt">RT</span>;
   } else if (tatilKaydi) {
-    govde = <span className="roster-ht">HT</span>;
+    govde = <span className="roster-ht">OFF</span>;
   } else if (bos) {
     govde = <span className="roster-bos">{duzenle ? '+' : '-'}</span>;
   } else {
@@ -634,7 +721,6 @@ function Hucre({ hucreler: gelen, tatil, bekleyen, duzenle }) {
         <span className={`roster-shift ${k ? k.sinif : ''}`} key={i}>
           <span className="roster-saat">
             {(c.start_time || '').slice(0, 5)}–{(c.end_time || '').slice(0, 5)}
-            {c.crosses_midnight && <Moon size={10} />}
           </span>
           {k && <span className="roster-kat">{k.etiket}</span>}
         </span>
@@ -717,7 +803,7 @@ function GunListesi({ veri, gun }) {
                   <td data-label="Vardiya">{c.shift_name || '-'}</td>
                   <td data-label="Saat">
                     {(c.start_time || '').slice(0, 5)}–{(c.end_time || '').slice(0, 5)}
-                    {c.crosses_midnight && <span className="badge warning" style={{ marginLeft: 6 }}>gece</span>}
+                    {c.crosses_midnight && <span className="badge warning" style={{ marginLeft: 6 }}>kapanış</span>}
                   </td>
                   <td data-label="Mola">
                     {c.break_duration_minutes ? <><Coffee size={13} /> {c.break_duration_minutes} dk</> : '-'}

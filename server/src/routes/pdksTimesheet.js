@@ -18,6 +18,19 @@ router.use(requireAuth);
 
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
 
+/// Cizelge ciktisindaki GOREV sutunu. Isletmenin kullandigi kisaltmalar;
+/// rol adlari teknik (store_manager) ama basili cizelgede SM yaziyor.
+const GOREV = {
+  super_admin: 'YÖNETİCİ',
+  operations_manager: 'OPERASYON',
+  hr: 'İK',
+  regional_manager: 'BÖLGE',
+  store_manager: 'SM',
+  shift_supervisor: 'SSV',
+  barista: 'BARİSTA',
+};
+const gorevKisa = (role) => GOREV[role] || String(role || '').toUpperCase();
+
 /// Tarih araligindaki tum gunler.
 function dateRange(from, to) {
   const out = [];
@@ -281,7 +294,7 @@ router.get('/roster', async (req, res) => {
   // olusmasin.
   const users = (await queryAll(`
     SELECT u.id, u.full_name, u.role, u.store_id, st.name AS store_name,
-           p.hired_at
+           p.hired_at, p.employment_type
     FROM users u
     LEFT JOIN stores st ON st.id = u.store_id
     LEFT JOIN pdks_profiles p ON p.user_id = u.id
@@ -354,6 +367,9 @@ router.get('/roster', async (req, res) => {
       user: {
         id: u.id, full_name: u.full_name, role: u.role,
         store_id: u.store_id, store_name: u.store_name,
+        // Cizelge ciktisindaki "ÇALIŞMA ŞEKLİ" ve "GÖREV" sutunlari.
+        employment_type: u.employment_type || 'FULL_TIME',
+        duty: gorevKisa(u.role),
       },
       cells,
       planned_minutes: planned,

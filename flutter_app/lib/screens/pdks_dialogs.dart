@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
-import '../core/format.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/pdks.dart';
@@ -167,14 +166,13 @@ class _QrDialogState extends State<_QrDialog> {
   }
 }
 
-/// Izin / saatlik izin / avans talep formu.
+/// Izin / saatlik izin talep formu.
 Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
   var type = 'IZIN';
   var start = DateTime.now();
   var end = DateTime.now();
   var hourStart = DateTime.now();
   var hourEnd = DateTime.now().add(const Duration(hours: 2));
-  final amount = TextEditingController();
   final reason = TextEditingController();
 
   String d(DateTime v) =>
@@ -201,7 +199,6 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
                   value: 'SAATLIK_IZIN',
                   child: Text('Saatlik İzin'),
                 ),
-                DropdownMenuItem(value: 'AVANS', child: Text('Avans')),
               ],
               onChanged: (v) {
                 type = v ?? 'IZIN';
@@ -265,20 +262,6 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
               ),
             ),
           ],
-          if (type == 'AVANS')
-            LabeledField(
-              label: 'Tutar (₺)',
-              hint: balance == null
-                  ? null
-                  : 'Bu ay kalan limitiniz ${fmtMoney(balance.advanceRemaining)}.',
-              child: TextField(
-                controller: amount,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
           LabeledField(
             label: 'Gerekçe',
             child: TextField(
@@ -300,16 +283,12 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
           }
           body['start_at'] = d(start);
           body['end_at'] = d(end);
-        } else if (type == 'SAATLIK_IZIN') {
+        } else {
           if (!hourEnd.isAfter(hourStart)) {
             return 'Bitiş saati başlangıçtan sonra olmalıdır';
           }
           body['start_at'] = hourStart.toUtc().toIso8601String();
           body['end_at'] = hourEnd.toUtc().toIso8601String();
-        } else {
-          final n = num.tryParse(amount.text.trim().replaceAll(',', '.'));
-          if (n == null || n <= 0) return 'Tutar 0’dan büyük olmalıdır';
-          body['amount'] = n;
         }
 
         try {
@@ -378,7 +357,7 @@ Future<bool?> showRequestRejectDialog(
 Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
   final hired = TextEditingController(text: p.hiredAt ?? '');
   final izin = TextEditingController(text: _n(p.annualLeaveDays));
-  final avans = TextEditingController(text: _n(p.monthlyAdvanceLimit));
+  var calisma = p.employmentType;
   final maas = TextEditingController(
     text: p.monthlySalary == null ? '' : _n(p.monthlySalary!),
   );
@@ -415,12 +394,18 @@ Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
             ),
           ),
           LabeledField(
-            label: 'Aylık avans limiti',
-            child: TextField(
-              controller: avans,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+            label: 'Çalışma şekli',
+            child: DropdownButtonFormField<String>(
+              initialValue: calisma,
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(value: 'FULL_TIME', child: Text('FULL TIME')),
+                DropdownMenuItem(value: 'PART_TIME', child: Text('PART TIME')),
+              ],
+              onChanged: (v) {
+                calisma = v ?? 'FULL_TIME';
+                rebuild();
+              },
             ),
           ),
           const Divider(height: 20),
@@ -494,7 +479,7 @@ Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
             userId: p.userId,
             hiredAt: tarih.isEmpty ? null : tarih,
             annualLeaveDays: gunSayisi,
-            monthlyAdvanceLimit: para(avans, 'Avans limiti', null) ?? 0,
+            employmentType: calisma,
             monthlySalary: para(maas, 'Aylık maaş', null),
             hourlyRate: para(saatlik, 'Saat ücreti', null),
             mealDaily: para(yemek, 'Günlük yemek ücreti', null),

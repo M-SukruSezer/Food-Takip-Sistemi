@@ -274,6 +274,8 @@ CREATE TABLE IF NOT EXISTS pdks_profiles (
   hired_at TEXT,                                        -- YYYY-MM-DD
   -- 4857 sayili Is Kanunu'nda 1-5 yil arasi yillik izin 14 gun; varsayilan bu.
   annual_leave_days DOUBLE PRECISION NOT NULL DEFAULT 14,
+  -- Avans sistemi kaldirildi. Kolon DUSURULMUYOR: uzerinde NOT NULL var ve
+  -- eski dagitimlar hala yaziyor olabilir; varsayilanla duruyor.
   monthly_advance_limit DOUBLE PRECISION NOT NULL DEFAULT 0,
   -- Hafta tatili gunleri, users.permissions ile ayni desende JSON metin.
   -- 0 = Pazar ... 6 = Cumartesi. Ornek: '[0]' ya da '[0,6]'.
@@ -281,6 +283,12 @@ CREATE TABLE IF NOT EXISTS pdks_profiles (
   updated_by BIGINT,
   updated_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
+
+-- Calisma sekli: cizelge ciktisinda "FULL TIME / PART TIME" sutunu.
+ALTER TABLE pdks_profiles ADD COLUMN IF NOT EXISTS employment_type TEXT NOT NULL DEFAULT 'FULL_TIME';
+ALTER TABLE pdks_profiles DROP CONSTRAINT IF EXISTS pdks_profiles_employment_check;
+ALTER TABLE pdks_profiles ADD CONSTRAINT pdks_profiles_employment_check
+  CHECK (employment_type IN ('FULL_TIME', 'PART_TIME'));
 
 -- Vardiya tanimi. store_id NULL ise tum magazalarda kullanilabilir sablon.
 CREATE TABLE IF NOT EXISTS shifts (
@@ -385,7 +393,10 @@ CREATE TABLE IF NOT EXISTS attendance_logs (
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_type_check;
 ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_type_check
   CHECK (type IN ('GIRIS', 'CIKIS', 'MOLA_BASLA', 'MOLA_BITIR'));
--- Yalnizca iki yontem. Biyometrik ya da elle giris bu kisittan gecmez.
+-- GPS artik API tarafindan KABUL EDILMIYOR (giris/cikis yalnizca QR).
+-- Kisit yine de GPS'i kabul ediyor: veritabaninda gecmis GPS kayitlari var ve
+-- bu sema her soguk baslatmada TEK SORGU olarak calisiyor. Kisiti daraltmak
+-- mevcut satirlar yuzunden sorguyu patlatir, bu da tum API'yi dusururdu.
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_method_check;
 ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_method_check
   CHECK (method IN ('QR', 'GPS'));
@@ -427,15 +438,16 @@ CREATE TABLE IF NOT EXISTS personnel_requests (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   store_id BIGINT NOT NULL REFERENCES stores(id),
-  type TEXT NOT NULL,                                   -- IZIN | SAATLIK_IZIN | AVANS
-  -- IZIN'de YYYY-MM-DD, SAATLIK_IZIN'de ISO zaman damgasi. AVANS'ta bos.
+  type TEXT NOT NULL,                                   -- IZIN | SAATLIK_IZIN
+  -- IZIN'de YYYY-MM-DD, SAATLIK_IZIN'de ISO zaman damgasi.
   start_at TEXT,
   end_at TEXT,
   -- Talep aninda hesaplanip saklanir: izin hakki dusumu, kural sonradan
   -- degisse de gecmis talebin degeri kaymasin.
   days DOUBLE PRECISION,
   hours DOUBLE PRECISION,
-  amount DOUBLE PRECISION,                              -- AVANS tutari
+  -- Avans sistemi kaldirildi; kolon eski kayitlar icin duruyor.
+  amount DOUBLE PRECISION,
   reason TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING',
   manager_id BIGINT REFERENCES users(id),
@@ -447,6 +459,9 @@ CREATE TABLE IF NOT EXISTS personnel_requests (
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_type_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_type_check
   CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS'));
+-- NOT: 'AVANS' kisitta BIRAKILDI. Avans ozelligi kaldirildi ama tur listesini
+-- daraltmak, veritabaninda tek bir eski avans talebi kalmissa bu semayi ve
+-- dolayisiyla tum API'yi dusururdu. API artik AVANS talebi olusturmuyor.
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_status_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_status_check
   CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'));
@@ -549,7 +564,10 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_kind_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check
-  CHECK (kind IN ('SHIFT_PUBLISHED', 'SHIFT_CHANGED', 'SHIFT_REMOVED'));
+  CHECK (kind IN (
+    'SHIFT_PUBLISHED', 'SHIFT_CHANGED', 'SHIFT_REMOVED',
+    'REQUEST_CREATED', 'REQUEST_DECIDED', 'REQUEST_CANCELLED'
+  ));
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user
   ON notifications(user_id, created_at DESC);

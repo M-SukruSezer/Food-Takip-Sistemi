@@ -103,38 +103,6 @@ class _PdksScreenState extends State<PdksScreen> {
         .onError((Object _, StackTrace _) {});
   }
 
-  /// Konumla islem (dort adimdan biri).
-  Future<void> _gpsPunch(PdksPunch adim) async {
-    setState(() => _busy = true);
-    try {
-      // Cihaz kontrolu konumla PARALEL yurutulur: seri yapilsa girise kadarki
-      // bekleme iki islemin toplami olurdu.
-      final results = await Future.wait([
-        currentPosition(),
-        readDeviceIntegrity(),
-      ]);
-      final pos = results[0] as PdksPosition;
-      final integrity = results[1] as DeviceIntegrity;
-      await repo.pdksPunchGps(
-        adim: adim,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
-        accuracy: pos.accuracy,
-        isMocked: pos.isMocked,
-        integrity: integrity,
-      );
-      toastSaved(adim.mesaj);
-      _warnIntegrity(integrity);
-      await _load(silent: true);
-    } on LocationDenied catch (e) {
-      toast(e.message, kind: ToastKind.error);
-    } catch (e) {
-      toast(errorMessage(e), kind: ToastKind.error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   /// QR ile islem (dort adimdan biri).
   Future<void> _qrPunch(PdksPunch adim) async {
     final basliklar = {
@@ -152,27 +120,31 @@ class _PdksScreenState extends State<PdksScreen> {
 
     setState(() => _busy = true);
     try {
-      // Sabit basili kod konum da istiyor. Konum alinabiliyorsa gonderilir;
-      // alinamazsa donen kod tek basina yeterli olabilir.
-      PdksPosition? pos;
-      try {
-        pos = await currentPosition();
-      } catch (_) {
-        pos = null;
-      }
-      final integrity = await readDeviceIntegrity();
+      // Konum ZORUNLU: QR "kodu okuttu" der, konum "IS YERINDE okuttu" der.
+      // Cihaz kontrolu konumla PARALEL yurutulur; seri yapilsa bekleme iki
+      // islemin toplami olurdu.
+      final sonuclar = await Future.wait([
+        currentPosition(),
+        readDeviceIntegrity(),
+      ]);
+      final pos = sonuclar[0] as PdksPosition;
+      final integrity = sonuclar[1] as DeviceIntegrity;
       await repo.pdksPunchQr(
         adim: adim,
         token: token,
-        latitude: pos?.latitude,
-        longitude: pos?.longitude,
-        accuracy: pos?.accuracy,
-        isMocked: pos?.isMocked,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        accuracy: pos.accuracy,
+        // Android'in bu OLCUM icin verdigi sahte konum karari. Sunucu
+        // true ise kaydi REDDEDIYOR.
+        isMocked: pos.isMocked,
         integrity: integrity,
       );
       toastSaved(adim.mesaj);
       _warnIntegrity(integrity);
       await _load(silent: true);
+    } on LocationDenied catch (e) {
+      toast(e.message, kind: ToastKind.error);
     } catch (e) {
       toast(errorMessage(e), kind: ToastKind.error);
     } finally {
@@ -192,24 +164,6 @@ class _PdksScreenState extends State<PdksScreen> {
       'Kayıt alındı, not düşüldü: ${w.join(', ')}',
       kind: ToastKind.warning,
     );
-  }
-
-  Future<void> _showMyQr() async {
-    try {
-      final token = await repo.pdksMyQr();
-      if (!mounted) return;
-      await showQrDialog(
-        context,
-        title: 'Kodumu Göster',
-        token: token,
-        onRefresh: repo.pdksMyQr,
-        note:
-            'Kiosk bu kodu okutacak. Kod '
-            '${token.windowSeconds} saniyede bir yenilenir.',
-      );
-    } catch (e) {
-      toast(errorMessage(e), kind: ToastKind.error);
-    }
   }
 
   Future<void> _newRequest() async {
@@ -268,13 +222,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ),
             const SizedBox(height: AppTokens.gap),
           ],
-          _PunchCard(
-            status: _status,
-            busy: _busy,
-            onGps: _gpsPunch,
-            onQr: _qrPunch,
-            onMyQr: _showMyQr,
-          ),
+          _PunchCard(status: _status, busy: _busy, onQr: _qrPunch),
           const SizedBox(height: AppTokens.gap),
           _TodayCard(status: _status),
           if (_balance != null) ...[
@@ -405,16 +353,12 @@ class _PunchCard extends StatelessWidget {
   const _PunchCard({
     required this.status,
     required this.busy,
-    required this.onGps,
     required this.onQr,
-    required this.onMyQr,
   });
 
   final PdksStatus status;
   final bool busy;
-  final Future<void> Function(PdksPunch adim) onGps;
   final Future<void> Function(PdksPunch adim) onQr;
-  final Future<void> Function() onMyQr;
 
   @override
   Widget build(BuildContext context) {
@@ -422,22 +366,11 @@ class _PunchCard extends StatelessWidget {
     final inside = status.isInside;
     final molada = status.onBreak;
     final store = status.store;
-    final gps = status.canUseGps && !busy;
     final qr = status.canUseQr && !busy;
     // Sonraki gecerli adim SUNUCUDAN geliyor; kurali burada tekrar yazmak
     // iki tarafin ayrismasi demekti.
     final anaAdim = status.canCheckOut ? PdksPunch.checkOut : PdksPunch.checkIn;
-    final anaAcik = gps && (status.canCheckIn || status.canCheckOut);
-    final qrAdim = molada
-        ? PdksPunch.breakEnd
-        : inside
-        ? PdksPunch.checkOut
-        : PdksPunch.checkIn;
-    final qrEtiket = molada
-        ? 'mola bitişi'
-        : inside
-        ? 'çıkış'
-        : 'giriş';
+    final anaAcik = qr && (status.canCheckIn || status.canCheckOut);
 
     return AppCard(
       child: Column(
@@ -498,64 +431,48 @@ class _PunchCard extends StatelessWidget {
           // Ana islem: iceride degilse giris, iceridyse cikis.
           // Molada iken cikis KAPALI: once mola bitirilmeli (sunucu da
           // engelliyor, dugmenin kapali olmasi sebebi denemeden gosteriyor).
+          // Dort adimin da TEK yolu QR okutmak. Her dugme okuyucuyu kendi
+          // adimiyla aciyor: niyet dugmede belli.
           SizedBox(
             height: 52,
             child: FilledButton.icon(
-              onPressed: anaAcik ? () => onGps(anaAdim) : null,
-              icon: Icon(inside ? Icons.logout : Icons.login),
-              label: Text(inside ? 'Konumla İşi Bitir' : 'Konumla İşe Başla'),
+              onPressed: anaAcik ? () => onQr(anaAdim) : null,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla'),
             ),
           ),
           const SizedBox(height: 8),
-          // Mola adimlari.
+          // Mola adimlari — bunlar da QR istiyor.
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: gps && status.canBreakStart
-                      ? () => onGps(PdksPunch.breakStart)
+                  onPressed: qr && status.canBreakStart
+                      ? () => onQr(PdksPunch.breakStart)
                       : null,
                   icon: const Icon(Icons.free_breakfast_outlined, size: 18),
-                  label: const Text('Molaya Çık'),
+                  label: const Text('QR ile Molaya Çık'),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: gps && status.canBreakEnd
-                      ? () => onGps(PdksPunch.breakEnd)
+                  onPressed: qr && status.canBreakEnd
+                      ? () => onQr(PdksPunch.breakEnd)
                       : null,
                   icon: const Icon(Icons.play_arrow_outlined, size: 18),
-                  label: const Text('Moladan Dön'),
+                  label: const Text('QR ile Moladan Dön'),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: qr ? () => onQr(qrAdim) : null,
-                  icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  label: Text('QR Okut ($qrEtiket)'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: qr ? () => onMyQr() : null,
-                  icon: const Icon(Icons.qr_code_2, size: 18),
-                  label: const Text('Kodumu Göster'),
-                ),
-              ),
-            ],
-          ),
-          if (store != null && store.pdksEnabled && !store.hasLocation) ...[
+          if (store != null &&
+              store.pdksEnabled &&
+              (!store.hasQr || !store.hasLocation)) ...[
             const SizedBox(height: 8),
             Text(
-              'Mağaza konumu tanımlanmadığı için konumla giriş kapalı. '
-              'QR ile giriş yapabilirsiniz.',
+              'Bu mağazada ${!store.hasQr ? 'QR kod' : 'mağaza konumu'} '
+              'tanımlı değil. Giriş/çıkış yapılamaz, yöneticinizle görüşün.',
               style: TextStyle(fontSize: 12, color: t.warning),
             ),
           ],
@@ -563,11 +480,12 @@ class _PunchCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.place_outlined, size: 14, color: t.muted),
+              Icon(Icons.qr_code_scanner, size: 14, color: t.muted),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Konumunuz yalnızca giriş/çıkış anında alınır ve '
+                  'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
+                  'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
                   '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
                   'iş yeri yarıçapıyla karşılaştırılır. '
                   'Arka planda konum izlenmez.',
@@ -699,7 +617,7 @@ class _BalanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'İzin ve Avans Durumu',
+            'İzin Durumu',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -717,17 +635,6 @@ class _BalanceCard extends StatelessWidget {
               cell('Kalan izin', '${balance.remainingDays} gün', t.success),
               cell('Kullanılan', '${balance.usedDays} gün', t.ink),
               cell('Bekleyen', '${balance.pendingDays} gün', t.warning),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              cell(
-                'Kalan avans',
-                fmtMoney(balance.advanceRemaining),
-                t.success,
-              ),
-              cell('Aylık limit', fmtMoney(balance.advanceLimit), t.muted),
             ],
           ),
           if (balance.hourlyUsedHours > 0) ...[
@@ -760,9 +667,7 @@ class _RequestRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final r = request;
-    final detail = r.type == 'AVANS'
-        ? fmtMoney(r.amount)
-        : r.type == 'IZIN'
+    final detail = r.type == 'IZIN'
         ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
         : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 

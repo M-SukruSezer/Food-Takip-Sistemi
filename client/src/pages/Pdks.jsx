@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Clock, MapPin, QrCode as QrIcon, LogIn, LogOut, CalendarDays,
+  Clock, LogIn, LogOut, CalendarDays,
   Wallet, Plus, ScanLine, RefreshCw, Coffee, Play, AlertTriangle,
 } from 'lucide-react';
 import api from '../api';
 import { Modal, toast } from '../components/ui';
-import QrCode from '../components/pdks/QrCode';
 import QrScanner from '../components/pdks/QrScanner';
-import { fmtDate, fmtDateTime, fmtMoney, errorMessage } from '../format';
+import { fmtDate, fmtDateTime, errorMessage } from '../format';
 
-// Personel PDKS ekrani: durum, giris/cikis, QR, bakiye, talepler, takvim.
+// Personel PDKS ekrani: durum, QR ile giris/cikis, bakiye, talepler, takvim.
 //
-// KVKK: konum yalnizca GPS ile islem yapilirken ve o an aliniyor; arka planda
-// izleme yok. Kullaniciya da bu yaziliyor.
+// TEK ISLEM YOLU QR — ama QR tek basina yetmiyor. Kodun IS YERINDE
+// okutuldugu konumla dogrulaniyor, sahte konum reddediliyor.
+//
+// KVKK: konum yalnizca okutma aninda aliniyor, arka planda izleme yok.
 
-const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin', AVANS: 'Avans' };
+const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin' };
 const DURUM_ETIKET = { PENDING: 'Bekliyor', APPROVED: 'Onaylandı', REJECTED: 'Reddedildi', CANCELLED: 'İptal' };
 const DURUM_SINIF = { PENDING: 'warning', APPROVED: 'sold', REJECTED: 'critical', CANCELLED: 'discarded' };
 
@@ -28,7 +29,6 @@ export default function Pdks() {
   const [reload, setReload] = useState(0);
   const [hata, setHata] = useState('');
   const [mesgul, setMesgul] = useState(false);
-  const [qrGoster, setQrGoster] = useState(null);
   const [okuyucu, setOkuyucu] = useState(null);
   const [talepForm, setTalepForm] = useState(false);
 
@@ -54,11 +54,26 @@ export default function Pdks() {
       .then((r) => setTatiller(r.data)).catch(() => {});
   }, [ay, reload]);
 
-  /// Cihazin anlik konumunu alir.
+// Tarayicida cihaz butunlugu KONTROL EDILEMEZ: root/emulator tespiti icin bir
+// web API'si yok. "Temiz" demek yerine kontrol edilemedigi bildiriliyor;
+// sunucu kaydi "unverified" bayragiyla isaretliyor ve yonetici hangi
+// girislerin cihaz dogrulamasindan gectigini ayirt edebiliyor.
+const WEB_INTEGRITY = { checked: false };
+
+// Dort adimin uc noktalari ve bildirim metinleri tek yerde: iki islem
+// fonksiyonu da buradan besleniyor, metinler ayrismasin.
+const ADIM = {
+  GIRIS: { yol: 'check-in', mesaj: 'Giriş kaydedildi' },
+  CIKIS: { yol: 'check-out', mesaj: 'Çıkış kaydedildi' },
+  MOLA_BASLA: { yol: 'break-start', mesaj: 'Mola başladı' },
+  MOLA_BITIR: { yol: 'break-end', mesaj: 'Mola bitti' },
+};
+
+  /// Cihazin anlik konumu. Yalnizca QR okutulurken cagriliyor.
   ///
-  /// Web Geolocation API sahte konum bayragi VERMIYOR; sunucu bu yuzden
-  /// konum atlamasi kontrolu de yapiyor. Bunu kullaniciya soylemiyoruz ama
-  /// davranisi biliyoruz.
+  /// Tarayici Geolocation API'si sahte konum bayragi VERMIYOR; sunucu bu
+  /// yuzden konum atlamasi (teleport) kontrolu de yapiyor. Sahte konum
+  /// tespiti mobil uygulamada (Android: isFromMockProvider).
   function konumAl() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -72,42 +87,27 @@ export default function Pdks() {
           accuracy: p.coords.accuracy,
         }),
         (e) => reject(new Error(
-          e.code === 1 ? 'Konum izni verilmedi'
+          e.code === 1 ? 'Konum izni verilmedi. QR kodun iş yerinde okutulduğu konumla doğrulanıyor.'
             : e.code === 3 ? 'Konum alınamadı, açık alanda tekrar deneyin'
             : 'Konum alınamadı'
         )),
-        // Onbellekteki eski konum kabul edilmez: giris anindaki konum gerekir.
+        // Onbellekteki eski konum kabul edilmez: okutma anindaki konum gerekir.
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
   }
 
-// Tarayicida cihaz butunlugu KONTROL EDILEMEZ: ne sahte konum bayragi, ne
-// root, ne emulator tespiti icin bir web API'si var. Bu yuzden "temiz"
-// gondermek yerine kontrol edilemedigi bildiriliyor; sunucu kaydi
-// "unverified" bayragiyla isaretliyor ve yonetici hangi girislerin cihaz
-// dogrulamasindan gectigini ayirt edebiliyor.
-//
-// Sahte konum tespiti mobil uygulamada yapiliyor (Android: isFromMockProvider).
-// Tarayici icin geriye kalan savunma sunucu tarafinda: geofence ve onceki
-// kayitla arasindaki hiz (teleport) kontrolu.
-const WEB_INTEGRITY = { checked: false };
-
-// Dort adimin uc noktalari ve bildirim metinleri tek yerde: iki islem
-// fonksiyonu da buradan besleniyor, metinler ayrismasin.
-const ADIM = {
-  GIRIS: { yol: 'check-in', mesaj: 'Giriş kaydedildi' },
-  CIKIS: { yol: 'check-out', mesaj: 'Çıkış kaydedildi' },
-  MOLA_BASLA: { yol: 'break-start', mesaj: 'Mola başladı' },
-  MOLA_BITIR: { yol: 'break-end', mesaj: 'Mola bitti' },
-};
-
-  async function gpsIslem(tip) {
+  /// Tek islem yolu: QR okut + konum dogrula.
+  async function qrIslem(tip, token) {
+    setOkuyucu(null);
     setMesgul(true);
     try {
+      // Konum ZORUNLU: alinamazsa istek hic gonderilmiyor, kullaniciya
+      // sebebi soyleniyor. Sunucuya gidip "konum doğrulanamadı" almak
+      // yerine burada net mesaj veriliyor.
       const konum = await konumAl();
       await api.post(`/pdks/${ADIM[tip].yol}`,
-        { method: 'GPS', ...konum, device_integrity: WEB_INTEGRITY },
+        { method: 'QR', qr_token: token, ...konum, device_integrity: WEB_INTEGRITY },
         { noToast: true, busyMessage: 'Konum doğrulanıyor...' });
       toast(ADIM[tip].mesaj);
       setReload((n) => n + 1);
@@ -115,34 +115,6 @@ const ADIM = {
       toast(errorMessage(e) || e.message);
     } finally {
       setMesgul(false);
-    }
-  }
-
-  async function qrIslem(tip, token) {
-    setOkuyucu(null);
-    setMesgul(true);
-    try {
-      // Sabit basili kod konum da istiyor; konum alinabiliyorsa gonderilir.
-      let konum = {};
-      try { konum = await konumAl(); } catch { /* QR tek basina yeterli olabilir */ }
-      await api.post(`/pdks/${ADIM[tip].yol}`,
-        { method: 'QR', qr_token: token, ...konum, device_integrity: WEB_INTEGRITY },
-        { noToast: true, busyMessage: 'QR doğrulanıyor...' });
-      toast(ADIM[tip].mesaj);
-      setReload((n) => n + 1);
-    } catch (e) {
-      toast(errorMessage(e));
-    } finally {
-      setMesgul(false);
-    }
-  }
-
-  async function kendiQrKodu() {
-    try {
-      const r = await api.get('/pdks/me/qr', { silent: true });
-      setQrGoster(r.data);
-    } catch (e) {
-      toast(errorMessage(e));
     }
   }
 
@@ -161,8 +133,9 @@ const ADIM = {
   // yazmak iki tarafin ayrismasi demekti.
   const izin = durum.can || {};
   const magaza = durum.store || {};
-  const konumVar = magaza.has_location;
   const pdksAcik = magaza.pdks_enabled;
+  // Islem icin IKI ETKEN de hazir olmali: QR sirri ve magaza konumu.
+  const hazir = pdksAcik && magaza.has_qr && magaza.has_location;
   // Operasyon alanindan buraya yonlendirildik mi (sunucu SHIFT_REQUIRED dedi).
   const mesaiIstendi = new URLSearchParams(window.location.search).get('shift') === '1';
 
@@ -213,20 +186,23 @@ const ADIM = {
           </div>
         </div>
 
+        {/* Dort adimin da TEK yolu QR okutmak. Her dugme okuyucuyu kendi
+            adimiyla aciyor: "QR okut" deyip sonra ne yapildigini tahmin
+            ettirmek yerine niyet dugmede belli. */}
         <div className="pdks-actions">
           <button
             className={`btn ${izin.check_in ? 'btn-primary' : 'btn-secondary'} btn-lg`}
-            disabled={mesgul || !pdksAcik || !izin.check_in || !konumVar}
-            onClick={() => gpsIslem('GIRIS')}
+            disabled={mesgul || !hazir || !izin.check_in}
+            onClick={() => setOkuyucu('GIRIS')}
           >
-            <LogIn size={18} /> Konumla İşe Başla
+            <LogIn size={18} /> QR ile İşe Başla
           </button>
           <button
             className={`btn ${izin.check_out ? 'btn-primary' : 'btn-secondary'} btn-lg`}
-            disabled={mesgul || !pdksAcik || !izin.check_out || !konumVar}
-            onClick={() => gpsIslem('CIKIS')}
+            disabled={mesgul || !hazir || !izin.check_out}
+            onClick={() => setOkuyucu('CIKIS')}
           >
-            <LogOut size={18} /> Konumla İşi Bitir
+            <LogOut size={18} /> QR ile İşi Bitir
           </button>
         </div>
 
@@ -235,39 +211,31 @@ const ADIM = {
         <div className="pdks-actions">
           <button
             className={`btn ${izin.break_start ? 'btn-primary' : 'btn-secondary'}`}
-            disabled={mesgul || !pdksAcik || !izin.break_start || !konumVar}
-            onClick={() => gpsIslem('MOLA_BASLA')}
+            disabled={mesgul || !hazir || !izin.break_start}
+            onClick={() => setOkuyucu('MOLA_BASLA')}
           >
-            <Coffee size={16} /> Molaya Çık
+            <Coffee size={16} /> QR ile Molaya Çık
           </button>
           <button
             className={`btn ${izin.break_end ? 'btn-primary' : 'btn-secondary'}`}
-            disabled={mesgul || !pdksAcik || !izin.break_end || !konumVar}
-            onClick={() => gpsIslem('MOLA_BITIR')}
+            disabled={mesgul || !hazir || !izin.break_end}
+            onClick={() => setOkuyucu('MOLA_BITIR')}
           >
-            <Play size={16} /> Moladan Dön
+            <Play size={16} /> QR ile Moladan Dön
           </button>
         </div>
 
-        <div className="pdks-actions">
-          <button className="btn btn-secondary" disabled={mesgul || !pdksAcik}
-            onClick={() => setOkuyucu(molada ? 'MOLA_BITIR' : iceride ? 'CIKIS' : 'GIRIS')}>
-            <ScanLine size={16} /> QR Okut ({molada ? 'mola bitişi' : iceride ? 'çıkış' : 'giriş'})
-          </button>
-          <button className="btn btn-secondary" disabled={!pdksAcik} onClick={kendiQrKodu}>
-            <QrIcon size={16} /> Kodumu Göster
-          </button>
-        </div>
-
-        {!konumVar && pdksAcik && (
-          <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
-            Mağaza konumu tanımlanmadığı için konumla giriş kapalı. QR ile giriş yapabilirsiniz.
-          </p>
+        {pdksAcik && (!magaza.has_qr || !magaza.has_location) && (
+          <div className="alert warning" style={{ marginTop: 8 }}>
+            Bu mağazada {!magaza.has_qr ? 'QR kod' : 'mağaza konumu'} tanımlı değil.
+            Giriş/çıkış yapılamaz, yöneticinizle görüşün.
+          </div>
         )}
         <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', display: 'flex', gap: 6 }}>
-          <MapPin size={14} />
-          Konumunuz yalnızca giriş/çıkış anında alınır ve
-          {konumVar ? ` ${magaza.geofence_radius_m} m ` : ' '}
+          <ScanLine size={14} />
+          Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak yapılır.
+          Kodu okuttuğunuz anda konumunuz alınır ve
+          {magaza.has_location ? ` ${magaza.geofence_radius_m} m ` : ' '}
           iş yeri yarıçapıyla karşılaştırılır. Arka planda konum izlenmez.
         </p>
       </section>
@@ -312,7 +280,7 @@ const ADIM = {
       {bakiye && (
         <section className="surface-panel">
           <div className="mo-head">
-            <h3><Wallet size={18} /> İzin ve Avans Durumu</h3>
+            <h3><Wallet size={18} /> İzin Durumu</h3>
             <span className="muted">
               İzin yılı: {fmtDate(bakiye.leave_year.from)} – {fmtDate(bakiye.leave_year.to)}
             </span>
@@ -329,10 +297,6 @@ const ADIM = {
             <div className="mo-figure">
               <span>Onay bekleyen</span>
               <strong className="text-warning">{bakiye.leave.pending_days} gün</strong>
-            </div>
-            <div className="mo-figure">
-              <span>Kalan avans</span>
-              <strong className="text-ok">{fmtMoney(bakiye.advance.remaining)}</strong>
             </div>
           </div>
           {bakiye.hourly_leave.used_hours > 0 && (
@@ -368,8 +332,8 @@ const ADIM = {
                   <tr key={r.id}>
                     <td data-label="Tür"><strong>{TALEP_ETIKET[r.type]}</strong></td>
                     <td data-label="Detay">
-                      {r.type === 'AVANS' ? fmtMoney(r.amount)
-                        : r.type === 'IZIN' ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
+                      {r.type === 'IZIN'
+                        ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
                         : `${fmtDateTime(r.start_at)} · ${r.hours} saat`}
                       <div className="muted" style={{ fontSize: 12 }}>{r.reason}</div>
                     </td>
@@ -408,22 +372,6 @@ const ADIM = {
         <Takvim ay={ay} atamalar={takvim} tatiller={tatiller} />
       </section>
 
-      {qrGoster && (
-        <Modal title="Kodumu Göster" onClose={() => setQrGoster(null)}>
-          <QrCode value={qrGoster.token}
-            label={`Kiosk bu kodu okutacak · ${qrGoster.expires_in} saniye geçerli`} />
-          <p className="muted" style={{ fontSize: 12 }}>
-            Kod {qrGoster.window_seconds} saniyede bir yenilenir. Süre dolarsa
-            pencereyi kapatıp tekrar açın.
-          </p>
-          <div className="form-actions">
-            <button className="btn btn-secondary" onClick={kendiQrKodu}>
-              <RefreshCw size={16} /> Yenile
-            </button>
-            <button className="btn btn-primary" onClick={() => setQrGoster(null)}>Kapat</button>
-          </div>
-        </Modal>
-      )}
 
       {okuyucu && (
         <Modal title={`QR ile ${okuyucu === 'GIRIS' ? 'Giriş' : 'Çıkış'}`} onClose={() => setOkuyucu(null)}>
@@ -507,14 +455,13 @@ function Takvim({ ay, atamalar, tatiller = [] }) {
   );
 }
 
-/// Izin / saatlik izin / avans talep formu.
+/// Izin / saatlik izin talep formu.
 function TalepModal({ bakiye, onClose, onDone }) {
   const [tur, setTur] = useState('IZIN');
   const [baslangic, setBaslangic] = useState('');
   const [bitis, setBitis] = useState('');
   const [saatBas, setSaatBas] = useState('');
   const [saatBit, setSaatBit] = useState('');
-  const [tutar, setTutar] = useState('');
   const [gerekce, setGerekce] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -528,15 +475,11 @@ function TalepModal({ bakiye, onClose, onDone }) {
       if (!baslangic || !bitis) { setErr('Tarih aralığı seçin'); return; }
       govde.start_at = baslangic;
       govde.end_at = bitis;
-    } else if (tur === 'SAATLIK_IZIN') {
+    } else {
       if (!saatBas || !saatBit) { setErr('Saat aralığı seçin'); return; }
       // datetime-local yerel saat verir; ISO'ya cevrilir.
       govde.start_at = new Date(saatBas).toISOString();
       govde.end_at = new Date(saatBit).toISOString();
-    } else {
-      const n = Number(tutar);
-      if (!Number.isFinite(n) || n <= 0) { setErr('Tutar 0’dan büyük olmalıdır'); return; }
-      govde.amount = n;
     }
     setBusy(true);
     try {
@@ -559,7 +502,6 @@ function TalepModal({ bakiye, onClose, onDone }) {
           <select value={tur} onChange={(e) => setTur(e.target.value)}>
             <option value="IZIN">Yıllık İzin</option>
             <option value="SAATLIK_IZIN">Saatlik İzin</option>
-            <option value="AVANS">Avans</option>
           </select>
         </div>
 
@@ -596,18 +538,6 @@ function TalepModal({ bakiye, onClose, onDone }) {
               Aynı gün içinde ve en fazla 12 saat olabilir.
             </p>
           </>
-        )}
-
-        {tur === 'AVANS' && (
-          <div className="field">
-            <label>Tutar (₺)</label>
-            <input value={tutar} onChange={(e) => setTutar(e.target.value)} inputMode="decimal" required />
-            {bakiye && (
-              <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-                Bu ay kalan avans limitiniz {fmtMoney(bakiye.advance.remaining)}.
-              </p>
-            )}
-          </div>
         )}
 
         <div className="field">

@@ -93,8 +93,10 @@ void main() {
       expect(shiftCategoryOf('sabah'), ShiftCategory.sabah);
       expect(shiftCategoryOf('gunduz'), ShiftCategory.gunduz);
       expect(shiftCategoryOf('aksam'), ShiftCategory.aksam);
-      expect(shiftCategoryOf('gece'), ShiftCategory.gece);
+      expect(shiftCategoryOf('kapanis'), ShiftCategory.kapanis);
       expect(shiftCategoryOf(null), ShiftCategory.bilinmiyor);
+      // Eski ad artik taninmiyor; sunucu 'kapanis' gonderiyor.
+      expect(shiftCategoryOf('gece'), ShiftCategory.bilinmiyor);
       expect(shiftCategoryOf('sacma'), ShiftCategory.bilinmiyor);
     });
 

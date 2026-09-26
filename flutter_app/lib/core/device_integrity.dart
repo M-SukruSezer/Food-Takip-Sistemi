@@ -74,8 +74,10 @@ bool _initiated = false;
 ///      Paketin kendi akisi bu taahhudu bozardi.
 ///   2. Ilk cagri, akistan henuz konum gelmediginden bayrak ne olursa olsun
 ///      false donuyor; yanlis bir guvence uretirdi.
-/// Sahte konum bayragi bunun yerine geolocator'dan, KULLANDIGIMIZ olcumun
-/// kendisinden okunuyor (Android: Location.isFromMockProvider).
+/// EKSIK KALAN: konumla giris kaldirildigi icin sahte konum bayragi artik
+/// HIC okunmuyor — daha once geolocator olcumunun kendisinden geliyordu
+/// (Android: Location.isFromMockProvider). Konum alinmadigindan o kaynak da
+/// yok. Root/emulator/gelistirici kipi kontrolleri aynen suruyor.
 void _ensureInit() {
   if (_initiated) return;
   SafeDevice.init(const SafeDeviceConfig(mockLocationCheckEnabled: false));

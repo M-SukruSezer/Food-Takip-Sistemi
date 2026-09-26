@@ -179,7 +179,7 @@ void main() {
       expect(find.text('Kaydet'), findsOneWidget);
       expect(find.text('Vazgeç'), findsOneWidget);
       // Hucre yeni degeri gosteriyor ve bekleyen isareti var.
-      expect(find.text('22:00–06:00 🌙'), findsOneWidget);
+      expect(find.text('22:00–06:00'), findsOneWidget);
       expect(find.text('•'), findsOneWidget);
       // Planli sure canli guncellendi: 450 + 420 = 870 dk = 14s 30dk
       expect(find.text('14s 30dk'), findsOneWidget);

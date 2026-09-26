@@ -14,6 +14,7 @@ import 'support/fake_api.dart';
 Map<String, Object?> _status({
   bool inside = false,
   bool enabled = true,
+  bool hasQr = true,
   bool hasLocation = true,
   List<Map<String, Object?>>? shifts,
   List<Map<String, Object?>>? logs,
@@ -26,6 +27,7 @@ Map<String, Object?> _status({
     'name': 'DÜZCE MERKEZ',
     'pdks_enabled': enabled,
     'qr_mode': 'rotating',
+    'has_qr': hasQr,
     'latitude': hasLocation ? 40.8438 : null,
     'longitude': hasLocation ? 31.1565 : null,
     'geofence_radius_m': 100,
@@ -58,13 +60,6 @@ final _balance = {
     'used_hours': 4,
     'pending_hours': 0,
     'deducted_from_annual': false,
-  },
-  'advance': {
-    'monthly_limit': 3000,
-    'used': 500,
-    'pending': 0,
-    'remaining': 2500,
-    'over_used': false,
   },
   'leave_year': {
     'from': '2026-03-15',
@@ -119,15 +114,16 @@ void main() {
       );
       // Sunucu sirri dondurmuyor; model de tasimamali.
       expect(s.toString().contains('secret'), isFalse);
+      expect(s.hasQr, isTrue);
       expect(s.hasLocation, isTrue);
       expect(s.geofenceRadiusM, 100);
     });
 
-    test('gece vardiyası tespiti', () {
+    test('kapanış vardiyası tespiti', () {
       final gece = PdksShift.fromJson({
-        'start_time': '22:00',
-        'end_time': '06:00',
-        'name': 'Gece',
+        'start_time': '16:00',
+        'end_time': '00:30',
+        'name': 'Kapanış',
       });
       final gunduz = PdksShift.fromJson({
         'start_time': '08:00',
@@ -153,7 +149,6 @@ void main() {
       final b = PdksBalance.fromJson(_balance);
       expect(b.remainingDays, 9);
       expect(b.pendingDays, 2);
-      expect(b.advanceRemaining, 2500);
       expect(b.hourlyUsedHours, 4);
       expect(b.notes.length, 1);
     });
@@ -200,9 +195,8 @@ void main() {
         find.widgetWithText(Pill, 'İş yerinde değilsiniz'),
         findsOneWidget,
       );
-      expect(find.text('Konumla İşe Başla'), findsOneWidget);
-      expect(find.text('Konumla İşi Bitir'), findsNothing);
-      expect(find.text('QR Okut (giriş)'), findsOneWidget);
+      expect(find.text('QR ile İşe Başla'), findsOneWidget);
+      expect(find.text('QR ile İşi Bitir'), findsNothing);
     });
 
     testWidgets('içerideyken çıkış düğmesi ve giriş saati', (tester) async {
@@ -214,12 +208,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.widgetWithText(Pill, 'İş yerindesiniz'), findsOneWidget);
-      expect(find.text('Konumla İşi Bitir'), findsOneWidget);
+      expect(find.text('QR ile İşi Bitir'), findsOneWidget);
       expect(find.textContaining('itibarıyla giriş yapıldı'), findsOneWidget);
-      expect(find.text('QR Okut (çıkış)'), findsOneWidget);
     });
 
-    testWidgets('KVKK bilgisi gösterilir', (tester) async {
+    testWidgets('QR + konum bilgisi ve KVKK notu gösterilir', (tester) async {
       tall(tester);
       installFakeApi(_routes());
       signInAs('barista', storeId: 1);
@@ -227,12 +220,12 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('yalnızca giriş/çıkış anında alınır'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Arka planda konum izlenmez'), findsOneWidget);
+      expect(find.textContaining('QR kod okutularak'), findsOneWidget);
+      expect(find.textContaining('konumunuz alınır'), findsOneWidget);
       expect(find.textContaining('100 m'), findsOneWidget);
+      expect(find.textContaining('Arka planda konum izlenmez'), findsOneWidget);
+      // Kisisel QR kaldirildi.
+      expect(find.textContaining('Kodumu Göster'), findsNothing);
     });
 
     testWidgets('PDKS kapalıysa uyarı ve düğmeler kapalı', (tester) async {
@@ -248,14 +241,27 @@ void main() {
         findsOneWidget,
       );
       final btn = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Konumla İşe Başla'),
+        find.widgetWithText(FilledButton, 'QR ile İşe Başla'),
       );
       expect(btn.onPressed, isNull);
     });
 
-    testWidgets('mağaza konumu yoksa konumla giriş kapalı, QR açık', (
-      tester,
-    ) async {
+    testWidgets('QR sırrı yoksa hiçbir işlem yapılamaz', (tester) async {
+      tall(tester);
+      installFakeApi(_routes(status: _status(hasQr: false)));
+      signInAs('barista', storeId: 1);
+
+      await tester.pumpWidget(host(const PdksScreen()));
+      await tester.pumpAndSettle();
+
+      final ana = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'QR ile İşe Başla'),
+      );
+      expect(ana.onPressed, isNull);
+      expect(find.textContaining('QR kod tanımlı değil'), findsOneWidget);
+    });
+
+    testWidgets('mağaza konumu yoksa da işlem yapılamaz', (tester) async {
       tall(tester);
       installFakeApi(_routes(status: _status(hasLocation: false)));
       signInAs('barista', storeId: 1);
@@ -263,16 +269,20 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      final gps = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Konumla İşe Başla'),
+      // Dogrulama QR + konum ikilisine dayandigi icin konumsuz magazada
+      // gecerli bir QR kod bile yetmez: DORT adim da kapali.
+      final ana = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'QR ile İşe Başla'),
       );
-      expect(gps.onPressed, isNull);
-      expect(find.textContaining('konumla giriş kapalı'), findsOneWidget);
-      // QR yine kullanilabilir.
-      final qr = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'QR Okut (giriş)'),
+      expect(ana.onPressed, isNull);
+      final mola = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, 'QR ile Molaya Çık'),
       );
-      expect(qr.onPressed, isNotNull);
+      expect(mola.onPressed, isNull);
+      expect(
+        find.textContaining('mağaza konumu tanımlı değil'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('bugünün vardiyası ve kayıtları', (tester) async {
@@ -322,7 +332,6 @@ void main() {
 
       expect(find.text('9 gün'), findsOneWidget); // kalan
       expect(find.text('2 gün'), findsOneWidget); // bekleyen
-      expect(find.text('2.500,00 TL'), findsOneWidget);
       expect(find.textContaining('4 saat saatlik izin'), findsOneWidget);
       expect(find.textContaining('resmi tatiller düşülmez'), findsOneWidget);
     });
@@ -407,8 +416,10 @@ void main() {
           'id': 7,
           'user_id': 3,
           'full_name': 'TALAT HAMZA',
-          'type': 'AVANS',
-          'amount': 500,
+          'type': 'SAATLIK_IZIN',
+          'start_at': '2026-11-05T09:00:00.000Z',
+          'end_at': '2026-11-05T11:00:00.000Z',
+          'hours': 2,
           'reason': 'Acil',
           'status': 'PENDING',
         },
@@ -487,7 +498,7 @@ void main() {
 
       expect(find.text('Onayla'), findsOneWidget);
       expect(find.text('Reddet'), findsOneWidget);
-      expect(find.textContaining('Avans · 500,00 TL'), findsOneWidget);
+      expect(find.textContaining('Saatlik İzin'), findsOneWidget);
       expect(find.textContaining('vardiya atanmaz'), findsOneWidget);
     });
 

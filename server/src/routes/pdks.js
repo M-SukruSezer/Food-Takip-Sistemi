@@ -2,8 +2,8 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth, requireRole, allowsStore } = require('../auth');
 const { logActivity } = require('../utils');
-const geo = require('../pdks/geo');
 const dev = require('../pdks/device');
+const geo = require('../pdks/geo');
 const qr = require('../pdks/qr');
 const t = require('../pdks/time');
 const sheet = require('../pdks/timesheet');
@@ -23,6 +23,19 @@ async function getStore(storeId) {
      FROM stores WHERE id = ?`,
     storeId
   );
+}
+
+/// Son kayittan personelin ANLIK durumu.
+///
+/// TEK TANIM: hem /me hem punch bunu kullaniyor. Daha once kural iki yerde
+/// ayri yazilmisti ve ayrismisti — /me MOLA_BITIR'i ICERIDE sayarken punch
+/// yalnizca son kayit GIRIS ise tekrar girisi engelliyordu. Sonuc: molasi
+/// biten personel ikinci bir GIRIS yazabiliyor, puantajda iki acik giris
+/// olusuyordu.
+function durumOf(last) {
+  if (!last || last.type === 'CIKIS') return 'DISARIDA';
+  if (last.type === 'MOLA_BASLA') return 'MOLADA';
+  return 'ICERIDE';
 }
 
 /// Personelin son devam kaydi. "Su an iceride mi" ve tekrar giris kontrolu.
@@ -76,11 +89,21 @@ async function resolveWorkDate(userId, atIso, openLog) {
 
 /// Giris/cikis istegini dogrular ve kayda yazilacak alanlari uretir.
 ///
-/// Iki yontem: QR ve GPS. Baska yontem yok — sema da reddediyor.
+/// TEK ISLEM YOLU QR — ama QR TEK BASINA YETMEZ.
+///
+/// Iki etken birlikte aranir:
+///   1. Gecerli QR token (magaza sirriyla imzali)
+///   2. Is yeri yaricapi icinde, SAHTE OLMAYAN konum
+///
+/// Neden ikisi birden: QR kod fotograflanabilir ya da baskasina
+/// gonderilebilir; konum ise tek basina "kodu okuttu" demez. Birlikte
+/// "kodu is yerinde okuttu" anlamina geliyor.
+///
+/// KVKK: konum yalnizca islem aninda aliniyor, arka planda izleme yok.
 async function buildEntry({ req, store, body, atIso }) {
-  const method = String(body.method || '').toUpperCase();
-  if (method !== 'QR' && method !== 'GPS') {
-    return { error: 'Yöntem QR veya GPS olmalıdır' };
+  const method = String(body.method || 'QR').toUpperCase();
+  if (method !== 'QR') {
+    return { error: 'Giriş ve çıkış yalnızca QR kod okutularak yapılır' };
   }
 
   const lat = body.latitude === undefined || body.latitude === null ? null : Number(body.latitude);
@@ -110,55 +133,30 @@ async function buildEntry({ req, store, body, atIso }) {
     qr_token_hash: null,
   };
 
-  if (method === 'GPS') {
-    const v = geo.verifyLocation({
-      store, latitude: lat, longitude: lon, accuracy, isMocked,
-    });
-    if (!v.ok) return { error: v.reason, distance: v.distance };
-    entry.latitude = lat;
-    entry.longitude = lon;
-    entry.accuracy_m = accuracy;
-    entry.distance_m = v.distance;
-    entry.is_valid_location = 1;
-    return { entry };
-  }
-
-  // QR
-  const token = body.qr_token;
-  const v = qr.verifyToken(token, store, new Date(atIso).getTime());
+  // 1. etken: QR token.
+  const v = qr.verifyToken(body.qr_token, store, new Date(atIso).getTime());
   if (!v.ok) return { error: v.reason };
   entry.qr_token_hash = v.tokenHash;
 
-  // Sabit basili kod fotograflanip uzaktan okutulabilir; tek basina yeterli
-  // sayilmaz, konum dogrulamasi da istenir. Donen kod ve personel token'i
-  // zaten zamana bagli oldugu icin bu zorunluluk yoktur.
-  if (v.mode === 'static') {
-    const loc = geo.verifyLocation({ store, latitude: lat, longitude: lon, accuracy, isMocked });
-    if (!loc.ok) {
-      return {
-        error: 'Sabit QR kod yalnızca iş yerindeyken geçerlidir. ' + loc.reason,
-        distance: loc.distance,
-      };
-    }
-    entry.latitude = lat;
-    entry.longitude = lon;
-    entry.accuracy_m = accuracy;
-    entry.distance_m = loc.distance;
-    entry.is_valid_location = 1;
-  } else if (geo.isValidCoordinate(lat, lon) && isMocked !== true) {
-    // Donen kodda konum zorunlu degil ama gonderildiyse denetim icin yazilir.
-    const d = geo.haversineMeters(
-      Number(store.latitude), Number(store.longitude), lat, lon
-    );
-    if (store.latitude !== null && store.longitude !== null) {
-      entry.latitude = lat;
-      entry.longitude = lon;
-      entry.accuracy_m = accuracy;
-      entry.distance_m = d;
-      entry.is_valid_location = d <= Number(store.geofence_radius_m) + Math.min(accuracy || 0, geo.MAX_ACCURACY_M) ? 1 : 0;
-    }
+  // 2. etken: konum. HER KIPTE zorunlu — donen kodda da, sabit kodda da.
+  // Amac "kodu okuttu" degil "kodu IS YERINDE okuttu" oldugu icin kipe gore
+  // gevsetilmiyor. verifyLocation sahte konumu da burada reddediyor.
+  const loc = geo.verifyLocation({
+    store, latitude: lat, longitude: lon, accuracy, isMocked,
+  });
+  if (!loc.ok) {
+    return {
+      error: `QR kod okundu ama konum doğrulanamadı. ${loc.reason}`,
+      distance: loc.distance,
+    };
   }
-  return { entry, mode: v.mode, tokenUserId: v.userId };
+  entry.latitude = lat;
+  entry.longitude = lon;
+  entry.accuracy_m = accuracy;
+  entry.distance_m = loc.distance;
+  entry.is_valid_location = 1;
+
+  return { entry, mode: v.mode };
 }
 
 /// Giris/cikis kaydini yazar.
@@ -197,8 +195,7 @@ async function punch(req, res, type) {
   const body = req.body || {};
   const atIso = new Date().toISOString();
 
-  // Kiosk personel token'i okuttuysa kayit o personele yazilir.
-  let targetUserId = req.user.id;
+  const targetUserId = req.user.id;
   let storeId = req.user.store_id;
 
   if (body.qr_token) {
@@ -223,14 +220,8 @@ async function punch(req, res, type) {
     return res.status(400).json({ error: built.error, distance_m: built.distance ?? null });
   }
 
-  // Personel token'i okutulduysa kayit token'daki kisiye yazilir; bunu
-  // yalnizca kiosk yetkisi olan roller yapabilir.
-  if (built.tokenUserId) {
-    if (built.tokenUserId !== req.user.id && !KIOSK_ROLES.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Başka personel adına işlem yapamazsınız' });
-    }
-    targetUserId = built.tokenUserId;
-  }
+  // Kisisel QR kaldirildi: kayit HER ZAMAN kodu okutan kisiye yazilir.
+  // Baskasi adina okutma yolu artik yok.
 
   const target = await queryOne(
     'SELECT id, full_name, store_id, active FROM users WHERE id = ?', targetUserId
@@ -268,7 +259,8 @@ async function punch(req, res, type) {
     return res.status(400).json({ error: 'Zaten moladasınız. Mola bitişi okutun.' });
   }
 
-  if (type === 'GIRIS' && last && last.type === 'GIRIS') {
+  // ICERIDE: son kayit GIRIS ya da MOLA_BITIR. Ikisi de acik mesai demek.
+  if (type === 'GIRIS' && durumOf(last) === 'ICERIDE') {
     return res.status(400).json({
       error: 'Açık bir giriş kaydınız var. Önce çıkış yapmalısınız.',
       open_since: last.occurred_at,
@@ -279,14 +271,12 @@ async function punch(req, res, type) {
   }
 
   // Konum atlamasi: ayni kisi kisa sure once cok uzakta gorunmusse biri
-  // sahtedir. Mock bayragini vermeyen web istemcisinde de calisir.
-  if (entryHasCoords(built.entry)) {
-    const tp = geo.detectTeleport(last, {
-      latitude: built.entry.latitude, longitude: built.entry.longitude, at: atIso,
-    });
-    if (tp.teleport) {
-      return res.status(400).json({ error: `Konum tutarsız: ${tp.reason}` });
-    }
+  // sahtedir. Sahte konum bayragini vermeyen istemcide de calisir.
+  const tp = geo.detectTeleport(last, {
+    latitude: built.entry.latitude, longitude: built.entry.longitude, at: atIso,
+  });
+  if (tp.teleport) {
+    return res.status(400).json({ error: `Konum tutarsız: ${tp.reason}` });
   }
 
   // Mola ve cikis kayitlari ACIK GIRISIN is gunune yazilir. Aksi halde gece
@@ -322,14 +312,10 @@ async function punch(req, res, type) {
   });
 }
 
-function entryHasCoords(entry) {
-  return entry.latitude !== null && entry.longitude !== null;
-}
-
 router.post('/check-in', (req, res) => punch(req, res, 'GIRIS'));
 router.post('/check-out', (req, res) => punch(req, res, 'CIKIS'));
-// Mola adimlari isin AYNI dogrulamasindan geciyor (QR ya da GPS): molaya
-// cikan personel de is yerinde olmali ve mola disindan okutamamali.
+// Mola adimlari isin AYNI dogrulamasindan geciyor: mola giris/cikisi da QR
+// okutularak yapilir, molaya cikan personel de kodu okutmak zorunda.
 router.post('/break-start', (req, res) => punch(req, res, 'MOLA_BASLA'));
 router.post('/break-end', (req, res) => punch(req, res, 'MOLA_BITIR'));
 
@@ -361,8 +347,7 @@ router.get('/me', async (req, res) => {
 
   // Dort adimli akista bir sonraki gecerli adim. Arayuz dugmeleri buna gore
   // ciziliyor; kurali istemcide tekrar yazmak ikisinin ayrismasi demekti.
-  const durum = !last || last.type === 'CIKIS' ? 'DISARIDA'
-    : last.type === 'MOLA_BASLA' ? 'MOLADA' : 'ICERIDE';
+  const durum = durumOf(last);
 
   res.json({
     work_date: acik,
@@ -385,9 +370,10 @@ router.get('/me', async (req, res) => {
     },
     store: store && {
       id: store.id, name: store.name, pdks_enabled: !!store.pdks_enabled,
+      // Istemci hangi kipte kod bekleyecegini bilsin. Sir GONDERILMEZ.
       qr_mode: store.qr_mode,
+      has_qr: store.qr_secret !== null,
       // Koordinat istemciye gonderilir: uygulama mesafeyi kendi gosterebilsin.
-      // Sir GONDERILMEZ.
       latitude: store.latitude, longitude: store.longitude,
       geofence_radius_m: store.geofence_radius_m,
       has_location: store.latitude !== null && store.longitude !== null,
@@ -399,21 +385,11 @@ router.get('/me', async (req, res) => {
   });
 });
 
-/// Personelin kioskta okutacagi kisisel QR kodu.
-router.get('/me/qr', async (req, res) => {
-  const storeId = req.user.store_id;
-  if (!storeId) return res.status(403).json({ error: 'Size mağaza atanmamış' });
-  const store = await getStore(storeId);
-  if (!store || !store.pdks_enabled) {
-    return res.status(400).json({ error: 'Bu mağazada PDKS etkin değil' });
-  }
-  if (!store.qr_secret) {
-    return res.status(400).json({ error: 'Bu mağazada QR ile giriş tanımlı değil' });
-  }
-  res.json(qr.issueUserToken(store, req.user.id));
-});
-
-/// Kioskta gosterilecek magaza QR kodu.
+/// Magazanin gosterecegi QR kod.
+///
+/// Iki kip magaza ayarindan (stores.qr_mode) geliyor:
+///   rotating  ekranda 60 sn'de bir yenilenir; fotograflanan kod olur.
+///   static    basili sabit kod; icerigi degismez.
 router.get('/qr/current', requireRole(...KIOSK_ROLES), async (req, res) => {
   const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
   if (!storeId) return res.status(400).json({ error: 'Mağaza belirtilmeli' });

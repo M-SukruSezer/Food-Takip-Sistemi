@@ -1,6 +1,6 @@
 const t = require('./time');
 
-// Izin ve avans bakiyesi hesaplari.
+// Izin bakiyesi hesaplari.
 //
 // Veritabanina dokunmaz: sorgular cagiran katmanda, kural burada. Boylece
 // kurallar duvar saatinden ve veriden bagimsiz test edilebiliyor.
@@ -112,7 +112,7 @@ function countLeaveHours(startIso, endIso) {
   return Math.round(hours * 100) / 100;
 }
 
-/// Bulunulan takvim ayi (avans limiti aylik).
+/// Bulunulan takvim ayi (saatlik izin aylik takip ediliyor).
 function monthRange(atIso = new Date().toISOString()) {
   const today = t.localDate(atIso);
   const [y, m] = today.split('-').map(Number);
@@ -133,10 +133,8 @@ function overlaps(aFrom, aTo, bFrom, bTo) {
 /// BEKLEYEN talep de dusulur: aksi halde personel ust uste talep gonderip
 /// hakkindan fazlasini onaya dusurebilirdi. Reddedilen geri eklenir.
 function summarize({ entitlementDays, usedDays, pendingDays,
-                     advanceLimit, usedAdvance, pendingAdvance,
                      usedHours, pendingHours }) {
   const remainingDays = entitlementDays - usedDays - pendingDays;
-  const remainingAdvance = advanceLimit - usedAdvance - pendingAdvance;
   return {
     leave: {
       entitlement_days: entitlementDays,
@@ -152,13 +150,6 @@ function summarize({ entitlementDays, usedDays, pendingDays,
       // Saatlik izin yillik izin gununden DUSULMUYOR: ayri takip ediliyor.
       // Isletme dusulmesini isterse kural burada degisir.
       deducted_from_annual: false,
-    },
-    advance: {
-      monthly_limit: advanceLimit,
-      used: Math.round(usedAdvance * 100) / 100,
-      pending: Math.round(pendingAdvance * 100) / 100,
-      remaining: Math.round(Math.max(0, remainingAdvance) * 100) / 100,
-      over_used: remainingAdvance < 0,
     },
   };
 }

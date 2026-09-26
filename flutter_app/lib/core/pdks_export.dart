@@ -15,10 +15,20 @@ import 'report_export.dart' show sharePdksFile;
 // panelindeki _Table deseniyle ayni gerekce.
 
 const _gunKisa = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+const _gunUzun = [
+  'PAZAR',
+  'PAZARTESİ',
+  'SALI',
+  'ÇARŞAMBA',
+  'PERŞEMBE',
+  'CUMA',
+  'CUMARTESİ',
+];
 
-String _gunAdi(String tarih) {
+String _gunAdi(String tarih, {bool uzun = false}) {
   final d = DateTime.tryParse('${tarih}T00:00:00Z');
-  return d == null ? '' : _gunKisa[d.toUtc().weekday % 7];
+  if (d == null) return '';
+  return (uzun ? _gunUzun : _gunKisa)[d.toUtc().weekday % 7];
 }
 
 /// Hucrenin metin karsiligi. Ekran ve PDF ayni gosterimi kullansin diye tek
@@ -26,25 +36,82 @@ String _gunAdi(String tarih) {
 String rosterCellText(List<RosterCell> hucreler, PublicHoliday? tatil) {
   if (tatil != null && !tatil.isHalfDay) return 'RT';
   if (hucreler.isEmpty) return '-';
-  if (hucreler.any((c) => c.isDayOff)) return 'HT';
-  return hucreler
-      .map((c) => '${c.saatAraligi}${c.crossesMidnight ? ')' : ''}')
-      .join(' / ');
+  if (hucreler.any((c) => c.isDayOff)) return 'OFF';
+  return hucreler.map((c) => c.saatAraligi).join(' / ');
+}
+
+/// PDF hucre renkleri. Ekrandaki kategori renkleriyle AYNI aile; cikti beyaz
+/// kagida basildigi icin ACIK tema tonlari kullaniliyor.
+///
+/// Metin rengi de veriliyor: yalnizca zemini boyayip siyah metin birakmak
+/// bazi tonlarda kucuk metin kontrast esiginin altina duserdi.
+({PdfColor zemin, PdfColor metin})? _hucreRenk(
+  List<RosterCell> hucreler,
+  PublicHoliday? tatil,
+) {
+  if (tatil != null && !tatil.isHalfDay) {
+    return (
+      zemin: PdfColor.fromInt(0xFFFEE2E2),
+      metin: PdfColor.fromInt(0xFF991B1B),
+    );
+  }
+  if (hucreler.isEmpty) return null;
+  if (hucreler.any((c) => c.isDayOff)) {
+    // Isletmenin kendi cizelgesinde OFF gunu macenta; ayni gosterim.
+    // Metin SIYAH: olculdu, beyaz metin bu zeminde 3.14 kontrast veriyor ve
+    // kucuk metin esigi olan 4.5'in altinda kaliyor; siyah 6.70.
+    return (
+      zemin: PdfColor.fromInt(0xFFFF00FF),
+      metin: PdfColor.fromInt(0xFF000000),
+    );
+  }
+  final k = hucreler
+      .firstWhere(
+        (c) => c.category != ShiftCategory.bilinmiyor,
+        orElse: () => hucreler.first,
+      )
+      .category;
+  return switch (k) {
+    ShiftCategory.sabah => (
+      zemin: PdfColor.fromInt(0xFFDBEAFE),
+      metin: PdfColor.fromInt(0xFF1E40AF),
+    ),
+    ShiftCategory.gunduz => (
+      zemin: PdfColor.fromInt(0xFFDCFCE7),
+      metin: PdfColor.fromInt(0xFF166534),
+    ),
+    ShiftCategory.aksam => (
+      zemin: PdfColor.fromInt(0xFFFEF3C7),
+      metin: PdfColor.fromInt(0xFF92400E),
+    ),
+    ShiftCategory.kapanis => (
+      zemin: PdfColor.fromInt(0xFFEDE9FE),
+      metin: PdfColor.fromInt(0xFF5B21B6),
+    ),
+    ShiftCategory.bilinmiyor => null,
+  };
 }
 
 /// Haftalik vardiya plani PDF'i.
 Future<void> exportRosterPdf(Roster r) async {
   final doc = pw.Document(theme: await pdfTurkishTheme());
+  // Basili cizelgenin sutun duzeni: calisma sekli ve gorev de yaziyor.
   final basliklar = <String>[
-    'Personel',
+    'ÇALIŞMA ŞEKLİ',
+    'GÖREV',
+    'AD SOYAD',
     ...r.dates.map(
-      (d) => '${_gunAdi(d)}\n${d.substring(8)}.${d.substring(5, 7)}',
+      (d) =>
+          '${_gunAdi(d, uzun: true)}\n'
+          '${d.substring(8)}.${d.substring(5, 7)}.${d.substring(0, 4)}',
     ),
-    'Planlı',
+    'PLANLI',
   ];
   final satirlar = r.people
       .map(
         (p) => <String>[
+          p.employmentLabel,
+          p.duty,
           p.fullName,
           ...r.dates.map((d) => rosterCellText(p.gun(d), r.holidays[d])),
           fmtDuration(p.plannedMinutes),
@@ -52,9 +119,72 @@ Future<void> exportRosterPdf(Roster r) async {
       )
       .toList();
   final toplam = <String>[
+    '',
+    '',
     'TOPLAM',
     ...r.dates.map((d) => '${r.gunToplam(d).working} kişi'),
     fmtDuration(r.totalPlannedMinutes),
+  ];
+
+  // Gun sutunlari isim sutunlarindan SONRA basliyor.
+  const ilkGun = 3;
+  const kenar = pw.BorderSide(width: 0.5, color: PdfColors.grey500);
+
+  /// Tek hucre. Gun sutunlarinda zemin rengi kategoriden geliyor.
+  pw.Widget kutu(
+    String metin, {
+    PdfColor? zemin,
+    PdfColor? yazi,
+    bool kalin = false,
+    pw.Alignment hiza = pw.Alignment.center,
+  }) => pw.Container(
+    alignment: hiza,
+    padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+    decoration: pw.BoxDecoration(
+      color: zemin,
+      border: const pw.Border(right: kenar, bottom: kenar),
+    ),
+    child: pw.Text(
+      metin,
+      textAlign: pw.TextAlign.center,
+      style: pw.TextStyle(
+        fontSize: 8,
+        color: yazi,
+        fontWeight: kalin ? pw.FontWeight.bold : pw.FontWeight.normal,
+      ),
+    ),
+  );
+
+  final tabloSatirlari = <pw.TableRow>[
+    pw.TableRow(
+      children: [
+        for (final b in basliklar)
+          kutu(b, zemin: PdfColor.fromInt(0xFFA6A6A6), kalin: true),
+      ],
+    ),
+    for (var i = 0; i < satirlar.length; i++)
+      pw.TableRow(
+        children: [
+          for (var j = 0; j < satirlar[i].length; j++)
+            () {
+              final gun = j - ilkGun;
+              final renk = (gun >= 0 && gun < r.dates.length)
+                  ? _hucreRenk(
+                      r.people[i].gun(r.dates[gun]),
+                      r.holidays[r.dates[gun]],
+                    )
+                  : null;
+              return kutu(
+                satirlar[i][j],
+                zemin: renk?.zemin,
+                yazi: renk?.metin,
+                kalin: renk != null,
+                hiza: j == 2 ? pw.Alignment.centerLeft : pw.Alignment.center,
+              );
+            }(),
+        ],
+      ),
+    pw.TableRow(children: [for (final c in toplam) kutu(c, kalin: true)]),
   ];
 
   doc.addPage(
@@ -80,23 +210,27 @@ Future<void> exportRosterPdf(Roster r) async {
         ),
       ),
       build: (context) => [
-        pw.TableHelper.fromTextArray(
-          headers: basliklar,
-          data: [...satirlar, toplam],
-          headerStyle: pw.TextStyle(
-            fontSize: 8,
-            fontWeight: pw.FontWeight.bold,
-          ),
-          cellStyle: const pw.TextStyle(fontSize: 8),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-          cellAlignment: pw.Alignment.center,
-          cellAlignments: {0: pw.Alignment.centerLeft},
-          columnWidths: {0: const pw.FixedColumnWidth(110)},
+        // TableHelper.fromTextArray hucre BASINA zemin rengi vermiyor;
+        // renklendirme istendigi icin tablo elle kuruluyor.
+        pw.Table(
+          border: const pw.TableBorder(left: kenar, top: kenar),
+          columnWidths: {
+            0: const pw.FixedColumnWidth(58),
+            1: const pw.FixedColumnWidth(44),
+            2: const pw.FixedColumnWidth(120),
+          },
+          children: tabloSatirlari,
         ),
         pw.SizedBox(height: 10),
         pw.Text(
-          'Hafta tatili "HT", resmi tatil "RT" olarak işaretlenir. '
-          'Gece vardiyası saatin yanında ")" ile gösterilir.',
+          'Hafta tatili "OFF", resmi tatil "RT" olarak işaretlenir. '
+          'Hücre rengi vardiya kategorisini gösterir '
+          '(sabah, gündüz, akşam, kapanış).',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+        ),
+        pw.Text(
+          'Planlı süreler NET çalışmadır: ara dinlenmesi (4857 m.68) '
+          'düşülmüştür.',
           style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
         ),
       ],

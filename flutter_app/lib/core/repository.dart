@@ -1,6 +1,7 @@
 import 'api_client.dart';
 import 'opts.dart';
 import 'device_integrity.dart';
+import 'push.dart';
 import '../models/activity_log.dart';
 import '../models/approval.dart';
 import '../models/batch.dart';
@@ -577,12 +578,18 @@ class Repository {
     return PdksStatus.fromJson(r.data ?? const {});
   }
 
-  /// Konumla giris/cikis.
+  /// QR ile giris/cikis/mola. TEK ISLEM YOLU.
   ///
-  /// [isMocked] cihazin sahte konum bayragi. Bilinmiyorsa null gonderilir:
-  /// sunucu "bilinmiyor" ile "sahte degil" arasini ayirt ediyor.
-  Future<void> pdksPunchGps({
+  /// Konum ZORUNLU gonderilir: QR tek basina "kodu okuttu" der, konumla
+  /// birlikte "kodu IS YERINDE okuttu" anlamina gelir. Sunucu ikisini de
+  /// dogruluyor.
+  ///
+  /// [isMocked] sahte konum bayragi (Android: Location.isFromMockProvider).
+  /// Bilinmiyorsa null gonderilir: sunucu "bilinmiyor" ile "sahte degil"
+  /// arasini ayirt ediyor.
+  Future<void> pdksPunchQr({
     required PdksPunch adim,
+    required String token,
     required double latitude,
     required double longitude,
     double? accuracy,
@@ -592,7 +599,8 @@ class Repository {
     await api.dio.post(
       '/pdks/${adim.yol}',
       data: {
-        'method': 'GPS',
+        'method': 'QR',
+        'qr_token': token,
         'latitude': latitude,
         'longitude': longitude,
         'accuracy': ?accuracy,
@@ -603,30 +611,53 @@ class Repository {
     );
   }
 
-  /// QR ile islem. Sabit basili kodda konum da zorunlu oldugu icin
-  /// varsa gonderilir.
-  Future<void> pdksPunchQr({
-    required PdksPunch adim,
-    required String token,
-    double? latitude,
-    double? longitude,
-    double? accuracy,
-    bool? isMocked,
-    DeviceIntegrity? integrity,
-  }) async {
-    await api.dio.post(
-      '/pdks/${adim.yol}',
-      data: {
-        'method': 'QR',
-        'qr_token': token,
-        'latitude': ?latitude,
-        'longitude': ?longitude,
-        'accuracy': ?accuracy,
-        'is_mocked': ?isMocked,
-        'device_integrity': ?integrity?.toJson(),
-      },
-      options: apiOptions(noToast: true, busyMessage: 'QR doğrulanıyor...'),
+  /// Kendi bildirimlerim. Sunucu yalnizca istegi yapan kisinin kayitlarini
+  /// donduruyor; baskasinin bildirimi istenemiyor.
+  Future<NotificationList> pdksNotifications({int limit = 30}) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/notifications',
+      queryParameters: {'limit': limit.toString()},
+      options: apiOptions(silent: true),
     );
+    final d = r.data ?? const {};
+    return NotificationList(
+      unread: (d['unread'] as num?)?.toInt() ?? 0,
+      items: ((d['items'] as List<dynamic>?) ?? [])
+          .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  /// Bildirimi okundu isaretler.
+  Future<void> pdksMarkNotificationRead(int id) async {
+    await api.dio.post(
+      '/pdks/notifications/$id/read',
+      options: apiOptions(silent: true),
+    );
+  }
+
+  /// Tum bildirimleri okundu isaretler.
+  Future<void> pdksMarkAllNotificationsRead() async {
+    await api.dio.post(
+      '/pdks/notifications/read-all',
+      options: apiOptions(successMessage: 'Tümü okundu işaretlendi'),
+    );
+  }
+
+  /// Haftalik plani ekiple paylasir; bildirim gonderilen kisi sayisini doner.
+  ///
+  /// Kaydetmekten AYRI bir adim: kaydetme tek tek "su gun degisti" bildirimi
+  /// uretiyor, bu ise "hafta hazir" diyip herkese kendi ozetini gonderiyor.
+  Future<int> pdksPublishRoster({
+    required String from,
+    required String to,
+  }) async {
+    final r = await api.dio.post<Map<String, dynamic>>(
+      '/pdks/roster/publish',
+      data: {'from': from, 'to': to},
+      options: apiOptions(noToast: true, busyMessage: 'Paylaşılıyor...'),
+    );
+    return ((r.data ?? const {})['notified'] as num?)?.toInt() ?? 0;
   }
 
   /// Toplu vardiya cizelgesi: magazanin TUM ekibi x tarih araligi.
@@ -722,14 +753,14 @@ class Repository {
     required int userId,
     String? hiredAt,
     double? annualLeaveDays,
-    double? monthlyAdvanceLimit,
+    String? employmentType,
     double? monthlySalary,
     double? hourlyRate,
     double? mealDaily,
     Set<String> degistirilen = const {
       'hired_at',
       'annual_leave_days',
-      'monthly_advance_limit',
+      'employment_type',
       'monthly_salary',
       'hourly_rate',
       'meal_daily',
@@ -740,8 +771,8 @@ class Repository {
     if (degistirilen.contains('annual_leave_days')) {
       govde['annual_leave_days'] = annualLeaveDays;
     }
-    if (degistirilen.contains('monthly_advance_limit')) {
-      govde['monthly_advance_limit'] = monthlyAdvanceLimit;
+    if (degistirilen.contains('employment_type')) {
+      govde['employment_type'] = employmentType;
     }
     if (degistirilen.contains('monthly_salary')) {
       govde['monthly_salary'] = monthlySalary;
@@ -753,15 +784,6 @@ class Repository {
       data: govde,
       options: apiOptions(successMessage: 'Kaydedildi'),
     );
-  }
-
-  /// Personelin kioskta okutacagi kisisel kodu.
-  Future<QrToken> pdksMyQr() async {
-    final r = await api.dio.get<Map<String, dynamic>>(
-      '/pdks/me/qr',
-      options: apiOptions(noToast: true),
-    );
-    return QrToken.fromJson(r.data ?? const {});
   }
 
   /// Kioskta gosterilecek magaza kodu.

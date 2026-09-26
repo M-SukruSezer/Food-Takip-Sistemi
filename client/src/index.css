@@ -3107,8 +3107,8 @@ th {
 .roster-shift.k-sabah { background: var(--info-soft); color: var(--info-text); }
 .roster-shift.k-gunduz { background: var(--success-soft); color: var(--ok-text); }
 .roster-shift.k-aksam { background: var(--warning-soft); color: var(--warning-text); }
-.roster-shift.k-gece { background: #ede9fe; color: #5b21b6; }
-:root[data-theme='dark'] .roster-shift.k-gece {
+.roster-shift.k-kapanis { background: #ede9fe; color: #5b21b6; }
+:root[data-theme='dark'] .roster-shift.k-kapanis {
   background: rgba(167, 139, 250, 0.16);
   color: #c4b5fd;
 }
@@ -3243,3 +3243,73 @@ th {
   font-weight: 900;
   color: var(--primary-600);
 }
+
+/* ---- Bildirim zili ---- */
+/* Panel ust cubuktan sarkiyor; sarmal konumlandirma icin referans. */
+.bildirim-sarmal { position: relative; display: inline-flex; }
+
+.bildirim-dugme { position: relative; }
+
+/* Rozet: okunmamis sayisi. Kucuk metin oldugu icin zemin/metin cifti
+   4.5 esigini gecen tonlardan seciliyor. */
+.bildirim-rozet {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: var(--on-primary);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+
+.bildirim-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.bildirim-baslik {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+
+.bildirim-bos { padding: 18px 12px; margin: 0; text-align: center; }
+
+.bildirim-liste { list-style: none; margin: 0; padding: 8px; display: grid; gap: 6px; }
+
+.bildirim-liste li {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Okunmamis olan vurgulu: hangisinin yeni oldugu bir bakista gorunmeli. */
+.bildirim-liste li.yeni {
+  background: var(--primary-soft);
+  border-color: var(--primary-600);
+}
+
+.bildirim-liste li span { font-size: 13px; }
+.bildirim-liste li time { font-size: 11px; color: var(--muted); }

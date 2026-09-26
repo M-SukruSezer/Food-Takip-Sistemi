@@ -5,6 +5,7 @@ const {
 } = require('../auth');
 const { logActivity } = require('../utils');
 const qr = require('../pdks/qr');
+const geo = require('../pdks/geo');
 const t = require('../pdks/time');
 const bal = require('../pdks/balance');
 const pay = require('../pdks/payroll');
@@ -627,6 +628,84 @@ router.put('/assignments/cells', requireManager, async (req, res) => {
   });
 });
 
+/// Haftalik plani EKIPLE PAYLAS.
+///
+/// Kaydetmekten ayri bir adim: yonetici hafta boyunca degisiklik yapip
+/// kaydedebilir, plan kesinlestiginde bir kez paylasir. Kaydetme sirasindaki
+/// tek tek degisiklik bildirimleri "su gun degisti" der; bu ise "hafta hazir"
+/// der ve herkese kendi haftasinin ozetini gonderir.
+router.post('/roster/publish', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const from = String(body.from || '');
+  const to = String(body.to || '');
+  const gecerli = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+  if (!gecerli(from) || !gecerli(to)) {
+    return res.status(400).json({ error: 'from ve to YYYY-AA-GG biçiminde olmalıdır' });
+  }
+  if (to < from) return res.status(400).json({ error: 'Bitiş tarihi başlangıçtan önce olamaz' });
+  // 31 gun: bir aylik plan paylasilabilsin ama yanlis aralikla tum personele
+  // bildirim yagdirilmasin.
+  const gunFarki = Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
+  if (gunFarki > 30) {
+    return res.status(400).json({ error: 'En fazla 31 günlük plan paylaşılabilir' });
+  }
+
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'u.store_id');
+
+  // Yalnizca O ARALIKTA atamasi olan personele gidiyor: atamasi olmayana
+  // "planin hazir" demek anlamsiz ve gurultu.
+  const satirlar = await queryAll(`
+    SELECT u.id AS user_id, u.full_name, us.work_date, us.is_day_off,
+           s.name AS shift_name, s.start_time, s.end_time
+    FROM user_shifts us
+    JOIN users u ON u.id = us.user_id
+    LEFT JOIN shifts s ON s.id = us.shift_id
+    WHERE u.active = 1 AND us.work_date >= ? AND us.work_date <= ? ${f.sql}
+    ORDER BY us.work_date`, from, to, ...f.params);
+
+  if (satirlar.length === 0) {
+    return res.status(400).json({
+      error: 'Bu aralıkta paylaşılacak vardiya yok. Önce plan yapıp kaydedin.',
+    });
+  }
+
+  const kisiler = new Map();
+  for (const r of satirlar) {
+    if (!kisiler.has(r.user_id)) {
+      kisiler.set(r.user_id, { ad: r.full_name, calisma: 0, tatil: 0 });
+    }
+    const k = kisiler.get(r.user_id);
+    if (r.is_day_off) k.tatil += 1; else k.calisma += 1;
+  }
+
+  // Bildirim bir YAN ETKI: biri patlarsa paylasim basarisiz sayilmaz
+  // (notify.publish zaten hatalari yutuyor).
+  for (const [userId, k] of kisiler) {
+    await notify.shiftPublished({
+      userId,
+      from,
+      to,
+      summary: `${k.calisma} çalışma günü, ${k.tatil} tatil`,
+      byName: req.user.full_name,
+    });
+  }
+
+  await logActivity(req.user, 'VARDIYA_PAYLAS', 'user_shift', null,
+    `${from} – ${to} planı ${kisiler.size} kişiyle paylaşıldı`,
+    scope.storeId ?? null);
+
+  res.json({
+    ok: true,
+    from,
+    to,
+    notified: kisiler.size,
+    people: [...kisiler.values()].map((k) => k.ad),
+  });
+});
+
 router.delete('/assignments/:id', requireManager, async (req, res) => {
   const row = await queryOne(`
     SELECT us.*, u.store_id, u.full_name FROM user_shifts us
@@ -659,8 +738,8 @@ router.get('/profiles', requireManager, async (req, res) => {
   const f = storeFilter(scope, 'u.store_id');
   const rows = await queryAll(`
     SELECT u.id AS user_id, u.full_name, u.role, u.store_id, s.name AS store_name,
-           p.hired_at, p.annual_leave_days, p.monthly_advance_limit, p.weekly_off_days,
-           p.monthly_salary, p.hourly_rate, p.meal_daily
+           p.hired_at, p.annual_leave_days, p.weekly_off_days,
+           p.employment_type, p.monthly_salary, p.hourly_rate, p.meal_daily
     FROM users u
     LEFT JOIN pdks_profiles p ON p.user_id = u.id
     LEFT JOIN stores s ON s.id = u.store_id
@@ -671,8 +750,8 @@ router.get('/profiles', requireManager, async (req, res) => {
     // Profil hic olusturulmamissa varsayilanlar gosterilir.
     hired_at: r.hired_at ?? null,
     annual_leave_days: r.annual_leave_days === null ? 14 : Number(r.annual_leave_days),
-    monthly_advance_limit: r.monthly_advance_limit === null ? 0 : Number(r.monthly_advance_limit),
     weekly_off_days: bal.parseWeeklyOff(r.weekly_off_days),
+    employment_type: r.employment_type || 'FULL_TIME',
     // Ucret alanlari NULL kalabiliyor: "tanimli degil" ile "sifir" ayri.
     // Sifir yazmak "ucretsiz calisiyor" anlamina gelirdi.
     monthly_salary: r.monthly_salary === null ? null : Number(r.monthly_salary),
@@ -701,9 +780,12 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
   if (days !== undefined && (!Number.isFinite(days) || days < 0 || days > 365)) {
     return res.status(400).json({ error: 'Yıllık izin 0-365 gün arasında olmalıdır' });
   }
-  const limit = body.monthly_advance_limit === undefined ? undefined : Number(body.monthly_advance_limit);
-  if (limit !== undefined && (!Number.isFinite(limit) || limit < 0)) {
-    return res.status(400).json({ error: 'Avans limiti 0 veya daha büyük olmalıdır' });
+  let calisma;
+  if (body.employment_type !== undefined) {
+    calisma = String(body.employment_type).toUpperCase();
+    if (!['FULL_TIME', 'PART_TIME'].includes(calisma)) {
+      return res.status(400).json({ error: 'Çalışma şekli FULL_TIME veya PART_TIME olmalıdır' });
+    }
   }
   // Ucret alanlari. Bos metin ve null "tanimi kaldir" demek; sifir gecerli
   // bir deger ("tanimli ama odenmiyor") oldugu icin ikisi ayri tutuluyor.
@@ -738,8 +820,9 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
   const next = {
     hired_at: hiredAt === undefined ? existing?.hired_at ?? null : hiredAt,
     annual_leave_days: days === undefined ? existing?.annual_leave_days ?? 14 : days,
-    monthly_advance_limit: limit === undefined ? existing?.monthly_advance_limit ?? 0 : limit,
     weekly_off_days: offDays === undefined ? existing?.weekly_off_days ?? '[0]' : offDays,
+    employment_type: calisma === undefined
+      ? existing?.employment_type ?? 'FULL_TIME' : calisma,
     monthly_salary: maas.yok ? existing?.monthly_salary ?? null : maas.deger,
     hourly_rate: saatlik.yok ? existing?.hourly_rate ?? null : saatlik.deger,
     meal_daily: yemek.yok ? existing?.meal_daily ?? null : yemek.deger,
@@ -747,21 +830,21 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
 
   await execute(`
     INSERT INTO pdks_profiles (user_id, hired_at, annual_leave_days,
-      monthly_advance_limit, weekly_off_days, monthly_salary, hourly_rate,
+      weekly_off_days, employment_type, monthly_salary, hourly_rate,
       meal_daily, updated_by)
     VALUES (?,?,?,?,?,?,?,?,?)
     ON CONFLICT (user_id) DO UPDATE SET
       hired_at = EXCLUDED.hired_at,
       annual_leave_days = EXCLUDED.annual_leave_days,
-      monthly_advance_limit = EXCLUDED.monthly_advance_limit,
       weekly_off_days = EXCLUDED.weekly_off_days,
+      employment_type = EXCLUDED.employment_type,
       monthly_salary = EXCLUDED.monthly_salary,
       hourly_rate = EXCLUDED.hourly_rate,
       meal_daily = EXCLUDED.meal_daily,
       updated_by = EXCLUDED.updated_by,
       updated_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
     user.id, next.hired_at, next.annual_leave_days,
-    next.monthly_advance_limit, next.weekly_off_days,
+    next.weekly_off_days, next.employment_type,
     next.monthly_salary, next.hourly_rate, next.meal_daily, req.user.id);
 
   // Denetim izinde ucret TUTARI yazilmiyor: Hareket Kayitlari ekrani daha
@@ -773,7 +856,7 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
   if (!yemek.yok) degisen.push('yemek ücreti');
   await logActivity(req.user, 'PDKS_PROFIL', 'user', user.id,
     `${user.full_name}: ${next.annual_leave_days} gün izin, `
-    + `${next.monthly_advance_limit} TL avans limiti`
+    + `${next.employment_type === 'PART_TIME' ? 'PART TIME' : 'FULL TIME'}`
     + (degisen.length ? ` — ${degisen.join(', ')} güncellendi` : ''), user.store_id);
   res.json({
     ok: true, ...next,
@@ -808,17 +891,16 @@ router.put('/settings/:storeId', requireManager, async (req, res) => {
   }
   const body = req.body || {};
 
+  // Konum AYAR OLARAK DURUYOR: giris yontemi degil ama QR'in is yerinde
+  // okutuldugunu dogrulayan ikinci etken bu yaricapa dayaniyor.
   let lat = store.latitude;
   let lon = store.longitude;
   if (body.latitude !== undefined || body.longitude !== undefined) {
     lat = body.latitude === null ? null : Number(body.latitude);
     lon = body.longitude === null ? null : Number(body.longitude);
-    const bothNull = lat === null && lon === null;
-    if (!bothNull) {
-      const geo = require('../pdks/geo');
-      if (!geo.isValidCoordinate(lat, lon)) {
-        return res.status(400).json({ error: 'Geçerli bir konum girin' });
-      }
+    const ikisiDeBos = lat === null && lon === null;
+    if (!ikisiDeBos && !geo.isValidCoordinate(lat, lon)) {
+      return res.status(400).json({ error: 'Geçerli bir konum girin' });
     }
   }
   let radius = store.geofence_radius_m;
@@ -838,19 +920,15 @@ router.put('/settings/:storeId', requireManager, async (req, res) => {
   let enabled = store.pdks_enabled;
   if (body.pdks_enabled !== undefined) enabled = body.pdks_enabled ? 1 : 0;
 
-  // PDKS acilirken sir ve konum hazir olmali: aksi halde personel giris
-  // yapmaya calisip anlamsiz hata aliyor.
+  // PDKS acilirken HEM sir HEM konum hazir olmali: islem iki etken birden
+  // istiyor, biri eksikse personel hicbir sekilde giris yapamaz.
   let secret = store.qr_secret;
   if (enabled && !secret) secret = qr.generateSecret();
   if (enabled && (lat === null || lon === null)) {
     return res.status(400).json({
-      error: 'PDKS açılmadan önce mağaza konumu tanımlanmalıdır '
-        + '(GPS doğrulaması buna dayanıyor)',
+      error: 'PDKS açılmadan önce mağaza konumu tanımlanmalıdır — '
+        + 'QR kodun iş yerinde okutulduğu bu konuma göre doğrulanıyor',
     });
-  }
-  // Sabit kod konum dogrulamasi gerektiriyor; konumsuz sabit kip calismaz.
-  if (enabled && mode === 'static' && (lat === null || lon === null)) {
-    return res.status(400).json({ error: 'Sabit QR kod için mağaza konumu zorunludur' });
   }
 
   await execute(`
@@ -858,8 +936,9 @@ router.put('/settings/:storeId', requireManager, async (req, res) => {
       pdks_enabled=?, qr_secret=? WHERE id=?`,
     lat, lon, radius, mode, enabled, secret, storeId);
 
+  const kipAdi = mode === 'static' ? 'sabit' : 'süreli';
   await logActivity(req.user, 'PDKS_AYAR', 'store', storeId,
-    `PDKS ${enabled ? 'açık' : 'kapalı'}, ${radius} m yarıçap, ${mode} QR`, storeId);
+    `PDKS ${enabled ? 'açık' : 'kapalı'}, ${radius} m yarıçap, ${kipAdi} QR`, storeId);
   res.json({
     ok: true, latitude: lat, longitude: lon, geofence_radius_m: radius,
     qr_mode: mode, pdks_enabled: !!enabled, has_secret: !!secret,

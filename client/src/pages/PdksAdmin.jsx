@@ -27,7 +27,7 @@ const saat = (dk) => {
   if (!dk) return '-';
   return `${Math.floor(dk / 60)}s ${dk % 60}dk`;
 };
-const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin', AVANS: 'Avans' };
+const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin' };
 
 // Cihaz butunluk bayraklari; sunucudaki FLAG_LABELS ile ayni anahtarlar.
 // Engelleyen bayraklar (sahte konum, emulator) hic kayit yazmadigi icin
@@ -227,8 +227,8 @@ function Talepler({ onChange }) {
                   <td data-label="Personel"><strong>{r.full_name}</strong></td>
                   <td data-label="Tür">{TALEP_ETIKET[r.type]}</td>
                   <td data-label="Detay">
-                    {r.type === 'AVANS' ? fmtMoney(r.amount)
-                      : r.type === 'IZIN' ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
+                    {r.type === 'IZIN'
+                      ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
                       : `${fmtDateTime(r.start_at)} · ${r.hours} saat`}
                   </td>
                   <td data-label="Gerekçe" style={{ maxWidth: 200 }}>{r.reason}</td>
@@ -640,17 +640,21 @@ function Personel() {
         <div className="table-wrap">
           <table className="responsive">
             <thead>
-              <tr><th>Personel</th><th>Mağaza</th><th>İşe giriş</th><th>Yıllık izin</th>
-                <th>Aylık maaş</th><th>Saat ücreti</th><th>Yemek (gün)</th><th></th></tr>
+              <tr><th>Personel</th><th>Mağaza</th><th>Çalışma şekli</th><th>İşe giriş</th>
+                <th>Yıllık izin</th><th>Aylık maaş</th><th>Saat ücreti</th>
+                <th>Yemek (gün)</th><th></th></tr>
             </thead>
             <tbody>
               {liste.length === 0 && (
-                <tr><td data-label="" colSpan="8"><p className="empty">Personel bulunamadı.</p></td></tr>
+                <tr><td data-label="" colSpan="9"><p className="empty">Personel bulunamadı.</p></td></tr>
               )}
               {liste.map((p) => (
                 <tr key={p.user_id}>
                   <td data-label="Personel"><strong>{p.full_name}</strong></td>
                   <td data-label="Mağaza" className="muted">{p.store_name || '-'}</td>
+                  <td data-label="Çalışma şekli">
+                    {p.employment_type === 'PART_TIME' ? 'PART TIME' : 'FULL TIME'}
+                  </td>
                   <td data-label="İşe giriş">{p.hired_at ? fmtDate(p.hired_at) : '-'}</td>
                   <td data-label="Yıllık izin">{p.annual_leave_days} gün</td>
                   <td data-label="Aylık maaş">
@@ -691,7 +695,7 @@ function Personel() {
 function PersonelModal({ kisi, onClose, onDone }) {
   const [hired, setHired] = useState(kisi.hired_at || '');
   const [izin, setIzin] = useState(kisi.annual_leave_days ?? 14);
-  const [avans, setAvans] = useState(kisi.monthly_advance_limit ?? 0);
+  const [calisma, setCalisma] = useState(kisi.employment_type || 'FULL_TIME');
   const [maas, setMaas] = useState(kisi.monthly_salary ?? '');
   const [saatlik, setSaatlik] = useState(kisi.hourly_rate ?? '');
   const [yemek, setYemek] = useState(kisi.meal_daily ?? '');
@@ -706,7 +710,7 @@ function PersonelModal({ kisi, onClose, onDone }) {
       await api.put(`/pdks/profiles/${kisi.user_id}`, {
         hired_at: hired || null,
         annual_leave_days: Number(izin),
-        monthly_advance_limit: Number(avans),
+        employment_type: calisma,
         // Bos birakmak tanimi KALDIRIR; 0 girmek "tanimli ama odenmiyor".
         monthly_salary: maas === '' ? null : Number(maas),
         hourly_rate: saatlik === '' ? null : Number(saatlik),
@@ -730,8 +734,11 @@ function PersonelModal({ kisi, onClose, onDone }) {
         <label>Yıllık izin (gün)
           <input type="number" min="0" max="365" value={izin} onChange={(e) => setIzin(e.target.value)} />
         </label>
-        <label>Aylık avans limiti
-          <input type="number" min="0" step="0.01" value={avans} onChange={(e) => setAvans(e.target.value)} />
+        <label>Çalışma şekli
+          <select value={calisma} onChange={(e) => setCalisma(e.target.value)}>
+            <option value="FULL_TIME">FULL TIME</option>
+            <option value="PART_TIME">PART TIME</option>
+          </select>
         </label>
         <div className="form-rule" />
         <label>Aylık brüt maaş
@@ -810,7 +817,7 @@ function Vardiyalar({ isSuper }) {
                   <td data-label="Saat">
                     {s.start_time}–{s.end_time}
                     {s.end_time <= s.start_time && (
-                      <div className="muted" style={{ fontSize: 11 }}>gece vardiyası</div>
+                      <div className="muted" style={{ fontSize: 11 }}>kapanış vardiyası</div>
                     )}
                   </td>
                   <td data-label="Mola">{s.break_duration_minutes} dk</td>
@@ -905,7 +912,7 @@ function VardiyaModal({ vardiya, isSuper, onClose, onDone }) {
           <label>Bitiş</label>
           <input type="time" value={v.end_time} onChange={(e) => alan('end_time', e.target.value)} required />
           <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-            Bitiş başlangıçtan küçük veya eşitse vardiya gece yarısını geçer (örn. 22:00–06:00).
+            Bitiş başlangıçtan küçük veya eşitse vardiya gece yarısını geçer (örn. 16:00–00:30).
           </p>
         </div>
         {sayi('break_duration_minutes', 'Mola (dk)',
@@ -967,9 +974,11 @@ function Ayarlar({ isSuper }) {
     <>
       <div className="surface-panel">
         <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-          Devam takibi açılmadan önce mağaza konumu tanımlanmalıdır — konum
-          doğrulaması buna dayanıyor. QR sırrı ilk açılışta otomatik üretilir ve
-          hiçbir yerde görüntülenmez.
+          Giriş, çıkış ve mola işlemleri QR kod okutularak yapılır. QR tek başına
+          yeterli değildir: kodun <strong>iş yerinde</strong> okutulduğu mağaza
+          konumuna göre doğrulanır, bu yüzden konum tanımlı olmalıdır. QR sırrı
+          devam takibi ilk açıldığında otomatik üretilir ve hiçbir yerde
+          görüntülenmez.
         </p>
       </div>
 
@@ -977,8 +986,8 @@ function Ayarlar({ isSuper }) {
         <div className="table-wrap">
           <table className="responsive">
             <thead>
-              <tr><th>Mağaza</th><th>Devam takibi</th><th>Konum</th><th>Yarıçap</th>
-                <th>QR kipi</th><th>İşlem</th></tr>
+              <tr><th>Mağaza</th><th>Devam takibi</th><th>QR kodu</th><th>Konum</th>
+                <th>Yarıçap</th><th>QR kipi</th><th>İşlem</th></tr>
             </thead>
             <tbody>
               {liste.map((s) => (
@@ -989,6 +998,11 @@ function Ayarlar({ isSuper }) {
                       {s.pdks_enabled ? 'Açık' : 'Kapalı'}
                     </span>
                   </td>
+                  <td data-label="QR kodu">
+                    {s.has_secret
+                      ? <span className="badge sold">tanımlı</span>
+                      : <span className="badge critical">yok</span>}
+                  </td>
                   <td data-label="Konum">
                     {s.latitude !== null && s.longitude !== null
                       ? <span className="muted" style={{ fontSize: 12 }}>
@@ -998,12 +1012,12 @@ function Ayarlar({ isSuper }) {
                   </td>
                   <td data-label="Yarıçap">{s.geofence_radius_m} m</td>
                   <td data-label="QR kipi">
-                    {s.qr_mode === 'rotating' ? 'Dönen kod' : 'Sabit kod'}
+                    {s.qr_mode === 'rotating' ? 'Süreli kod' : 'Sabit kod'}
                   </td>
                   <td data-label="İşlem">
                     <div className="row-actions">
                       <button className="btn btn-sm btn-secondary" onClick={() => setDuzenle(s)}>
-                        <MapPin size={14} /> Düzenle
+                        <Pencil size={14} /> Düzenle
                       </button>
                       {s.pdks_enabled && s.has_secret && (
                         <button className="btn btn-sm btn-secondary" onClick={() => kioskKodu(s)}>
@@ -1095,13 +1109,20 @@ function AyarModal({ magaza, onClose, onDone }) {
         <div className="field">
           <label>QR kipi</label>
           <select value={kip} onChange={(e) => setKip(e.target.value)}>
-            <option value="rotating">Dönen kod (kiosk ekranı) — önerilen</option>
-            <option value="static">Sabit basılı kod</option>
+            <option value="rotating">Süreli kod (ekranda 60 sn'de bir yenilenir) — önerilen</option>
+            <option value="static">Sabit kod (bir kez basılır, değişmez)</option>
           </select>
           <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-            Sabit kod fotoğraflanabildiği için tek başına yeterli sayılmaz;
-            konum doğrulamasıyla birlikte geçerli olur.
+            <strong>Süreli kod:</strong> kodu bir ekranda gösterirsiniz, 60 saniyede bir
+            yenilenir. Fotoğraflanan kod süresi dolunca işe yaramaz.
           </p>
+          {kip === 'static' && (
+            <div className="alert warning" style={{ marginTop: 6 }}>
+              Sabit kod hiç değişmez; fotoğrafı çekilen kod tekrar kullanılabilir.
+              İş yeri dışından okutulmasını engelleyen tek şey konum doğrulamasıdır.
+              Kodu görünür bir yere asın, sızdığından şüphelenirseniz yenileyin.
+            </div>
+          )}
         </div>
         <div className="field">
           <label>
@@ -1134,7 +1155,8 @@ function KioskModal({ veri, onClose, onYenile }) {
       </div>
       {veri.mode === 'static' && (
         <div className="alert warning">
-          Sabit kod yalnızca iş yeri yarıçapı içindeyken geçerlidir.
+          Sabit kod süresizdir ve değişmez. İş yeri dışından okutulmasını
+          yalnızca konum doğrulaması engeller.
         </div>
       )}
       <div className="form-actions">

@@ -78,10 +78,10 @@ const _cokMagazaRolleri = {
   ),
   // Mor: dort kategori birbirinden ayirt edilebilsin. Koyu temada zemin
   // onceden birlestirilmis kati renk.
-  ShiftCategory.gece => (
+  ShiftCategory.kapanis => (
     zemin: koyu ? const Color(0xFF252946) : const Color(0xFFEDE9FE),
     metin: koyu ? const Color(0xFFC4B5FD) : const Color(0xFF5B21B6),
-    etiket: 'Gece',
+    etiket: 'Kapanış',
   ),
   ShiftCategory.bilinmiyor => (
     zemin: Colors.transparent,
@@ -107,6 +107,7 @@ class _RosterScreenState extends State<RosterScreen> {
   bool _loaded = false;
   String _error = '';
   bool _disa = false;
+  bool _paylasiyor = false;
   List<ShiftDef> _vardiyalar = const [];
   // Kaydedilmeyi bekleyen hucre degisiklikleri: "kullaniciId|tarih" -> degisiklik.
   final Map<String, PendingCell> _bekleyen = {};
@@ -297,6 +298,36 @@ class _RosterScreenState extends State<RosterScreen> {
     _load(silent: true);
   }
 
+  /// Haftalik plani ekiple paylas: herkese kendi haftasinin ozeti bildirim
+  /// olarak gider.
+  Future<void> _paylas() async {
+    final v = _veri;
+    if (v == null || v.people.isEmpty) {
+      toast('Paylaşılacak plan yok', kind: ToastKind.error);
+      return;
+    }
+    final ok = await confirmDialog(
+      context,
+      title: 'Planı ekiple paylaş',
+      confirmLabel: 'Paylaş',
+      body: Text(
+        '${fmtDate(v.from)} – ${fmtDate(v.to)} haftasının planı ekibe '
+        'bildirilecek. Herkes kendi vardiyalarının özetini bildirim olarak '
+        'alacak.',
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _paylasiyor = true);
+    try {
+      final adet = await repo.pdksPublishRoster(from: v.from, to: v.to);
+      toastSaved('Plan $adet kişiyle paylaşıldı');
+    } catch (e) {
+      toast(errorMessage(e), kind: ToastKind.error);
+    } finally {
+      if (mounted) setState(() => _paylasiyor = false);
+    }
+  }
+
   Future<void> _pdf() async {
     final v = _veri;
     if (v == null || v.people.isEmpty) {
@@ -347,6 +378,29 @@ class _RosterScreenState extends State<RosterScreen> {
               _load(silent: true);
             },
           ),
+          // Paylasim KAYDETMEDEN ayri bir adim: yonetici hafta boyunca
+          // duzenleyip kaydedebilir, plan kesinlestiginde bir kez paylasir.
+          // Bekleyen degisiklik varken KAPALI: paylasilan plan ekranda
+          // gorulenle ayni olmali.
+          if (v != null && v.canEdit && _haftalik) ...[
+            const SizedBox(height: AppTokens.gap),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: (_paylasiyor || _bekleyen.isNotEmpty)
+                    ? null
+                    : _paylas,
+                icon: const Icon(Icons.send_outlined, size: 18),
+                label: Text(
+                  _paylasiyor
+                      ? 'Paylaşılıyor...'
+                      : _bekleyen.isNotEmpty
+                      ? 'Önce değişiklikleri kaydedin'
+                      : 'Tüm Ekiple Paylaş',
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: AppTokens.gap),
           // Cakisma paneli: sunucu 409 dondugunde sebepleri ve cikis yollarini
           // gosterir. Hicbir degisiklik kaydedilmedigi acikca yaziyor.
@@ -533,7 +587,7 @@ class _Filtreler extends StatelessWidget {
           ],
           const SizedBox(height: 4),
           Text(
-            'HT hafta tatili · RT resmi tatil · 🌙 gece vardiyası',
+            'OFF hafta tatili · RT resmi tatil · Kapanış vardiyası ertesi güne sarkar',
             style: TextStyle(fontSize: 11, color: t.muted),
           ),
         ],
@@ -780,7 +834,7 @@ class _Hucre extends StatelessWidget {
       );
     } else if (gosterilen.any((c) => c.isDayOff)) {
       govde = Text(
-        'HT',
+        'OFF',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 12,
@@ -890,7 +944,7 @@ class _VardiyaEtiketi extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '${hucre.saatAraligi}${hucre.crossesMidnight ? ' 🌙' : ''}',
+            hucre.saatAraligi,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11,
@@ -992,7 +1046,8 @@ class _GunListesi extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (c.crossesMidnight) Pill(text: 'gece', color: t.warning),
+                    if (c.crossesMidnight)
+                      Pill(text: 'kapanış', color: t.warning),
                     const SizedBox(width: 6),
                     Text(
                       fmtDuration(c.minutes),

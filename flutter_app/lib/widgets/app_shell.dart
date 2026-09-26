@@ -1,15 +1,18 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
 import '../core/logout.dart';
 import '../core/nav.dart';
+import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import 'avatar.dart';
+import 'notification_bell.dart';
 import 'scrim.dart';
 import 'shortcut_fab.dart';
 
@@ -42,6 +45,10 @@ class _AppShellState extends State<AppShell> {
   int _recommendationCount = 0;
   Timer? _countTimer;
 
+  /// Sunucudaki yeni bildirimleri telefonun bildirim merkezine dusuruyor.
+  /// Uygulama kabugunda duruyor: hangi ekranda olursak olalim calisiyor.
+  final _bildirimler = PushPoller();
+
   bool _isRail(double width) => _railOverride ?? (width < kRailDefaultBelow);
 
   @override
@@ -53,11 +60,16 @@ class _AppShellState extends State<AppShell> {
       const Duration(seconds: 60),
       (_) => _loadCount(),
     );
+    // Izin ilk acilista isteniyor: kullanici uygulamayi kullanmaya
+    // baslamadan izin penceresi cikarmak yerine oturum acildiktan sonra.
+    unawaited(requestPushPermission());
+    _bildirimler.start();
   }
 
   @override
   void dispose() {
     _countTimer?.cancel();
+    _bildirimler.dispose();
     super.dispose();
   }
 
@@ -143,6 +155,7 @@ class _AppShellState extends State<AppShell> {
               child: Column(
                 children: [
                   _TopBar(
+                    okunmamis: _bildirimler.okunmamis,
                     // Telefonda hamburger yok: menu alt cubuktan aciliyor.
                     // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
                     // arasinda nerede oldugun belli olsun.
@@ -501,7 +514,10 @@ class _SideTile extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({this.sectionLabel});
+  const _TopBar({this.sectionLabel, required this.okunmamis});
+
+  /// Zil rozetindeki okunmamis bildirim sayisi.
+  final ValueListenable<int> okunmamis;
 
   /// Telefonda bulundugun ekranin adi. Genis ekranda kenar menu bunu zaten
   /// gosterdigi icin null gecilir.
@@ -590,7 +606,9 @@ class _TopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          NotificationBell(okunmamis: okunmamis),
+          const SizedBox(width: 4),
           IconButton(
             tooltip: 'Çıkış yap',
             color: t.danger,

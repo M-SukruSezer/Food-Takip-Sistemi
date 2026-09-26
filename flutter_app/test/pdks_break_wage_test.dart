@@ -41,8 +41,9 @@ Map<String, Object?> _durum({
     'name': 'DÜZCE MERKEZ',
     'pdks_enabled': true,
     'qr_mode': 'static',
-    'latitude': 40.8,
-    'longitude': 31.1,
+    'has_qr': true,
+    'latitude': 40.8438,
+    'longitude': 31.1565,
     'geofence_radius_m': 100,
     'has_location': true,
   },
@@ -54,7 +55,6 @@ Map<String, Object?> _pdksYollari(Map<String, Object?> durum) => {
   'GET /pdks/me': durum,
   'GET /pdks/requests/balances': {
     'leave': {'entitled': 14, 'used': 0, 'pending': 0, 'remaining': 14},
-    'advance': {'limit': 0, 'used': 0, 'pending': 0, 'remaining': 0},
   },
   'GET /pdks/requests': <Object?>[],
   'GET /pdks/assignments': <Object?>[],
@@ -164,13 +164,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('İş yerinde değilsiniz'), findsOneWidget);
-      expect(_acikMi(tester, 'Konumla İşe Başla'), isTrue);
+      expect(_acikMi(tester, 'QR ile İşe Başla'), isTrue);
       // Ana dugme TEK: etiketi duruma gore degisiyor, disarida "İşi Bitir" hic
       // cizilmiyor.
-      expect(find.text('Konumla İşi Bitir'), findsNothing);
-      expect(_acikMi(tester, 'Molaya Çık'), isFalse);
-      expect(_acikMi(tester, 'Moladan Dön'), isFalse);
-      expect(find.text('QR Okut (giriş)'), findsOneWidget);
+      expect(find.text('QR ile İşi Bitir'), findsNothing);
+      expect(_acikMi(tester, 'QR ile Molaya Çık'), isFalse);
+      expect(_acikMi(tester, 'QR ile Moladan Dön'), isFalse);
     });
 
     testWidgets('iceride: cikis ve molaya cikma acik', (tester) async {
@@ -185,11 +184,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('İş yerindesiniz'), findsOneWidget);
-      expect(find.text('Konumla İşe Başla'), findsNothing);
-      expect(_acikMi(tester, 'Konumla İşi Bitir'), isTrue);
-      expect(_acikMi(tester, 'Molaya Çık'), isTrue);
-      expect(_acikMi(tester, 'Moladan Dön'), isFalse);
-      expect(find.text('QR Okut (çıkış)'), findsOneWidget);
+      expect(find.text('QR ile İşe Başla'), findsNothing);
+      expect(_acikMi(tester, 'QR ile İşi Bitir'), isTrue);
+      expect(_acikMi(tester, 'QR ile Molaya Çık'), isTrue);
+      expect(_acikMi(tester, 'QR ile Moladan Dön'), isFalse);
     });
 
     testWidgets('molada: cikis KAPALI, yalnizca moladan donus acik', (
@@ -212,10 +210,9 @@ void main() {
 
       expect(find.text('Moladasınız'), findsOneWidget);
       // Molada cikis yapilamaz: sunucu da engelliyor, dugme de kapali.
-      expect(_acikMi(tester, 'Konumla İşi Bitir'), isFalse);
-      expect(_acikMi(tester, 'Molaya Çık'), isFalse);
-      expect(_acikMi(tester, 'Moladan Dön'), isTrue);
-      expect(find.text('QR Okut (mola bitişi)'), findsOneWidget);
+      expect(_acikMi(tester, 'QR ile İşi Bitir'), isFalse);
+      expect(_acikMi(tester, 'QR ile Molaya Çık'), isFalse);
+      expect(_acikMi(tester, 'QR ile Moladan Dön'), isTrue);
       expect(find.text('Bugün toplam mola: 20 dk'), findsOneWidget);
     });
 
@@ -342,7 +339,7 @@ void main() {
         'effective_hourly_rate': 200.0,
         'wage_basis': 'monthly',
         'annual_leave_days': 14,
-        'monthly_advance_limit': 0,
+        'employment_type': 'FULL_TIME',
         'weekly_off_days': [0],
       });
       // hourly_rate NULL ama etkin ucret 200: arayuz "(türetildi)" yaziyor.
@@ -363,7 +360,7 @@ void main() {
       expect(item.roles.contains('barista'), isTrue);
     });
 
-    test('hucre metni: gece vardiyasi, hafta tatili ve resmi tatil', () {
+    test('hucre metni: kapanis vardiyasi, hafta tatili ve resmi tatil', () {
       final gece = RosterCell.fromJson({
         'start_time': '22:00',
         'end_time': '06:00',
@@ -378,8 +375,9 @@ void main() {
         'is_half_day': false,
       });
       // saatAraligi en-dash (U+2013) kullaniyor; kisa cizgi degil.
-      expect(rosterCellText([gece], null), '22:00\u201306:00)');
-      expect(rosterCellText([tatil], null), 'HT');
+      // Ay simgesi ve ')' isareti kaldirildi: saat araligi oldugu gibi.
+      expect(rosterCellText([gece], null), '22:00\u201306:00');
+      expect(rosterCellText([tatil], null), 'OFF');
       expect(rosterCellText(const [], null), '-');
       // Resmi tatil atamanin ONUNE geciyor: o gun calisma planlanmaz.
       expect(rosterCellText([gece], resmi), 'RT');
@@ -400,10 +398,10 @@ void main() {
       // 510 dk = 8s 30dk, 480 dk = 8s
       expect(find.text('8s 30dk'), findsWidgets);
       // Hafta tatili ve resmi tatil isaretleri.
-      expect(find.text('HT'), findsOneWidget);
+      expect(find.text('OFF'), findsOneWidget);
       expect(find.text('RT'), findsWidgets);
       // Gece vardiyasi ay simgesiyle isaretli.
-      expect(find.textContaining('22:00–06:00 🌙'), findsOneWidget);
+      expect(find.textContaining('22:00–06:00'), findsOneWidget);
       expect(find.text('Çalışan sayısı'), findsOneWidget);
     });
 

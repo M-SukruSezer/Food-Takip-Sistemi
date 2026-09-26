@@ -6,13 +6,51 @@ const {
 const { logActivity } = require('../utils');
 const bal = require('../pdks/balance');
 const t = require('../pdks/time');
+const notify = require('../pdks/notify');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
 const requireManager = requireRole(...MANAGER_ROLES);
-const TYPES = ['IZIN', 'SAATLIK_IZIN', 'AVANS'];
+
+/// Bildirim metinlerinde kullanilan tur adi.
+const TUR_ADI = { IZIN: 'Yıllık izin', SAATLIK_IZIN: 'Saatlik izin' };
+const turAdi = (tip) => TUR_ADI[tip] || tip;
+
+/// Talebin tek satirlik ozeti.
+function talepOzet(row) {
+  if (row.type === 'IZIN') {
+    return `${row.start_at} – ${row.end_at}, ${row.days} gün`;
+  }
+  if (row.type === 'SAATLIK_IZIN') return `${row.hours} saat`;
+  return '';
+}
+
+/// Talebi karara baglayacak yoneticiler.
+///
+/// Yalnizca MANAGER_ROLES: IK bu talepleri karara baglayamadigi icin
+/// (hrAllows yalnizca puantaj goruntulemeye izin veriyor) bildirim de almiyor
+/// — uzerine islem yapamayacagi bildirim gurultudur.
+///
+/// Magaza kapsami: magazaya bagli yonetici yalnizca KENDI magazasinin
+/// talebini gorur; magazasi olmayan ust roller (super_admin,
+/// operations_manager, regional_manager) hepsini gorur.
+///
+/// Talebi ACAN kisi listeye GIRMEZ: kendi talebini zaten onaylayamiyor.
+const UST_ROLLER = ['super_admin', 'operations_manager', 'regional_manager'];
+async function kararVericiler(storeId, haricUserId) {
+  const ph = MANAGER_ROLES.map(() => '?').join(',');
+  const ust = UST_ROLLER.map(() => '?').join(',');
+  const rows = await queryAll(
+    `SELECT id FROM users
+     WHERE active = 1 AND role IN (${ph})
+       AND (store_id = ? OR role IN (${ust}))
+       AND id <> ?`,
+    ...MANAGER_ROLES, storeId, ...UST_ROLLER, haricUserId);
+  return rows.map((r) => Number(r.id));
+}
+const TYPES = ['IZIN', 'SAATLIK_IZIN'];
 
 /// Bir tarih araligindaki resmi tatiller.
 ///
@@ -32,7 +70,6 @@ async function profileOf(userId) {
   return {
     hired_at: p?.hired_at ?? null,
     annual_leave_days: p ? Number(p.annual_leave_days) : 14,
-    monthly_advance_limit: p ? Number(p.monthly_advance_limit) : 0,
     weekly_off_days: bal.parseWeeklyOff(p?.weekly_off_days),
   };
 }
@@ -64,22 +101,10 @@ async function balancesOf(userId, atIso = new Date().toISOString()) {
       AND substr(start_at, 1, 10) >= ? AND substr(start_at, 1, 10) <= ?`,
     userId, month.from, month.to);
 
-  const advance = await queryOne(`
-    SELECT
-      COALESCE(SUM(CASE WHEN status='APPROVED' THEN amount ELSE 0 END),0) AS used,
-      COALESCE(SUM(CASE WHEN status='PENDING'  THEN amount ELSE 0 END),0) AS pending
-    FROM personnel_requests
-    WHERE user_id = ? AND type = 'AVANS' AND status IN ('APPROVED','PENDING')
-      AND substr(created_at, 1, 10) >= ? AND substr(created_at, 1, 10) <= ?`,
-    userId, month.from, month.to);
-
   const summary = bal.summarize({
     entitlementDays: profile.annual_leave_days,
     usedDays: Number(leave.used) || 0,
     pendingDays: Number(leave.pending) || 0,
-    advanceLimit: profile.monthly_advance_limit,
-    usedAdvance: Number(advance.used) || 0,
-    pendingAdvance: Number(advance.pending) || 0,
     usedHours: Number(hourly.used) || 0,
     pendingHours: Number(hourly.pending) || 0,
   });
@@ -162,7 +187,7 @@ router.post('/requests', async (req, res) => {
   const body = req.body || {};
   const type = String(body.type || '').toUpperCase();
   if (!TYPES.includes(type)) {
-    return res.status(400).json({ error: 'Talep türü IZIN, SAATLIK_IZIN veya AVANS olmalıdır' });
+    return res.status(400).json({ error: 'Talep türü IZIN veya SAATLIK_IZIN olmalıdır' });
   }
   const storeId = req.user.store_id;
   if (!storeId) return res.status(403).json({ error: 'Size mağaza atanmamış' });
@@ -172,23 +197,10 @@ router.post('/requests', async (req, res) => {
 
   const balances = await balancesOf(req.user.id);
   const profile = await profileOf(req.user.id);
+  // amount kolonu semada duruyor (eski kayitlar icin) ama artik hep null.
   const fields = { start_at: null, end_at: null, days: null, hours: null, amount: null };
 
-  if (type === 'AVANS') {
-    const amount = Number(body.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Avans tutarı 0’dan büyük olmalıdır' });
-    }
-    if (profile.monthly_advance_limit <= 0) {
-      return res.status(400).json({ error: 'Size aylık avans limiti tanımlanmamış' });
-    }
-    if (amount > balances.advance.remaining) {
-      return res.status(400).json({
-        error: `Aylık avans limitiniz aşılıyor. Kalan: ${balances.advance.remaining} TL`,
-      });
-    }
-    fields.amount = amount;
-  } else if (type === 'IZIN') {
+  if (type === 'IZIN') {
     const from = String(body.start_at || '');
     const to = String(body.end_at || '');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
@@ -253,9 +265,21 @@ router.post('/requests', async (req, res) => {
     req.user.id, storeId, type, fields.start_at, fields.end_at,
     fields.days, fields.hours, fields.amount, reason);
 
+  // Karar verecek yoneticilere haber. Bildirim YAN ETKI: patlasa da talep
+  // olusturulmus sayilir (notify.publish hatalari yutuyor).
+  for (const yoneticiId of await kararVericiler(storeId, req.user.id)) {
+    await notify.requestCreated({
+      managerId: yoneticiId,
+      requesterName: req.user.full_name,
+      typeLabel: turAdi(type),
+      detail: talepOzet({ type, ...fields }),
+      requestId: Number(r.lastInsertRowid),
+    });
+  }
+
   await logActivity(req.user, 'TALEP_OLUSTUR', 'personnel_request', r.lastInsertRowid,
-    `${type}: ` + (type === 'AVANS' ? `${fields.amount} TL`
-      : type === 'IZIN' ? `${fields.start_at} - ${fields.end_at} (${fields.days} gün)`
+    `${type}: ` + (type === 'IZIN'
+      ? `${fields.start_at} - ${fields.end_at} (${fields.days} gün)`
       : `${fields.hours} saat`), storeId);
 
   res.status(201).json({ id: Number(r.lastInsertRowid), ...fields, type, status: 'PENDING' });
@@ -299,14 +323,6 @@ async function decide(req, res, next) {
             + `talep ${row.days} gün`,
         });
       }
-    } else if (row.type === 'AVANS') {
-      const available = b.advance.remaining + Number(row.amount || 0);
-      if (Number(row.amount) > available) {
-        return res.status(400).json({
-          error: `Onaylanamaz: personelin kalan avans limiti ${available} TL, `
-            + `talep ${row.amount} TL`,
-        });
-      }
     }
   }
 
@@ -314,6 +330,17 @@ async function decide(req, res, next) {
     UPDATE personnel_requests SET status=?, manager_id=?, decision_note=?,
       decided_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
     WHERE id = ?`, next, req.user.id, note, row.id);
+
+  // Talebi acan kisiye karar bildirimi.
+  await notify.requestDecided({
+    userId: row.user_id,
+    approved: approve,
+    typeLabel: turAdi(row.type),
+    detail: talepOzet(row),
+    note,
+    byName: req.user.full_name,
+    requestId: row.id,
+  });
 
   await logActivity(req.user, approve ? 'TALEP_ONAY' : 'TALEP_RET',
     'personnel_request', row.id,
@@ -341,6 +368,30 @@ router.post('/requests/:id/cancel', async (req, res) => {
     return res.status(400).json({ error: 'Yalnızca bekleyen talep geri alınabilir' });
   }
   await execute("UPDATE personnel_requests SET status = 'CANCELLED' WHERE id = ?", row.id);
+
+  if (isOwner) {
+    // Sahibi geri cekti: onay kuyrugunda bekleyen yoneticilere haber.
+    for (const yoneticiId of await kararVericiler(row.store_id, row.user_id)) {
+      await notify.requestCancelled({
+        managerId: yoneticiId,
+        requesterName: req.user.full_name,
+        typeLabel: turAdi(row.type),
+        requestId: row.id,
+      });
+    }
+  } else {
+    // Yonetici iptal etti: talebi acan kisi bunu ogrenmeli.
+    await notify.requestDecided({
+      userId: row.user_id,
+      approved: false,
+      typeLabel: turAdi(row.type),
+      detail: talepOzet(row),
+      note: 'Talep yönetici tarafından geri alındı.',
+      byName: req.user.full_name,
+      requestId: row.id,
+    });
+  }
+
   await logActivity(req.user, 'TALEP_IPTAL', 'personnel_request', row.id,
     `${row.type} talebi geri alındı`, row.store_id);
   res.json({ ok: true });

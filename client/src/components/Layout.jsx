@@ -11,6 +11,7 @@ import {
 import api from '../api';
 import { Avatar, Confirm } from './ui';
 import ShortcutFab from './ShortcutFab';
+import NotificationBell from './NotificationBell';
 
 // Uygulama iki ekrana ayrildi. Sira onemli: ILK eleman girişte acilan ekran.
 //
@@ -305,6 +306,8 @@ export default function Layout() {
               </span>
             </span>
           </NavLink>
+
+          <NotificationBell />
 
           <button
             type="button"

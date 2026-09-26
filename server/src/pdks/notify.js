@@ -16,6 +16,10 @@ const { execute } = require('../db');
 const KIND = {
   changed: 'SHIFT_CHANGED',
   removed: 'SHIFT_REMOVED',
+  published: 'SHIFT_PUBLISHED',
+  requestCreated: 'REQUEST_CREATED',
+  requestDecided: 'REQUEST_DECIDED',
+  requestCancelled: 'REQUEST_CANCELLED',
 };
 
 /// Kayitli tasiyicilar. Her biri async (bildirim) => void.
@@ -86,4 +90,65 @@ async function shiftChanged({ userId, workDate, oldLabel, newLabel, byName }) {
   });
 }
 
-module.exports = { KIND, addTransport, publish, shiftChanged };
+/// Haftalik plan ekiple paylasildi.
+///
+/// Kisi basina TEK bildirim: haftada 7 gun icin 7 bildirim gondermek
+/// bildirim listesini kullanilamaz hale getirirdi.
+async function shiftPublished({ userId, from, to, summary, byName }) {
+  return publish({
+    userId,
+    kind: KIND.published,
+    title: 'Haftalık vardiya planı paylaşıldı',
+    body: `${from} – ${to} haftası`
+      + (summary ? `: ${summary}` : '')
+      + (byName ? ` Paylaşan: ${byName}.` : ''),
+    data: { from, to, screen: '/roster' },
+  });
+}
+
+/// Talep olusturuldu — KARAR VERECEK yoneticilere gider.
+async function requestCreated({ managerId, requesterName, typeLabel, detail, requestId }) {
+  return publish({
+    userId: managerId,
+    kind: KIND.requestCreated,
+    title: 'Yeni personel talebi',
+    body: `${requesterName}: ${typeLabel}${detail ? ` — ${detail}` : ''}`,
+    data: { request_id: requestId, screen: '/pdks' },
+  });
+}
+
+/// Talep karara baglandi — TALEBI ACAN kisiye gider.
+async function requestDecided({ userId, approved, typeLabel, detail, note, byName, requestId }) {
+  return publish({
+    userId,
+    kind: KIND.requestDecided,
+    title: approved ? 'Talebiniz onaylandı' : 'Talebiniz reddedildi',
+    body: `${typeLabel}${detail ? ` (${detail})` : ''} `
+      + (approved ? 'onaylandı.' : 'reddedildi.')
+      + (note ? ` Not: ${note}` : '')
+      + (byName ? ` Karar veren: ${byName}.` : ''),
+    data: { request_id: requestId, screen: '/pdks' },
+  });
+}
+
+/// Talep sahibi talebini geri cekti — yoneticiye bilgi.
+async function requestCancelled({ managerId, requesterName, typeLabel, requestId }) {
+  return publish({
+    userId: managerId,
+    kind: KIND.requestCancelled,
+    title: 'Talep geri çekildi',
+    body: `${requesterName} ${typeLabel} talebini geri çekti.`,
+    data: { request_id: requestId, screen: '/pdks' },
+  });
+}
+
+module.exports = {
+  KIND,
+  addTransport,
+  publish,
+  shiftChanged,
+  shiftPublished,
+  requestCreated,
+  requestDecided,
+  requestCancelled,
+};

@@ -143,9 +143,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     }
   }
 
-  static String _detail(PersonnelRequest r) => r.type == 'AVANS'
-      ? fmtMoney(r.amount)
-      : r.type == 'IZIN'
+  static String _detail(PersonnelRequest r) => r.type == 'IZIN'
       ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
       : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 

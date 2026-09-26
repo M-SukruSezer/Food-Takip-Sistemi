@@ -24,20 +24,27 @@ class PdksStore {
     required this.name,
     required this.pdksEnabled,
     required this.qrMode,
+    required this.hasQr,
     required this.geofenceRadiusM,
     required this.hasLocation,
-    this.latitude,
-    this.longitude,
   });
 
   final int id;
   final String name;
   final bool pdksEnabled;
+
+  /// 'rotating' (sureli) ya da 'static' (sabit). Magaza yoneticisi seciyor.
   final String qrMode;
+
+  /// Magazanin QR sirri tanimli mi.
+  final bool hasQr;
+
+  /// Is yeri yaricapi: okutulan kodun konumu buna gore dogrulaniyor.
   final int geofenceRadiusM;
+
+  /// Magaza konumu tanimli mi. QR ile konum IKISI BIRDEN gerekli oldugu
+  /// icin bu false ise o magazada islem yapilamaz.
   final bool hasLocation;
-  final num? latitude;
-  final num? longitude;
 
   bool get isStaticQr => qrMode == 'static';
 
@@ -46,10 +53,9 @@ class PdksStore {
     name: j['name'] as String? ?? '',
     pdksEnabled: j['pdks_enabled'] == true,
     qrMode: j['qr_mode'] as String? ?? 'rotating',
+    hasQr: j['has_qr'] == true,
     geofenceRadiusM: _int(j['geofence_radius_m']),
     hasLocation: j['has_location'] == true,
-    latitude: _numOrNull(j['latitude']),
-    longitude: _numOrNull(j['longitude']),
   );
 }
 
@@ -290,9 +296,12 @@ class PdksStatus {
   final bool canBreakStart;
   final bool canBreakEnd;
 
-  bool get canUseGps =>
-      (store?.pdksEnabled ?? false) && (store?.hasLocation ?? false);
-  bool get canUseQr => store?.pdksEnabled ?? false;
+  /// Islem icin UC kosul: PDKS acik, QR sirri tanimli, magaza konumu
+  /// tanimli. Ucu de gerekli cunku dogrulama QR + konum ikilisine dayaniyor.
+  bool get canUseQr =>
+      (store?.pdksEnabled ?? false) &&
+      (store?.hasQr ?? false) &&
+      (store?.hasLocation ?? false);
 
   factory PdksStatus.fromJson(Map<String, dynamic> j) => PdksStatus(
     workDate: j['work_date'] as String? ?? '',
@@ -355,17 +364,13 @@ class QrToken {
   );
 }
 
-/// Izin ve avans bakiyesi.
+/// Izin bakiyesi.
 class PdksBalance {
   const PdksBalance({
     required this.entitlementDays,
     required this.usedDays,
     required this.pendingDays,
     required this.remainingDays,
-    required this.advanceLimit,
-    required this.advanceUsed,
-    required this.advancePending,
-    required this.advanceRemaining,
     required this.hourlyUsedHours,
     required this.leaveYearFrom,
     required this.leaveYearTo,
@@ -376,10 +381,6 @@ class PdksBalance {
   final num usedDays;
   final num pendingDays;
   final num remainingDays;
-  final num advanceLimit;
-  final num advanceUsed;
-  final num advancePending;
-  final num advanceRemaining;
   final num hourlyUsedHours;
   final String leaveYearFrom;
   final String leaveYearTo;
@@ -389,7 +390,6 @@ class PdksBalance {
 
   factory PdksBalance.fromJson(Map<String, dynamic> j) {
     final leave = (j['leave'] as Map<String, dynamic>?) ?? const {};
-    final adv = (j['advance'] as Map<String, dynamic>?) ?? const {};
     final hourly = (j['hourly_leave'] as Map<String, dynamic>?) ?? const {};
     final year = (j['leave_year'] as Map<String, dynamic>?) ?? const {};
     return PdksBalance(
@@ -397,10 +397,6 @@ class PdksBalance {
       usedDays: _num(leave['used_days']),
       pendingDays: _num(leave['pending_days']),
       remainingDays: _num(leave['remaining_days']),
-      advanceLimit: _num(adv['monthly_limit']),
-      advanceUsed: _num(adv['used']),
-      advancePending: _num(adv['pending']),
-      advanceRemaining: _num(adv['remaining']),
       hourlyUsedHours: _num(hourly['used_hours']),
       leaveYearFrom: year['from'] as String? ?? '',
       leaveYearTo: year['to'] as String? ?? '',
@@ -411,7 +407,7 @@ class PdksBalance {
   }
 }
 
-/// Izin / saatlik izin / avans talebi.
+/// Izin / saatlik izin talebi.
 class PersonnelRequest {
   const PersonnelRequest({
     required this.id,
@@ -446,7 +442,7 @@ class PersonnelRequest {
   String get typeLabel => switch (type) {
     'IZIN' => 'Yıllık İzin',
     'SAATLIK_IZIN' => 'Saatlik İzin',
-    _ => 'Avans',
+    _ => type,
   };
 
   String get statusLabel => switch (status) {
@@ -953,7 +949,7 @@ class PdksProfile {
     this.storeName,
     this.hiredAt,
     this.annualLeaveDays = 14,
-    this.monthlyAdvanceLimit = 0,
+    this.employmentType = 'FULL_TIME',
     this.weeklyOffDays = const [0],
     this.monthlySalary,
     this.hourlyRate,
@@ -969,7 +965,13 @@ class PdksProfile {
   final String? storeName;
   final String? hiredAt;
   final double annualLeaveDays;
-  final double monthlyAdvanceLimit;
+
+  /// 'FULL_TIME' ya da 'PART_TIME'. Cizelge ciktisindaki CALISMA SEKLI sutunu.
+  final String employmentType;
+
+  /// Ciktida yazilan Turkce karsilik.
+  String get employmentLabel =>
+      employmentType == 'PART_TIME' ? 'PART TIME' : 'FULL TIME';
   final List<int> weeklyOffDays;
 
   /// null = TANIMSIZ, 0 = tanimli ama odenmiyor. Ikisi ayri.
@@ -987,7 +989,7 @@ class PdksProfile {
     storeName: j['store_name'] as String?,
     hiredAt: j['hired_at'] as String?,
     annualLeaveDays: _dbl(j['annual_leave_days']) ?? 14,
-    monthlyAdvanceLimit: _dbl(j['monthly_advance_limit']) ?? 0,
+    employmentType: j['employment_type'] as String? ?? 'FULL_TIME',
     weeklyOffDays: ((j['weekly_off_days'] as List<dynamic>?) ?? [0])
         .map((e) => _int(e))
         .toList(),
@@ -1002,13 +1004,13 @@ class PdksProfile {
 /// Cizelgede bir gunun bir hucresi. Bolunmus vardiyada birden fazla olabilir.
 /// Vardiya kategorisi. Siniflandirma SUNUCUDA 4857 sayili Kanun'a gore
 /// yapiliyor (m.69 gece donemi 20:00-06:00); istemci yalnizca rengi seciyor.
-enum ShiftCategory { sabah, gunduz, aksam, gece, bilinmiyor }
+enum ShiftCategory { sabah, gunduz, aksam, kapanis, bilinmiyor }
 
 ShiftCategory shiftCategoryOf(String? v) => switch (v) {
   'sabah' => ShiftCategory.sabah,
   'gunduz' => ShiftCategory.gunduz,
   'aksam' => ShiftCategory.aksam,
-  'gece' => ShiftCategory.gece,
+  'kapanis' => ShiftCategory.kapanis,
   _ => ShiftCategory.bilinmiyor,
 };
 
@@ -1103,6 +1105,8 @@ class RosterPerson {
     required this.role,
     required this.cells,
     this.storeName,
+    this.employmentType = 'FULL_TIME',
+    this.duty = '',
     this.plannedMinutes = 0,
     this.shiftDays = 0,
     this.dayOffDays = 0,
@@ -1116,6 +1120,17 @@ class RosterPerson {
   /// Tarih -> o gunun vardiyalari. Bos liste = atama yok.
   final Map<String, List<RosterCell>> cells;
   final String? storeName;
+
+  /// Cizelge ciktisindaki CALISMA SEKLI sutunu.
+  final String employmentType;
+
+  /// Cizelge ciktisindaki GOREV sutunu (SM / SSV / BARİSTA ...).
+  /// Kisaltmalari SUNUCU uretiyor: iki istemcide iki ayri tablo olmasin.
+  final String duty;
+
+  String get employmentLabel =>
+      employmentType == 'PART_TIME' ? 'PART TIME' : 'FULL TIME';
+
   final int plannedMinutes;
   final int shiftDays;
   final int dayOffDays;
@@ -1131,6 +1146,8 @@ class RosterPerson {
       fullName: u['full_name'] as String? ?? '',
       role: u['role'] as String? ?? '',
       storeName: u['store_name'] as String?,
+      employmentType: u['employment_type'] as String? ?? 'FULL_TIME',
+      duty: u['duty'] as String? ?? '',
       cells: {
         for (final e in raw.entries)
           e.key: ((e.value as List<dynamic>?) ?? [])

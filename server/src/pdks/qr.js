@@ -5,17 +5,19 @@ const crypto = require('crypto');
 // Iki kip:
 //   rotating  Kiosk ekraninda 60 sn'de bir yenilenen token. Fotograflanan
 //             token pencere kapaninca gecersiz olur.
-//   static    Basili sabit kod. Icerigi hic degismedigi icin TEK BASINA
-//             yeterli sayilmaz; cagiran katman konum dogrulamasi da ister.
+//   static    Basili sabit kod. Magaza yoneticisinin secimi.
+//
+// UYARI — sabit kip: icerik hic degismedigi icin fotograflanan kod suresiz
+// gecerlidir ve tekrar korumasi YOKTUR (asagida tokenHash null). Konumla
+// dogrulama kaldirildigindan bu kipte ikinci bir etken kalmadi; kod is
+// yerinde gorunur bir yerde durmali ve sizdiginda yenilenmelidir.
+// Donen kipte boyle bir acik yok: token 60 saniye yasar.
 //
 // Magaza sirri (stores.qr_secret) istemciye ASLA gonderilmez; token sirdan
 // HMAC ile uretilir, dogrulama sunucuda yapilir.
 
 const ROTATING_PREFIX = 'PDKS1';
 const STATIC_PREFIX = 'PDKS1S';
-// Personelin telefonunda gosterilen, kiosk/yonetici tarafindan okutulan token.
-// Kisiye bagli oldugu icin okutan tarafin kimi kaydettigini bilmesi gerekmez.
-const USER_PREFIX = 'PDKSU1';
 
 /// Token penceresi. 60 sn: personelin okutmasi icin yeterli, fotograflanan
 /// kodun kullanim omru icin kisa.
@@ -51,21 +53,6 @@ function issueRotatingToken(store, at = Date.now()) {
   };
 }
 
-/// Personelin telefonunda gosterecegi donen token.
-///
-/// Magaza sirriyla imzalanir: yalnizca o magazanin kiosku dogrulayabilir.
-/// Personelin cihazi sirri bilmedigi icin token sunucudan alinir.
-function issueUserToken(store, userId, at = Date.now()) {
-  if (!store.qr_secret) throw new Error('Mağazanın QR sırrı tanımlanmamış');
-  const w = windowIndex(at);
-  const sig = sign(store.qr_secret, `${USER_PREFIX}:${store.id}:${userId}:${w}`);
-  return {
-    token: `${USER_PREFIX}:${store.id}:${userId}:${w}:${sig}`,
-    expires_in: WINDOW_SECONDS - Math.floor((at / 1000) % WINDOW_SECONDS),
-    window_seconds: WINDOW_SECONDS,
-  };
-}
-
 /// Basilacak sabit kod.
 function issueStaticToken(store) {
   if (!store.qr_secret) throw new Error('Mağazanın QR sırrı tanımlanmamış');
@@ -87,7 +74,7 @@ function safeEqual(a, b) {
 function peekStoreId(raw) {
   if (typeof raw !== 'string') return null;
   const parts = raw.split(':');
-  if (![ROTATING_PREFIX, STATIC_PREFIX, USER_PREFIX].includes(parts[0])) return null;
+  if (![ROTATING_PREFIX, STATIC_PREFIX].includes(parts[0])) return null;
   const id = Number(parts[1]);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
@@ -120,34 +107,6 @@ function verifyToken(raw, store, at = Date.now()) {
       return { ok: false, reason: 'QR kod geçersiz' };
     }
     return { ok: true, mode: 'static', tokenHash: null, reason: null };
-  }
-
-  if (parts[0] === USER_PREFIX) {
-    // Personel token'i kiosk tarafindan okutulur; magazanin qr_mode ayari
-    // (donen/sabit kiosk kodu) bu akisi ilgilendirmez.
-    if (parts.length !== 5 || Number(parts[1]) !== Number(store.id)) {
-      return { ok: false, reason: 'QR kod bu mağazaya ait değil' };
-    }
-    const userId = Number(parts[2]);
-    const claimed = Number(parts[3]);
-    if (!Number.isInteger(userId) || userId <= 0 || !Number.isInteger(claimed)) {
-      return { ok: false, reason: 'QR kod geçersiz' };
-    }
-    const now = windowIndex(at);
-    if (Math.abs(now - claimed) > WINDOW_TOLERANCE) {
-      return { ok: false, reason: 'QR kodun süresi doldu, personelden kodu yenilemesini isteyin' };
-    }
-    const expected = sign(store.qr_secret, `${USER_PREFIX}:${store.id}:${userId}:${claimed}`);
-    if (!safeEqual(parts[4], expected)) {
-      return { ok: false, reason: 'QR kod geçersiz' };
-    }
-    return {
-      ok: true,
-      mode: 'user',
-      userId,
-      tokenHash: crypto.createHash('sha256').update(raw).digest('hex'),
-      reason: null,
-    };
   }
 
   if (parts[0] === ROTATING_PREFIX) {
@@ -187,7 +146,6 @@ module.exports = {
   generateSecret,
   issueRotatingToken,
   issueStaticToken,
-  issueUserToken,
   verifyToken,
   peekStoreId,
   windowIndex,
@@ -195,5 +153,4 @@ module.exports = {
   WINDOW_TOLERANCE,
   ROTATING_PREFIX,
   STATIC_PREFIX,
-  USER_PREFIX,
 };
