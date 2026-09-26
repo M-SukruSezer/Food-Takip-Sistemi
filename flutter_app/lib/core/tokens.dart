@@ -16,6 +16,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.warning,
     required this.warningSoft,
     required this.warningText,
+    required this.infoSoft,
+    required this.infoText,
+    required this.successSoft,
+    required this.okText,
     required this.success,
     required this.info,
     required this.ink,
@@ -56,6 +60,22 @@ class AppTokens extends ThemeExtension<AppTokens> {
   /// grafik ogelerde 3.0 esigi gecerli oldugu icin --warning orada kaliyor.
   /// React tarafindaki --warning-text ile ayni deger.
   final Color warningText;
+
+  // Cizelgedeki vardiya kategorileri (sabah/gunduz/aksam) ve durum
+  // etiketleri icin zemin + KUCUK METIN ciftleri. React tarafindaki
+  // --info-soft/--info-text/--success-soft/--ok-text ile ayni degerler.
+  //
+  // Koyu temada zeminler ONCEDEN BIRLESTIRILMIS kati renkler: saydam ton
+  // kullanmak kontrast olcumunu belirsizlestiriyordu (hangi zeminin uzerine
+  // dustugu bilinmeden oran hesaplanamiyor).
+  //
+  // Olculdu (kucuk metin esigi 4.5):
+  //   sabah  acik 5.57  koyu 7.83
+  //   gunduz acik 4.79  koyu 7.65
+  final Color infoSoft;
+  final Color infoText;
+  final Color successSoft;
+  final Color okText;
   final Color success;
   final Color info;
   final Color ink;
@@ -97,10 +117,14 @@ class AppTokens extends ThemeExtension<AppTokens> {
     warning: Color(0xFFD97706),
     warningSoft: Color(0xFFFFFBEB),
     warningText: Color(0xFFB45309),
+    infoSoft: Color(0xFFF0F9FF),
+    infoText: Color(0xFF0369A1),
+    successSoft: Color(0xFFF0FDF4),
+    okText: Color(0xFF15803D),
     success: Color(0xFF16A34A),
     info: Color(0xFF0284C7),
     ink: Color(0xFF111827),
-    muted: Color(0xFF6B7280),
+    muted: Color(0xFF5B6472),
     border: Color(0xFFE5E7EB),
     borderStrong: Color(0xFFD1D5DB),
     bg: Color(0xFFF5F6F8),
@@ -124,6 +148,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     warning: Color(0xFFFBBF24),
     warningSoft: Color(0x1FFBBF24),
     warningText: Color(0xFFFBBF24),
+    infoSoft: Color(0xFF203247),
+    infoText: Color(0xFF7DD3FC),
+    successSoft: Color(0xFF1A3338),
+    okText: Color(0xFF4ADE80),
     success: Color(0xFF4ADE80),
     info: Color(0xFF7DD3FC),
     ink: Color(0xFFE5E9F0),
@@ -151,6 +179,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     Color? warning,
     Color? warningSoft,
     Color? warningText,
+    Color? infoSoft,
+    Color? infoText,
+    Color? successSoft,
+    Color? okText,
     Color? success,
     Color? info,
     Color? ink,
@@ -176,6 +208,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
       warning: warning ?? this.warning,
       warningSoft: warningSoft ?? this.warningSoft,
       warningText: warningText ?? this.warningText,
+      infoSoft: infoSoft ?? this.infoSoft,
+      infoText: infoText ?? this.infoText,
+      successSoft: successSoft ?? this.successSoft,
+      okText: okText ?? this.okText,
       success: success ?? this.success,
       info: info ?? this.info,
       ink: ink ?? this.ink,
@@ -206,6 +242,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
       warning: Color.lerp(warning, other.warning, t)!,
       warningSoft: Color.lerp(warningSoft, other.warningSoft, t)!,
       warningText: Color.lerp(warningText, other.warningText, t)!,
+      infoSoft: Color.lerp(infoSoft, other.infoSoft, t)!,
+      infoText: Color.lerp(infoText, other.infoText, t)!,
+      successSoft: Color.lerp(successSoft, other.successSoft, t)!,
+      okText: Color.lerp(okText, other.okText, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
       ink: Color.lerp(ink, other.ink, t)!,

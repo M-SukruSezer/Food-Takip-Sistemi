@@ -648,6 +648,40 @@ class Repository {
     return Roster.fromJson(r.data ?? const {});
   }
 
+  /// Atanabilir vardiya tanimlari.
+  Future<List<ShiftDef>> pdksShifts({bool silent = true}) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/pdks/shifts',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => ShiftDef.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Tek hucre atamasi: bir personelin BIR gunu.
+  ///
+  /// "Bu gunu su hale getir" islemi: [shiftId] verilirse o vardiya, [isDayOff]
+  /// ise hafta tatili, ikisi de yoksa gun bosaltilir. Sunucu tek islemde
+  /// yaptigi icin istemcide sil-sonra-ekle gibi yarim kalabilen adim yok.
+  Future<void> pdksSetCell({
+    required int userId,
+    required String workDate,
+    int? shiftId,
+    bool isDayOff = false,
+  }) async {
+    await api.dio.put(
+      '/pdks/assignments/cell',
+      data: {
+        'user_id': userId,
+        'work_date': workDate,
+        'is_day_off': isDayOff,
+        'shift_id': shiftId,
+      },
+      options: apiOptions(successMessage: 'Plan güncellendi'),
+    );
+  }
+
   /// Personel ucret ve profil tanimlari (yonetici).
   Future<List<PdksProfile>> pdksProfiles({bool silent = true}) async {
     final r = await api.dio.get<List<dynamic>>(

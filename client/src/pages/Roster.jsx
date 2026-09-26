@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { toast } from '../components/ui';
+import { Modal, toast } from '../components/ui';
 import { errorMessage, fmtDate } from '../format';
 import { PDF_FONT, pdfFontKur } from '../pdfFont';
 
@@ -13,6 +13,16 @@ import { PDF_FONT, pdfFontKur } from '../pdfFont';
 // gunluk olarak ihtiyac duydugu bilgi. Duzenleme Devam Yonetimi'nde.
 
 const GUN_KISA = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+
+// Vardiya kategorileri. Renk TEK BASINA bilgi tasimasin diye her kategorinin
+// kisa bir etiketi de var (erisilebilirlik: renk korlugu ve yazdirma).
+// Siniflandirma sunucuda, 4857 sayili Kanun'a gore yapiliyor.
+const KATEGORI = {
+  sabah: { etiket: 'Sabah', sinif: 'k-sabah' },
+  gunduz: { etiket: 'Gündüz', sinif: 'k-gunduz' },
+  aksam: { etiket: 'Akşam', sinif: 'k-aksam' },
+  gece: { etiket: 'Gece', sinif: 'k-gece' },
+};
 const GUN_UZUN = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -47,6 +57,8 @@ export default function Roster() {
   const [veri, setVeri] = useState(null);
   const [hata, setHata] = useState('');
   const [disa, setDisa] = useState(false);
+  const [vardiyalar, setVardiyalar] = useState([]);
+  const [hucre, setHucre] = useState(null);
 
   // Cok magazali roller icin magaza secici; tek magazalida gereksiz.
   const cokMagaza = ['super_admin', 'operations_manager', 'regional_manager'].includes(user.role);
@@ -71,6 +83,15 @@ export default function Roster() {
   }, [from, to, storeId]);
 
   useEffect(() => { yukle(); }, [yukle]);
+
+  // Hucre duzenlemesi icin atanabilir vardiyalar. Yalnizca duzenleme yetkisi
+  // olanlar icin cekiliyor; barista bu listeyi hic istemiyor.
+  useEffect(() => {
+    if (!veri || !veri.can_edit) return;
+    api.get('/pdks/shifts', { silent: true })
+      .then((r) => setVardiyalar(r.data.filter((v) => v.active)))
+      .catch(() => {});
+  }, [veri && veri.can_edit]);
 
   function kaydir(yon) {
     if (mod === 'hafta') {
@@ -127,6 +148,10 @@ export default function Roster() {
       doc.text(
         'Hafta tatili "HT", resmi tatil "RT" olarak işaretlenir. Gece vardiyası saatin yanında ")" ile gösterilir.',
         14, doc.lastAutoTable.finalY + 6,
+      );
+      doc.text(
+        'Planlı süreler NET çalışmadır: ara dinlenmesi (4857 m.68) düşülmüştür.',
+        14, doc.lastAutoTable.finalY + 10,
       );
       doc.save(`vardiya-plani-${veri.from}.pdf`);
     } catch (e) {
@@ -185,11 +210,151 @@ export default function Roster() {
 
       {veri && veri.people.length > 0 && (
         mod === 'hafta'
-          ? <HaftaTablosu veri={veri} />
+          ? (
+            <HaftaTablosu
+              veri={veri}
+              onHucre={veri.can_edit ? (kisi, gun) => setHucre({ kisi, gun }) : null}
+            />
+          )
           : <GunListesi veri={veri} gun={gun} />
+      )}
+
+      {hucre && (
+        <HucreModal
+          kisi={hucre.kisi}
+          gun={hucre.gun}
+          mevcut={hucre.kisi.cells[hucre.gun] || []}
+          vardiyalar={vardiyalar}
+          onClose={() => setHucre(null)}
+          onDone={() => { setHucre(null); yukle(); }}
+        />
       )}
     </div>
   );
+}
+
+/// Tek hucre duzenlemesi: bir personelin bir gunu.
+///
+/// Sunucuya TEK istek gidiyor (PUT /pdks/assignments/cell): "bu gunu su hale
+/// getir". Istemcide once silip sonra eklemek yarim kalabilirdi.
+function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
+  const tatilVar = mevcut.some((c) => c.is_day_off);
+  const mevcutId = mevcut.find((c) => !c.is_day_off)?.shift_id ?? '';
+  const [secim, setSecim] = useState(tatilVar ? 'HT' : mevcutId ? String(mevcutId) : '');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function kaydet() {
+    setErr('');
+    setBusy(true);
+    try {
+      await api.put('/pdks/assignments/cell', {
+        user_id: kisi.user.id,
+        work_date: gun,
+        is_day_off: secim === 'HT',
+        shift_id: secim === 'HT' || secim === '' ? null : Number(secim),
+      }, { successMessage: 'Plan güncellendi' });
+      onDone();
+    } catch (e) {
+      setErr(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal
+      title={`${kisi.user.full_name} — ${fmtDate(gun)} ${gunAdi(gun, true)}`}
+      onClose={onClose}
+    >
+      <div className="form-grid">
+        {err && <div className="alert error">{err}</div>}
+        <div className="cell-options">
+          {vardiyalar.map((v) => {
+            const uy = vardiyaUyari(v);
+            return (
+              <label key={v.id} className={`cell-option ${secim === String(v.id) ? 'secili' : ''}`}>
+                <input
+                  type="radio"
+                  name="vardiya"
+                  value={String(v.id)}
+                  checked={secim === String(v.id)}
+                  onChange={(e) => setSecim(e.target.value)}
+                />
+                <span className="cell-option-body">
+                  <strong>{v.name}</strong>
+                  <span className="muted">
+                    {(v.start_time || '').slice(0, 5)}–{(v.end_time || '').slice(0, 5)}
+                    {' · '}net {saat(netDakika(v))}
+                    {v.break_duration_minutes > 0 && ` · ${v.break_duration_minutes} dk mola`}
+                  </span>
+                  {uy && <span className="cell-option-uyari">{uy}</span>}
+                </span>
+              </label>
+            );
+          })}
+          <label className={`cell-option ${secim === 'HT' ? 'secili' : ''}`}>
+            <input
+              type="radio" name="vardiya" value="HT"
+              checked={secim === 'HT'}
+              onChange={(e) => setSecim(e.target.value)}
+            />
+            <span className="cell-option-body">
+              <strong>Hafta tatili</strong>
+              <span className="muted">Planlı süre sayılmaz</span>
+            </span>
+          </label>
+          <label className={`cell-option ${secim === '' ? 'secili' : ''}`}>
+            <input
+              type="radio" name="vardiya" value=""
+              checked={secim === ''}
+              onChange={(e) => setSecim(e.target.value)}
+            />
+            <span className="cell-option-body">
+              <strong>Boş bırak</strong>
+              <span className="muted">Atama silinir</span>
+            </span>
+          </label>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={kaydet}>
+            Kaydet
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/// Vardiya listesinde gosterilecek kisa yasal uyari. Sunucudaki kuralin
+/// istemci karsiligi; yalnizca SECIM ekraninda on bilgi icin, cizelgedeki
+/// uyarilar sunucudan geliyor.
+function vardiyaUyari(v) {
+  const b = (v.start_time || '').slice(0, 5);
+  const e = (v.end_time || '').slice(0, 5);
+  if (!b || !e) return null;
+  const dk = (x) => Number(x.slice(0, 2)) * 60 + Number(x.slice(3, 5));
+  const bs = dk(b);
+  const bt = dk(e) > bs ? dk(e) : dk(e) + 1440;
+  const sure = bt - bs;
+  if (sure > 11 * 60) return '11 saat aşımı (m.63)';
+  const yasal = sure <= 240 ? 15 : sure <= 450 ? 30 : 60;
+  if ((Number(v.break_duration_minutes) || 0) < yasal) return `mola en az ${yasal} dk (m.68)`;
+  return null;
+}
+
+/// Net calisma: mola dusulmus. Sunucudaki netDakika ile ayni kural.
+function netDakika(v) {
+  const b = (v.start_time || '').slice(0, 5);
+  const e = (v.end_time || '').slice(0, 5);
+  if (!b || !e) return 0;
+  const dk = (x) => Number(x.slice(0, 2)) * 60 + Number(x.slice(3, 5));
+  const bs = dk(b);
+  const sure = (dk(e) > bs ? dk(e) : dk(e) + 1440) - bs;
+  const yasal = sure <= 240 ? 15 : sure <= 450 ? 30 : 60;
+  const tanimli = Number(v.break_duration_minutes) || 0;
+  return Math.max(0, sure - (tanimli > 0 ? Math.min(tanimli, yasal) : 0));
 }
 
 /// Hucrenin metin karsiligi. PDF ve tablo ayni gosterimi kullansin diye
@@ -203,7 +368,7 @@ function hucreMetin(hucreler, tatil) {
     .join(' / ');
 }
 
-function HaftaTablosu({ veri }) {
+function HaftaTablosu({ veri, onHucre }) {
   return (
     <>
       <div className="card table-card">
@@ -228,7 +393,14 @@ function HaftaTablosu({ veri }) {
               {veri.people.map((p) => (
                 <tr key={p.user.id}>
                   <td className="roster-name"><strong>{p.user.full_name}</strong></td>
-                  {veri.dates.map((d) => <Hucre key={d} hucreler={p.cells[d]} tatil={veri.holidays[d]} />)}
+                  {veri.dates.map((d) => (
+                    <Hucre
+                      key={d}
+                      hucreler={p.cells[d]}
+                      tatil={veri.holidays[d]}
+                      duzenle={onHucre ? () => onHucre(p, d) : null}
+                    />
+                  ))}
                   <td className="roster-total">{saat(p.planned_minutes)}</td>
                 </tr>
               ))}
@@ -253,24 +425,74 @@ function HaftaTablosu({ veri }) {
       <p className="muted" style={{ fontSize: 12 }}>
         <strong>HT</strong> hafta tatili · <strong>RT</strong> resmi tatil ·
         {' '}<Moon size={12} style={{ verticalAlign: -2 }} /> gece vardiyası (ertesi güne sarkar)
+        <br />
+        Planlı süreler <strong>net çalışmadır</strong>: ara dinlenmesi düşülmüştür (4857 m.68).
+        Kırmızı çerçeveli hücre yasal sınır uyarısı taşır.
       </p>
     </>
   );
 }
 
-function Hucre({ hucreler, tatil }) {
+function Hucre({ hucreler, tatil, duzenle }) {
   const tamTatil = tatil && tatil.half !== true;
-  if (tamTatil) return <td className="roster-cell holiday" title={tatil.name}>RT</td>;
-  if (!hucreler || hucreler.length === 0) return <td className="roster-cell empty-cell">-</td>;
-  if (hucreler.some((c) => c.is_day_off)) return <td className="roster-cell off">HT</td>;
-  return (
-    <td className="roster-cell">
-      {hucreler.map((c, i) => (
-        <span className="roster-shift" key={i}>
-          {(c.start_time || '').slice(0, 5)}–{(c.end_time || '').slice(0, 5)}
-          {c.crosses_midnight && <Moon size={11} />}
+  const bos = !hucreler || hucreler.length === 0;
+  const tatilKaydi = !bos && hucreler.some((c) => c.is_day_off);
+  // Yasal uyari tasiyan hucre kirmizi cerceve aliyor; sebep title'da ve
+  // kisa etiket olarak hucrede yaziyor.
+  const uyarilar = bos ? [] : hucreler.flatMap((c) => c.warnings || []);
+
+  let govde;
+  if (tamTatil) {
+    govde = <span className="roster-rt">RT</span>;
+  } else if (tatilKaydi) {
+    govde = <span className="roster-ht">HT</span>;
+  } else if (bos) {
+    govde = <span className="roster-bos">{duzenle ? '+' : '-'}</span>;
+  } else {
+    govde = hucreler.map((c, i) => {
+      const k = KATEGORI[c.category] || null;
+      return (
+        <span className={`roster-shift ${k ? k.sinif : ''}`} key={i}>
+          <span className="roster-saat">
+            {(c.start_time || '').slice(0, 5)}–{(c.end_time || '').slice(0, 5)}
+            {c.crosses_midnight && <Moon size={10} />}
+          </span>
+          {k && <span className="roster-kat">{k.etiket}</span>}
         </span>
-      ))}
+      );
+    });
+  }
+
+  const baslik = tamTatil ? tatil.name
+    : uyarilar.length ? uyarilar.map((u) => u.aciklama).join('\n')
+    : duzenle ? 'Vardiya atamak için tıklayın' : undefined;
+
+  const sinif = [
+    'roster-cell',
+    tamTatil ? 'holiday' : '',
+    tatilKaydi ? 'off' : '',
+    bos && !tamTatil ? 'empty-cell' : '',
+    uyarilar.length ? 'uyari' : '',
+    duzenle ? 'duzenlenebilir' : '',
+  ].filter(Boolean).join(' ');
+
+  // Duzenlenebilir hucre gercek bir dugme: klavyeyle de erisilebilsin.
+  if (duzenle && !tamTatil) {
+    return (
+      <td className={sinif}>
+        <button type="button" className="roster-hucre-btn" onClick={duzenle} title={baslik}>
+          {govde}
+          {uyarilar.length > 0 && (
+            <span className="roster-uyari">{uyarilar[0].etiket}</span>
+          )}
+        </button>
+      </td>
+    );
+  }
+  return (
+    <td className={sinif} title={baslik}>
+      {govde}
+      {uyarilar.length > 0 && <span className="roster-uyari">{uyarilar[0].etiket}</span>}
     </td>
   );
 }

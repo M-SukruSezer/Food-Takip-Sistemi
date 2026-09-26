@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Zap, X, Snowflake, ReceiptText, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Zap, X, Snowflake, ReceiptText, ClipboardList, ClipboardCheck, Plus,
+} from 'lucide-react';
 import { MANAGER_ROLES, ALL_ROLES, REPORT_PANEL_ROLES } from '../format';
 
 // Sag altta duran kisayol dugmesi. Dokununca tam ekran perde acilir ve
@@ -22,10 +24,34 @@ export function shortcutsFor(role) {
   return SHORTCUTS.filter((s) => s.roles.includes(role));
 }
 
+// Modulun KENDI birincil islemi. Ana sayfada kisayol menusu acilir; bir
+// modulun icindeyken dugme o modulun islemine doner, cunku orada kullanicinin
+// isteyecegi sey neredeyse her zaman "bu listeye yeni kayit".
+//
+// Yalnizca ?new=1 ile form acan sayfalar burada: mekanizma o sayfalarda zaten
+// var ve calistigi dogrulandi. Diger moduller kisayol menusune duser, boylece
+// dugme hicbir ekranda islevsiz kalmiyor.
+const MODUL_EYLEMI = {
+  '/batches': { label: 'Yeni Ürün', ico: Plus, roles: ALL_ROLES },
+  '/petty-cash': { label: 'Masraf Gir', ico: ReceiptText, roles: SPENDER_ROLES },
+  '/daily-report': { label: 'Günlük Rapor Gir', ico: ClipboardList, roles: REPORT_PANEL_ROLES },
+};
+
+/// Bulunulan yolun birincil islemi; yoksa null.
+export function modulEylemi(pathname, role) {
+  const e = MODUL_EYLEMI[pathname];
+  return e && e.roles.includes(role) ? e : null;
+}
+
 export default function ShortcutFab({ role }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const items = shortcutsFor(role);
+  // Bulundugumuz modulun kendi islemi varsa dugme menu yerine dogrudan onu
+  // yapiyor.
+  const eylem = modulEylemi(pathname, role);
 
   // Menu acikken Esc kapatir ve sayfa kaymaz.
   useEffect(() => {
@@ -35,7 +61,18 @@ export default function ShortcutFab({ role }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  if (items.length === 0) return null;
+  if (items.length === 0 && !eylem) return null;
+
+  /// Bulundugumuz sayfada giris formunu acar.
+  ///
+  /// Yeni bir yola gitmiyoruz: ayni yola ?new=1 ekliyoruz. Sayfalar bu
+  /// parametreyi gorup formu aciyor ve sonra parametreyi temizliyor, bu yuzden
+  /// dugme ust uste basildiginda da calisiyor.
+  function moduldeAc() {
+    const next = new URLSearchParams(searchParams);
+    next.set('new', '1');
+    setSearchParams(next, { replace: true });
+  }
 
   // Kisayol ilgili ekrani acar; ?new=1 o ekranda giris formunu aciyor.
   function go(item) {
@@ -79,7 +116,20 @@ export default function ShortcutFab({ role }) {
         </div>
       )}
 
-      {!open && (
+      {!open && eylem && (
+        <button
+          type="button"
+          className="fab fab-action"
+          onClick={moduldeAc}
+          aria-label={eylem.label}
+          title={eylem.label}
+        >
+          <eylem.ico size={22} />
+          <span className="fab-label">{eylem.label}</span>
+        </button>
+      )}
+
+      {!open && !eylem && (
         <button
           type="button"
           className="fab"

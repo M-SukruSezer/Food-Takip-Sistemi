@@ -87,6 +87,93 @@ class PdksShift {
   );
 }
 
+/// Atanabilir vardiya TANIMI.
+///
+/// PdksShift'ten ayri: o "bugun bana atanmis vardiya" gorunumu ve kimlik
+/// tasimiyor. Bu model cizelgede hucreye atama yaparken secim listesini
+/// besliyor, o yuzden id ve aktiflik gerekiyor.
+class ShiftDef {
+  const ShiftDef({
+    required this.id,
+    required this.name,
+    required this.startTime,
+    required this.endTime,
+    this.breakMinutes = 0,
+    this.storeId,
+    this.storeName,
+    this.active = true,
+  });
+
+  final int id;
+  final String name;
+  final String startTime;
+  final String endTime;
+  final int breakMinutes;
+  final int? storeId;
+  final String? storeName;
+  final bool active;
+
+  String get saatAraligi {
+    final b = startTime.length >= 5 ? startTime.substring(0, 5) : startTime;
+    final e = endTime.length >= 5 ? endTime.substring(0, 5) : endTime;
+    return '$b–$e';
+  }
+
+  /// Vardiyanin brut suresi (dakika); gece yarisini gecebilir.
+  int get spanMinutes {
+    int? dk(String v) {
+      if (v.length < 5) return null;
+      final s = int.tryParse(v.substring(0, 2));
+      final d = int.tryParse(v.substring(3, 5));
+      return (s == null || d == null) ? null : s * 60 + d;
+    }
+
+    final b = dk(startTime);
+    final e = dk(endTime);
+    if (b == null || e == null) return 0;
+    return e > b ? e - b : 24 * 60 - b + e;
+  }
+
+  /// 4857 m.68 asgari ara dinlenmesi.
+  int get legalBreak {
+    final s = spanMinutes;
+    if (s <= 240) return 15;
+    if (s <= 450) return 30;
+    return 60;
+  }
+
+  /// NET calisma: mola dusulmus. Sunucudaki netDakika ile ayni kural
+  /// (tanimli ile yasal asgarinin kucugu dusulur).
+  int get netMinutes {
+    final s = spanMinutes;
+    if (s <= 0) return 0;
+    final d = breakMinutes <= 0
+        ? 0
+        : (breakMinutes < legalBreak ? breakMinutes : legalBreak);
+    return s - d;
+  }
+
+  /// Secim listesinde gosterilen kisa yasal uyari; yoksa null.
+  String? get warning {
+    final s = spanMinutes;
+    if (s <= 0) return null;
+    if (s > 11 * 60) return '11 saat aşımı (m.63)';
+    if (breakMinutes < legalBreak) return 'mola en az $legalBreak dk (m.68)';
+    return null;
+  }
+
+  factory ShiftDef.fromJson(Map<String, dynamic> j) => ShiftDef(
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    startTime: j['start_time'] as String? ?? '',
+    endTime: j['end_time'] as String? ?? '',
+    breakMinutes: _int(j['break_duration_minutes']),
+    storeId: j['store_id'] == null ? null : _int(j['store_id']),
+    storeName: j['store_name'] as String?,
+    active: j['active'] == null ? true : _int(j['active']) == 1,
+  );
+}
+
 /// Tek devam kaydi.
 class AttendanceLog {
   const AttendanceLog({
@@ -874,8 +961,39 @@ class PdksProfile {
 }
 
 /// Cizelgede bir gunun bir hucresi. Bolunmus vardiyada birden fazla olabilir.
+/// Vardiya kategorisi. Siniflandirma SUNUCUDA 4857 sayili Kanun'a gore
+/// yapiliyor (m.69 gece donemi 20:00-06:00); istemci yalnizca rengi seciyor.
+enum ShiftCategory { sabah, gunduz, aksam, gece, bilinmiyor }
+
+ShiftCategory shiftCategoryOf(String? v) => switch (v) {
+  'sabah' => ShiftCategory.sabah,
+  'gunduz' => ShiftCategory.gunduz,
+  'aksam' => ShiftCategory.aksam,
+  'gece' => ShiftCategory.gece,
+  _ => ShiftCategory.bilinmiyor,
+};
+
+/// Yasal sinir uyarisi (4857 m.63 / m.68 / m.69).
+class ShiftWarning {
+  const ShiftWarning({required this.kod, required this.etiket, this.aciklama});
+
+  final String kod;
+
+  /// Hucrede gosterilen kisa etiket. Renk TEK BASINA bilgi tasimasin diye
+  /// uyarinin yazili karsiligi da her zaman cizilir.
+  final String etiket;
+  final String? aciklama;
+
+  factory ShiftWarning.fromJson(Map<String, dynamic> j) => ShiftWarning(
+    kod: j['kod'] as String? ?? '',
+    etiket: j['etiket'] as String? ?? '',
+    aciklama: j['aciklama'] as String?,
+  );
+}
+
 class RosterCell {
   const RosterCell({
+    this.assignmentId,
     this.shiftId,
     this.shiftName,
     this.startTime,
@@ -884,8 +1002,14 @@ class RosterCell {
     this.isDayOff = false,
     this.crossesMidnight = false,
     this.minutes = 0,
+    this.spanMinutes = 0,
+    this.category = ShiftCategory.bilinmiyor,
+    this.nightMinutes = 0,
+    this.warnings = const [],
   });
 
+  /// Atama kaydinin kimligi; hucre duzenlemesinde kullaniliyor.
+  final int? assignmentId;
   final int? shiftId;
   final String? shiftName;
   final String? startTime;
@@ -895,7 +1019,16 @@ class RosterCell {
 
   /// 22:00-06:00 gibi gece vardiyasi; cizelgede ertesi gune sarkar.
   final bool crossesMidnight;
+
+  /// NET calisma suresi: ara dinlenmesi DUSULMUS. Cizelgede "planlanan
+  /// calisma saati" molayi icermiyor.
   final int minutes;
+
+  /// Molali toplam sure; "08:00-16:30" araliginin kendisi.
+  final int spanMinutes;
+  final ShiftCategory category;
+  final int nightMinutes;
+  final List<ShiftWarning> warnings;
 
   String get saatAraligi {
     final b = (startTime ?? '');
@@ -906,6 +1039,7 @@ class RosterCell {
   }
 
   factory RosterCell.fromJson(Map<String, dynamic> j) => RosterCell(
+    assignmentId: j['assignment_id'] == null ? null : _int(j['assignment_id']),
     shiftId: j['shift_id'] == null ? null : _int(j['shift_id']),
     shiftName: j['shift_name'] as String?,
     startTime: j['start_time'] as String?,
@@ -914,6 +1048,12 @@ class RosterCell {
     isDayOff: j['is_day_off'] == true,
     crossesMidnight: j['crosses_midnight'] == true,
     minutes: _int(j['minutes']),
+    spanMinutes: _int(j['span_minutes']),
+    category: shiftCategoryOf(j['category'] as String?),
+    nightMinutes: _int(j['night_minutes']),
+    warnings: ((j['warnings'] as List<dynamic>?) ?? [])
+        .map((e) => ShiftWarning.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 }
 

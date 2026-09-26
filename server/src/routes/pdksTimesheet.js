@@ -1,11 +1,13 @@
 const express = require('express');
 const { queryAll, queryOne } = require('../db');
 const {
-  requireAuth, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
+  requireAuth,
+  roleLevel, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
   TIMESHEET_VIEW_ROLES,
 } = require('../auth');
 const dev = require('../pdks/device');
 const pay = require('../pdks/payroll');
+const cls = require('../pdks/shiftClass');
 const bal = require('../pdks/balance');
 const sheet = require('../pdks/timesheet');
 const t = require('../pdks/time');
@@ -270,10 +272,29 @@ router.get('/roster', async (req, res) => {
   if (!scope.ok) return undefined;
   const f = storeFilter(scope, 'u.store_id');
 
-  const users = await queryAll(`
-    SELECT u.id, u.full_name, u.role, u.store_id, st.name AS store_name
-    FROM users u LEFT JOIN stores st ON st.id = u.store_id
-    WHERE u.active = 1 ${f.sql} ORDER BY u.full_name`, ...f.params);
+  // Siralama: once KIDEM (rol kademesi), sonra ISE GIRIS TARIHI (eski olan
+  // once), en son ad. hired_at NULL olan personel en sona duser: tarihi
+  // bilinmeyeni kidemli saymak yanlis olurdu.
+  //
+  // Rol kademesi ROLES dizisindeki sira; SQL'de yeniden yazmak yerine
+  // veriyi cekip JS'te siraliyoruz ki iki yerde iki farkli kademe tanimi
+  // olusmasin.
+  const users = (await queryAll(`
+    SELECT u.id, u.full_name, u.role, u.store_id, st.name AS store_name,
+           p.hired_at
+    FROM users u
+    LEFT JOIN stores st ON st.id = u.store_id
+    LEFT JOIN pdks_profiles p ON p.user_id = u.id
+    WHERE u.active = 1 ${f.sql}`, ...f.params))
+    .sort((a, b) => {
+      const ka = roleLevel(a.role);
+      const kb = roleLevel(b.role);
+      if (ka !== kb) return ka - kb;
+      const ta = a.hired_at || '9999-12-31';
+      const tb = b.hired_at || '9999-12-31';
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      return String(a.full_name).localeCompare(String(b.full_name), 'tr');
+    });
   if (users.length === 0) {
     return res.json({ from, to, dates, people: [], holidays: {}, totals: {} });
   }
@@ -281,7 +302,7 @@ router.get('/roster', async (req, res) => {
   const ph = ids.map(() => '?').join(',');
 
   const rows = await queryAll(`
-    SELECT us.user_id, us.work_date, us.is_day_off,
+    SELECT us.id AS assignment_id, us.user_id, us.work_date, us.is_day_off,
            s.id AS shift_id, s.name AS shift_name, s.start_time, s.end_time,
            s.break_duration_minutes
     FROM user_shifts us LEFT JOIN shifts s ON s.id = us.shift_id
@@ -300,7 +321,10 @@ router.get('/roster', async (req, res) => {
   for (const r of rows) {
     const k = `${r.user_id}|${r.work_date}`;
     if (!byUser.has(k)) byUser.set(k, []);
+    const calisma = !r.is_day_off && r.start_time && r.end_time;
     byUser.get(k).push({
+      // Hucre duzenlemesi icin gerekli: istemci bu kimlikle atamayi siliyor.
+      assignment_id: r.assignment_id,
       shift_id: r.shift_id,
       shift_name: r.shift_name,
       start_time: r.start_time,
@@ -308,10 +332,16 @@ router.get('/roster', async (req, res) => {
       break_duration_minutes: r.break_duration_minutes,
       is_day_off: !!r.is_day_off,
       // Gece vardiyasi isaretlenir: 22:00-06:00 cizelgede ertesi gune sarkar.
-      crosses_midnight: !r.is_day_off && r.start_time && r.end_time
-        ? t.crossesMidnight(r.start_time, r.end_time) : false,
-      minutes: !r.is_day_off && r.start_time && r.end_time
-        ? sheet.shiftSpanMinutes(r.start_time, r.end_time) : 0,
+      crosses_midnight: calisma ? t.crossesMidnight(r.start_time, r.end_time) : false,
+      // minutes NET calisma: ara dinlenmesi DUSULMUS. Cizelgede "planlanan
+      // calisma saati" molayi icermemeli — mola ucretli calisma degil.
+      minutes: calisma ? cls.netDakika(r) : 0,
+      // Molali toplam sure; "08:00-16:30" araliginin kendisi.
+      span_minutes: calisma ? sheet.shiftSpanMinutes(r.start_time, r.end_time) : 0,
+      // Renklendirme ve yasal uyarilar (4857 m.63/m.68/m.69).
+      category: calisma ? cls.kategori(r.start_time, r.end_time) : null,
+      night_minutes: calisma ? cls.geceDakikasi(r.start_time, r.end_time) : 0,
+      warnings: calisma ? cls.uyarilar(r) : [],
     });
   }
 

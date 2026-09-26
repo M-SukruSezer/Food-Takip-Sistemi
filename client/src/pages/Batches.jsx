@@ -91,9 +91,12 @@ export default function Batches() {
   }
   return (
     <div className="page-shell stock-page">
+      {/* "Yeni Ürün" dugmesi buradan KALDIRILDI: yuzen dugme bu modulde o
+          isleve donuyor, iki ayri giris noktasi olmasi hem kafa karistirir
+          hem de basliktan yer alirdi. Yuzen dugme ?new=1 ile ayni formu
+          aciyor. */}
       <div className="page-head">
         <h2>Ürünler</h2>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Yeni Ürün</button>
       </div>
 
       <div className="surface-panel">
@@ -105,21 +108,26 @@ export default function Batches() {
           ))}
         </div>
 
-        {/* Öneri Satış Listesi'ndeki arama kutusuyla aynı biçim */}
-        <div className="filters" style={{ marginBottom: 0 }}>
-          <div className="input-wrap search" style={{ flex: 1 }}>
-            <span className="in-ico"><Search size={17} /></span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ürün ara..."
-              aria-label="Ürünler arasında ara"
-            />
-          </div>
-          {search.trim() && (
-            <button type="button" className="btn btn-sm btn-secondary" onClick={() => setSearch('')}>Temizle</button>
-          )}
+      </div>
+
+      {/* Arama satiri surface-panel'in DISINDA: yapiskan bir oge yalnizca
+          EBEVEYNININ kutusu icinde yapisir ve o panel 210px yuksekliginde;
+          arama panelle birlikte kaydirilip gidiyordu. Burada ebeveyn
+          .page-shell (tum liste boyu) oldugu icin arama liste boyunca tepede
+          kaliyor. Olculdu: once 138px sonra kayboluyordu, simdi kalici. */}
+      <div className="filters sticky-search" style={{ marginBottom: 0 }}>
+        <div className="input-wrap search" style={{ flex: 1 }}>
+          <span className="in-ico"><Search size={17} /></span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Ürün ara..."
+            aria-label="Ürünler arasında ara"
+          />
         </div>
+        {search.trim() && (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setSearch('')}>Temizle</button>
+        )}
       </div>
 
       <div className="card table-card">

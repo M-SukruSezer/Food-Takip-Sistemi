@@ -7,8 +7,6 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/batch.dart';
-import '../models/dashboard.dart';
-import '../models/product_type.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import '../widgets/search_field.dart';
@@ -39,8 +37,6 @@ class _BatchesScreenState extends State<BatchesScreen> {
   int _tab = 0;
   String _search = '';
   List<Batch> _items = const [];
-  List<ProductType> _types = const [];
-  List<StoreOption> _stores = const [];
   String? _error;
   bool _loaded = false;
 
@@ -50,22 +46,9 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final requested = _tabs.indexWhere((t) => t.id == widget.initialTab);
     if (requested >= 0) _tab = requested;
     _load();
-    repo
-        .productTypes(silent: true)
-        .then((list) {
-          if (mounted) {
-              setState(() => _types = list.where((t) => t.active).toList());
-            }
-        })
-        .onError((Object _, StackTrace _) {});
-    if (session.user?.isSuperAdmin ?? false) {
-      repo
-          .stores(silent: true)
-          .then((list) {
-            if (mounted) setState(() => _stores = list);
-          })
-          .onError((Object _, StackTrace _) {});
-    }
+    // Cesit ve magaza listesi ONCEDEN CEKILMIYOR: "Yeni Ürün" islemi artik
+    // yuzen dugmede ve o kisayol veriyi kendisi, yukleme katmani gorunurken
+    // cekiyor. Her ekran acilisinda iki istek atmanin gerekcesi kalmadi.
   }
 
   @override
@@ -147,66 +130,16 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final t = context.tokens;
     final isSuper = session.user?.isSuperAdmin ?? false;
 
+    // Baslik ve sekmeler LISTEYLE BIRLIKTE kayar; yalnizca arama tepede
+    // sabit kalir. Onceki halinde baslik + sekmeler + arama Expanded'in
+    // DISINDA, yani kalici olarak ekranin ustunde duruyordu ve telefonda
+    // listeye cok az yer kaliyordu.
+    //
+    // "Yeni Ürün" dugmesi buradan KALDIRILDI: yuzen dugme bu modulde o isleve
+    // donuyor, iki ayri giris noktasi hem kafa karistirir hem yer alirdi.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppCard(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Ürünler',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: t.ink,
-                      ),
-                    ),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _types.isEmpty
-                        ? null
-                        : () => _after(
-                            showAddBatchDialog(
-                              context,
-                              types: _types,
-                              stores: _stores,
-                            ),
-                          ),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Yeni Ürün'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.gap),
-              _TabBar(
-                tabs: _tabs.map((e) => (label: e.label, icon: e.icon)).toList(),
-                index: _tab,
-                onChanged: (i) {
-                  setState(() {
-                    _tab = i;
-                    _loaded = false;
-                    _items = const [];
-                  });
-                  _load();
-                },
-              ),
-              const SizedBox(height: AppTokens.gap),
-              ProductSearchField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _search = v),
-                onClear: () {
-                  _searchController.clear();
-                  setState(() => _search = '');
-                },
-                filtering: _search.trim().isNotEmpty,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppTokens.gap),
         Expanded(
           child: !_loaded
               ? const SizedBox.shrink()
@@ -228,21 +161,76 @@ class _BatchesScreenState extends State<BatchesScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: () => _load(silent: true),
-                  child: _shown.isEmpty
-                      ? ListView(
-                          children: [
-                            AppCard(
-                              child: Text(
-                                _items.isEmpty
-                                    ? 'Bu sekmede kayıt bulunamadı.'
-                                    : '"$_search" ile eşleşen ürün bulunamadı.',
-                                style: TextStyle(color: t.muted),
+                  child: CustomScrollView(
+                    slivers: [
+                      // Kayan bolum: baslik ve sekmeler.
+                      SliverToBoxAdapter(
+                        child: AppCard(
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Ürünler',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: t.ink,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: AppTokens.gap),
+                              _TabBar(
+                                tabs: _tabs
+                                    .map((e) => (label: e.label, icon: e.icon))
+                                    .toList(),
+                                index: _tab,
+                                onChanged: (i) {
+                                  setState(() {
+                                    _tab = i;
+                                    _loaded = false;
+                                    _items = const [];
+                                  });
+                                  _load();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // SABIT bolum: arama. Liste ne kadar kaydirilirsa
+                      // kaydirilsin filtre el altinda kaliyor.
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _AramaBasligi(
+                          child: ProductSearchField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() => _search = v),
+                            onClear: () {
+                              _searchController.clear();
+                              setState(() => _search = '');
+                            },
+                            filtering: _search.trim().isNotEmpty,
+                          ),
+                          zemin: t.bg,
+                        ),
+                      ),
+                      if (_shown.isEmpty)
+                        SliverToBoxAdapter(
+                          child: AppCard(
+                            child: Text(
+                              _items.isEmpty
+                                  ? 'Bu sekmede kayıt bulunamadı.'
+                                  : '"$_search" ile eşleşen ürün bulunamadı.',
+                              style: TextStyle(color: t.muted),
                             ),
-                          ],
+                          ),
                         )
-                      : ListView.separated(
-                          padding: EdgeInsets.zero,
+                      else
+                        SliverList.separated(
                           itemCount: _shown.length,
                           separatorBuilder: (_, _) =>
                               const SizedBox(height: AppTokens.gap),
@@ -272,6 +260,8 @@ class _BatchesScreenState extends State<BatchesScreen> {
                             onDelete: () => _deleteBatch(_shown[i]),
                           ),
                         ),
+                    ],
+                  ),
                 ),
         ),
       ],
@@ -641,4 +631,51 @@ class _ActionMenu extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Listenin ustunde SABIT kalan arama basligi.
+///
+/// SliverPersistentHeader kendi yuksekligini bilmek zorunda; arama alani sabit
+/// yukseklikte oldugu icin min ve max ayni. Zemin veriliyor: altindan gecen
+/// urun kartlari arama alaninin arkasindan gorunmesin.
+class _AramaBasligi extends SliverPersistentHeaderDelegate {
+  _AramaBasligi({required this.child, required this.zemin});
+
+  final Widget child;
+  final Color zemin;
+
+  /// Basligin yuksekligi.
+  ///
+  /// Cocuk bu yukseklige ZORLANIYOR (SizedBox): SliverPersistentHeader
+  /// bildirilen extent ile cocugun gercek yuksekligi ayrilirsa
+  /// "layoutExtent exceeds paintExtent" ile dusuyor. Olculdu: bildirilen 64,
+  /// cizilen 60 idi ve yerlesim hatasi veriyordu.
+  static const double _yukseklik = 64;
+
+  @override
+  double get minExtent => _yukseklik;
+
+  @override
+  double get maxExtent => _yukseklik;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox(
+      height: _yukseklik,
+      child: Container(
+        color: zemin,
+        padding: const EdgeInsets.only(top: AppTokens.gap),
+        alignment: Alignment.topCenter,
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_AramaBasligi eski) =>
+      eski.child != child || eski.zemin != zemin;
 }

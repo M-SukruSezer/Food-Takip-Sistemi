@@ -3059,3 +3059,142 @@ th {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
+
+/* ---------- Cizelge hucreleri: kategori renkleri ve duzenleme ----------
+   Kategori siniflandirmasi SUNUCUDA, 4857 sayili Kanun'a gore yapiliyor
+   (m.69 gece donemi 20:00-06:00). Renk TEK BASINA bilgi tasimiyor: her
+   hucrede kategori etiketi de yaziyor. */
+.roster-hucre-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font: inherit;
+  color: inherit;
+}
+.roster-hucre-btn:hover { background: var(--primary-soft); }
+.roster-hucre-btn:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: -2px;
+}
+.roster-cell.duzenlenebilir { padding: 2px; }
+
+.roster-shift {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  border-radius: 6px;
+  padding: 2px 5px;
+  line-height: 1.25;
+}
+.roster-saat { display: block; font-weight: 650; }
+.roster-kat {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.roster-shift svg { vertical-align: -1px; margin-left: 2px; }
+
+/* Kategori tonlari. Tumu kucuk metin esigini (4.5) gecen ciftler. */
+.roster-shift.k-sabah { background: var(--info-soft); color: var(--info-text); }
+.roster-shift.k-gunduz { background: var(--success-soft); color: var(--ok-text); }
+.roster-shift.k-aksam { background: var(--warning-soft); color: var(--warning-text); }
+.roster-shift.k-gece { background: #ede9fe; color: #5b21b6; }
+:root[data-theme='dark'] .roster-shift.k-gece {
+  background: rgba(167, 139, 250, 0.16);
+  color: #c4b5fd;
+}
+
+.roster-rt { font-weight: 800; color: var(--danger-on-soft); }
+.roster-ht { font-weight: 700; color: var(--muted); }
+.roster-bos { color: var(--border-strong); font-weight: 700; }
+
+/* Yasal sinir uyarisi: cerceve + ETIKET (renk tek basina yeterli degil). */
+.roster-cell.uyari { box-shadow: inset 0 0 0 2px var(--danger); border-radius: 8px; }
+.roster-uyari {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--danger-on-soft);
+  margin-top: 1px;
+}
+
+/* Hucre duzenleme penceresindeki secenek listesi */
+.cell-options { grid-column: 1 / -1; display: grid; gap: 8px; }
+.cell-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 48px;
+}
+.cell-option:hover { background: var(--bg); }
+.cell-option.secili { border-color: var(--primary-600); background: var(--primary-soft); }
+.cell-option input { margin-top: 3px; flex: none; }
+.cell-option-body { display: flex; flex-direction: column; gap: 2px; }
+.cell-option-body .muted { font-size: 12px; }
+.cell-option-uyari { font-size: 12px; font-weight: 700; color: var(--danger-on-soft); }
+
+/* ---------- Kaydirmada ust basliklar cikar, arama kalir ----------
+   Onceki durumda .topbar telefonda yapiskandi ve 69px'i kalici olarak
+   listeden caliyordu; sayfa basligi, sekmeler ve arama ise kaydirmayla
+   birlikte gorunmez oluyordu. Istenen davranis tersi: basliklar kaysin,
+   FILTRE el altinda kalsin.
+
+   Yalnizca telefon/tablet: genis ekranda dikey yer sikintisi yok ve ust
+   barin sabit kalmasi orada faydali. */
+@media (max-width: 899px) {
+  .topbar { position: static; }
+
+  .sticky-search {
+    position: sticky;
+    /* Ust bar artik yapiskan degil, yani 0 gercekten ekranin tepesi. */
+    top: 0;
+    z-index: 12;
+    /* Altindan gecen liste satirlari gorunmesin. Sayfa zemini kullaniliyor:
+       kart degil, cunku arama satiri kart icinde degil. */
+    background: var(--bg);
+    /* .content'in 18px yatay dolgusunu asarak kenara kadar zemin ver;
+       aksi halde kaydirilan icerik kenarlardan sizip goruluyordu. */
+    margin-inline: -18px;
+    padding: 10px 18px;
+    box-shadow: 0 6px 12px -10px rgba(17, 24, 39, 0.5);
+  }
+  :root[data-theme='dark'] .sticky-search {
+    box-shadow: 0 6px 12px -10px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ---------- Modul islemine donen yuzen dugme ----------
+   Ana sayfada dugme kisayol menusu aciyor; bir modulun icindeyken o modulun
+   birincil islemine (orn. "Yeni Ürün") donuyor. Etiket yaziliyor: yalnizca
+   simge, hangi isleme gittigini denemeden anlatmiyor. */
+.fab-action {
+  width: auto;
+  padding: 0 18px 0 16px;
+  gap: 8px;
+  border-radius: 28px;
+}
+.fab-label {
+  font-size: 14px;
+  font-weight: 750;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+/* Cok dar ekranda etiket gizlenir, dugme daireye doner: 320px'te uzun etiket
+   ekranin yarisini kapliyordu. aria-label her durumda duruyor. */
+@media (max-width: 359px) {
+  .fab-action { width: var(--tap); padding: 0; }
+  .fab-label { display: none; }
+}

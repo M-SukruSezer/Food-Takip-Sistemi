@@ -8,6 +8,7 @@ const qr = require('../pdks/qr');
 const t = require('../pdks/time');
 const bal = require('../pdks/balance');
 const pay = require('../pdks/payroll');
+const cls = require('../pdks/shiftClass');
 const kvkk = require('../pdks/kvkk');
 
 const router = express.Router();
@@ -307,6 +308,97 @@ router.post('/assignments', requireManager, async (req, res) => {
     `${from} - ${to} arasi ${result.users.length} personele ${result.assigned} gün`
     + (isDayOff ? ' (hafta tatili)' : ''), req.user.store_id);
   res.status(201).json(result);
+});
+
+/// Tek hucre ataması: bir personelin BIR gunu.
+///
+/// Neden ayri uc: cizelgede hucreye tiklayarak plan yapmak "o gunu SU HALE
+/// getir" islemi, "ekle" degil. Toplu uc eklemeli calisiyor ve mevcut atamayi
+/// birakiyordu; istemcinin once silip sonra eklemesi ise yarim kalabilen iki
+/// adim uretiyordu (silindi ama eklenemedi -> gun bosalir).
+///
+/// Govde: { user_id, work_date, shift_id | null, is_day_off }
+///   shift_id verilirse o vardiya atanir
+///   is_day_off true ise hafta tatili yazilir
+///   ikisi de yoksa gun BOSALTILIR
+router.put('/assignments/cell', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const userId = Number(body.user_id);
+  const workDate = String(body.work_date || '');
+  const isDayOff = body.is_day_off === true;
+  const shiftId = body.shift_id === null || body.shift_id === undefined
+    ? null : Number(body.shift_id);
+
+  if (!Number.isInteger(userId)) return res.status(400).json({ error: 'Personel seçilmelidir' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(workDate)) {
+    return res.status(400).json({ error: 'Tarih YYYY-AA-GG biçiminde olmalıdır' });
+  }
+  if (isDayOff && shiftId !== null) {
+    return res.status(400).json({ error: 'Hafta tatili ile vardiya birlikte verilemez' });
+  }
+
+  const user = await queryOne(
+    'SELECT id, full_name, store_id, active FROM users WHERE id = ?', userId);
+  if (!user || !user.active) return res.status(404).json({ error: 'Personel bulunamadı' });
+  if (!allowsStore(req, user.store_id)) {
+    return res.status(403).json({ error: 'Bu personele erişim yetkiniz yok' });
+  }
+
+  let shift = null;
+  if (shiftId !== null) {
+    shift = await queryOne('SELECT * FROM shifts WHERE id = ? AND active = 1', shiftId);
+    if (!shift) return res.status(404).json({ error: 'Vardiya bulunamadı veya pasif' });
+    if (shift.store_id !== null && Number(shift.store_id) !== Number(user.store_id)) {
+      return res.status(400).json({ error: 'Vardiya bu personelin mağazasına ait değil' });
+    }
+    if (shift.store_id !== null && !allowsStore(req, shift.store_id)) {
+      return res.status(403).json({ error: 'Bu vardiyaya erişim yetkiniz yok' });
+    }
+  }
+
+  // Devam kaydi girilmis gun degistirilemez: puantaj dayanagi kaybolur.
+  // Silme ucuyla ayni kural.
+  const logs = await queryOne(
+    'SELECT COUNT(*) AS c FROM attendance_logs WHERE user_id = ? AND work_date = ?',
+    userId, workDate);
+  if (Number(logs.c) > 0) {
+    return res.status(400).json({
+      error: `${workDate} gününde ${logs.c} devam kaydı var; o günün planı değiştirilemez.`,
+    });
+  }
+
+  // Tek islem: gunu temizle, sonra istenen hali yaz. Yarim kalmasin diye
+  // islem (transaction) icinde.
+  await transaction(async (client) => {
+    await execute('DELETE FROM user_shifts WHERE user_id = ? AND work_date = ?',
+      [userId, workDate], client);
+    if (isDayOff) {
+      await execute(`INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, assigned_by)
+        VALUES (?,?,?,1,?)`, [userId, null, workDate, req.user.id], client);
+    } else if (shiftId !== null) {
+      await execute(`INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, assigned_by)
+        VALUES (?,?,?,0,?)`, [userId, shiftId, workDate, req.user.id], client);
+    }
+  });
+
+  const ne = isDayOff ? 'hafta tatili' : shift ? `${shift.name} (${shift.start_time}-${shift.end_time})` : 'boşaltıldı';
+  await logActivity(req.user, 'VARDIYA_HUCRE', 'shift', shiftId,
+    `${user.full_name} ${workDate}: ${ne}`, user.store_id);
+
+  res.json({
+    ok: true,
+    user_id: userId,
+    work_date: workDate,
+    is_day_off: isDayOff,
+    shift: shift && {
+      id: shift.id, name: shift.name,
+      start_time: shift.start_time, end_time: shift.end_time,
+      break_duration_minutes: shift.break_duration_minutes,
+      category: cls.kategori(shift.start_time, shift.end_time),
+      minutes: cls.netDakika(shift),
+      warnings: cls.uyarilar(shift),
+    },
+  });
 });
 
 router.delete('/assignments/:id', requireManager, async (req, res) => {

@@ -119,7 +119,11 @@ class _AppShellState extends State<AppShell> {
       // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
       // giris/mola dugmelerinin uzerine geliyordu.
       floatingActionButton: section == AppSection.operations
-          ? ShortcutFab(bottomInset: wide ? 0 : kBottomBarHeight)
+          ? ShortcutFab(
+              bottomInset: wide ? 0 : kBottomBarHeight,
+              // Bulunulan yol: modul icinde dugme o modulun islemine doner.
+              location: location,
+            )
           : null,
       body: SafeArea(
         child: Row(

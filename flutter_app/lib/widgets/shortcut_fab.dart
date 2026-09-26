@@ -19,11 +19,24 @@ class _Shortcut {
     required this.icon,
     required this.roles,
     required this.run,
+    this.moduleRoute,
+    this.moduleLabel,
   });
 
   final String label;
   final IconData icon;
   final List<String> roles;
+
+  /// Bu kisayolun AIT OLDUGU modulun yolu.
+  ///
+  /// O modulun icindeyken yuzen dugme menu acmak yerine dogrudan bu isi
+  /// yapiyor: kullanicinin orada isteyecegi sey neredeyse her zaman "bu
+  /// listeye yeni kayit".
+  final String? moduleRoute;
+
+  /// Modul icindeyken dugmede yazan kisa etiket. Menudeki uzun etiket
+  /// ("Donuk Depoya Ürün Ekle") dugmeye sigmiyor.
+  final String? moduleLabel;
 
   /// Kisayolun isi. Bir sey degistiyse true doner, cagiran ekrani yeniler.
   final Future<bool> Function(BuildContext context) run;
@@ -38,6 +51,8 @@ final _shortcuts = <_Shortcut>[
     label: 'Donuk Depoya Ürün Ekle',
     icon: Icons.ac_unit,
     roles: allRoles,
+    moduleRoute: '/batches',
+    moduleLabel: 'Yeni Ürün',
     run: (context) async {
       // Cesit ve magaza listesi olmadan form kurulamaz; yukleme katmani
       // gorunurken cekilir.
@@ -62,6 +77,8 @@ final _shortcuts = <_Shortcut>[
     label: 'Masraf Gir',
     icon: Icons.receipt_long_outlined,
     roles: _spenderRoles,
+    moduleRoute: '/petty-cash',
+    moduleLabel: 'Masraf Gir',
     run: (context) async {
       // Limit durumu forma gecirilir ki kalan tutar uyarisi calissin.
       final page = await repo.pettyCash(silent: true);
@@ -74,6 +91,8 @@ final _shortcuts = <_Shortcut>[
     label: 'Günlük Rapor Gir',
     icon: Icons.assessment_outlined,
     roles: reportPanelRoles,
+    moduleRoute: '/daily-report',
+    moduleLabel: 'Günlük Rapor',
     run: (context) async {
       final fields = await repo.reportFields(silent: true);
       if (!context.mounted) return false;
@@ -100,15 +119,38 @@ List<_Shortcut> _shortcutsFor(String? role) => role == null
 /// Kullanicinin rolunde hic kisayol var mi? Yoksa dugme cizilmez.
 bool hasShortcuts(String? role) => _shortcutsFor(role).isNotEmpty;
 
+/// Bulunulan yolda modul isleminin ETIKETI; yoksa null.
+///
+/// Test icin disa aciliyor: _Shortcut ozel bir tur oldugu icin kendisi
+/// dondurulemiyor, etiket eslemenin dogrulugunu gostermeye yetiyor.
+String? moduleActionLabelFor(String? role, String location) {
+  final s = _moduleActionFor(role, location);
+  return s == null ? null : (s.moduleLabel ?? s.label);
+}
+
+/// Bulunulan yolun modul islemi; yoksa null.
+///
+/// React tarafindaki modulEylemi ile ayni mantik: ana sayfada menu, modul
+/// icinde o modulun islemi. Ozel: _Shortcut bu dosyaya ait.
+_Shortcut? _moduleActionFor(String? role, String location) {
+  for (final s in _shortcutsFor(role)) {
+    if (s.moduleRoute != null && location == s.moduleRoute) return s;
+  }
+  return null;
+}
+
 /// Sag altta duran kisayol dugmesi.
 ///
 /// Dokununca tam ekran perde acilir ve kisayollar dugmenin uzerinde listelenir.
 /// Perde yukleme katmaniyla ayni gorunumu paylasiyor ([AppScrim]).
 class ShortcutFab extends StatefulWidget {
-  const ShortcutFab({super.key, this.bottomInset = 0});
+  const ShortcutFab({super.key, this.bottomInset = 0, this.location = ''});
 
   /// Alt cubugun yuksekligi. Menu ogeleri cubugun uzerinde kalmali.
   final double bottomInset;
+
+  /// Bulunulan yol. Bir modulun icindeysek dugme o modulun islemine doner.
+  final String location;
 
   @override
   State<ShortcutFab> createState() => _ShortcutFabState();
@@ -116,12 +158,41 @@ class ShortcutFab extends StatefulWidget {
 
 class _ShortcutFabState extends State<ShortcutFab> {
   bool _menuOpen = false;
+  bool _busy = false;
+
+  /// Modul islemini dogrudan yurutur.
+  Future<void> _runModule(_Shortcut s) async {
+    setState(() => _busy = true);
+    try {
+      await s.run(context);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final items = _shortcutsFor(session.user?.role);
     if (items.isEmpty) return const SizedBox.shrink();
+
+    // Bir modulun icindeysek dugme menu acmak yerine o modulun islemini
+    // yapiyor. Ana sayfada (ve eslesmeyen ekranlarda) menu davranisi kaliyor,
+    // boylece dugme hicbir ekranda islevsiz olmuyor.
+    final eylem = _moduleActionFor(session.user?.role, widget.location);
+    if (eylem != null && !_menuOpen) {
+      return FloatingActionButton.extended(
+        onPressed: _busy ? null : () => _runModule(eylem),
+        backgroundColor: t.primary,
+        foregroundColor: t.onPrimary,
+        tooltip: eylem.label,
+        icon: Icon(eylem.icon),
+        label: Text(
+          eylem.moduleLabel ?? eylem.label,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
 
     // Menu acikken dugme cizilmiyor. Gorunum sebebi degil, olculen sebep:
     // dokunma dalgasi (ink splash) ~450ms animasyon yapiyor ve bulantinin
@@ -139,7 +210,9 @@ class _ShortcutFabState extends State<ShortcutFab> {
         }
       },
       backgroundColor: t.primary,
-      foregroundColor: t.card,
+      // onPrimary: koyu temada primary nane yesili ve uzerinde acik renk
+      // simge 1.92 kontrast veriyordu.
+      foregroundColor: t.onPrimary,
       tooltip: 'Kısayollar',
       child: const Icon(Icons.bolt),
     );
