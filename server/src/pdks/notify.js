@@ -14,7 +14,6 @@ const { execute } = require('../db');
 
 /// Bildirim turleri.
 const KIND = {
-  published: 'SHIFT_PUBLISHED',
   changed: 'SHIFT_CHANGED',
   removed: 'SHIFT_REMOVED',
 };
@@ -69,21 +68,6 @@ async function publish(n) {
   return { delivered: transports.length - hatalar.length, errors: hatalar };
 }
 
-/// Vardiya plani yayinlandi.
-///
-/// [days] etkilenen gun sayisi; tek tek gun bildirimi yerine OZET gonderiliyor
-/// cunku 30 gunluk plan icin 30 bildirim gurultu olurdu.
-async function shiftPublished({ userId, from, to, days, byName }) {
-  return publish({
-    userId,
-    kind: KIND.published,
-    title: 'Haftalık çalışma planınız yayınlandı',
-    body: `${from} – ${to} arası ${days} güne vardiya atandı.`
-      + (byName ? ` Planlayan: ${byName}.` : ''),
-    data: { from, to, days, screen: '/roster' },
-  });
-}
-
 /// Tek gunun vardiyasi degisti.
 async function shiftChanged({ userId, workDate, oldLabel, newLabel, byName }) {
   const removed = newLabel == null;
@@ -102,4 +86,4 @@ async function shiftChanged({ userId, workDate, oldLabel, newLabel, byName }) {
   });
 }
 
-module.exports = { KIND, addTransport, publish, shiftPublished, shiftChanged };
+module.exports = { KIND, addTransport, publish, shiftChanged };

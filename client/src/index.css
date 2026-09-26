@@ -3202,13 +3202,3 @@ th {
 /* Cakisma sebepleri listesi */
 .cakisma-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 .cakisma-list li { margin-bottom: 3px; }
-
-/* Dongü adimi satiri */
-.dongu-adim {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.dongu-adim select { flex: 1; min-width: 0; }
-.dongu-adim input[type=number] { width: 72px; flex: none; }
