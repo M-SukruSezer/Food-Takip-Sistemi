@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,20 +12,27 @@ import 'session.dart';
 
 /// Telefon bildirimleri.
 ///
-/// KAPSAM — ne yapiyor, ne YAPMIYOR:
-///   YAPIYOR   Uygulama acikken (on planda ya da arka planda calisirken)
-///             sunucudaki yeni bildirimleri gorup TELEFONUN kendi bildirim
-///             merkezine dusuruyor. Vardiya paylasimi, vardiya degisikligi,
-///             talep olusturma ve talep kararlari bu yoldan geliyor.
-///   YAPMIYOR  Uygulama TAMAMEN kapaliyken bildirim gonderemiyor. Bunun icin
-///             Firebase Cloud Messaging gerekiyor ve FCM isletmenin kendi
-///             Firebase projesini, google-services.json dosyasini ve sunucu
-///             anahtarini istiyor. O dosya elimizde olmadigi icin bu katman
-///             yoklamaya (polling) dayaniyor.
+/// IKI YOL birlikte calisiyor:
 ///
-/// Sunucu tarafi buna hazir: bildirimler notify.js'te TASIYICI desenine gore
-/// yayinlaniyor. FCM baglanacagi zaman oraya bir tasiyici eklemek yetiyor,
-/// cagiran kodun hicbiri degismiyor.
+///   1. FCM (asil yol) — uygulama kapaliyken bile bildirim geliyor.
+///      Sunucu 'notification' + 'data' gonderiyor:
+///        • uygulama KAPALI/ARKA PLANDA  -> bildirimi Android kendisi gosterir
+///        • uygulama ON PLANDA           -> onMessage tetiklenir, bildirimi
+///                                          biz gosteririz (Android on planda
+///                                          kendiliginden gostermez)
+///
+///   2. Yoklama (emniyet agi) — FCM teslimat GARANTISI VERMEZ: token
+///      yenilenmesi, Google Play Services olmayan cihazlar, pil
+///      iyilestirmeleri ve ag kesintileri bildirimi dusurebilir. Yoklayici
+///      uygulama acikken kacan bildirimleri yakaliyor.
+///
+/// TEKRAR: iki yol ayni bildirimi iki kez gostermemeli. Iki onlem var —
+///   • Bildirim kimligi, isletim sistemi bildirim kimligi olarak
+///     KULLANILIYOR. Ayni kimlikle ikinci gosterim yenisini eklemez,
+///     mevcudu degistirir.
+///   • FCM bir bildirimi isledigi anda (on planda da, arka plan
+///     izolesinde de) "en son gorulen" isareti ilerletiliyor; yoklayici
+///     o bildirimi bir daha gostermiyor.
 
 const _kanalId = 'operasyon_takip_bildirim';
 const _kanalAdi = 'Vardiya ve talep bildirimleri';
@@ -35,10 +44,53 @@ const _kanalAciklama =
 /// devralinmamali.
 String _sonAnahtar(int userId) => 'bildirim_son_id_$userId';
 
+/// FCM'den gelen bildirimin kimligini "en son gorulen" isaretine isler.
+///
+/// Boylece yoklayici ayni bildirimi bir daha gostermiyor. Arka plan
+/// izolesinden de cagriliyor: orada [session] YUKLU DEGIL, bu yuzden
+/// kullanici kimligi mesajin kendisinden okunuyor.
+Future<void> _isaretiIlerlet(int? userId, int? bildirimId) async {
+  if (userId == null || bildirimId == null) return;
+  try {
+    final sp = await SharedPreferences.getInstance();
+    final anahtar = _sonAnahtar(userId);
+    final mevcut = sp.getInt(anahtar) ?? 0;
+    if (bildirimId > mevcut) await sp.setInt(anahtar, bildirimId);
+  } catch (_) {
+    // Disk yazilamadi: en kotu ihtimalle yoklayici bildirimi bir kez daha
+    // gosterir. Ayni kimlik kullanildigi icin yeni bir satir eklenmez.
+  }
+}
+
+int? _sayi(Object? v) => v == null ? null : int.tryParse(v.toString());
+
+/// Testlerin isaret ilerletmeyi dogrulamasi icin. Gercek FCM isleyicisi
+/// [RemoteMessage] istiyor ve o nesne test ortaminda platform kanali
+/// olmadan uretilemiyor; islenen mantik ise ayni.
+@visibleForTesting
+Future<void> firebaseArkaPlanMesajiTest({
+  required int userId,
+  required int notificationId,
+}) => _isaretiIlerlet(userId, notificationId);
+
+/// Arka plan / kapali uygulama mesaj isleyicisi.
+///
+/// AYRI IZOLEDE calisiyor: uygulamanin belleginden hicbir seye erisemez.
+/// Bildirimi Android zaten gosteriyor; burada yalnizca isaret ilerletiliyor
+/// ki uygulama acildiginda yoklayici ayni bildirimi tekrar gostermesin.
+@pragma('vm:entry-point')
+Future<void> firebaseArkaPlanMesaji(RemoteMessage mesaj) async {
+  await _isaretiIlerlet(
+    _sayi(mesaj.data['user_id']),
+    _sayi(mesaj.data['notification_id']),
+  );
+}
+
 final FlutterLocalNotificationsPlugin _eklenti =
     FlutterLocalNotificationsPlugin();
 
 bool _hazir = false;
+bool _fcmHazir = false;
 
 /// Bildirim altyapisini kurar. Birden fazla cagrilabilir.
 ///
@@ -61,13 +113,55 @@ Future<void> initPush() async {
         ),
       ),
     );
+    // Android'de kanali ONCEDEN olusturuyoruz. FCM arka planda bildirimi
+    // kendisi gosterirken bu kanali kullaniyor; kanal yoksa Android
+    // varsayilan (sessiz, dusuk oncelikli) kanala dusurur.
+    await _eklenti
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kanalId,
+            _kanalAdi,
+            description: _kanalAciklama,
+            importance: Importance.high,
+          ),
+        );
     _hazir = true;
   } catch (_) {
     // Bildirim kurulamazsa uygulama CALISMAYA DEVAM ETMELI: bildirim bir yan
     // ozellik, vardiya girisini engellemesi kabul edilemez.
     _hazir = false;
   }
+
+  // Firebase AYRI try: bildirim altyapisi kurulduysa FCM patlasa bile
+  // yoklama yolu calismaya devam etmeli.
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseArkaPlanMesaji);
+
+    // On plandaki mesaj: Android kendiliginden GOSTERMEZ, biz gosteriyoruz.
+    FirebaseMessaging.onMessage.listen((mesaj) async {
+      final id = _sayi(mesaj.data['notification_id']);
+      await _isaretiIlerlet(_sayi(mesaj.data['user_id']), id);
+      final n = mesaj.notification;
+      if (n == null) return;
+      await _goster(id ?? DateTime.now().millisecondsSinceEpoch % 100000,
+          n.title ?? 'Bildirim', n.body ?? '');
+    });
+
+    _fcmHazir = true;
+  } catch (_) {
+    // Google Play Services yok, yapilandirma eksik ya da ag kapali.
+    // Yoklama yolu devrede kalir.
+    _fcmHazir = false;
+  }
 }
+
+/// FCM kullanilabilir mi. Yoklayici bunu BILMEK ZORUNDA DEGIL — emniyet agi
+/// olarak her durumda calisiyor — ama tanilama ve gunluk icin duruyor.
+bool get fcmHazir => _fcmHazir;
 
 /// Bildirim iznini ister. Android 13+ ve iOS'ta gerekli.
 ///
@@ -90,6 +184,52 @@ Future<void> requestPushPermission() async {
     }
   } catch (_) {
     // Izin alinamadi; bildirim gosterilmez, akis bozulmaz.
+  }
+}
+
+/// Bu cihazin FCM jetonunu sunucuya kaydeder.
+///
+/// Sunucu jetonu KULLANICIYA bagli tutuyor: ayni telefonda baska biri giris
+/// yaptiginda jeton yeni kullaniciya gecmeli, yoksa bildirimler onceki
+/// kisinin hesabina gitmeye devam eder.
+///
+/// Jeton YENILENEBILIR (uygulama verisi silinince, yeniden kurulumda,
+/// Google'in kendi dondurmesiyle). onTokenRefresh dinleniyor: yenilenen
+/// jeton kaydedilmezse o cihaz sessizce bildirim almaz hale gelir.
+StreamSubscription<String>? _jetonAboneligi;
+
+Future<void> registerDeviceToken() async {
+  if (!_fcmHazir) return;
+  try {
+    final jeton = await FirebaseMessaging.instance.getToken();
+    if (jeton != null && jeton.isNotEmpty) {
+      await repo.pdksRegisterDevice(jeton);
+    }
+    await _jetonAboneligi?.cancel();
+    _jetonAboneligi = FirebaseMessaging.instance.onTokenRefresh.listen((y) {
+      unawaited(repo.pdksRegisterDevice(y).catchError((_) {}));
+    });
+  } catch (_) {
+    // Jeton alinamadi: FCM calismaz, yoklama yolu devrede kalir.
+  }
+}
+
+/// Cikista jetonu SUNUCUDAN siler.
+///
+/// Silinmezse telefon, oturumu kapatmis kullanicinin bildirimlerini almaya
+/// devam eder — baska birinin vardiya bilgisi yanlis kisiye duser.
+Future<void> unregisterDeviceToken() async {
+  await _jetonAboneligi?.cancel();
+  _jetonAboneligi = null;
+  if (!_fcmHazir) return;
+  try {
+    final jeton = await FirebaseMessaging.instance.getToken();
+    if (jeton != null && jeton.isNotEmpty) {
+      await repo.pdksUnregisterDevice(jeton);
+    }
+  } catch (_) {
+    // Silinemedi: sunucu tarafi gecersiz jetonlari FCM'in UNREGISTERED
+    // yanitiyla da temizliyor.
   }
 }
 

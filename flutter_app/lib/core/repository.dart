@@ -611,6 +611,24 @@ class Repository {
     );
   }
 
+  /// Bu cihazin FCM jetonunu kaydeder (kullaniciya baglanir).
+  Future<void> pdksRegisterDevice(String token) async {
+    await api.dio.post(
+      '/pdks/devices',
+      data: {'token': token, 'platform': 'android'},
+      options: apiOptions(silent: true),
+    );
+  }
+
+  /// Jetonu siler. Cikista cagriliyor.
+  Future<void> pdksUnregisterDevice(String token) async {
+    await api.dio.post(
+      '/pdks/devices/remove',
+      data: {'token': token},
+      options: apiOptions(silent: true),
+    );
+  }
+
   /// Kendi bildirimlerim. Sunucu yalnizca istegi yapan kisinin kayitlarini
   /// donduruyor; baskasinin bildirimi istenemiyor.
   Future<NotificationList> pdksNotifications({int limit = 30}) async {

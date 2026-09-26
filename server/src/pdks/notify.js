@@ -5,12 +5,15 @@
 // saglayicisi baglandiginda cagiran kod HIC degismiyor — yeni bir tasiyici
 // kaydedilmesi yetiyor.
 //
-// TASIYICI DURUMU: su an yalnizca veritabani tasiyicisi etkin (bildirim
-// kaydediliyor, calisan panelinden goruyor) ve gelistirmede gunluge yaziliyor.
-// Push/e-posta MOCK: gercek saglayici yok, o yuzden "gonderildi" demiyoruz,
-// "kuyruga alindi" diyoruz.
+// TASIYICILAR:
+//   dbTransport   bildirimi kalici yazar; uygulama ici liste bunu okuyor.
+//   fcmTransport  Firebase Cloud Messaging ile TELEFONA gonderir.
+//   logTransport  gelistirmede izlenebilir bir satir.
+//
+// E-posta hala yok.
 
-const { execute } = require('../db');
+const { execute, queryAll } = require('../db');
+const fcm = require('./fcm');
 
 /// Bildirim turleri.
 const KIND = {
@@ -35,13 +38,18 @@ function addTransport(fn) {
 }
 
 /// Veritabani tasiyicisi: bildirimi kalici yazar.
+///
+/// Uretilen kimligi bildirim nesnesine YAZIYOR: FCM tasiyicisi bu kimligi
+/// telefona gonderiyor, istemci de onunla tekrar gosterimi engelliyor.
+/// Bu yuzden dbTransport FCM'den ONCE kayitli olmali.
 async function dbTransport(n) {
-  await execute(
+  const r = await execute(
     `INSERT INTO notifications (user_id, kind, title, body, data)
-     VALUES (?,?,?,?,?)`,
+     VALUES (?,?,?,?,?) RETURNING id`,
     n.userId, n.kind, n.title, n.body,
     n.data ? JSON.stringify(n.data) : null,
   );
+  n.id = Number(r.lastInsertRowid);
 }
 
 /// Gunluk tasiyicisi: gercek push/e-posta yerine izlenebilir bir satir.
@@ -52,7 +60,48 @@ function logTransport(n) {
   console.log(`[bildirim] ${n.kind} -> kullanici ${n.userId}: ${n.title}`);
 }
 
+/// FCM tasiyicisi: kullanicinin KAYITLI TUM cihazlarina gonderir.
+///
+/// Anahtar tanimli degilse sessizce cikar — bildirim bir yan etki, eksik
+/// yapilandirma yuzunden cagiran islemin patlamasi kabul edilemez.
+///
+/// GECERSIZ JETON TEMIZLIGI: FCM bir jetonun artik gecersiz oldugunu
+/// soylerse satir SILINIYOR. Yapilmazsa olu jetonlar birikir ve her
+/// bildirimde bosuna istek atilir.
+async function fcmTransport(n) {
+  if (!fcm.isConfigured()) return;
+  const cihazlar = await queryAll(
+    'SELECT token FROM device_tokens WHERE user_id = ?', n.userId);
+  if (cihazlar.length === 0) return;
+
+  for (const c of cihazlar) {
+    const sonuc = await fcm.sendToToken({
+      token: c.token,
+      title: n.title,
+      body: n.body,
+      // Istemci bunlarla "en son gorulen" isaretini ilerletiyor; olmazsa
+      // yoklayici ayni bildirimi bir kez daha gosterir.
+      data: {
+        notification_id: n.id ?? '',
+        user_id: n.userId,
+        kind: n.kind,
+        ...(n.data || {}),
+      },
+    });
+    if (sonuc.ok) continue;
+    if (sonuc.invalidToken) {
+      // Olu jeton: satir silinmezse her bildirimde bosuna istek atilir.
+      await execute('DELETE FROM device_tokens WHERE token = ?', c.token);
+      continue;
+    }
+    // Yapilandirma/kimlik hatasi tum cihazlari etkiler; kalanlari denemek
+    // yalnizca gecikme uretir.
+    if (sonuc.fatal) break;
+  }
+}
+
 addTransport(dbTransport);
+addTransport(fcmTransport);
 addTransport(logTransport);
 
 /// Bildirimi tum tasiyicilara verir.

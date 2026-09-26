@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import 'api_client.dart';
 import 'opts.dart';
+import 'push.dart';
 
 /// React tarafindaki AuthProvider'in karsiligi: token + kullanici durumu.
 class Session extends ChangeNotifier {
@@ -51,6 +52,10 @@ class Session extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    // Jeton SUNUCUDAN once silinir: token gecersiz kilindiktan sonra silme
+    // istegi 401 alirdi ve cihaz onceki kullanicinin bildirimlerini almaya
+    // devam ederdi.
+    await unregisterDeviceToken();
     await api.setToken(null);
     _user = null;
     notifyListeners();

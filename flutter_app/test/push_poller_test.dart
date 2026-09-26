@@ -126,6 +126,40 @@ void main() {
       p.dispose();
     });
 
+    test('FCM bir bildirimi isledikten sonra yoklayici onu TEKRAR gostermiyor', () async {
+      // Asil risk bu: FCM telefona bildirimi dusurur, sonra yoklayici ayni
+      // kaydi gorup ikinci kez gosterirse kullanici her bildirimi cift
+      // aliyor. FCM isleyicisi isareti ilerletiyor, yoklayici de o isaretin
+      // gerisini atliyor.
+      SharedPreferences.setMockInitialValues({'bildirim_son_id_2': 5});
+      installFakeApi(rotalar([bildirim(7), bildirim(6)], 2));
+      signInAs('barista', storeId: 1, id: 2);
+
+      // FCM 7 numarali bildirimi isledi (on planda ya da arka plan izolesinde).
+      await firebaseArkaPlanMesajiTest(userId: 2, notificationId: 7);
+      final ara = await SharedPreferences.getInstance();
+      expect(ara.getInt('bildirim_son_id_2'), 7, reason: 'FCM isareti ilerletmeli');
+
+      final p = PushPoller();
+      p.start();
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      p.stop();
+
+      // Isaret 7'de kaldi: yoklayici 6 ve 7'yi yeniden gostermedi.
+      final sp = await SharedPreferences.getInstance();
+      expect(sp.getInt('bildirim_son_id_2'), 7);
+      p.dispose();
+    });
+
+    test('FCM isareti GERIYE goturmuyor', () async {
+      // Sirasiz teslimat: eski bir bildirim gec ulasirsa isaret geri
+      // gitmemeli, yoksa aradaki bildirimler tekrar gosterilir.
+      SharedPreferences.setMockInitialValues({'bildirim_son_id_2': 20});
+      await firebaseArkaPlanMesajiTest(userId: 2, notificationId: 9);
+      final sp = await SharedPreferences.getInstance();
+      expect(sp.getInt('bildirim_son_id_2'), 20);
+    });
+
     test('oturum yokken hic istek atmiyor', () async {
       final fake = installFakeApi(rotalar([bildirim(1)], 1));
       await session.signOut();

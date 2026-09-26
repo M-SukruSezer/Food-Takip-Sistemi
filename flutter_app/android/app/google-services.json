@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "897580198375",
+    "project_id": "saha-operasyon-takip",
+    "storage_bucket": "saha-operasyon-takip.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:897580198375:android:2c9cc20f9a0877245bb542",
+        "android_client_info": {
+          "package_name": "com.sezra.sahatakip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdY4LVQT96QQGxyny9PICW7tDLNgyHArQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

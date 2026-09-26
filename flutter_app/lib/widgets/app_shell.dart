@@ -63,6 +63,10 @@ class _AppShellState extends State<AppShell> {
     // Izin ilk acilista isteniyor: kullanici uygulamayi kullanmaya
     // baslamadan izin penceresi cikarmak yerine oturum acildiktan sonra.
     unawaited(requestPushPermission());
+    // Jeton her acilista kaydediliyor: yenilenmis olabilir ve kullanici
+    // degismis olabilir. Sunucu ayni jetonu tekrar yazmiyor, sahibini
+    // guncelliyor.
+    unawaited(registerDeviceToken());
     _bildirimler.start();
   }
 

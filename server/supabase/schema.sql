@@ -569,6 +569,27 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check
     'REQUEST_CREATED', 'REQUEST_DECIDED', 'REQUEST_CANCELLED'
   ));
 
+-- FCM cihaz jetonlari.
+--
+-- Jeton CIHAZI temsil eder, kullaniciyi degil: ayni telefonda baska biri
+-- giris yaptiginda ayni jeton yeni kullaniciya gecmeli. Bu yuzden birincil
+-- anahtar TOKEN, user_id ise guncellenen bir alan. Tersi olsaydi (user+token
+-- cifti) eski sahibin satiri kalir ve bildirim yanlis kisiye giderdi.
+CREATE TABLE IF NOT EXISTS device_tokens (
+  token TEXT PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL DEFAULT 'android',
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  last_seen_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+
+ALTER TABLE device_tokens DROP CONSTRAINT IF EXISTS device_tokens_platform_check;
+ALTER TABLE device_tokens ADD CONSTRAINT device_tokens_platform_check
+  CHECK (platform IN ('android', 'ios', 'web'));
+
+-- Bir kullanicinin tum cihazlarini bulmak: bildirim gonderiminin sicak yolu.
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_notifications_user
   ON notifications(user_id, created_at DESC);
 -- Okunmamislari saymak icin: kismi indeks, okunmuslar indekse girmiyor.

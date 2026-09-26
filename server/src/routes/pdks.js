@@ -413,6 +413,51 @@ module.exports.KIOSK_ROLES = KIOSK_ROLES;
 // mantigi; duvar saatinden bagimsiz test edilebilmesi icin disa aciliyor.
 module.exports.resolveWorkDate = resolveWorkDate;
 
+// ---- Cihaz jetonlari (FCM) ----
+
+/// Bu cihazin jetonunu KENDI hesabima baglar.
+///
+/// Jeton CIHAZI temsil ediyor, kullaniciyi degil: ayni telefonda baska biri
+/// giris yaptiginda jeton yeni kullaniciya GECMELI. Bu yuzden token birincil
+/// anahtar ve catisma durumunda sahibi guncelleniyor — eski satir kalsaydi
+/// bildirim onceki kisiye gitmeye devam ederdi.
+router.post('/devices', async (req, res) => {
+  const body = req.body || {};
+  const token = String(body.token || '').trim();
+  // FCM jetonlari 140-200 karakter bandinda; ust sinir sacma girdiye karsi.
+  if (!token || token.length > 4096) {
+    return res.status(400).json({ error: 'Geçerli bir cihaz jetonu gerekli' });
+  }
+  const platform = ['android', 'ios', 'web'].includes(body.platform)
+    ? body.platform : 'android';
+
+  await execute(`
+    INSERT INTO device_tokens (token, user_id, platform)
+    VALUES (?,?,?)
+    ON CONFLICT (token) DO UPDATE SET
+      user_id = EXCLUDED.user_id,
+      platform = EXCLUDED.platform,
+      last_seen_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
+    token, req.user.id, platform);
+
+  res.json({ ok: true });
+});
+
+/// Jetonu siler. Cikista cagriliyor.
+///
+/// DELETE degil POST: govde ile calisiyor ve bazi ara katmanlar DELETE
+/// govdesini dusuruyor.
+router.post('/devices/remove', async (req, res) => {
+  const token = String((req.body || {}).token || '').trim();
+  if (!token) return res.status(400).json({ error: 'Cihaz jetonu gerekli' });
+  // Yalnizca KENDI jetonunu silebilir: baskasinin cihazini bildirimden
+  // dusurmek bir saldiri yoluydu.
+  await execute(
+    'DELETE FROM device_tokens WHERE token = ? AND user_id = ?',
+    token, req.user.id);
+  res.json({ ok: true });
+});
+
 // ---- Calisan bildirimleri ----
 
 /// Kendi bildirimlerim.
