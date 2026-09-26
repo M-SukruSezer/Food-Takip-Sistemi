@@ -57,8 +57,11 @@ function minutesFrom(referenceMinutes, actualMinutes) {
 ///   orphanOut  eslesmeyen cikis (veri bozuk)
 function pairLogs(logs) {
   const pairs = [];
+  const breaks = [];
   let open = null;
+  let openBreak = null;
   let orphanOut = 0;
+  let orphanBreak = 0;
   for (const l of logs) {
     if (l.type === 'GIRIS') {
       // Ust uste iki giris: uc nokta olarak ikincisi kullanilir, ilki
@@ -68,11 +71,37 @@ function pairLogs(logs) {
       open = l;
     } else if (l.type === 'CIKIS') {
       if (!open) { orphanOut++; continue; }
+      // Cikista mola hala acik kalmissa mola kapanmamis sayilir: suresi
+      // bilinmediginden hic dusulemez, durum bayragi ile bildirilir.
+      if (openBreak) { orphanBreak++; openBreak = null; }
       pairs.push({ in: open, out: l });
       open = null;
+    } else if (l.type === 'MOLA_BASLA') {
+      // Mesai dışında molaya cikilamaz; uc nokta engelliyor, veri
+      // duzeltmesinden gelen kayit yine de isaretlenir.
+      if (!open) { orphanBreak++; continue; }
+      if (openBreak) orphanBreak++;
+      openBreak = l;
+    } else if (l.type === 'MOLA_BITIR') {
+      if (!openBreak) { orphanBreak++; continue; }
+      breaks.push({ in: openBreak, out: l });
+      openBreak = null;
     }
   }
-  return { pairs, open, orphanOut };
+  return { pairs, breaks, open, openBreak, orphanOut, orphanBreak };
+}
+
+/// Kayitli mola sureleri toplami (dakika).
+///
+/// Mutlak zaman damgalarindan: gece vardiyasinda mola gece yarisini gecebilir
+/// ve duvar saati geriye doner.
+function recordedBreakMinutes(breaks) {
+  let total = 0;
+  for (const b of breaks) {
+    const ms = new Date(b.out.occurred_at).getTime() - new Date(b.in.occurred_at).getTime();
+    if (Number.isFinite(ms) && ms > 0) total += ms / 60000;
+  }
+  return Math.round(total);
 }
 
 /// Bir gunun puantaji.
@@ -95,7 +124,7 @@ function computeDay({
   hourlyLeaveMinutes = 0,
   holiday = null,
 }) {
-  const { pairs, open, orphanOut } = pairLogs(logs);
+  const { pairs, breaks, open, openBreak, orphanOut, orphanBreak } = pairLogs(logs);
 
   // Fiili bulunma suresi: mutlak zaman damgalarindan: gece vardiyasinda
   // duvar saati geriye dondugu icin damga farki tek dogru kaynak.
@@ -141,8 +170,28 @@ function computeDay({
   // kazaniyordu. Iki taraf ayni kurali kullaninca fark kapaniyor.
   const scheduledWork = Math.max(0, expectedPresence - breakToDeduct(expectedPresence, breakTotal));
 
-  const deductedBreak = breakToDeduct(presence, breakTotal);
+  // Mola dusumu: KAYIT VARSA fiili, yoksa tanimli/yasal kucugu.
+  //
+  // Neden fiili oncelikli: personel mola giris-cikisi okuttuysa gunun gercegi
+  // o. Tanimli molayi dusmek, 20 dk mola veren personelden 60 dk dusup
+  // ucretsiz calisma yaratirdi; tersi de fazla odeme olurdu.
+  //
+  // Kayit YOKSA eski kurala donuluyor (geriye donuk uyum): mola adimlari
+  // eklenmeden once girilen tum gunler bu yolla hesaplanmaya devam ediyor.
+  const hasBreakRecords = breaks.length > 0;
+  const recordedBreak = recordedBreakMinutes(breaks);
+  const deductedBreak = hasBreakRecords
+    ? Math.min(recordedBreak, presence)
+    : breakToDeduct(presence, breakTotal);
   const netWorked = Math.max(0, presence - deductedBreak);
+
+  // Yasal asgari ara dinlenmesinin altinda kalan mola, uygulanan dusumu
+  // DEGISTIRMEZ (calisilan sure odenmeli) ama m.68 ihlali oldugu icin
+  // yoneticiye bildirilir.
+  const legalBreak = presence > 0 ? legalBreakMinutes(presence) : 0;
+  const breakShortfall = hasBreakRecords && presence > 0
+    ? Math.max(0, legalBreak - recordedBreak)
+    : 0;
 
   // Gec kalma / erken cikis: tolerans DISI kisim.
   let lateMinutes = 0;
@@ -206,7 +255,10 @@ function computeDay({
     statuses.push('DEVAMSIZ');
   }
   if (open) statuses.push('ACIK_GIRIS');
+  if (openBreak) statuses.push('ACIK_MOLA');
   if (orphanOut > 0) statuses.push('ESLESMEYEN_KAYIT');
+  if (orphanBreak > 0) statuses.push('ESLESMEYEN_MOLA');
+  if (breakShortfall > 0) statuses.push('MOLA_EKSIK');
   if (lateMinutes > 0) statuses.push('GEC_GELDI');
   if (earlyLeaveMinutes > 0) statuses.push('ERKEN_CIKTI');
 
@@ -222,6 +274,13 @@ function computeDay({
     presence_minutes: presence,
     expected_presence_minutes: leaveDay ? 0 : expectedPresence,
     deducted_break_minutes: deductedBreak,
+    // Mola kaydi var mi; yoksa dusum tanimli molaya gore yapildi.
+    has_break_records: hasBreakRecords,
+    recorded_break_minutes: recordedBreak,
+    break_count: breaks.length,
+    // m.68 asgarisinin altinda kalan mola (dakika). Dusume etki etmez.
+    break_shortfall_minutes: breakShortfall,
+    open_break_since: openBreak ? openBreak.occurred_at : null,
     // Mola dusulmus fiili calisma.
     worked_minutes: netWorked,
     scheduled_minutes: effectiveScheduled,
@@ -267,12 +326,18 @@ function summarize(days) {
     leave_minutes: sum('leave_minutes'),
     hourly_leave_minutes: sum('hourly_leave_minutes'),
     open_days: days.filter((d) => d.open_since).length,
+    recorded_break_minutes: sum('recorded_break_minutes'),
+    deducted_break_minutes: sum('deducted_break_minutes'),
+    // Yasal asgari molanin altinda kalinan gun sayisi (m.68).
+    break_shortfall_days: days.filter((d) => d.break_shortfall_minutes > 0).length,
+    open_break_days: days.filter((d) => d.open_break_since).length,
   };
 }
 
 module.exports = {
   legalBreakMinutes,
   breakToDeduct,
+  recordedBreakMinutes,
   shiftSpanMinutes,
   minutesFrom,
   pairLogs,

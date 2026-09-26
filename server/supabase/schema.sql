@@ -384,7 +384,7 @@ CREATE TABLE IF NOT EXISTS attendance_logs (
 
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_type_check;
 ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_type_check
-  CHECK (type IN ('GIRIS', 'CIKIS'));
+  CHECK (type IN ('GIRIS', 'CIKIS', 'MOLA_BASLA', 'MOLA_BITIR'));
 -- Yalnizca iki yontem. Biyometrik ya da elle giris bu kisittan gecmez.
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS attendance_logs_method_check;
 ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_method_check
@@ -504,3 +504,26 @@ CREATE INDEX IF NOT EXISTS idx_holidays_date ON public_holidays(holiday_date);
 -- reddettigi icin bu kolonda cogunlukla uyari bayraklari durur: root,
 -- gelistirici secenekleri, kontrol edilemedi. NULL = hic bayrak yok.
 ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS risk_flags TEXT;
+
+
+-- Ucret tanimlari. Puantajdaki hak edis hesabi bunlardan cikar.
+--
+-- Iki taban birlikte tutuluyor: saat ucreti girilmisse o kullanilir,
+-- girilmemisse aylik maastan turetilir. Kismi zamanli personelde saat ucreti,
+-- tam zamanlida aylik maas dogal olan tanim.
+--
+-- NUMERIC degil DOUBLE PRECISION: tablodaki diger para alanlari da boyle ve
+-- iki tur arasinda gidip gelmek karsilastirmalarda surpriz uretiyor.
+ALTER TABLE pdks_profiles ADD COLUMN IF NOT EXISTS monthly_salary DOUBLE PRECISION;
+ALTER TABLE pdks_profiles ADD COLUMN IF NOT EXISTS hourly_rate DOUBLE PRECISION;
+-- Gunluk yemek tutari; fiilen calisilan gun sayisiyla carpilir.
+ALTER TABLE pdks_profiles ADD COLUMN IF NOT EXISTS meal_daily DOUBLE PRECISION;
+
+-- Negatif ucret girilemez. Sifir gecerli: "tanimli ama odenmiyor".
+ALTER TABLE pdks_profiles DROP CONSTRAINT IF EXISTS pdks_profiles_wage_check;
+ALTER TABLE pdks_profiles ADD CONSTRAINT pdks_profiles_wage_check
+  CHECK (
+    (monthly_salary IS NULL OR monthly_salary >= 0)
+    AND (hourly_rate IS NULL OR hourly_rate >= 0)
+    AND (meal_daily IS NULL OR meal_daily >= 0)
+  );

@@ -47,6 +47,27 @@ async function requireAuth(req, res, next) {
       error: 'İnsan Kaynakları rolü yalnızca mağaza puantajlarını görüntüleyebilir',
     });
   }
+
+  // Operasyon alani icin ACIK MESAI sarti. Burada, requireOnShift'i her
+  // yonlendiriciye tek tek eklemek yerine: kosul req.user'a ihtiyac duyuyor
+  // ve requireAuth her korunan yonlendiricinin BASINDA calisiyor, dolayisiyla
+  // tek kanca tam kapsama veriyor.
+  //
+  // KRITIK EMNIYET: magazada PDKS KAPALIYSA sart aranmaz. Aksi halde PDKS'i
+  // acmamis bir magazanin personeli giris yapamayacagi icin uygulamanin
+  // tamamindan kilitlenirdi — ozelligi acmak calisan bir magazayi bozardi.
+  //
+  // Maliyet: yalnizca bu iki rol, yalnizca operasyon yollarinda tek ek sorgu.
+  if (ON_SHIFT_ROLES.includes(req.user.role) && !shiftExempt(req.originalUrl)) {
+    const { pdksEnabled, inside } = await shiftState(req.user.id);
+    if (pdksEnabled && !inside) {
+      return res.status(403).json({
+        error: 'Bu bölüme girmek için önce işe giriş yapmalısınız.',
+        // Istemci bunu gorup kullaniciyi Devam Takibi ekranina yonlendiriyor.
+        code: 'SHIFT_REQUIRED',
+      });
+    }
+  }
   next();
 }
 
@@ -212,6 +233,40 @@ function requirePermission(permission) {
   };
 }
 
+/// Operasyon alanina erismek icin acik mesai kaydi gereken roller.
+///
+/// Magaza muduru ve ustu DISARIDA: mudurun vardiya planlamak, onay vermek ve
+/// raporlara bakmak icin mesai baslatmasi gerekmiyor; bolge/operasyon muduru
+/// ve ana yonetici ise bir magazada mesai tutmuyor.
+const ON_SHIFT_ROLES = ['barista', 'shift_supervisor'];
+
+// Mesai sarti ARANMAYAN yollar. Beyaz liste (varsayilan: sart aranir) bilincli
+// secim: ileride eklenen bir operasyon rotasi sarti kendiliginden tasiyor.
+//
+// /auth  : oturum ve profil — kilit kendini besleyen dongu olmasin.
+// /pdks  : giris yapabilmek icin buraya erisilmeli.
+const SHIFT_EXEMPT = [/^\/auth(\/|$)/, /^\/pdks(\/|$)/, /^\/health$/];
+
+function shiftExempt(originalUrl) {
+  const path = normalizePath(originalUrl);
+  return SHIFT_EXEMPT.some((re) => re.test(path));
+}
+
+/// Personel mesaide mi? Molada olan da mesaide sayilir: mesai devam ediyor.
+///
+/// Doner: { required, inside, pdksEnabled }
+async function shiftState(userId) {
+  const row = await queryOne(`
+    SELECT s.pdks_enabled,
+           (SELECT al.type FROM attendance_logs al
+            WHERE al.user_id = ? ORDER BY al.occurred_at DESC, al.id DESC LIMIT 1) AS last_type
+    FROM users u LEFT JOIN stores s ON s.id = u.store_id
+    WHERE u.id = ?`, userId, userId);
+  const pdksEnabled = !!(row && row.pdks_enabled);
+  const inside = !!row && (row.last_type === 'GIRIS' || row.last_type === 'MOLA_BASLA');
+  return { pdksEnabled, inside };
+}
+
 // Mağaza bazlı erişim kısıtı:
 // - super_admin: tüm mağazalara erişir (storeId istek parametresinden gelir)
 // - diğer roller: yalnızca kendi mağazalarına erişir
@@ -287,6 +342,7 @@ module.exports = {
   sign, hashPassword, verifyPassword, requireAuth, requireRole, storeScope,
   ROLES, ROLE_LABELS, MANAGER_ROLES, roleLevel, assignableRoles, isMultiStoreRole,
   HR_ROLE, TIMESHEET_VIEW_ROLES, hrAllows, normalizePath,
+  ON_SHIFT_ROLES, shiftExempt, shiftState,
   accessibleStoreIds, allowsStore, resolveStoreScope, storeFilter,
   ALL_PERMISSIONS, DEFAULT_PERMISSIONS, PERMISSION_LABELS, PERMISSION_ERRORS,
   parsePermissions, permissionsOf, serializePermissions, requirePermission,

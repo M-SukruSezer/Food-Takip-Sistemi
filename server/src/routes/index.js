@@ -22,6 +22,9 @@ const pdksTimesheetRoutes = require('./pdksTimesheet');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+// Operasyon alani icin "acik mesai" sarti auth.js/requireAuth icinde
+// uygulaniyor: kosul req.user'a ihtiyac duyuyor ve requireAuth her korunan
+// yonlendiricinin basinda calisiyor. Burada ayrica ara katman yok.
 router.use('/stores', storeRoutes);
 router.use('/users', userRoutes);
 router.use('/product-types', productTypeRoutes);

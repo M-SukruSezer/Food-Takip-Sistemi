@@ -6,6 +6,7 @@ const geo = require('../pdks/geo');
 const dev = require('../pdks/device');
 const qr = require('../pdks/qr');
 const t = require('../pdks/time');
+const sheet = require('../pdks/timesheet');
 
 const router = express.Router();
 
@@ -173,9 +174,17 @@ async function record({ req, targetUserId, store, type, entry, atIso, workDate, 
     entry.is_valid_location, entry.is_mocked, entry.risk_flags, entry.qr_token_hash,
     entry.device_label || null, note || null, req.user.id
   );
-  await logActivity(req.user, type === 'GIRIS' ? 'PDKS_GIRIS' : 'PDKS_CIKIS',
+  const EYLEM = {
+    GIRIS: 'PDKS_GIRIS', CIKIS: 'PDKS_CIKIS',
+    MOLA_BASLA: 'PDKS_MOLA_BASLA', MOLA_BITIR: 'PDKS_MOLA_BITIR',
+  };
+  const ETIKET = {
+    GIRIS: 'giriş', CIKIS: 'çıkış',
+    MOLA_BASLA: 'mola başlangıcı', MOLA_BITIR: 'mola bitişi',
+  };
+  await logActivity(req.user, EYLEM[type] || 'PDKS_GIRIS',
     'attendance_log', r.lastInsertRowid,
-    `${entry.method} ile ${type === 'GIRIS' ? 'giriş' : 'çıkış'}`
+    `${entry.method} ile ${ETIKET[type] || type}`
     + (entry.distance_m !== null ? ` (${Math.round(entry.distance_m)} m)` : '')
     + (targetUserId !== req.user.id ? ' — kiosk tarafından okutuldu' : '')
     + (entry.risk_flags ? ` — uyarı: ${dev.labelsFor(entry.risk_flags).join(', ')}` : ''),
@@ -232,6 +241,33 @@ async function punch(req, res, type) {
   }
 
   const last = await lastLog(targetUserId);
+
+  // Mola adimlari. Dort adimli akis:
+  //   (yok) -> GIRIS -> [MOLA_BASLA -> MOLA_BITIR]* -> CIKIS
+  // Gecersiz siralama burada kesiliyor; puantaj tarafi da eslesmeyen kaydi
+  // isaretliyor ama once kaydin hic olusmamasi daha iyi.
+  if (type === 'MOLA_BASLA') {
+    if (!last || last.type === 'CIKIS') {
+      return res.status(400).json({ error: 'Molaya çıkmak için önce işe giriş yapmalısınız' });
+    }
+    if (last.type === 'MOLA_BASLA') {
+      return res.status(400).json({ error: 'Zaten moladasınız. Mola bitişi okutun.' });
+    }
+  }
+  if (type === 'MOLA_BITIR' && (!last || last.type !== 'MOLA_BASLA')) {
+    return res.status(400).json({ error: 'Açık bir mola kaydınız yok' });
+  }
+  // Molada kalmisken cikis: mola suresi bilinmedigi icin puantajda
+  // dusulemiyor. Once molayi bitirmesi isteniyor.
+  if (type === 'CIKIS' && last && last.type === 'MOLA_BASLA') {
+    return res.status(400).json({
+      error: 'Moladasınız. Çıkış yapmadan önce mola bitişini okutun.',
+    });
+  }
+  if (type === 'GIRIS' && last && last.type === 'MOLA_BASLA') {
+    return res.status(400).json({ error: 'Zaten moladasınız. Mola bitişi okutun.' });
+  }
+
   if (type === 'GIRIS' && last && last.type === 'GIRIS') {
     return res.status(400).json({
       error: 'Açık bir giriş kaydınız var. Önce çıkış yapmalısınız.',
@@ -253,8 +289,11 @@ async function punch(req, res, type) {
     }
   }
 
+  // Mola ve cikis kayitlari ACIK GIRISIN is gunune yazilir. Aksi halde gece
+  // vardiyasinda 02:00'de verilen mola ertesi takvim gunune duser ve puantaj
+  // o gunun ciftini bolerdi.
   const workDate = await resolveWorkDate(
-    targetUserId, atIso, type === 'CIKIS' ? last : null
+    targetUserId, atIso, type === 'GIRIS' ? null : last
   );
 
   let id;
@@ -289,6 +328,10 @@ function entryHasCoords(entry) {
 
 router.post('/check-in', (req, res) => punch(req, res, 'GIRIS'));
 router.post('/check-out', (req, res) => punch(req, res, 'CIKIS'));
+// Mola adimlari isin AYNI dogrulamasindan geciyor (QR ya da GPS): molaya
+// cikan personel de is yerinde olmali ve mola disindan okutamamali.
+router.post('/break-start', (req, res) => punch(req, res, 'MOLA_BASLA'));
+router.post('/break-end', (req, res) => punch(req, res, 'MOLA_BITIR'));
 
 /// Personelin kendi durumu: iceride mi, bugunun vardiyasi, bugunun kayitlari.
 router.get('/me', async (req, res) => {
@@ -305,17 +348,41 @@ router.get('/me', async (req, res) => {
      WHERE us.user_id = ? AND us.work_date = ? ORDER BY s.start_time`,
     req.user.id, today
   );
+  // Acik kayit varsa ONUN is gunu gosterilir: gece vardiyasinda acik giris
+  // dunun is gunune yazili oldugu icin bugunun kayitlarini sormak listeyi bos
+  // birakiyordu.
+  const acik = last && last.type !== 'CIKIS' ? last.work_date : today;
   const logs = await queryAll(
     `SELECT id, type, method, occurred_at, distance_m, is_valid_location
      FROM attendance_logs WHERE user_id = ? AND work_date = ?
      ORDER BY occurred_at`,
-    req.user.id, today
+    req.user.id, acik
   );
 
+  // Dort adimli akista bir sonraki gecerli adim. Arayuz dugmeleri buna gore
+  // ciziliyor; kurali istemcide tekrar yazmak ikisinin ayrismasi demekti.
+  const durum = !last || last.type === 'CIKIS' ? 'DISARIDA'
+    : last.type === 'MOLA_BASLA' ? 'MOLADA' : 'ICERIDE';
+
   res.json({
-    work_date: today,
-    is_inside: !!(last && last.type === 'GIRIS'),
-    open_since: last && last.type === 'GIRIS' ? last.occurred_at : null,
+    work_date: acik,
+    state: durum,
+    // Molada olan personel de ICERIDE sayilir: mesai devam ediyor.
+    is_inside: durum !== 'DISARIDA',
+    on_break: durum === 'MOLADA',
+    open_since: durum !== 'DISARIDA'
+      ? (logs.find((l) => l.type === 'GIRIS') || {}).occurred_at ?? last.occurred_at
+      : null,
+    break_since: durum === 'MOLADA' ? last.occurred_at : null,
+    // Bu is gununde biriken mola suresi (dakika); acik mola sayilmaz.
+    break_minutes_today: sheet.recordedBreakMinutes(sheet.pairLogs(logs).breaks),
+    // Izin verilen sonraki adimlar.
+    can: {
+      check_in: durum === 'DISARIDA',
+      check_out: durum === 'ICERIDE',
+      break_start: durum === 'ICERIDE',
+      break_end: durum === 'MOLADA',
+    },
     store: store && {
       id: store.id, name: store.name, pdks_enabled: !!store.pdks_enabled,
       qr_mode: store.qr_mode,

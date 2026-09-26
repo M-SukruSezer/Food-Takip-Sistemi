@@ -7,6 +7,7 @@ const { logActivity } = require('../utils');
 const qr = require('../pdks/qr');
 const t = require('../pdks/time');
 const bal = require('../pdks/balance');
+const pay = require('../pdks/payroll');
 const kvkk = require('../pdks/kvkk');
 
 const router = express.Router();
@@ -277,10 +278,19 @@ router.post('/assignments', requireManager, async (req, res) => {
             ON CONFLICT (user_id, work_date, shift_id) DO NOTHING`,
             [u.id, shiftId, cursor, isDayOff ? 1 : 0, body.note || null, req.user.id], client);
           count++;
-        } else if (onLeave) {
-          skippedDates.push({ date: cursor, reason: 'onaylı izin' });
-        } else if (onHoliday) {
-          skippedDates.push({ date: cursor, reason: `resmi tatil (${holidays[cursor].name})` });
+        } else {
+          // Atlanan gunun SEBEBI bildirilir. Hafta tatili dali eksikti: gun
+          // atlaniyordu ama skipped_dates bos donuyor, yonetici "7 gun
+          // istedim, 6 gun yazildi" farkinin sebebini goremiyordu.
+          //
+          // Birden fazla sebep ust uste gelebilir (Pazar'a denk gelen resmi
+          // tatil gibi); hepsi yazilir ki gun tek sebeple aciklanmis
+          // gorunmesin.
+          const sebepler = [];
+          if (off.has(dow)) sebepler.push('hafta tatili');
+          if (onLeave) sebepler.push('onaylı izin');
+          if (onHoliday) sebepler.push(`resmi tatil (${holidays[cursor].name})`);
+          skippedDates.push({ date: cursor, reason: sebepler.join(' + ') });
         }
         cursor = t.shiftDate(cursor, 1);
       }
@@ -331,7 +341,8 @@ router.get('/profiles', requireManager, async (req, res) => {
   const f = storeFilter(scope, 'u.store_id');
   const rows = await queryAll(`
     SELECT u.id AS user_id, u.full_name, u.role, u.store_id, s.name AS store_name,
-           p.hired_at, p.annual_leave_days, p.monthly_advance_limit, p.weekly_off_days
+           p.hired_at, p.annual_leave_days, p.monthly_advance_limit, p.weekly_off_days,
+           p.monthly_salary, p.hourly_rate, p.meal_daily
     FROM users u
     LEFT JOIN pdks_profiles p ON p.user_id = u.id
     LEFT JOIN stores s ON s.id = u.store_id
@@ -344,6 +355,13 @@ router.get('/profiles', requireManager, async (req, res) => {
     annual_leave_days: r.annual_leave_days === null ? 14 : Number(r.annual_leave_days),
     monthly_advance_limit: r.monthly_advance_limit === null ? 0 : Number(r.monthly_advance_limit),
     weekly_off_days: bal.parseWeeklyOff(r.weekly_off_days),
+    // Ucret alanlari NULL kalabiliyor: "tanimli degil" ile "sifir" ayri.
+    // Sifir yazmak "ucretsiz calisiyor" anlamina gelirdi.
+    monthly_salary: r.monthly_salary === null ? null : Number(r.monthly_salary),
+    hourly_rate: r.hourly_rate === null ? null : Number(r.hourly_rate),
+    meal_daily: r.meal_daily === null ? null : Number(r.meal_daily),
+    effective_hourly_rate: pay.hourlyRateOf(r).rate,
+    wage_basis: pay.hourlyRateOf(r).basis,
     has_profile: r.annual_leave_days !== null,
   })));
 });
@@ -369,6 +387,25 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
   if (limit !== undefined && (!Number.isFinite(limit) || limit < 0)) {
     return res.status(400).json({ error: 'Avans limiti 0 veya daha büyük olmalıdır' });
   }
+  // Ucret alanlari. Bos metin ve null "tanimi kaldir" demek; sifir gecerli
+  // bir deger ("tanimli ama odenmiyor") oldugu icin ikisi ayri tutuluyor.
+  const para = (anahtar, etiket) => {
+    if (body[anahtar] === undefined) return { yok: true };
+    if (body[anahtar] === null || body[anahtar] === '') return { deger: null };
+    const n = Number(body[anahtar]);
+    if (!Number.isFinite(n) || n < 0) return { hata: `${etiket} 0 veya daha büyük olmalıdır` };
+    // Ust sinir: kurus hatasi ya da yanlis birimle girilen deger (orn. kurus
+    // cinsinden 4500000) sessizce kaydedilmesin.
+    if (n > 10000000) return { hata: `${etiket} çok büyük görünüyor, kontrol edin` };
+    return { deger: n };
+  };
+  const maas = para('monthly_salary', 'Aylık maaş');
+  const saatlik = para('hourly_rate', 'Saat ücreti');
+  const yemek = para('meal_daily', 'Günlük yemek ücreti');
+  for (const v of [maas, saatlik, yemek]) {
+    if (v.hata) return res.status(400).json({ error: v.hata });
+  }
+
   let offDays;
   if (body.weekly_off_days !== undefined) {
     const arr = Array.isArray(body.weekly_off_days) ? body.weekly_off_days.map(Number) : null;
@@ -385,26 +422,47 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
     annual_leave_days: days === undefined ? existing?.annual_leave_days ?? 14 : days,
     monthly_advance_limit: limit === undefined ? existing?.monthly_advance_limit ?? 0 : limit,
     weekly_off_days: offDays === undefined ? existing?.weekly_off_days ?? '[0]' : offDays,
+    monthly_salary: maas.yok ? existing?.monthly_salary ?? null : maas.deger,
+    hourly_rate: saatlik.yok ? existing?.hourly_rate ?? null : saatlik.deger,
+    meal_daily: yemek.yok ? existing?.meal_daily ?? null : yemek.deger,
   };
 
   await execute(`
     INSERT INTO pdks_profiles (user_id, hired_at, annual_leave_days,
-      monthly_advance_limit, weekly_off_days, updated_by)
-    VALUES (?,?,?,?,?,?)
+      monthly_advance_limit, weekly_off_days, monthly_salary, hourly_rate,
+      meal_daily, updated_by)
+    VALUES (?,?,?,?,?,?,?,?,?)
     ON CONFLICT (user_id) DO UPDATE SET
       hired_at = EXCLUDED.hired_at,
       annual_leave_days = EXCLUDED.annual_leave_days,
       monthly_advance_limit = EXCLUDED.monthly_advance_limit,
       weekly_off_days = EXCLUDED.weekly_off_days,
+      monthly_salary = EXCLUDED.monthly_salary,
+      hourly_rate = EXCLUDED.hourly_rate,
+      meal_daily = EXCLUDED.meal_daily,
       updated_by = EXCLUDED.updated_by,
       updated_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`,
     user.id, next.hired_at, next.annual_leave_days,
-    next.monthly_advance_limit, next.weekly_off_days, req.user.id);
+    next.monthly_advance_limit, next.weekly_off_days,
+    next.monthly_salary, next.hourly_rate, next.meal_daily, req.user.id);
 
+  // Denetim izinde ucret TUTARI yazilmiyor: Hareket Kayitlari ekrani daha
+  // geniş bir kitleye acik ve maas bilgisi oraya dusmemeli. Yalnizca hangi
+  // alanin degistirildigi kaydediliyor.
+  const degisen = [];
+  if (!maas.yok) degisen.push('aylık maaş');
+  if (!saatlik.yok) degisen.push('saat ücreti');
+  if (!yemek.yok) degisen.push('yemek ücreti');
   await logActivity(req.user, 'PDKS_PROFIL', 'user', user.id,
     `${user.full_name}: ${next.annual_leave_days} gün izin, `
-    + `${next.monthly_advance_limit} TL avans limiti`, user.store_id);
-  res.json({ ok: true, ...next, weekly_off_days: bal.parseWeeklyOff(next.weekly_off_days) });
+    + `${next.monthly_advance_limit} TL avans limiti`
+    + (degisen.length ? ` — ${degisen.join(', ')} güncellendi` : ''), user.store_id);
+  res.json({
+    ok: true, ...next,
+    weekly_off_days: bal.parseWeeklyOff(next.weekly_off_days),
+    effective_hourly_rate: pay.hourlyRateOf(next).rate,
+    wage_basis: pay.hourlyRateOf(next).basis,
+  });
 });
 
 // ---- Magaza PDKS ayarlari ----

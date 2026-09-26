@@ -5,6 +5,7 @@ const {
   TIMESHEET_VIEW_ROLES,
 } = require('../auth');
 const dev = require('../pdks/device');
+const pay = require('../pdks/payroll');
 const bal = require('../pdks/balance');
 const sheet = require('../pdks/timesheet');
 const t = require('../pdks/time');
@@ -30,7 +31,9 @@ function dateRange(from, to) {
 ///
 /// Sorgular kisi basina degil ARALIK BASINA atilir: 30 gun x 20 personel icin
 /// 600 sorgu yerine 4 sorgu.
-async function buildTimesheet(userIds, from, to) {
+/// [withWages] ucret hesabi eklensin mi. Maas hassas veri: cagiran katman
+/// yetkiyi kontrol edip bu bayragi geciyor, varsayilan KAPALI.
+async function buildTimesheet(userIds, from, to, withWages = false) {
   if (userIds.length === 0) return [];
   const ph = userIds.map(() => '?').join(',');
 
@@ -38,6 +41,13 @@ async function buildTimesheet(userIds, from, to) {
     `SELECT u.id, u.full_name, u.role, u.store_id, s.name AS store_name
      FROM users u LEFT JOIN stores s ON s.id = u.store_id
      WHERE u.id IN (${ph}) ORDER BY u.full_name`, ...userIds);
+
+  // Ucret tanimlari. Aralik basina tek sorgu; kisi basina sorgu atmak
+  // 20 personelde 20 gidis-donus demekti.
+  const wageRows = withWages ? await queryAll(
+    `SELECT user_id, monthly_salary, hourly_rate, meal_daily
+     FROM pdks_profiles WHERE user_id IN (${ph})`, ...userIds) : [];
+  const wageByUser = new Map(wageRows.map((r) => [Number(r.user_id), r]));
 
   // Resmi tatiller: aralik basina tek sorgu, magaza bazinda haritalanir.
   // Tatil gunu planli sureyi dusuruyor; izin hesabinda dusuldugu icin
@@ -125,16 +135,22 @@ async function buildTimesheet(userIds, from, to) {
       )];
       return { ...day, shift_names: names, risk_flags: dayFlags };
     });
+    const summary = {
+      ...sheet.summarize(days),
+      flagged_days: days.filter((d) => d.risk_flags.length > 0).length,
+    };
     return {
       user: {
         id: u.id, full_name: u.full_name, role: u.role,
         store_id: u.store_id, store_name: u.store_name,
       },
       days,
-      summary: {
-        ...sheet.summarize(days),
-        flagged_days: days.filter((d) => d.risk_flags.length > 0).length,
-      },
+      summary,
+      // Yetki yoksa alan HIC gonderilmiyor; null gondermek "tanimsiz" ile
+      // "gormeye yetkin yok" arasini belirsiz birakirdi.
+      ...(withWages
+        ? { wage: pay.computeWage({ summary, profile: wageByUser.get(Number(u.id)) }) }
+        : {}),
     };
   });
 }
@@ -185,17 +201,159 @@ router.get('/timesheet', async (req, res) => {
     }
   }
 
-  const items = await buildTimesheet(userIds, from, to);
+  // Ucret gorme yetkisi. Maas hassas kisisel veri:
+  //   - yoneticiler (magaza muduru ve ustu) erisebildikleri personel icin
+  //   - personel YALNIZCA kendi ucretini
+  //   - IK GOREMEZ: kapsami "puantaj goruntuleme" olarak tanimlandi, ucret
+  //     tanimi ayrica "magaza muduru ve ust yoneticiler" olarak verildi.
+  //     Erisimi sonradan genisletmek kolay, sizan veriyi geri almak degil.
+  const kendisi = userIds.length === 1 && Number(userIds[0]) === Number(req.user.id);
+  const withWages = MANAGER_ROLES.includes(req.user.role) || kendisi;
+
+  const items = await buildTimesheet(userIds, from, to, withWages);
   res.json({
     from, to, items,
+    wages_included: withWages,
     // Tum personelin toplami: aylik ozet tablosu icin.
     total: sheet.summarize(items.flatMap((i) => i.days)),
+    // Ucret TOPLAMI kisilerin hak edislerinin toplamidir; birlesik ozetten
+    // yeniden hesaplanamaz cunku her kisinin saat ucreti farkli.
+    ...(withWages ? {
+      wage_total: (() => {
+        const alan = (k) => items.reduce(
+          (a, i) => a + (i.wage && i.wage[k] !== null ? i.wage[k] : 0), 0);
+        const tanimli = items.some((i) => i.wage && i.wage.defined);
+        return {
+          defined: tanimli,
+          normal_pay: Math.round(alan('normal_pay') * 100) / 100,
+          overtime_pay: Math.round(alan('overtime_pay') * 100) / 100,
+          leave_pay: Math.round(alan('leave_pay') * 100) / 100,
+          meal_pay: Math.round(alan('meal_pay') * 100) / 100,
+          gross_total: Math.round(alan('gross_total') * 100) / 100,
+          // Ucreti tanimlanmamis personel: toplam eksik okunmasin.
+          undefined_count: items.filter((i) => i.wage && !i.wage.defined).length,
+        };
+      })(),
+    } : {}),
     notes: [
-      'Mola, İş Kanunu m.68 asgarisi ile vardiyada tanımlı molanın küçüğü kadar düşülür.',
+      'Mola kaydı varsa fiili mola düşülür; kayıt yoksa İş Kanunu m.68 asgarisi ile vardiyada tanımlı molanın küçüğü kadar düşülür.',
       'Geç kalma ve erken çıkış eksik sürenin parçasıdır, üstüne eklenmez.',
       'Vardiya atanmamış günlerin çalışması sınıflandırılmaz, ayrıca bildirilir.',
       'Resmi tatilde planlı süre sıfırdır; o gün çalışma tamamen fazla mesai sayılır.',
+      ...(withWages ? pay.WAGE_NOTES : []),
     ],
+  });
+});
+
+/// Toplu vardiya cizelgesi: bir magazanin TUM ekibi x tarih araligi.
+///
+/// Neden ayri uc: puantaj gecmisi hesaplar, bu ise GELECEGI gosterir. Puantaj
+/// ucu her gun icin bulunma, mola ve mesai hesabi yapiyor; cizelge icin bunun
+/// hicbiri gerekmiyor ve 30 gun x 20 kisi icin bosa hesap demekti.
+///
+/// TUM EKIP gorur (barista dahil): kimin ne zaman calistigi ekibin gunluk
+/// olarak ihtiyac duydugu bilgi. Ucret ya da puantaj verisi ICERMEZ.
+router.get('/roster', async (req, res) => {
+  const from = req.query.from;
+  const to = req.query.to;
+  if (!isDate(from) || !isDate(to)) {
+    return res.status(400).json({ error: 'from ve to YYYY-AA-GG biçiminde olmalıdır' });
+  }
+  if (to < from) return res.status(400).json({ error: 'Bitiş tarihi başlangıçtan önce olamaz' });
+  const dates = dateRange(from, to);
+  // Cizelge ekranda okunacak; 62 gun iki aylik gorunume yeter.
+  if (dates.length > 62) {
+    return res.status(400).json({ error: 'Çizelge en fazla 62 gün olabilir' });
+  }
+
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'u.store_id');
+
+  const users = await queryAll(`
+    SELECT u.id, u.full_name, u.role, u.store_id, st.name AS store_name
+    FROM users u LEFT JOIN stores st ON st.id = u.store_id
+    WHERE u.active = 1 ${f.sql} ORDER BY u.full_name`, ...f.params);
+  if (users.length === 0) {
+    return res.json({ from, to, dates, people: [], holidays: {}, totals: {} });
+  }
+  const ids = users.map((u) => u.id);
+  const ph = ids.map(() => '?').join(',');
+
+  const rows = await queryAll(`
+    SELECT us.user_id, us.work_date, us.is_day_off,
+           s.id AS shift_id, s.name AS shift_name, s.start_time, s.end_time,
+           s.break_duration_minutes
+    FROM user_shifts us LEFT JOIN shifts s ON s.id = us.shift_id
+    WHERE us.user_id IN (${ph}) AND us.work_date >= ? AND us.work_date <= ?
+    ORDER BY us.work_date, s.start_time`, ...ids, from, to);
+
+  // Resmi tatiller cizelgede de isaretlenir: plan yapan kisi tatili gormeli.
+  const storeIds = [...new Set(users.map((u) => u.store_id).filter((v) => v != null))];
+  const holidayRows = storeIds.length === 0 ? [] : await queryAll(`
+    SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+    WHERE holiday_date >= ? AND holiday_date <= ?
+      AND (store_id IS NULL OR store_id IN (${storeIds.map(() => '?').join(',')}))`,
+    from, to, ...storeIds);
+
+  const byUser = new Map();
+  for (const r of rows) {
+    const k = `${r.user_id}|${r.work_date}`;
+    if (!byUser.has(k)) byUser.set(k, []);
+    byUser.get(k).push({
+      shift_id: r.shift_id,
+      shift_name: r.shift_name,
+      start_time: r.start_time,
+      end_time: r.end_time,
+      break_duration_minutes: r.break_duration_minutes,
+      is_day_off: !!r.is_day_off,
+      // Gece vardiyasi isaretlenir: 22:00-06:00 cizelgede ertesi gune sarkar.
+      crosses_midnight: !r.is_day_off && r.start_time && r.end_time
+        ? t.crossesMidnight(r.start_time, r.end_time) : false,
+      minutes: !r.is_day_off && r.start_time && r.end_time
+        ? sheet.shiftSpanMinutes(r.start_time, r.end_time) : 0,
+    });
+  }
+
+  const people = users.map((u) => {
+    const cells = {};
+    for (const d of dates) cells[d] = byUser.get(`${u.id}|${d}`) || [];
+    const planned = dates.reduce((a, d) => a
+      + cells[d].reduce((x, c) => x + (c.minutes || 0), 0), 0);
+    return {
+      user: {
+        id: u.id, full_name: u.full_name, role: u.role,
+        store_id: u.store_id, store_name: u.store_name,
+      },
+      cells,
+      planned_minutes: planned,
+      // Atanmis calisma gunu ve hafta tatili sayisi.
+      shift_days: dates.filter((d) => cells[d].some((c) => !c.is_day_off)).length,
+      day_off_days: dates.filter((d) => cells[d].some((c) => c.is_day_off)).length,
+      unassigned_days: dates.filter((d) => cells[d].length === 0).length,
+    };
+  });
+
+  // Gun bazinda kac kisi calisiyor: eksik kadroyu gormek icin.
+  const totals = {};
+  for (const d of dates) {
+    totals[d] = {
+      working: people.filter((p) => p.cells[d].some((c) => !c.is_day_off)).length,
+      day_off: people.filter((p) => p.cells[d].some((c) => c.is_day_off)).length,
+      unassigned: people.filter((p) => p.cells[d].length === 0).length,
+      minutes: people.reduce((a, p) => a
+        + p.cells[d].reduce((x, c) => x + (c.minutes || 0), 0), 0),
+    };
+  }
+
+  res.json({
+    from, to, dates, people, totals,
+    holidays: bal.holidayMap(holidayRows),
+    store: scope.storeId != null
+      ? (users.find((u) => Number(u.store_id) === Number(scope.storeId)) || {}).store_name ?? null
+      : null,
+    // Cizelgeyi degistirebilen roller; arayuz dugmeleri buna gore cizilir.
+    can_edit: MANAGER_ROLES.includes(req.user.role),
   });
 });
 
