@@ -34,7 +34,7 @@ export const NAV_SECTIONS = [
           // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
           // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
           { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: ALL_ROLES, tab: true },
-          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES },
+          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true },
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden
           // gordugu icin bu oge onlara cikmiyor; menu ikiye katlanmasin.
