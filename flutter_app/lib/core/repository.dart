@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'opts.dart';
+import 'device_integrity.dart';
 import '../models/activity_log.dart';
 import '../models/approval.dart';
 import '../models/batch.dart';
@@ -25,7 +26,10 @@ class Repository {
     return DashboardData.fromJson(r.data!);
   }
 
-  Future<ReportSummary> reportSummary({int? storeId, bool silent = false}) async {
+  Future<ReportSummary> reportSummary({
+    int? storeId,
+    bool silent = false,
+  }) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/reports/summary${_q(storeId)}',
       options: apiOptions(silent: silent),
@@ -43,7 +47,10 @@ class Repository {
         .toList();
   }
 
-  Future<List<StatusSlice>> statusBreakdown({int? storeId, bool silent = false}) async {
+  Future<List<StatusSlice>> statusBreakdown({
+    int? storeId,
+    bool silent = false,
+  }) async {
     final r = await api.dio.get<List<dynamic>>(
       '/reports/status${_q(storeId)}',
       options: apiOptions(silent: silent),
@@ -53,7 +60,10 @@ class Repository {
         .toList();
   }
 
-  Future<ProductPerformance> productPerformance({int? storeId, bool silent = false}) async {
+  Future<ProductPerformance> productPerformance({
+    int? storeId,
+    bool silent = false,
+  }) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/reports/products${_q(storeId)}',
       options: apiOptions(silent: silent),
@@ -69,12 +79,17 @@ class Repository {
     return (r.data ?? []).length;
   }
 
-  Future<List<Batch>> recommendations({int? storeId, bool silent = false}) async {
+  Future<List<Batch>> recommendations({
+    int? storeId,
+    bool silent = false,
+  }) async {
     final r = await api.dio.get<List<dynamic>>(
       '/recommendations${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
-    return (r.data ?? []).map((e) => Batch.fromJson(e as Map<String, dynamic>)).toList();
+    return (r.data ?? [])
+        .map((e) => Batch.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Satis her zaman tam bir adet dusurur.
@@ -82,7 +97,9 @@ class Repository {
     await api.dio.post(
       '/batches/${batch.id}/sell',
       data: {'quantity': 1},
-      options: apiOptions(successMessage: '${batch.productName} — 1 adet satıldı'),
+      options: apiOptions(
+        successMessage: '${batch.productName} — 1 adet satıldı',
+      ),
     );
   }
 
@@ -92,11 +109,16 @@ class Repository {
     await api.dio.post(
       '/batches/${batch.id}/sell',
       data: {'quantity': 1, 'kind': 'ikram'},
-      options: apiOptions(successMessage: '${batch.productName} — 1 adet ikram edildi'),
+      options: apiOptions(
+        successMessage: '${batch.productName} — 1 adet ikram edildi',
+      ),
     );
   }
 
-  Future<void> discardAll(Batch batch, {String reason = 'SKT süresi doldu'}) async {
+  Future<void> discardAll(
+    Batch batch, {
+    String reason = 'SKT süresi doldu',
+  }) async {
     await api.dio.post(
       '/batches/${batch.id}/discard',
       data: {'reason': reason},
@@ -106,18 +128,27 @@ class Repository {
 
   // ---- Urunler / Stok ----
 
-  Future<List<Batch>> batches({required String status, int? storeId, bool silent = false}) async {
+  Future<List<Batch>> batches({
+    required String status,
+    int? storeId,
+    bool silent = false,
+  }) async {
     final params = <String>['status=$status'];
     if (storeId != null) params.add('storeId=$storeId');
     final r = await api.dio.get<List<dynamic>>(
       '/batches?${params.join('&')}',
       options: apiOptions(silent: silent),
     );
-    return (r.data ?? []).map((e) => Batch.fromJson(e as Map<String, dynamic>)).toList();
+    return (r.data ?? [])
+        .map((e) => Batch.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<(Batch, List<SaleRecord>)> batchDetail(int id) async {
-    final r = await api.dio.get<Map<String, dynamic>>('/batches/$id', options: apiOptions());
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/batches/$id',
+      options: apiOptions(),
+    );
     final data = r.data!;
     final sales = (data['sales'] as List<dynamic>? ?? [])
         .map((e) => SaleRecord.fromJson(e as Map<String, dynamic>))
@@ -125,12 +156,17 @@ class Repository {
     return (Batch.fromJson(data), sales);
   }
 
-  Future<List<ProductType>> productTypes({int? storeId, bool silent = false}) async {
+  Future<List<ProductType>> productTypes({
+    int? storeId,
+    bool silent = false,
+  }) async {
     final r = await api.dio.get<List<dynamic>>(
       '/product-types${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
-    return (r.data ?? []).map((e) => ProductType.fromJson(e as Map<String, dynamic>)).toList();
+    return (r.data ?? [])
+        .map((e) => ProductType.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> createBatch({
@@ -166,11 +202,17 @@ class Repository {
   Future<void> completeThaw(Batch batch) async {
     await api.dio.post(
       '/batches/${batch.id}/complete-thaw',
-      options: apiOptions(successMessage: '${batch.productName} food dolabına aktarıldı'),
+      options: apiOptions(
+        successMessage: '${batch.productName} food dolabına aktarıldı',
+      ),
     );
   }
 
-  Future<Map<String, dynamic>> discard(int batchId, {required int quantity, String? reason}) async {
+  Future<Map<String, dynamic>> discard(
+    int batchId, {
+    required int quantity,
+    String? reason,
+  }) async {
     final r = await api.dio.post<Map<String, dynamic>>(
       '/batches/$batchId/discard',
       data: {'quantity': quantity, 'reason': ?reason},
@@ -195,13 +237,18 @@ class Repository {
     );
   }
 
-  Future<List<String>> adjustBatch(int batchId, Map<String, dynamic> payload) async {
+  Future<List<String>> adjustBatch(
+    int batchId,
+    Map<String, dynamic> payload,
+  ) async {
     final r = await api.dio.put<Map<String, dynamic>>(
       '/batches/$batchId/adjust',
       data: payload,
       options: apiOptions(noToast: true),
     );
-    return ((r.data?['changes'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList();
+    return ((r.data?['changes'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList();
   }
 
   // ---- Pasta Cesitleri ----
@@ -225,9 +272,17 @@ class Repository {
       if (includeStore) 'store_id': storeId,
     };
     if (id == null) {
-      await api.dio.post('/product-types', data: data, options: apiOptions(noToast: true));
+      await api.dio.post(
+        '/product-types',
+        data: data,
+        options: apiOptions(noToast: true),
+      );
     } else {
-      await api.dio.put('/product-types/$id', data: data, options: apiOptions(noToast: true));
+      await api.dio.put(
+        '/product-types/$id',
+        data: data,
+        options: apiOptions(noToast: true),
+      );
     }
   }
 
@@ -241,8 +296,13 @@ class Repository {
   // ---- Magazalar ----
 
   Future<List<Store>> storeList({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>('/stores', options: apiOptions(silent: silent));
-    return (r.data ?? []).map((e) => Store.fromJson(e as Map<String, dynamic>)).toList();
+    final r = await api.dio.get<List<dynamic>>(
+      '/stores',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => Store.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> saveStore({
@@ -259,21 +319,37 @@ class Repository {
       if (id != null) 'active': active,
     };
     if (id == null) {
-      await api.dio.post('/stores', data: data, options: apiOptions(noToast: true));
+      await api.dio.post(
+        '/stores',
+        data: data,
+        options: apiOptions(noToast: true),
+      );
     } else {
-      await api.dio.put('/stores/$id', data: data, options: apiOptions(noToast: true));
+      await api.dio.put(
+        '/stores/$id',
+        data: data,
+        options: apiOptions(noToast: true),
+      );
     }
   }
 
   Future<void> deleteStore(Store store) async {
-    await api.dio.delete('/stores/${store.id}', options: apiOptions(successMessage: 'Mağaza silindi'));
+    await api.dio.delete(
+      '/stores/${store.id}',
+      options: apiOptions(successMessage: 'Mağaza silindi'),
+    );
   }
 
   // ---- Kullanicilar ----
 
   Future<List<ManagedUser>> userList({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>('/users', options: apiOptions(silent: silent));
-    return (r.data ?? []).map((e) => ManagedUser.fromJson(e as Map<String, dynamic>)).toList();
+    final r = await api.dio.get<List<dynamic>>(
+      '/users',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => ManagedUser.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> createUser({
@@ -332,7 +408,9 @@ class Repository {
       '/users/${user.id}',
       data: {'active': !user.active},
       options: apiOptions(
-        successMessage: user.active ? 'Kullanıcı pasife alındı' : 'Kullanıcı aktifleştirildi',
+        successMessage: user.active
+            ? 'Kullanıcı pasife alındı'
+            : 'Kullanıcı aktifleştirildi',
       ),
     );
   }
@@ -346,7 +424,10 @@ class Repository {
   }
 
   Future<void> deleteUser(ManagedUser user) async {
-    await api.dio.delete('/users/${user.id}', options: apiOptions(successMessage: 'Kullanıcı silindi'));
+    await api.dio.delete(
+      '/users/${user.id}',
+      options: apiOptions(successMessage: 'Kullanıcı silindi'),
+    );
   }
 
   // ---- Gunluk operasyon raporu ----
@@ -401,7 +482,10 @@ class Repository {
 
   /// Kayitli gunu duzenler. Tarih degismez; gun degisecekse silip yeniden
   /// girmek gerekir.
-  Future<void> updateDailyReport(DailyReport report, Map<String, num> values) async {
+  Future<void> updateDailyReport(
+    DailyReport report,
+    Map<String, num> values,
+  ) async {
     await api.dio.put(
       '/daily-reports/${report.id}',
       data: values,
@@ -503,6 +587,7 @@ class Repository {
     required double longitude,
     double? accuracy,
     bool? isMocked,
+    DeviceIntegrity? integrity,
   }) async {
     await api.dio.post(
       entry ? '/pdks/check-in' : '/pdks/check-out',
@@ -512,6 +597,7 @@ class Repository {
         'longitude': longitude,
         'accuracy': ?accuracy,
         'is_mocked': ?isMocked,
+        'device_integrity': ?integrity?.toJson(),
       },
       options: apiOptions(noToast: true, busyMessage: 'Konum doğrulanıyor...'),
     );
@@ -526,6 +612,7 @@ class Repository {
     double? longitude,
     double? accuracy,
     bool? isMocked,
+    DeviceIntegrity? integrity,
   }) async {
     await api.dio.post(
       entry ? '/pdks/check-in' : '/pdks/check-out',
@@ -536,6 +623,7 @@ class Repository {
         'longitude': ?longitude,
         'accuracy': ?accuracy,
         'is_mocked': ?isMocked,
+        'device_integrity': ?integrity?.toJson(),
       },
       options: apiOptions(noToast: true, busyMessage: 'QR doğrulanıyor...'),
     );
@@ -569,7 +657,10 @@ class Repository {
     return PdksBalance.fromJson(r.data ?? const {});
   }
 
-  Future<List<PersonnelRequest>> pdksRequests({String? status, bool silent = true}) async {
+  Future<List<PersonnelRequest>> pdksRequests({
+    String? status,
+    bool silent = true,
+  }) async {
     final r = await api.dio.get<List<dynamic>>(
       '/pdks/requests',
       queryParameters: {'status': ?status},
@@ -651,11 +742,17 @@ class Repository {
     required String from,
     required String to,
     int? userId,
+    int? storeId,
     bool silent = false,
   }) async {
     final r = await api.dio.get<Map<String, dynamic>>(
       '/pdks/timesheet',
-      queryParameters: {'from': from, 'to': to, 'userId': ?userId?.toString()},
+      queryParameters: {
+        'from': from,
+        'to': to,
+        'userId': ?userId?.toString(),
+        'storeId': ?storeId?.toString(),
+      },
       options: apiOptions(silent: silent),
     );
     return TimesheetReport.fromJson(r.data ?? const {});
@@ -740,7 +837,9 @@ class Repository {
       '/petty-cash/limits',
       options: apiOptions(silent: silent),
     );
-    return (r.data ?? []).map((e) => PettyCashLimit.fromJson(e as Map<String, dynamic>)).toList();
+    return (r.data ?? [])
+        .map((e) => PettyCashLimit.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> setPettyCashLimit(int storeId, num weeklyAmount) async {
@@ -794,10 +893,7 @@ class Repository {
   }) async {
     final r = await api.dio.get<List<dynamic>>(
       '/approvals',
-      queryParameters: {
-        'status': ?status,
-        'storeId': ?storeId?.toString(),
-      },
+      queryParameters: {'status': ?status, 'storeId': ?storeId?.toString()},
       options: apiOptions(silent: silent),
     );
     return (r.data ?? [])
@@ -809,7 +905,8 @@ class Repository {
     await api.dio.post(
       '/approvals/${item.id}/approve',
       options: apiOptions(
-        successMessage: '${item.productName ?? 'Ürün'} food dolabına alındı, SKT başladı',
+        successMessage:
+            '${item.productName ?? 'Ürün'} food dolabına alındı, SKT başladı',
       ),
     );
   }
@@ -859,12 +956,19 @@ class Repository {
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(silent: silent),
     );
-    return (r.data ?? []).map((e) => SaleRecord.fromJson(e as Map<String, dynamic>)).toList();
+    return (r.data ?? [])
+        .map((e) => SaleRecord.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<ActivityLog>> logs({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>('/logs', options: apiOptions(silent: silent));
-    return (r.data ?? []).map((e) => ActivityLog.fromJson(e as Map<String, dynamic>)).toList();
+    final r = await api.dio.get<List<dynamic>>(
+      '/logs',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => ActivityLog.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<StoreOption>> stores({bool silent = false}) async {

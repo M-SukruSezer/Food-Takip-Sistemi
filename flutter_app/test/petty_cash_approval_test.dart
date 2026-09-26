@@ -16,11 +16,17 @@ Map<String, Object?> _expense({
   bool hasReceipt = true,
   String? note,
 }) => {
-      'id': id, 'store_id': 1, 'amount': amount, 'description': description,
-      'spent_at': '2026-09-25T09:00:00.000Z', 'created_at': '2026-09-25T09:00:00.000Z',
-      'status': status, 'has_receipt': hasReceipt,
-      'created_by_name': createdBy, 'decision_note': note,
-    };
+  'id': id,
+  'store_id': 1,
+  'amount': amount,
+  'description': description,
+  'spent_at': '2026-09-25T09:00:00.000Z',
+  'created_at': '2026-09-25T09:00:00.000Z',
+  'status': status,
+  'has_receipt': hasReceipt,
+  'created_by_name': createdBy,
+  'decision_note': note,
+};
 
 Map<String, Object?> _page({
   List<Map<String, Object?>>? items,
@@ -28,14 +34,19 @@ Map<String, Object?> _page({
   num pending = 300,
   int pendingCount = 1,
 }) => {
-      'items': items ?? [_expense()],
-      'status': {
-        'store_id': 1, 'weekly_limit': 5000, 'spent_this_week': 500,
-        'approved_this_week': 200, 'pending_this_week': pending,
-        'pending_count': pendingCount, 'remaining': 4500,
-        'week_start': '2026-09-21T00:00:00.000Z', 'can_approve': canApprove,
-      },
-    };
+  'items': items ?? [_expense()],
+  'status': {
+    'store_id': 1,
+    'weekly_limit': 5000,
+    'spent_this_week': 500,
+    'approved_this_week': 200,
+    'pending_this_week': pending,
+    'pending_count': pendingCount,
+    'remaining': 4500,
+    'week_start': '2026-09-21T00:00:00.000Z',
+    'can_approve': canApprove,
+  },
+};
 
 void main() {
   setUpAll(initTestFormatting);
@@ -48,9 +59,18 @@ void main() {
 
   group('Model', () {
     test('durum etiketleri', () {
-      expect(PettyCashExpense.fromJson(_expense(status: 'pending')).statusLabel, 'Onay bekliyor');
-      expect(PettyCashExpense.fromJson(_expense(status: 'approved')).statusLabel, 'Onaylandı');
-      expect(PettyCashExpense.fromJson(_expense(status: 'rejected')).statusLabel, 'Reddedildi');
+      expect(
+        PettyCashExpense.fromJson(_expense(status: 'pending')).statusLabel,
+        'Onay bekliyor',
+      );
+      expect(
+        PettyCashExpense.fromJson(_expense(status: 'approved')).statusLabel,
+        'Onaylandı',
+      );
+      expect(
+        PettyCashExpense.fromJson(_expense(status: 'rejected')).statusLabel,
+        'Reddedildi',
+      );
     });
 
     test('durum alanı yoksa onaylı sayılır', () {
@@ -62,7 +82,9 @@ void main() {
 
     test('bekleyen tutar durumda taşınır', () {
       final st = PettyCashStatus.fromJson(
-          (_page(pending: 750, pendingCount: 2)['status'] as Map<String, dynamic>));
+        (_page(pending: 750, pendingCount: 2)['status']
+            as Map<String, dynamic>),
+      );
       expect(st.pendingThisWeek, 750);
       expect(st.pendingCount, 2);
       expect(st.canApprove, isFalse);
@@ -120,7 +142,10 @@ void main() {
     testWidgets('fişsiz masrafta onay ekranı uyarır', (tester) async {
       tall(tester);
       installFakeApi({
-        'GET /petty-cash': _page(items: [_expense(hasReceipt: false)], canApprove: true),
+        'GET /petty-cash': _page(
+          items: [_expense(hasReceipt: false)],
+          canApprove: true,
+        ),
       });
       signInAs('store_manager', storeId: 1);
 
@@ -153,7 +178,9 @@ void main() {
       await tester.enterText(find.byType(TextField).last, 'Belgesi yok');
       await tester.tap(find.widgetWithText(FilledButton, 'Reddet'));
       await tester.pumpAndSettle();
-      expect(fake.lastBody('POST /petty-cash/1/reject'), {'note': 'Belgesi yok'});
+      expect(fake.lastBody('POST /petty-cash/1/reject'), {
+        'note': 'Belgesi yok',
+      });
     });
 
     testWidgets('reddedilen masrafta gerekçe gösterilir', (tester) async {
@@ -161,7 +188,8 @@ void main() {
       installFakeApi({
         'GET /petty-cash': _page(
           items: [_expense(status: 'rejected', note: 'Belgesi yok')],
-          pending: 0, pendingCount: 0,
+          pending: 0,
+          pendingCount: 0,
         ),
       });
       signInAs('shift_supervisor', storeId: 1);
@@ -177,32 +205,53 @@ void main() {
   });
 
   group('Menü ağacı', () {
-    test('gruplar mantıksal sırada', () {
-      expect(navGroups.map((g) => g.title).toList(),
-          ['Operasyon', 'Kasa ve Raporlar', 'Yönetim', null]);
+    List<NavGroup> opsGroups() =>
+        navSections.firstWhere((s) => s.id == AppSection.operations).groups;
+
+    test('Operasyon ekranının grupları mantıksal sırada', () {
+      expect(opsGroups().map((g) => g.title).toList(), [
+        'Operasyon',
+        'Kasa ve Raporlar',
+        'Yönetim',
+      ]);
     });
 
-    test('düz liste gruplardan üretiliyor', () {
-      final fromGroups = navGroups.expand((g) => g.items).map((i) => i.path).toList();
-      expect(navItems.map((i) => i.path).toList(), fromGroups);
-      // Her yol tek kez geciyor.
+    test('düz liste ekranlardan üretiliyor ve her yol tek kez geçiyor', () {
+      final fromSections = [
+        for (final s in navSections)
+          for (final g in s.groups) ...g.items.map((i) => i.path),
+      ];
+      // Profilim iki ekranda da gorunuyor; duz listede bir kez durmali.
       expect(navItems.map((i) => i.path).toSet().length, navItems.length);
+      expect(navItems.map((i) => i.path), containsAll(fromSections));
+      expect(navItems.map((i) => i.path), contains('/profile'));
     });
 
     test('rolüne açık öğesi olmayan grup çizilmez', () {
-      final barista = navGroupsFor(testUser('barista', storeId: 1));
+      final barista = navGroupsFor(
+        testUser('barista', storeId: 1),
+        AppSection.operations,
+      );
       // Barista Yonetim grubundaki hicbir ogeye erismiyor.
       expect(barista.map((g) => g.title), isNot(contains('Yönetim')));
-      // Kasa ve Raporlar'da yalnizca hareket raporu/kayitlari kaliyor.
       final kasa = barista.firstWhere((g) => g.title == 'Kasa ve Raporlar');
       expect(kasa.items.map((i) => i.path), ['/sales', '/logs']);
 
-      final admin = navGroupsFor(testUser('super_admin'));
-      expect(admin.map((g) => g.title), ['Operasyon', 'Kasa ve Raporlar', 'Yönetim', null]);
+      final admin = navGroupsFor(
+        testUser('super_admin'),
+        AppSection.operations,
+      );
+      // Profilim her ekranda kuyrukta duruyor: basliksiz grup olarak.
+      expect(admin.map((g) => g.title), [
+        'Operasyon',
+        'Kasa ve Raporlar',
+        'Yönetim',
+        null,
+      ]);
     });
 
     test('Onaylar Operasyon grubunda', () {
-      final op = navGroups.firstWhere((g) => g.title == 'Operasyon');
+      final op = opsGroups().firstWhere((g) => g.title == 'Operasyon');
       expect(op.items.map((i) => i.path), contains('/approvals'));
     });
   });

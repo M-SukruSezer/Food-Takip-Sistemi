@@ -1,7 +1,7 @@
-import { ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES } from './format';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES, HR_ROLES } from './format';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth';
-import Layout from './components/Layout';
+import Layout, { landingPathFor, allowedPaths } from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Batches from './pages/Batches';
@@ -18,6 +18,7 @@ import Stores from './pages/Stores';
 import Logs from './pages/Logs';
 import Profile from './pages/Profile';
 import Approvals from './pages/Approvals';
+import Timesheet from './pages/Timesheet';
 import { ToastHost, BusyHost } from './components/ui';
 
 function RequireAuth({ children }) {
@@ -28,9 +29,34 @@ function RequireAuth({ children }) {
   return children;
 }
 
+// Rolune kapali bir yola URL yazarak gidilemez. Sunucu zaten 403 veriyor;
+// burada da kesilmesi bos ya da hatali bir ekran yerine kullaniciyi kendi
+// giris sayfasina dusurmek icin. Varis /dashboard DEGIL: IK o sayfayi hic
+// gormuyor, sabit yazmak IK'yi sonsuz yonlendirmeye sokardi.
 function Guard({ roles, children }) {
   const { user } = useAuth();
-  if (user && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (!user) return children;
+  if (!roles.includes(user.role)) return <Navigate to={landingPathFor(user.role)} replace />;
+  return children;
+}
+
+/// Menude olmayan bir yol istenirse kullanicinin giris sayfasina doner.
+function Landing() {
+  const { user } = useAuth();
+  return <Navigate to={user ? landingPathFor(user.role) : '/login'} replace />;
+}
+
+/// Rolune acik olmayan her yol icin ortak bekci. Guard rol listesi yazmayi
+/// gerektiriyor; bu ise nav tanimindan besleniyor, yani menuye yeni bir oge
+/// eklenince bekci de kendiliginden dogru calisiyor.
+function NavGuard({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return children;
+  // Profilim her rolde acik; allowedPaths onu da iceriyor.
+  if (!allowedPaths(user.role).has(location.pathname)) {
+    return <Navigate to={landingPathFor(user.role)} replace />;
+  }
   return children;
 }
 
@@ -47,13 +73,14 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="batches" element={<Batches />} />
-        <Route path="recommendations" element={<Recommendations />} />
-        <Route path="product-types" element={<ProductTypes />} />
-        <Route path="sales" element={<Sales />} />
-        <Route path="logs" element={<Logs />} />
+        {/* Girişte PDKS ekrani acilir. */}
+        <Route index element={<Landing />} />
+        <Route path="dashboard" element={<NavGuard><Dashboard /></NavGuard>} />
+        <Route path="batches" element={<NavGuard><Batches /></NavGuard>} />
+        <Route path="recommendations" element={<NavGuard><Recommendations /></NavGuard>} />
+        <Route path="product-types" element={<NavGuard><ProductTypes /></NavGuard>} />
+        <Route path="sales" element={<NavGuard><Sales /></NavGuard>} />
+        <Route path="logs" element={<NavGuard><Logs /></NavGuard>} />
         <Route path="profile" element={<Profile />} />
         <Route path="petty-cash" element={<Guard roles={PETTY_CASH_ROLES}><PettyCash /></Guard>} />
         <Route path="daily-report" element={<Guard roles={REPORT_PANEL_ROLES}><DailyReport /></Guard>} />
@@ -61,11 +88,12 @@ export default function App() {
         {/* Devam takibi: personel ekrani herkeste, yonetim ekrani yonetici rollerinde. */}
         <Route path="pdks" element={<Guard roles={ALL_ROLES}><Pdks /></Guard>} />
         <Route path="pdks-admin" element={<Guard roles={MANAGER_ROLES}><PdksAdmin /></Guard>} />
+        <Route path="timesheet" element={<Guard roles={HR_ROLES}><Timesheet /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />
         <Route path="approvals" element={<Guard roles={MANAGER_ROLES}><Approvals /></Guard>} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Landing />} />
       </Routes>
       <BusyHost />
       <ToastHost />

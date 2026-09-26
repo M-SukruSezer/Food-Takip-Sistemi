@@ -2,7 +2,9 @@ const express = require('express');
 const { queryAll, queryOne } = require('../db');
 const {
   requireAuth, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
+  TIMESHEET_VIEW_ROLES,
 } = require('../auth');
+const dev = require('../pdks/device');
 const bal = require('../pdks/balance');
 const sheet = require('../pdks/timesheet');
 const t = require('../pdks/time');
@@ -65,7 +67,7 @@ async function buildTimesheet(userIds, from, to) {
     ...userIds, from, to);
 
   const logs = await queryAll(`
-    SELECT user_id, work_date, type, method, occurred_at, is_valid_location
+    SELECT user_id, work_date, type, method, occurred_at, is_valid_location, risk_flags
     FROM attendance_logs
     WHERE user_id IN (${ph}) AND work_date >= ? AND work_date <= ?
     ORDER BY occurred_at, id`, ...userIds, from, to);
@@ -116,7 +118,12 @@ async function buildTimesheet(userIds, from, to) {
       });
       const names = (byAssignment.get(key(u.id, date)) || [])
         .map((a) => a.shift_name).filter(Boolean);
-      return { ...day, shift_names: names };
+      // O gunun kayitlarinda biriken uyari bayraklari. Puantaji onaylayan
+      // kisi supheli bir girisi gormeden imzalamasin.
+      const dayFlags = [...new Set(
+        (byLog.get(key(u.id, date)) || []).flatMap((l) => dev.parseFlags(l.risk_flags))
+      )];
+      return { ...day, shift_names: names, risk_flags: dayFlags };
     });
     return {
       user: {
@@ -124,7 +131,10 @@ async function buildTimesheet(userIds, from, to) {
         store_id: u.store_id, store_name: u.store_name,
       },
       days,
-      summary: sheet.summarize(days),
+      summary: {
+        ...sheet.summarize(days),
+        flagged_days: days.filter((d) => d.risk_flags.length > 0).length,
+      },
     };
   });
 }
@@ -145,10 +155,12 @@ router.get('/timesheet', async (req, res) => {
     return res.status(400).json({ error: 'Aralık en fazla 1 yıl olabilir' });
   }
 
-  const isManager = MANAGER_ROLES.includes(req.user.role);
+  // IK yonetici DEGIL ama baskasinin puantajini okur: bu uc salt okunur
+  // oldugu icin okuma yetkisi ayri listeden geliyor.
+  const canViewOthers = TIMESHEET_VIEW_ROLES.includes(req.user.role);
   let userIds;
 
-  if (!isManager) {
+  if (!canViewOthers) {
     userIds = [req.user.id];
   } else if (req.query.userId) {
     const id = Number(req.query.userId);
@@ -198,11 +210,13 @@ router.get('/now', async (req, res) => {
   // Her personelin SON kaydi: giris ise iceride.
   const rows = await queryAll(`
     SELECT u.id, u.full_name, u.role, u.store_id, s.name AS store_name,
-           l.type, l.method, l.occurred_at, l.work_date, l.distance_m, l.is_valid_location
+           l.type, l.method, l.occurred_at, l.work_date, l.distance_m,
+           l.is_valid_location, l.risk_flags
     FROM users u
     LEFT JOIN stores s ON s.id = u.store_id
     LEFT JOIN LATERAL (
-      SELECT type, method, occurred_at, work_date, distance_m, is_valid_location
+      SELECT type, method, occurred_at, work_date, distance_m, is_valid_location,
+             risk_flags
       FROM attendance_logs al WHERE al.user_id = u.id
       ORDER BY al.occurred_at DESC, al.id DESC LIMIT 1
     ) l ON true
@@ -219,6 +233,8 @@ router.get('/now', async (req, res) => {
       last_type: r.type, last_method: r.method, last_at: r.occurred_at,
       work_date: r.work_date, distance_m: r.distance_m,
       is_valid_location: r.is_valid_location,
+      risk_flags: dev.parseFlags(r.risk_flags),
+      risk_labels: dev.labelsFor(r.risk_flags),
       // Iceridekinin ne kadar suredir oldugu.
       minutes_since: r.occurred_at
         ? Math.round((Date.now() - new Date(r.occurred_at).getTime()) / 60000)

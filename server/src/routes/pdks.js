@@ -3,6 +3,7 @@ const { queryAll, queryOne, execute } = require('../db');
 const { requireAuth, requireRole, allowsStore } = require('../auth');
 const { logActivity } = require('../utils');
 const geo = require('../pdks/geo');
+const dev = require('../pdks/device');
 const qr = require('../pdks/qr');
 const t = require('../pdks/time');
 
@@ -87,6 +88,15 @@ async function buildEntry({ req, store, body, atIso }) {
   // Cihaz bildirmediyse undefined kalir: "bilinmiyor" ile "sahte degil" ayri.
   const isMocked = typeof body.is_mocked === 'boolean' ? body.is_mocked : undefined;
 
+  // Cihaz butunlugu YONTEMDEN BAGIMSIZ degerlendirilir: bayraklar konumu
+  // degil cihazi anlatiyor, dolayisiyla gecerli bir QR okutulsa da emulatorden
+  // mesai girisi kabul edilmez.
+  const integrity = dev.parseIntegrity(body.device_integrity);
+  const assessment = dev.assessDevice({ isMocked, integrity });
+  if (assessment.blocked) {
+    return { error: assessment.reason, flags: assessment.flags };
+  }
+
   const entry = {
     method,
     latitude: null,
@@ -95,6 +105,7 @@ async function buildEntry({ req, store, body, atIso }) {
     distance_m: null,
     is_valid_location: null,
     is_mocked: isMocked === undefined ? null : (isMocked ? 1 : 0),
+    risk_flags: dev.serializeFlags(assessment.flags),
     qr_token_hash: null,
   };
 
@@ -155,18 +166,19 @@ async function record({ req, targetUserId, store, type, entry, atIso, workDate, 
     `INSERT INTO attendance_logs
        (user_id, store_id, type, method, occurred_at, work_date,
         latitude, longitude, accuracy_m, distance_m, is_valid_location,
-        is_mocked, qr_token_hash, device_label, note, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
+        is_mocked, risk_flags, qr_token_hash, device_label, note, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
     targetUserId, store.id, type, entry.method, atIso, workDate,
     entry.latitude, entry.longitude, entry.accuracy_m, entry.distance_m,
-    entry.is_valid_location, entry.is_mocked, entry.qr_token_hash,
+    entry.is_valid_location, entry.is_mocked, entry.risk_flags, entry.qr_token_hash,
     entry.device_label || null, note || null, req.user.id
   );
   await logActivity(req.user, type === 'GIRIS' ? 'PDKS_GIRIS' : 'PDKS_CIKIS',
     'attendance_log', r.lastInsertRowid,
     `${entry.method} ile ${type === 'GIRIS' ? 'giriş' : 'çıkış'}`
     + (entry.distance_m !== null ? ` (${Math.round(entry.distance_m)} m)` : '')
-    + (targetUserId !== req.user.id ? ' — kiosk tarafından okutuldu' : ''),
+    + (targetUserId !== req.user.id ? ' — kiosk tarafından okutuldu' : '')
+    + (entry.risk_flags ? ` — uyarı: ${dev.labelsFor(entry.risk_flags).join(', ')}` : ''),
     store.id);
   return Number(r.lastInsertRowid);
 }

@@ -76,6 +76,10 @@ export function sumRemaining(list) {
 export const ROLE_ORDER = [
   'super_admin',
   'operations_manager',
+  // IK kademesi bolge mudurunun USTUNDE: magaza sinirlarini asan puantaj
+  // gorunurlugu tanidigi icin bir bolge muduru IK kullanicisi tanimlayamamali.
+  // Sunucudaki ROLES ile ayni sira.
+  'hr',
   'regional_manager',
   'store_manager',
   'shift_supervisor',
@@ -85,6 +89,7 @@ export const ROLE_ORDER = [
 export const ROLE_LABELS = {
   super_admin: 'Ana Yönetici',
   operations_manager: 'Operations Manager',
+  hr: 'İnsan Kaynakları',
   regional_manager: 'Regional Manager',
   store_manager: 'Store Manager',
   shift_supervisor: 'Shift Supervisor',
@@ -92,15 +97,20 @@ export const ROLE_LABELS = {
 };
 
 // Birden fazla magazadan sorumlu olabilen roller.
-export const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager'];
+export const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager', 'hr'];
 
 // Kullanici yonetimi yapabilen roller.
 export const MANAGER_ROLES = [
   'super_admin', 'operations_manager', 'regional_manager', 'store_manager',
 ];
 
-// Tum roller (menu erisimi icin).
-export const ALL_ROLES = ROLE_ORDER;
+// IK rolu. Yonetici DEGIL; yalnizca magaza puantaji gorur.
+export const HR_ROLES = ['hr'];
+
+// Operasyon modullerine erisen tum roller. IK BURADA YOK: kasa, urun, rapor
+// ve kullanici modullerinin hicbirine erismiyor. ROLE_ORDER'dan turetiliyor
+// ki yeni bir rol eklendiginde iki liste ayrismasin.
+export const ALL_ROLES = ROLE_ORDER.filter((r) => !HR_ROLES.includes(r));
 
 // Rapor Panelini gorebilen roller. Ust kademeler bu paneli hic gormez.
 export const REPORT_PANEL_ROLES = ['store_manager', 'shift_supervisor'];
@@ -119,6 +129,11 @@ export function roleLevel(role) {
 
 // Bir rolun tanimlayabilecegi roller: kendinden asagi kademedekiler.
 export function rolesBelow(role) {
+  // Yonetici olmayan roller kullanici tanimlayamaz. Rotalar ve sunucu bunu
+  // zaten engelliyor; burada da kesilmesi ikinci emniyet — IK gibi kademesi
+  // yuksek ama yonetici olmayan bir rol eklendiginde liste bos kalir.
+  // Sunucudaki assignableRoles ile ayni kural.
+  if (!MANAGER_ROLES.includes(role)) return [];
   return ROLE_ORDER.slice(roleLevel(role) + 1);
 }
 

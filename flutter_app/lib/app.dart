@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/api_client.dart';
 import 'core/notify.dart';
+import 'core/nav.dart';
 import 'core/session.dart';
 import 'core/theme_mode.dart';
 import 'core/tokens.dart';
@@ -22,6 +23,7 @@ import 'screens/profile_screen.dart';
 import 'screens/sales_screen.dart';
 import 'screens/stock_coverage_screen.dart';
 import 'screens/stores_screen.dart';
+import 'screens/timesheet_screen.dart';
 import 'screens/users_screen.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/busy_overlay.dart';
@@ -37,18 +39,18 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/dashboard': (s) => const DashboardScreen(),
   '/recommendations': (s) => const RecommendationsScreen(),
   '/batches': (s) => BatchesScreen(
-        // Ayni yolda filtre degisince State yeniden kurulsun.
-        key: ValueKey(s.uri.toString()),
-        initialTab: s.uri.queryParameters['tab'],
-      ),
+    // Ayni yolda filtre degisince State yeniden kurulsun.
+    key: ValueKey(s.uri.toString()),
+    initialTab: s.uri.queryParameters['tab'],
+  ),
   '/product-types': (s) => const ProductTypesScreen(),
   '/stores': (s) => const StoresScreen(),
   '/users': (s) => const UsersScreen(),
   '/sales': (s) => SalesScreen(
-        key: ValueKey(s.uri.toString()),
-        initialRange: s.uri.queryParameters['range'],
-        initialKind: s.uri.queryParameters['kind'],
-      ),
+    key: ValueKey(s.uri.toString()),
+    initialRange: s.uri.queryParameters['range'],
+    initialKind: s.uri.queryParameters['kind'],
+  ),
   '/logs': (s) => const LogsScreen(),
   '/approvals': (s) => const ApprovalsScreen(),
   '/petty-cash': (s) => const PettyCashScreen(),
@@ -56,6 +58,7 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/stock-coverage': (s) => const StockCoverageScreen(),
   '/pdks': (s) => const PdksScreen(),
   '/pdks-admin': (s) => const PdksAdminScreen(),
+  '/timesheet': (s) => const TimesheetScreen(),
   '/profile': (s) => const ProfileScreen(),
 };
 
@@ -76,15 +79,23 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
     api.onUnauthorized = () => session.signOut();
     _router = GoRouter(
       refreshListenable: session,
-      initialLocation: '/dashboard',
+      // Ilk acilista PDKS ekrani. Oturum henuz yuklenmemis olabilecegi icin
+      // sabit bir yol veriliyor; rol bazli yon degistirme redirect'te.
+      initialLocation: '/pdks',
       routes: [
-        GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginScreen(),
+        ),
         // Tum ic ekranlar ayni kabugu paylasir; yalnizca govde degisir.
         ShellRoute(
           builder: (context, state, child) => AppShell(child: child),
           routes: [
             for (final entry in shellScreens.entries)
-              GoRoute(path: entry.key, builder: (context, state) => entry.value(state)),
+              GoRoute(
+                path: entry.key,
+                builder: (context, state) => entry.value(state),
+              ),
           ],
         ),
       ],
@@ -92,7 +103,17 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
         if (session.loading) return null;
         final atLogin = state.matchedLocation == '/login';
         if (!session.signedIn) return atLogin ? null : '/login';
-        if (atLogin) return '/dashboard';
+
+        // Girişte PDKS ekrani acilir. IK gibi PDKS'te farkli bir ilk sayfasi
+        // olan roller icin landingPathFor dogru yolu veriyor.
+        final landing = landingPathFor(session.user);
+        if (atLogin) return landing;
+
+        // Rolune kapali bir yola URL yazarak gidilemez. Sunucu zaten 403
+        // veriyor; burada da kesilmesi bos ya da hatali bir ekran yerine
+        // dogrudan kendi sayfasina dusurmek icin.
+        final allowed = navFor(session.user).map((i) => i.path).toSet();
+        if (!allowed.contains(state.matchedLocation)) return landing;
         return null;
       },
     );
@@ -121,7 +142,8 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
           themeMode: themePreference.mode,
           routerConfig: _router,
           // Yukleme katmani tum ekranlarin uzerinde durur.
-          builder: (context, child) => BusyOverlay(child: child ?? const SizedBox.shrink()),
+          builder: (context, child) =>
+              BusyOverlay(child: child ?? const SizedBox.shrink()),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 
 final _dateTime = DateFormat('dd.MM.yyyy HH:mm', 'tr_TR');
 final _date = DateFormat('dd.MM.yyyy', 'tr_TR');
+final _month = DateFormat('MMMM yyyy', 'tr_TR');
 final _money = NumberFormat('#,##0.00', 'tr_TR');
 final _int = NumberFormat('#,##0', 'tr_TR');
 
@@ -11,6 +12,16 @@ String fmtDateTime(String? iso) {
   if (d == null) return '-';
   return _dateTime.format(d.toLocal());
 }
+
+/// API'nin bekledigi YYYY-AA-GG. toIso8601String() UTC'ye cevirmiyor ama
+/// saat dilimi farkiyla gunu kaydirabiliyor; yerel alanlardan kuruluyor.
+String ymd(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
+
+/// "Eylül 2026" gibi ay basligi.
+String monthLabel(DateTime d) => _month.format(d);
 
 String fmtDate(String? iso) {
   if (iso == null || iso.isEmpty) return '-';
@@ -52,6 +63,10 @@ String formatHours(num? hours) {
 const roleOrder = <String>[
   'super_admin',
   'operations_manager',
+  // IK: kademe olarak bolge mudurunun ustunde, boylece bolge muduru magaza
+  // sinirlarini asan bir IK kullanicisi tanimlayamiyor. Sunucudaki ROLES ile
+  // ayni sira.
+  'hr',
   'regional_manager',
   'store_manager',
   'shift_supervisor',
@@ -61,6 +76,7 @@ const roleOrder = <String>[
 const roleLabels = <String, String>{
   'super_admin': 'Ana Yönetici',
   'operations_manager': 'Operations Manager',
+  'hr': 'İnsan Kaynakları',
   'regional_manager': 'Regional Manager',
   'store_manager': 'Store Manager',
   'shift_supervisor': 'Shift Supervisor',
@@ -68,7 +84,11 @@ const roleLabels = <String, String>{
 };
 
 /// Birden fazla magazadan sorumlu olabilen roller.
-const multiStoreRoles = <String>['operations_manager', 'regional_manager'];
+const multiStoreRoles = <String>[
+  'operations_manager',
+  'regional_manager',
+  'hr',
+];
 
 /// Kullanici yonetimi yapabilen roller.
 const managerRoleKeys = <String>[
@@ -101,8 +121,18 @@ String normalizeSearch(String? value) {
   if (value == null) return '';
   var s = value.toLowerCase();
   const map = {
-    'ı': 'i', 'İ': 'i', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g',
-    'ç': 'c', 'Ç': 'c', 'ö': 'o', 'Ö': 'o', 'ü': 'u', 'Ü': 'u',
+    'ı': 'i',
+    'İ': 'i',
+    'ş': 's',
+    'Ş': 's',
+    'ğ': 'g',
+    'Ğ': 'g',
+    'ç': 'c',
+    'Ç': 'c',
+    'ö': 'o',
+    'Ö': 'o',
+    'ü': 'u',
+    'Ü': 'u',
   };
   map.forEach((k, v) => s = s.replaceAll(k, v));
   return s;

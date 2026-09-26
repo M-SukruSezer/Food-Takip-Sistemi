@@ -35,15 +35,15 @@ class PdksStore {
   bool get isStaticQr => qrMode == 'static';
 
   factory PdksStore.fromJson(Map<String, dynamic> j) => PdksStore(
-        id: _int(j['id']),
-        name: j['name'] as String? ?? '',
-        pdksEnabled: j['pdks_enabled'] == true,
-        qrMode: j['qr_mode'] as String? ?? 'rotating',
-        geofenceRadiusM: _int(j['geofence_radius_m']),
-        hasLocation: j['has_location'] == true,
-        latitude: _numOrNull(j['latitude']),
-        longitude: _numOrNull(j['longitude']),
-      );
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    pdksEnabled: j['pdks_enabled'] == true,
+    qrMode: j['qr_mode'] as String? ?? 'rotating',
+    geofenceRadiusM: _int(j['geofence_radius_m']),
+    hasLocation: j['has_location'] == true,
+    latitude: _numOrNull(j['latitude']),
+    longitude: _numOrNull(j['longitude']),
+  );
 }
 
 /// Gunun vardiyasi.
@@ -66,16 +66,18 @@ class PdksShift {
 
   /// Bitis <= baslangic ise vardiya gece yarisini gecer.
   bool get crossesMidnight =>
-      startTime.isNotEmpty && endTime.isNotEmpty && endTime.compareTo(startTime) <= 0;
+      startTime.isNotEmpty &&
+      endTime.isNotEmpty &&
+      endTime.compareTo(startTime) <= 0;
 
   factory PdksShift.fromJson(Map<String, dynamic> j) => PdksShift(
-        name: j['name'] as String? ?? '',
-        startTime: j['start_time'] as String? ?? '',
-        endTime: j['end_time'] as String? ?? '',
-        isDayOff: j['is_day_off'] == true,
-        breakMinutes: _int(j['break_duration_minutes']),
-        lateToleranceMinutes: _int(j['late_tolerance_minutes']),
-      );
+    name: j['name'] as String? ?? '',
+    startTime: j['start_time'] as String? ?? '',
+    endTime: j['end_time'] as String? ?? '',
+    isDayOff: j['is_day_off'] == true,
+    breakMinutes: _int(j['break_duration_minutes']),
+    lateToleranceMinutes: _int(j['late_tolerance_minutes']),
+  );
 }
 
 /// Tek devam kaydi.
@@ -100,13 +102,15 @@ class AttendanceLog {
   String get typeLabel => isEntry ? 'Giriş' : 'Çıkış';
 
   factory AttendanceLog.fromJson(Map<String, dynamic> j) => AttendanceLog(
-        id: _int(j['id']),
-        type: j['type'] as String? ?? '',
-        method: j['method'] as String? ?? '',
-        occurredAt: j['occurred_at'] as String? ?? '',
-        distanceM: _numOrNull(j['distance_m']),
-        isValidLocation: j['is_valid_location'] == null ? null : _int(j['is_valid_location']),
-      );
+    id: _int(j['id']),
+    type: j['type'] as String? ?? '',
+    method: j['method'] as String? ?? '',
+    occurredAt: j['occurred_at'] as String? ?? '',
+    distanceM: _numOrNull(j['distance_m']),
+    isValidLocation: j['is_valid_location'] == null
+        ? null
+        : _int(j['is_valid_location']),
+  );
 }
 
 /// Personelin anlik durumu.
@@ -127,26 +131,30 @@ class PdksStatus {
   final PdksStore? store;
   final String? openSince;
 
-  bool get canUseGps => (store?.pdksEnabled ?? false) && (store?.hasLocation ?? false);
+  bool get canUseGps =>
+      (store?.pdksEnabled ?? false) && (store?.hasLocation ?? false);
   bool get canUseQr => store?.pdksEnabled ?? false;
 
   factory PdksStatus.fromJson(Map<String, dynamic> j) => PdksStatus(
-        workDate: j['work_date'] as String? ?? '',
-        isInside: j['is_inside'] == true,
-        openSince: j['open_since'] as String?,
-        store: j['store'] == null
-            ? null
-            : PdksStore.fromJson(j['store'] as Map<String, dynamic>),
-        shifts: ((j['shifts'] as List<dynamic>?) ?? [])
-            .map((e) => PdksShift.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        logs: ((j['logs'] as List<dynamic>?) ?? [])
-            .map((e) => AttendanceLog.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    workDate: j['work_date'] as String? ?? '',
+    isInside: j['is_inside'] == true,
+    openSince: j['open_since'] as String?,
+    store: j['store'] == null
+        ? null
+        : PdksStore.fromJson(j['store'] as Map<String, dynamic>),
+    shifts: ((j['shifts'] as List<dynamic>?) ?? [])
+        .map((e) => PdksShift.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    logs: ((j['logs'] as List<dynamic>?) ?? [])
+        .map((e) => AttendanceLog.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   static const empty = PdksStatus(
-    workDate: '', isInside: false, shifts: [], logs: [],
+    workDate: '',
+    isInside: false,
+    shifts: [],
+    logs: [],
   );
 }
 
@@ -169,11 +177,11 @@ class QrToken {
   bool get isStatic => mode == 'static';
 
   factory QrToken.fromJson(Map<String, dynamic> j) => QrToken(
-        token: j['token'] as String? ?? '',
-        expiresIn: _int(j['expires_in']),
-        windowSeconds: _int(j['window_seconds']),
-        mode: j['mode'] as String?,
-      );
+    token: j['token'] as String? ?? '',
+    expiresIn: _int(j['expires_in']),
+    windowSeconds: _int(j['window_seconds']),
+    mode: j['mode'] as String?,
+  );
 }
 
 /// Izin ve avans bakiyesi.
@@ -225,7 +233,9 @@ class PdksBalance {
       hourlyUsedHours: _num(hourly['used_hours']),
       leaveYearFrom: year['from'] as String? ?? '',
       leaveYearTo: year['to'] as String? ?? '',
-      notes: ((j['notes'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
+      notes: ((j['notes'] as List<dynamic>?) ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 }
@@ -263,32 +273,32 @@ class PersonnelRequest {
   bool get isPending => status == 'PENDING';
 
   String get typeLabel => switch (type) {
-        'IZIN' => 'Yıllık İzin',
-        'SAATLIK_IZIN' => 'Saatlik İzin',
-        _ => 'Avans',
-      };
+    'IZIN' => 'Yıllık İzin',
+    'SAATLIK_IZIN' => 'Saatlik İzin',
+    _ => 'Avans',
+  };
 
   String get statusLabel => switch (status) {
-        'PENDING' => 'Bekliyor',
-        'APPROVED' => 'Onaylandı',
-        'REJECTED' => 'Reddedildi',
-        _ => 'İptal',
-      };
+    'PENDING' => 'Bekliyor',
+    'APPROVED' => 'Onaylandı',
+    'REJECTED' => 'Reddedildi',
+    _ => 'İptal',
+  };
 
   factory PersonnelRequest.fromJson(Map<String, dynamic> j) => PersonnelRequest(
-        id: _int(j['id']),
-        type: j['type'] as String? ?? '',
-        status: j['status'] as String? ?? 'PENDING',
-        reason: j['reason'] as String? ?? '',
-        fullName: j['full_name'] as String?,
-        startAt: j['start_at'] as String?,
-        endAt: j['end_at'] as String?,
-        days: _numOrNull(j['days']),
-        hours: _numOrNull(j['hours']),
-        amount: _numOrNull(j['amount']),
-        managerName: j['manager_name'] as String?,
-        decisionNote: j['decision_note'] as String?,
-      );
+    id: _int(j['id']),
+    type: j['type'] as String? ?? '',
+    status: j['status'] as String? ?? 'PENDING',
+    reason: j['reason'] as String? ?? '',
+    fullName: j['full_name'] as String?,
+    startAt: j['start_at'] as String?,
+    endAt: j['end_at'] as String?,
+    days: _numOrNull(j['days']),
+    hours: _numOrNull(j['hours']),
+    amount: _numOrNull(j['amount']),
+    managerName: j['manager_name'] as String?,
+    decisionNote: j['decision_note'] as String?,
+  );
 }
 
 /// Vardiya atamasi (takvim icin).
@@ -314,15 +324,15 @@ class ShiftAssignment {
   final String? fullName;
 
   factory ShiftAssignment.fromJson(Map<String, dynamic> j) => ShiftAssignment(
-        id: _int(j['id']),
-        userId: _int(j['user_id']),
-        workDate: j['work_date'] as String? ?? '',
-        isDayOff: j['is_day_off'] == true,
-        shiftName: j['shift_name'] as String?,
-        startTime: j['start_time'] as String?,
-        endTime: j['end_time'] as String?,
-        fullName: j['full_name'] as String?,
-      );
+    id: _int(j['id']),
+    userId: _int(j['user_id']),
+    workDate: j['work_date'] as String? ?? '',
+    isDayOff: j['is_day_off'] == true,
+    shiftName: j['shift_name'] as String?,
+    startTime: j['start_time'] as String?,
+    endTime: j['end_time'] as String?,
+    fullName: j['full_name'] as String?,
+  );
 }
 
 /// Resmi tatil.
@@ -350,13 +360,13 @@ class PublicHoliday {
   bool get isStoreSpecific => storeId != null;
 
   factory PublicHoliday.fromJson(Map<String, dynamic> j) => PublicHoliday(
-        id: _int(j['id']),
-        date: j['holiday_date'] as String? ?? '',
-        name: j['name'] as String? ?? '',
-        isHalfDay: j['is_half_day'] == true || j['is_half_day'] == 1,
-        storeId: j['store_id'] == null ? null : _int(j['store_id']),
-        storeName: j['store_name'] as String?,
-      );
+    id: _int(j['id']),
+    date: j['holiday_date'] as String? ?? '',
+    name: j['name'] as String? ?? '',
+    isHalfDay: j['is_half_day'] == true || j['is_half_day'] == 1,
+    storeId: j['store_id'] == null ? null : _int(j['store_id']),
+    storeName: j['store_name'] as String?,
+  );
 }
 
 /// Tatil listesini gune gore haritalar.
@@ -367,7 +377,9 @@ Map<String, PublicHoliday> holidayMap(List<PublicHoliday> list) {
   final out = <String, PublicHoliday>{};
   for (final h in list) {
     final existing = out[h.date];
-    if (existing != null && existing.isStoreSpecific && !h.isStoreSpecific) continue;
+    if (existing != null && existing.isStoreSpecific && !h.isStoreSpecific) {
+      continue;
+    }
     out[h.date] = h;
   }
   return out;
@@ -400,16 +412,16 @@ class PresenceRow {
   bool get isInside => lastType == 'GIRIS';
 
   factory PresenceRow.fromJson(Map<String, dynamic> j) => PresenceRow(
-        userId: _int(j['user_id']),
-        fullName: j['full_name'] as String? ?? '',
-        role: j['role'] as String? ?? '',
-        lastType: j['last_type'] as String?,
-        lastMethod: j['last_method'] as String?,
-        lastAt: j['last_at'] as String?,
-        minutesSince: j['minutes_since'] == null ? null : _int(j['minutes_since']),
-        distanceM: _numOrNull(j['distance_m']),
-        storeName: j['store_name'] as String?,
-      );
+    userId: _int(j['user_id']),
+    fullName: j['full_name'] as String? ?? '',
+    role: j['role'] as String? ?? '',
+    lastType: j['last_type'] as String?,
+    lastMethod: j['last_method'] as String?,
+    lastAt: j['last_at'] as String?,
+    minutesSince: j['minutes_since'] == null ? null : _int(j['minutes_since']),
+    distanceM: _numOrNull(j['distance_m']),
+    storeName: j['store_name'] as String?,
+  );
 }
 
 class PresenceSnapshot {
@@ -424,16 +436,20 @@ class PresenceSnapshot {
   final List<PresenceRow> outside;
 
   factory PresenceSnapshot.fromJson(Map<String, dynamic> j) => PresenceSnapshot(
-        insideCount: _int(j['inside_count']),
-        inside: ((j['inside'] as List<dynamic>?) ?? [])
-            .map((e) => PresenceRow.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        outside: ((j['outside'] as List<dynamic>?) ?? [])
-            .map((e) => PresenceRow.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    insideCount: _int(j['inside_count']),
+    inside: ((j['inside'] as List<dynamic>?) ?? [])
+        .map((e) => PresenceRow.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    outside: ((j['outside'] as List<dynamic>?) ?? [])
+        .map((e) => PresenceRow.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
-  static const empty = PresenceSnapshot(insideCount: 0, inside: [], outside: []);
+  static const empty = PresenceSnapshot(
+    insideCount: 0,
+    inside: [],
+    outside: [],
+  );
 }
 
 /// Puantajda bir gun.
@@ -452,6 +468,7 @@ class TimesheetDay {
     required this.shiftNames,
     this.isHoliday = false,
     this.holidayName,
+    this.riskFlags = const [],
   });
 
   final String workDate;
@@ -470,21 +487,33 @@ class TimesheetDay {
   final bool isHoliday;
   final String? holidayName;
 
+  /// O gunun kayitlarinda biriken cihaz uyarilari (root, gelistirici modu,
+  /// kontrol edilemedi). Islemi ENGELLEYEN bayraklar hic kayit yazmadigi icin
+  /// burada gorunmez.
+  final List<String> riskFlags;
+
   factory TimesheetDay.fromJson(Map<String, dynamic> j) => TimesheetDay(
-        workDate: j['work_date'] as String? ?? '',
-        presenceMinutes: _int(j['presence_minutes']),
-        workedMinutes: _int(j['worked_minutes']),
-        scheduledMinutes: _int(j['scheduled_minutes']),
-        overtimeMinutes: _int(j['overtime_minutes']),
-        missingMinutes: _int(j['missing_minutes']),
-        lateMinutes: _int(j['late_minutes']),
-        isDayOff: j['is_day_off'] == true,
-        onLeave: j['on_leave'] == true,
-        statuses: ((j['statuses'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
-        shiftNames: ((j['shift_names'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
-        isHoliday: j['is_holiday'] == true,
-        holidayName: j['holiday_name'] as String?,
-      );
+    workDate: j['work_date'] as String? ?? '',
+    presenceMinutes: _int(j['presence_minutes']),
+    workedMinutes: _int(j['worked_minutes']),
+    scheduledMinutes: _int(j['scheduled_minutes']),
+    overtimeMinutes: _int(j['overtime_minutes']),
+    missingMinutes: _int(j['missing_minutes']),
+    lateMinutes: _int(j['late_minutes']),
+    isDayOff: j['is_day_off'] == true,
+    onLeave: j['on_leave'] == true,
+    statuses: ((j['statuses'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
+    shiftNames: ((j['shift_names'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
+    isHoliday: j['is_holiday'] == true,
+    holidayName: j['holiday_name'] as String?,
+    riskFlags: ((j['risk_flags'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
+  );
 }
 
 class TimesheetSummary {
@@ -500,6 +529,7 @@ class TimesheetSummary {
     required this.missingMinutes,
     required this.lateMinutes,
     required this.unscheduledMinutes,
+    this.flaggedDays = 0,
   });
 
   final int days;
@@ -516,25 +546,36 @@ class TimesheetSummary {
   /// Vardiya atanmamis gunlerin calismasi: siniflandirilmadigi icin ayri.
   final int unscheduledMinutes;
 
+  /// En az bir cihaz uyarisi tasiyan gun sayisi.
+  final int flaggedDays;
+
   factory TimesheetSummary.fromJson(Map<String, dynamic> j) => TimesheetSummary(
-        days: _int(j['days']),
-        workedDays: _int(j['worked_days']),
-        absentDays: _int(j['absent_days']),
-        leaveDays: _int(j['leave_days']),
-        holidayDays: _int(j['holiday_days']),
-        workedMinutes: _int(j['worked_minutes']),
-        scheduledMinutes: _int(j['scheduled_minutes']),
-        overtimeMinutes: _int(j['overtime_minutes']),
-        missingMinutes: _int(j['missing_minutes']),
-        lateMinutes: _int(j['late_minutes']),
-        unscheduledMinutes: _int(j['unscheduled_minutes']),
-      );
+    days: _int(j['days']),
+    workedDays: _int(j['worked_days']),
+    absentDays: _int(j['absent_days']),
+    leaveDays: _int(j['leave_days']),
+    holidayDays: _int(j['holiday_days']),
+    workedMinutes: _int(j['worked_minutes']),
+    scheduledMinutes: _int(j['scheduled_minutes']),
+    overtimeMinutes: _int(j['overtime_minutes']),
+    missingMinutes: _int(j['missing_minutes']),
+    lateMinutes: _int(j['late_minutes']),
+    unscheduledMinutes: _int(j['unscheduled_minutes']),
+    flaggedDays: _int(j['flagged_days']),
+  );
 
   static const empty = TimesheetSummary(
-    days: 0, workedDays: 0, absentDays: 0, leaveDays: 0, holidayDays: 0,
+    days: 0,
+    workedDays: 0,
+    absentDays: 0,
+    leaveDays: 0,
+    holidayDays: 0,
     workedMinutes: 0,
-    scheduledMinutes: 0, overtimeMinutes: 0, missingMinutes: 0,
-    lateMinutes: 0, unscheduledMinutes: 0,
+    scheduledMinutes: 0,
+    overtimeMinutes: 0,
+    missingMinutes: 0,
+    lateMinutes: 0,
+    unscheduledMinutes: 0,
   );
 }
 
@@ -544,10 +585,14 @@ class TimesheetPerson {
     required this.fullName,
     required this.days,
     required this.summary,
+    this.role,
+    this.storeName,
   });
 
   final int userId;
   final String fullName;
+  final String? role;
+  final String? storeName;
   final List<TimesheetDay> days;
   final TimesheetSummary summary;
 
@@ -556,6 +601,8 @@ class TimesheetPerson {
     return TimesheetPerson(
       userId: _int(u['id']),
       fullName: u['full_name'] as String? ?? '',
+      role: u['role'] as String?,
+      storeName: u['store_name'] as String?,
       days: ((j['days'] as List<dynamic>?) ?? [])
           .map((e) => TimesheetDay.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -582,18 +629,24 @@ class TimesheetReport {
   final List<String> notes;
 
   factory TimesheetReport.fromJson(Map<String, dynamic> j) => TimesheetReport(
-        from: j['from'] as String? ?? '',
-        to: j['to'] as String? ?? '',
-        items: ((j['items'] as List<dynamic>?) ?? [])
-            .map((e) => TimesheetPerson.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        total: j['total'] == null
-            ? TimesheetSummary.empty
-            : TimesheetSummary.fromJson(j['total'] as Map<String, dynamic>),
-        notes: ((j['notes'] as List<dynamic>?) ?? []).map((e) => e.toString()).toList(),
-      );
+    from: j['from'] as String? ?? '',
+    to: j['to'] as String? ?? '',
+    items: ((j['items'] as List<dynamic>?) ?? [])
+        .map((e) => TimesheetPerson.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    total: j['total'] == null
+        ? TimesheetSummary.empty
+        : TimesheetSummary.fromJson(j['total'] as Map<String, dynamic>),
+    notes: ((j['notes'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
+  );
 
   static const empty = TimesheetReport(
-    from: '', to: '', items: [], total: TimesheetSummary.empty, notes: [],
+    from: '',
+    to: '',
+    items: [],
+    total: TimesheetSummary.empty,
+    notes: [],
   );
 }

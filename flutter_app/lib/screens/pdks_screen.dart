@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/format.dart';
 import '../core/notify.dart';
+import '../core/device_integrity.dart';
 import '../core/pdks_location.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
@@ -62,12 +63,18 @@ class _PdksScreenState extends State<PdksScreen> {
       return;
     }
     // Yardimci veriler kritik degil: gelmezse ekranin geri kalani calisir.
-    repo.pdksBalance().then((b) {
-      if (mounted) setState(() => _balance = b);
-    }).onError((Object _, StackTrace _) {});
-    repo.pdksRequests().then((r) {
-      if (mounted) setState(() => _requests = r);
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .pdksBalance()
+        .then((b) {
+          if (mounted) setState(() => _balance = b);
+        })
+        .onError((Object _, StackTrace _) {});
+    repo
+        .pdksRequests()
+        .then((r) {
+          if (mounted) setState(() => _requests = r);
+        })
+        .onError((Object _, StackTrace _) {});
     _loadMonth();
   }
 
@@ -75,29 +82,44 @@ class _PdksScreenState extends State<PdksScreen> {
     final last = DateTime.utc(_month.year, _month.month + 1, 0);
     final from = '$_monthKey-01';
     final to = '$_monthKey-${last.day.toString().padLeft(2, '0')}';
-    repo.pdksAssignments(from: from, to: to).then((a) {
-      if (mounted) setState(() => _assignments = a);
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .pdksAssignments(from: from, to: to)
+        .then((a) {
+          if (mounted) setState(() => _assignments = a);
+        })
+        .onError((Object _, StackTrace _) {});
     // Resmi tatiller takvimde isaretlenir: personel izin planlarken hangi
     // gunun tatil oldugunu gormeli.
-    repo.pdksHolidays(from: from, to: to).then((h) {
-      if (mounted) setState(() => _holidays = h);
-    }).onError((Object _, StackTrace _) {});
+    repo
+        .pdksHolidays(from: from, to: to)
+        .then((h) {
+          if (mounted) setState(() => _holidays = h);
+        })
+        .onError((Object _, StackTrace _) {});
   }
 
   /// Konumla giris/cikis.
   Future<void> _gpsPunch(bool entry) async {
     setState(() => _busy = true);
     try {
-      final pos = await currentPosition();
+      // Cihaz kontrolu konumla PARALEL yurutulur: seri yapilsa girise kadarki
+      // bekleme iki islemin toplami olurdu.
+      final results = await Future.wait([
+        currentPosition(),
+        readDeviceIntegrity(),
+      ]);
+      final pos = results[0] as PdksPosition;
+      final integrity = results[1] as DeviceIntegrity;
       await repo.pdksPunchGps(
         entry: entry,
         latitude: pos.latitude,
         longitude: pos.longitude,
         accuracy: pos.accuracy,
         isMocked: pos.isMocked,
+        integrity: integrity,
       );
       toastSaved(entry ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      _warnIntegrity(integrity);
       await _load(silent: true);
     } on LocationDenied catch (e) {
       toast(e.message, kind: ToastKind.error);
@@ -112,7 +134,8 @@ class _PdksScreenState extends State<PdksScreen> {
   Future<void> _qrPunch(bool entry) async {
     final token = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => QrScanScreen(title: entry ? 'QR ile Giriş' : 'QR ile Çıkış'),
+        builder: (_) =>
+            QrScanScreen(title: entry ? 'QR ile Giriş' : 'QR ile Çıkış'),
       ),
     );
     if (token == null || !mounted) return;
@@ -127,6 +150,7 @@ class _PdksScreenState extends State<PdksScreen> {
       } catch (_) {
         pos = null;
       }
+      final integrity = await readDeviceIntegrity();
       await repo.pdksPunchQr(
         entry: entry,
         token: token,
@@ -134,14 +158,30 @@ class _PdksScreenState extends State<PdksScreen> {
         longitude: pos?.longitude,
         accuracy: pos?.accuracy,
         isMocked: pos?.isMocked,
+        integrity: integrity,
       );
       toastSaved(entry ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      _warnIntegrity(integrity);
       await _load(silent: true);
     } catch (e) {
       toast(errorMessage(e), kind: ToastKind.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Engellemeyen uyarilari personele bildirir.
+  ///
+  /// Islem KABUL EDILDI; bu yalnizca "kaydin yaninda su not durdu" bilgisi.
+  /// Sessiz kalmak dogru olmazdi: yonetici ekraninda bayrak gorunurken
+  /// personelin sebebini bilmemesi sonradan tartisma uretir.
+  void _warnIntegrity(DeviceIntegrity integrity) {
+    final w = integrity.warnings;
+    if (w.isEmpty || !mounted) return;
+    toast(
+      'Kayıt alındı, not düşüldü: ${w.join(', ')}',
+      kind: ToastKind.warning,
+    );
   }
 
   Future<void> _showMyQr() async {
@@ -153,7 +193,8 @@ class _PdksScreenState extends State<PdksScreen> {
         title: 'Kodumu Göster',
         token: token,
         onRefresh: repo.pdksMyQr,
-        note: 'Kiosk bu kodu okutacak. Kod '
+        note:
+            'Kiosk bu kodu okutacak. Kod '
             '${token.windowSeconds} saniyede bir yenilenir.',
       );
     } catch (e) {
@@ -201,7 +242,8 @@ class _PdksScreenState extends State<PdksScreen> {
             const AppAlert(
               danger: false,
               icon: Icons.info_outline,
-              message: 'Bu mağazada devam takibi henüz açılmamış. '
+              message:
+                  'Bu mağazada devam takibi henüz açılmamış. '
                   'Yöneticinizle görüşün.',
             ),
             const SizedBox(height: AppTokens.gap),
@@ -229,9 +271,14 @@ class _PdksScreenState extends State<PdksScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Taleplerim',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+                    child: Text(
+                      'Taleplerim',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
                   ),
                   FilledButton.icon(
                     onPressed: _newRequest,
@@ -242,10 +289,14 @@ class _PdksScreenState extends State<PdksScreen> {
               ),
               const SizedBox(height: 10),
               if (_requests.isEmpty)
-                Text('Henüz talebiniz yok.',
-                    style: TextStyle(fontSize: 13, color: t.muted))
+                Text(
+                  'Henüz talebiniz yok.',
+                  style: TextStyle(fontSize: 13, color: t.muted),
+                )
               else
-                ..._requests.map((r) => _RequestRow(request: r, onCancel: () => _cancel(r))),
+                ..._requests.map(
+                  (r) => _RequestRow(request: r, onCancel: () => _cancel(r)),
+                ),
             ],
           ),
         ),
@@ -256,22 +307,37 @@ class _PdksScreenState extends State<PdksScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Vardiya Takvimi',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+                    child: Text(
+                      'Vardiya Takvimi',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
                   ),
                   IconButton(
                     onPressed: () {
-                      setState(() => _month = DateTime(_month.year, _month.month - 1));
+                      setState(
+                        () => _month = DateTime(_month.year, _month.month - 1),
+                      );
                       _loadMonth();
                     },
                     icon: const Icon(Icons.chevron_left),
                   ),
-                  Text(fmtMonth(_monthKey),
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: t.ink)),
+                  Text(
+                    fmtMonth(_monthKey),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: t.ink,
+                    ),
+                  ),
                   IconButton(
                     onPressed: () {
-                      setState(() => _month = DateTime(_month.year, _month.month + 1));
+                      setState(
+                        () => _month = DateTime(_month.year, _month.month + 1),
+                      );
                       _loadMonth();
                     },
                     icon: const Icon(Icons.chevron_right),
@@ -295,8 +361,18 @@ class _PdksScreenState extends State<PdksScreen> {
 /// 'YYYY-MM' -> 'Kasım 2026'
 String fmtMonth(String key) {
   const names = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
   ];
   final parts = key.split('-');
   if (parts.length != 2) return key;
@@ -348,8 +424,14 @@ class _PunchCard extends StatelessWidget {
           ),
           if (inside && status.openSince != null) ...[
             const SizedBox(height: 6),
-            Text('${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.success)),
+            Text(
+              '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.success,
+              ),
+            ),
           ],
           const SizedBox(height: 14),
           // Ana islem: iceride degilse giris, iceridyse cikis.
@@ -426,49 +508,74 @@ class _TodayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Bugün',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+          Text(
+            'Bugün',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
           const SizedBox(height: 8),
           if (status.shifts.isEmpty)
-            Text('Bugün için vardiya atanmamış.',
-                style: TextStyle(fontSize: 13, color: t.muted))
+            Text(
+              'Bugün için vardiya atanmamış.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            )
           else
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: status.shifts
-                  .map((s) => Pill(
-                        text: s.isDayOff
-                            ? 'Hafta tatili'
-                            : '${s.name} · ${s.startTime}-${s.endTime}'
+                  .map(
+                    (s) => Pill(
+                      text: s.isDayOff
+                          ? 'Hafta tatili'
+                          : '${s.name} · ${s.startTime}-${s.endTime}'
                                 '${s.lateToleranceMinutes > 0 ? ' (${s.lateToleranceMinutes} dk tolerans)' : ''}',
-                        color: s.isDayOff ? t.muted : t.info,
-                      ))
+                      color: s.isDayOff ? t.muted : t.info,
+                    ),
+                  )
                   .toList(),
             ),
           const SizedBox(height: 12),
           if (status.logs.isEmpty)
-            Text('Bugün kayıt yok.', style: TextStyle(fontSize: 13, color: t.muted))
+            Text(
+              'Bugün kayıt yok.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            )
           else
-            ...status.logs.map((l) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Pill(text: l.typeLabel, color: l.isEntry ? t.success : t.danger),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(fmtDateTime(l.occurredAt),
-                            style: TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w600, color: t.ink)),
+            ...status.logs.map(
+              (l) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Pill(
+                      text: l.typeLabel,
+                      color: l.isEntry ? t.success : t.danger,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        fmtDateTime(l.occurredAt),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.ink,
+                        ),
                       ),
-                      Text(
-                        l.method
-                            + (l.distanceM != null ? ' · ${l.distanceM!.round()} m' : ''),
-                        style: TextStyle(fontSize: 12, color: t.muted),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                    Text(
+                      l.method +
+                          (l.distanceM != null
+                              ? ' · ${l.distanceM!.round()} m'
+                              : ''),
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -484,26 +591,40 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     Widget cell(String label, String value, Color color) => Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
           ),
-        );
+        ],
+      ),
+    );
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('İzin ve Avans Durumu',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: t.ink)),
+          Text(
+            'İzin ve Avans Durumu',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text('İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
-              style: TextStyle(fontSize: 12, color: t.muted)),
+          Text(
+            'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
+            style: TextStyle(fontSize: 12, color: t.muted),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -515,7 +636,11 @@ class _BalanceCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              cell('Kalan avans', fmtMoney(balance.advanceRemaining), t.success),
+              cell(
+                'Kalan avans',
+                fmtMoney(balance.advanceRemaining),
+                t.success,
+              ),
               cell('Aylık limit', fmtMoney(balance.advanceLimit), t.muted),
             ],
           ),
@@ -527,10 +652,12 @@ class _BalanceCard extends StatelessWidget {
               style: TextStyle(fontSize: 11, color: t.muted),
             ),
           ],
-          ...balance.notes.map((n) => Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(n, style: TextStyle(fontSize: 11, color: t.muted)),
-              )),
+          ...balance.notes.map(
+            (n) => Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(n, style: TextStyle(fontSize: 11, color: t.muted)),
+            ),
+          ),
         ],
       ),
     );
@@ -550,8 +677,8 @@ class _RequestRow extends StatelessWidget {
     final detail = r.type == 'AVANS'
         ? fmtMoney(r.amount)
         : r.type == 'IZIN'
-            ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
-            : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
+        ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
+        : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -561,16 +688,22 @@ class _RequestRow extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(r.typeLabel,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: t.ink)),
+                child: Text(
+                  r.typeLabel,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
               ),
               Pill(
                 text: r.statusLabel,
                 color: r.isPending
                     ? t.warning
                     : r.status == 'APPROVED'
-                        ? t.success
-                        : t.danger,
+                    ? t.success
+                    : t.danger,
               ),
             ],
           ),
@@ -578,12 +711,17 @@ class _RequestRow extends StatelessWidget {
           Text(detail, style: TextStyle(fontSize: 13, color: t.ink)),
           Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
           if (r.decisionNote != null)
-            Text('Karar notu: ${r.decisionNote}',
-                style: TextStyle(fontSize: 12, color: t.danger)),
+            Text(
+              'Karar notu: ${r.decisionNote}',
+              style: TextStyle(fontSize: 12, color: t.danger),
+            ),
           if (r.isPending)
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(onPressed: onCancel, child: const Text('Geri Al')),
+              child: TextButton(
+                onPressed: onCancel,
+                child: const Text('Geri Al'),
+              ),
             ),
         ],
       ),
@@ -629,45 +767,61 @@ class ShiftCalendar extends StatelessWidget {
       final list = byDate[date] ?? const <ShiftAssignment>[];
       final dayOff = list.any((a) => a.isDayOff);
       final holiday = byHoliday[date];
-      cells.add(Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
-          color: holiday != null
-              ? t.dangerSoft
-              : dayOff
-                  ? t.bg
-                  : (list.isEmpty ? t.card : t.primarySoft),
-          border: Border.all(
+      cells.add(
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
             color: holiday != null
-                ? t.danger
-                : (list.isEmpty && !dayOff ? t.border : t.primary),
+                ? t.dangerSoft
+                : dayOff
+                ? t.bg
+                : (list.isEmpty ? t.card : t.primarySoft),
+            border: Border.all(
+              color: holiday != null
+                  ? t.danger
+                  : (list.isEmpty && !dayOff ? t.border : t.primary),
+            ),
+            borderRadius: BorderRadius.circular(6),
           ),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('$d',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: t.ink)),
-            if (holiday != null)
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
-                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: t.danger),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              )
-            else if (dayOff)
-              Text('Tatil', style: TextStyle(fontSize: 9, color: t.muted))
-            else
-              ...list.take(2).map((a) => Text(
-                    a.startTime ?? '',
-                    style: TextStyle(fontSize: 9, color: t.muted),
-                    overflow: TextOverflow.ellipsis,
-                  )),
-          ],
+                '$d',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: t.ink,
+                ),
+              ),
+              if (holiday != null)
+                Text(
+                  holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    color: t.danger,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                )
+              else if (dayOff)
+                Text('Tatil', style: TextStyle(fontSize: 9, color: t.muted))
+              else
+                ...list
+                    .take(2)
+                    .map(
+                      (a) => Text(
+                        a.startTime ?? '',
+                        style: TextStyle(fontSize: 9, color: t.muted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+            ],
+          ),
         ),
-      ));
+      );
     }
 
     return Column(
@@ -675,12 +829,19 @@ class ShiftCalendar extends StatelessWidget {
       children: [
         Row(
           children: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
-              .map((g) => Expanded(
-                    child: Text(g,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 10, fontWeight: FontWeight.w700, color: t.muted)),
-                  ))
+              .map(
+                (g) => Expanded(
+                  child: Text(
+                    g,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: t.muted,
+                    ),
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 4),
@@ -695,8 +856,10 @@ class ShiftCalendar extends StatelessWidget {
         ),
         if (assignments.isEmpty) ...[
           const SizedBox(height: 10),
-          Text('Bu ay için vardiya atanmamış.',
-              style: TextStyle(fontSize: 13, color: t.muted)),
+          Text(
+            'Bu ay için vardiya atanmamış.',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
         ],
         if (holidays.isNotEmpty) ...[
           const SizedBox(height: 8),

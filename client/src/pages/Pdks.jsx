@@ -82,12 +82,24 @@ export default function Pdks() {
     });
   }
 
+// Tarayicida cihaz butunlugu KONTROL EDILEMEZ: ne sahte konum bayragi, ne
+// root, ne emulator tespiti icin bir web API'si var. Bu yuzden "temiz"
+// gondermek yerine kontrol edilemedigi bildiriliyor; sunucu kaydi
+// "unverified" bayragiyla isaretliyor ve yonetici hangi girislerin cihaz
+// dogrulamasindan gectigini ayirt edebiliyor.
+//
+// Sahte konum tespiti mobil uygulamada yapiliyor (Android: isFromMockProvider).
+// Tarayici icin geriye kalan savunma sunucu tarafinda: geofence ve onceki
+// kayitla arasindaki hiz (teleport) kontrolu.
+const WEB_INTEGRITY = { checked: false };
+
   async function gpsIslem(tip) {
     setMesgul(true);
     try {
       const konum = await konumAl();
       await api.post(`/pdks/${tip === 'GIRIS' ? 'check-in' : 'check-out'}`,
-        { method: 'GPS', ...konum }, { noToast: true, busyMessage: 'Konum doğrulanıyor...' });
+        { method: 'GPS', ...konum, device_integrity: WEB_INTEGRITY },
+        { noToast: true, busyMessage: 'Konum doğrulanıyor...' });
       toast(tip === 'GIRIS' ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
       setReload((n) => n + 1);
     } catch (e) {
@@ -105,7 +117,7 @@ export default function Pdks() {
       let konum = {};
       try { konum = await konumAl(); } catch { /* QR tek basina yeterli olabilir */ }
       await api.post(`/pdks/${tip === 'GIRIS' ? 'check-in' : 'check-out'}`,
-        { method: 'QR', qr_token: token, ...konum },
+        { method: 'QR', qr_token: token, ...konum, device_integrity: WEB_INTEGRITY },
         { noToast: true, busyMessage: 'QR doğrulanıyor...' });
       toast(tip === 'GIRIS' ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
       setReload((n) => n + 1);

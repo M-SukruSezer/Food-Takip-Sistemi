@@ -26,10 +26,12 @@ Future<void> _pumpShell(WidgetTester tester, Size size) async {
     ],
   );
 
-  await tester.pumpWidget(MaterialApp.router(
-    theme: buildAppTheme(Brightness.light),
-    routerConfig: router,
-  ));
+  await tester.pumpWidget(
+    MaterialApp.router(
+      theme: buildAppTheme(Brightness.light),
+      routerConfig: router,
+    ),
+  );
   await tester.pumpAndSettle();
 
   // AppShell oneri sayaci icin 60sn'lik periyodik timer kuruyor; agac
@@ -42,16 +44,20 @@ Future<void> _pumpShell(WidgetTester tester, Size size) async {
 
 void main() {
   setUp(() {
-    session.updateUser(const AppUser(
-      id: 1,
-      username: 'admin',
-      fullName: 'Muhammed Şükrü Sezer',
-      role: 'super_admin',
-      storeName: 'Merkez Mağaza',
-    ));
+    session.updateUser(
+      const AppUser(
+        id: 1,
+        username: 'admin',
+        fullName: 'Muhammed Şükrü Sezer',
+        role: 'super_admin',
+        storeName: 'Merkez Mağaza',
+      ),
+    );
   });
 
-  testWidgets('telefon (375): alt cubuk var, sabit kenar menu yok', (tester) async {
+  testWidgets('telefon (375): alt cubuk var, sabit kenar menu yok', (
+    tester,
+  ) async {
     await _pumpShell(tester, const Size(375, 812));
     expect(find.byKey(bottomBarKey), findsOneWidget);
     // Cekmece kapali oldugu icin kenar menu agacta olmamali.
@@ -82,7 +88,9 @@ void main() {
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
   });
 
-  testWidgets('cikis dugmesi ve kullanici blogu parmak boyutunda', (tester) async {
+  testWidgets('cikis dugmesi ve kullanici blogu parmak boyutunda', (
+    tester,
+  ) async {
     await _pumpShell(tester, const Size(375, 812));
     final logout = tester.getSize(find.byIcon(Icons.logout).hitTestable());
     expect(logout.height, greaterThan(0));

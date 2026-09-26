@@ -12,6 +12,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.danger,
     required this.dangerSoft,
     required this.warning,
+    required this.warningSoft,
+    required this.warningText,
     required this.success,
     required this.info,
     required this.ink,
@@ -33,6 +35,13 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color danger;
   final Color dangerSoft;
   final Color warning;
+  final Color warningSoft;
+
+  /// Uyari zemini uzerinde KUCUK METIN icin. --warning kucuk yazida acik
+  /// temada 3.19 kontrast veriyordu (AA siniri 4.5); nokta ve cubuk gibi
+  /// grafik ogelerde 3.0 esigi gecerli oldugu icin --warning orada kaliyor.
+  /// React tarafindaki --warning-text ile ayni deger.
+  final Color warningText;
   final Color success;
   final Color info;
   final Color ink;
@@ -69,6 +78,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     danger: Color(0xFFDC2626),
     dangerSoft: Color(0xFFFEF2F2),
     warning: Color(0xFFD97706),
+    warningSoft: Color(0xFFFFFBEB),
+    warningText: Color(0xFFB45309),
     success: Color(0xFF16A34A),
     info: Color(0xFF0284C7),
     ink: Color(0xFF111827),
@@ -91,6 +102,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     danger: Color(0xFFF87171),
     dangerSoft: Color(0x1FF87171),
     warning: Color(0xFFFBBF24),
+    warningSoft: Color(0x1FFBBF24),
+    warningText: Color(0xFFFBBF24),
     success: Color(0xFF4ADE80),
     info: Color(0xFF7DD3FC),
     ink: Color(0xFFE5E9F0),
@@ -114,6 +127,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     Color? danger,
     Color? dangerSoft,
     Color? warning,
+    Color? warningSoft,
+    Color? warningText,
     Color? success,
     Color? info,
     Color? ink,
@@ -135,6 +150,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
       danger: danger ?? this.danger,
       dangerSoft: dangerSoft ?? this.dangerSoft,
       warning: warning ?? this.warning,
+      warningSoft: warningSoft ?? this.warningSoft,
+      warningText: warningText ?? this.warningText,
       success: success ?? this.success,
       info: info ?? this.info,
       ink: ink ?? this.ink,
@@ -161,6 +178,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
       danger: Color.lerp(danger, other.danger, t)!,
       dangerSoft: Color.lerp(dangerSoft, other.dangerSoft, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      warningSoft: Color.lerp(warningSoft, other.warningSoft, t)!,
+      warningText: Color.lerp(warningText, other.warningText, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
       ink: Color.lerp(ink, other.ink, t)!,
@@ -178,7 +197,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
 }
 
 extension AppTokensContext on BuildContext {
-  AppTokens get tokens => Theme.of(this).extension<AppTokens>() ?? AppTokens.light;
+  AppTokens get tokens =>
+      Theme.of(this).extension<AppTokens>() ?? AppTokens.light;
 }
 
 ThemeData buildAppTheme(Brightness brightness) {
@@ -190,11 +210,7 @@ ThemeData buildAppTheme(Brightness brightness) {
     colorScheme: ColorScheme.fromSeed(
       seedColor: t.primary,
       brightness: brightness,
-    ).copyWith(
-      primary: t.primary,
-      error: t.danger,
-      surface: t.card,
-    ),
+    ).copyWith(primary: t.primary, error: t.danger, surface: t.card),
   );
 
   return base.copyWith(
@@ -213,7 +229,9 @@ ThemeData buildAppTheme(Brightness brightness) {
         backgroundColor: t.primary,
         foregroundColor: Colors.white,
         minimumSize: const Size(0, AppTokens.tap),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusSm)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -221,7 +239,9 @@ ThemeData buildAppTheme(Brightness brightness) {
         foregroundColor: t.ink,
         side: BorderSide(color: t.borderStrong),
         minimumSize: const Size(0, AppTokens.tap),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusSm)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(

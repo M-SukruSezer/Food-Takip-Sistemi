@@ -26,6 +26,19 @@ const saat = (dk) => {
 };
 const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin', AVANS: 'Avans' };
 
+// Cihaz butunluk bayraklari; sunucudaki FLAG_LABELS ile ayni anahtarlar.
+// Engelleyen bayraklar (sahte konum, emulator) hic kayit yazmadigi icin
+// puantajda gorunmez; buradakiler kabul edilmis ama not dusulmus durumlar.
+const BAYRAK_ETIKET = {
+  mock_location: 'Sahte konum',
+  emulator: 'Emülatör',
+  rooted: 'Root / jailbreak',
+  dev_mode: 'Geliştirici seçenekleri açık',
+  usb_debug: 'USB hata ayıklama açık',
+  external_storage: 'Harici depolamada',
+  unverified: 'Cihaz kontrolü yapılamadı',
+};
+
 function ayBasi() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -281,7 +294,10 @@ function RetModal({ talep, onClose, onDone }) {
 
 // ---- Puantaj ----
 
-function Puantaj() {
+/// Puantaj tablosu. [storeId] verilirse yalnizca o magaza; verilmezse
+/// kullanicinin tum kapsami. IK sayfasi da bu bileseni kullaniyor — tabloyu
+/// kopyalamak iki yerin zamanla ayrismasi demekti.
+export function Puantaj({ storeId }) {
   const [from, setFrom] = useState(ayBasi);
   const [to, setTo] = useState(bugun);
   const [veri, setVeri] = useState(null);
@@ -290,10 +306,11 @@ function Puantaj() {
 
   useEffect(() => {
     setHata('');
-    api.get(`/pdks/timesheet?from=${from}&to=${to}`)
+    const magaza = storeId ? `&storeId=${storeId}` : '';
+    api.get(`/pdks/timesheet?from=${from}&to=${to}${magaza}`)
       .then((r) => setVeri(r.data))
       .catch((e) => { setVeri(null); setHata(errorMessage(e)); });
-  }, [from, to]);
+  }, [from, to, storeId]);
 
   return (
     <>
@@ -316,11 +333,11 @@ function Puantaj() {
               <table className="responsive">
                 <thead>
                   <tr><th>Personel</th><th>Çalışılan</th><th>Planlı</th><th>Fazla mesai</th>
-                    <th>Eksik</th><th>Geç</th><th>İzin</th><th>Devamsız</th><th></th></tr>
+                    <th>Eksik</th><th>Geç</th><th>İzin</th><th>Devamsız</th><th>Uyarı</th><th></th></tr>
                 </thead>
                 <tbody>
                   {veri.items.length === 0 && (
-                    <tr><td data-label="" colSpan="9"><p className="empty">Kayıt bulunamadı.</p></td></tr>
+                    <tr><td data-label="" colSpan="10"><p className="empty">Kayıt bulunamadı.</p></td></tr>
                   )}
                   {veri.items.map((it) => (
                     <tr key={it.user.id}>
@@ -340,6 +357,14 @@ function Puantaj() {
                       <td data-label="Devamsız">
                         {it.summary.absent_days > 0
                           ? <span className="badge critical">{it.summary.absent_days} gün</span>
+                          : '-'}
+                      </td>
+                      {/* Cihaz uyarilari: puantaji onaylayan kisi supheli bir
+                          girisi gormeden imzalamasin. Bu kayitlar KABUL EDILDI;
+                          engellenen denemeler hic kayit yazmiyor. */}
+                      <td data-label="Uyarı">
+                        {it.summary.flagged_days > 0
+                          ? <span className="badge warning">{it.summary.flagged_days} gün</span>
                           : '-'}
                       </td>
                       <td data-label="">
@@ -383,7 +408,7 @@ function GunGun({ item }) {
         <table className="responsive">
           <thead>
             <tr><th>Gün</th><th>Vardiya</th><th>Durum</th><th>Bulunma</th><th>Net</th>
-              <th>Planlı</th><th>Mesai</th><th>Eksik</th></tr>
+              <th>Planlı</th><th>Mesai</th><th>Eksik</th><th>Uyarı</th></tr>
           </thead>
           <tbody>
             {item.days.map((d) => (
@@ -404,6 +429,13 @@ function GunGun({ item }) {
                 <td data-label="Planlı">{saat(d.scheduled_minutes)}</td>
                 <td data-label="Mesai">{saat(d.overtime_minutes)}</td>
                 <td data-label="Eksik">{saat(d.missing_minutes)}</td>
+                <td data-label="Uyarı">
+                  {(d.risk_flags || []).length === 0 ? '-' : d.risk_flags.map((f) => (
+                    <span className="badge warning" key={f} style={{ marginRight: 4 }}>
+                      {BAYRAK_ETIKET[f] || f}
+                    </span>
+                  ))}
+                </td>
               </tr>
             ))}
           </tbody>

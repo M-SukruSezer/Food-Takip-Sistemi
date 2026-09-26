@@ -111,7 +111,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;
 -- eklenir. Ters sirada ADD CONSTRAINT hala 'staff' olan satirlara takiliyor.
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 UPDATE users SET role = 'barista' WHERE role = 'staff';
-ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'store_manager', 'shift_supervisor', 'barista'));
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'hr', 'store_manager', 'shift_supervisor', 'barista'));
 
 -- Operations/regional manager birden fazla magazadan sorumlu olabilir; tek
 -- users.store_id yetmiyor. Diger roller tek magazaya bagli kalir.
@@ -499,3 +499,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_global
 CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_store
   ON public_holidays(store_id, holiday_date) WHERE store_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_holidays_date ON public_holidays(holiday_date);
+
+-- Cihaz butunluk bayraklari (JSON dizi). Engelleyen bayrak zaten islemi
+-- reddettigi icin bu kolonda cogunlukla uyari bayraklari durur: root,
+-- gelistirici secenekleri, kontrol edilemedi. NULL = hic bayrak yok.
+ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS risk_flags TEXT;

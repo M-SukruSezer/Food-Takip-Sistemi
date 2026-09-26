@@ -38,6 +38,15 @@ async function requireAuth(req, res, next) {
   // Erisilebilir magazalar istek basina bir kez cozulur; boylece rotalar
   // senkron kalir. Yalnizca cok magazali roller icin sorgu atilir.
   req.storeIds = await accessibleStoreIds(req.user);
+
+  // Varsayilan RED kapisi. requireAuth'a konuldu cunku korunan her
+  // yonlendirici bundan geciyor: tek kanca tam kapsama veriyor ve yeni bir
+  // rota eklendiginde IK'ya kendiliginden acilmiyor.
+  if (req.user.role === HR_ROLE && !hrAllows(req.method, req.originalUrl)) {
+    return res.status(403).json({
+      error: 'İnsan Kaynakları rolü yalnızca mağaza puantajlarını görüntüleyebilir',
+    });
+  }
   next();
 }
 
@@ -61,6 +70,10 @@ function requireRole(...roles) {
 const ROLES = [
   'super_admin',
   'operations_manager',
+  // IK: kademe olarak bolge muduru USTUNDE cunku magaza sinirlarini asan
+  // puantaj gorunurlugu tanir; boylece bir bolge muduru kendi bolgesi
+  // disini gorebilecek bir IK kullanicisi olusturamaz.
+  'hr',
   'regional_manager',
   'store_manager',
   'shift_supervisor',
@@ -70,6 +83,7 @@ const ROLES = [
 const ROLE_LABELS = {
   super_admin: 'Ana Yönetici',
   operations_manager: 'Operations Manager',
+  hr: 'İnsan Kaynakları',
   regional_manager: 'Regional Manager',
   store_manager: 'Store Manager',
   shift_supervisor: 'Shift Supervisor',
@@ -78,10 +92,46 @@ const ROLE_LABELS = {
 
 /// Birden fazla magazadan sorumlu olabilen roller; magaza atamasi
 /// user_stores tablosundan gelir.
-const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager'];
+// IK de buraya dahil: kapsami user_stores'tan gelir. Varsayilan olarak TUM
+// magazalari vermek yerine atama istenmesi bilincli bir karar — yeni bir role
+// kendiliginden her magazanin puantajini acmak guvenli varsayilan degil.
+const MULTI_STORE_ROLES = ['operations_manager', 'regional_manager', 'hr'];
 
 /// Kullanici yonetimi yapabilen roller (kendi altindakileri tanimlar).
 const MANAGER_ROLES = ['super_admin', 'operations_manager', 'regional_manager', 'store_manager'];
+
+/// IK rolu. Yonetici DEGIL: kullanici/urun/kasa islemlerine hic erismez.
+const HR_ROLE = 'hr';
+
+/// Puantaji baskasi adina okuyabilen roller. Yoneticiler + IK.
+const TIMESHEET_VIEW_ROLES = [...MANAGER_ROLES, HR_ROLE];
+
+// IK'nin erisebildigi yollar. BEYAZ liste (varsayilan RED) bilincli secim:
+// rotalarin cogu yalnizca requireAuth ile korunuyor, kara liste yaklasiminda
+// ileride eklenen herhangi bir rota sessizce IK'ya acik olurdu.
+//
+// Salt okunur: GET disinda tek istisna sifre degistirme.
+const HR_ALLOWED = [
+  { method: 'GET', pattern: /^\/auth\/me$/ },
+  { method: 'POST', pattern: /^\/auth\/password$/ },
+  { method: 'GET', pattern: /^\/stores$/ },
+  { method: 'GET', pattern: /^\/pdks\/timesheet$/ },
+];
+
+/// Istek yolunu /api on ekinden ve sorgu dizesinden arindirir.
+function normalizePath(originalUrl) {
+  const noQuery = String(originalUrl || '').split('?')[0];
+  const noApi = noQuery.startsWith('/api') ? noQuery.slice(4) : noQuery;
+  // Sondaki egik cizgi yol eslesmesini bozmasin.
+  const trimmed = noApi.replace(/\/+$/, '');
+  return trimmed || '/';
+}
+
+/// IK istegi beyaz listede mi?
+function hrAllows(method, originalUrl) {
+  const path = normalizePath(originalUrl);
+  return HR_ALLOWED.some((r) => r.method === method && r.pattern.test(path));
+}
 
 function roleLevel(role) {
   const i = ROLES.indexOf(role);
@@ -90,6 +140,10 @@ function roleLevel(role) {
 
 /// [actor] rolunun tanimlayabilecegi roller: kendinden asagidakiler.
 function assignableRoles(actorRole) {
+  // Yonetici olmayan roller kullanici tanimlayamaz. Rotalar bunu zaten
+  // engelliyor; burada da kesilmesi ikinci bir emniyet — IK gibi kademesi
+  // yuksek ama yonetici olmayan bir rol eklendiginde liste bos kalir.
+  if (!MANAGER_ROLES.includes(actorRole)) return [];
   return ROLES.slice(roleLevel(actorRole) + 1);
 }
 
@@ -232,6 +286,7 @@ function storeFilter(scope, column = 'store_id') {
 module.exports = {
   sign, hashPassword, verifyPassword, requireAuth, requireRole, storeScope,
   ROLES, ROLE_LABELS, MANAGER_ROLES, roleLevel, assignableRoles, isMultiStoreRole,
+  HR_ROLE, TIMESHEET_VIEW_ROLES, hrAllows, normalizePath,
   accessibleStoreIds, allowsStore, resolveStoreScope, storeFilter,
   ALL_PERMISSIONS, DEFAULT_PERMISSIONS, PERMISSION_LABELS, PERMISSION_ERRORS,
   parsePermissions, permissionsOf, serializePermissions, requirePermission,

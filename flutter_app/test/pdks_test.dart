@@ -18,40 +18,72 @@ Map<String, Object?> _status({
   List<Map<String, Object?>>? shifts,
   List<Map<String, Object?>>? logs,
 }) => {
-      'work_date': '2026-11-02',
-      'is_inside': inside,
-      'open_since': inside ? '2026-11-02T05:00:00.000Z' : null,
-      'store': {
-        'id': 1, 'name': 'DÜZCE MERKEZ', 'pdks_enabled': enabled,
-        'qr_mode': 'rotating', 'latitude': hasLocation ? 40.8438 : null,
-        'longitude': hasLocation ? 31.1565 : null,
-        'geofence_radius_m': 100, 'has_location': hasLocation,
-      },
-      'shifts': shifts ?? [
-        {'name': 'Gündüz', 'start_time': '08:00', 'end_time': '17:00',
-         'break_duration_minutes': 60, 'late_tolerance_minutes': 10, 'is_day_off': false},
+  'work_date': '2026-11-02',
+  'is_inside': inside,
+  'open_since': inside ? '2026-11-02T05:00:00.000Z' : null,
+  'store': {
+    'id': 1,
+    'name': 'DÜZCE MERKEZ',
+    'pdks_enabled': enabled,
+    'qr_mode': 'rotating',
+    'latitude': hasLocation ? 40.8438 : null,
+    'longitude': hasLocation ? 31.1565 : null,
+    'geofence_radius_m': 100,
+    'has_location': hasLocation,
+  },
+  'shifts':
+      shifts ??
+      [
+        {
+          'name': 'Gündüz',
+          'start_time': '08:00',
+          'end_time': '17:00',
+          'break_duration_minutes': 60,
+          'late_tolerance_minutes': 10,
+          'is_day_off': false,
+        },
       ],
-      'logs': logs ?? [],
-    };
+  'logs': logs ?? [],
+};
 
 final _balance = {
-  'leave': {'entitlement_days': 14, 'used_days': 3, 'pending_days': 2,
-    'remaining_days': 9, 'over_used': false},
-  'hourly_leave': {'used_hours': 4, 'pending_hours': 0, 'deducted_from_annual': false},
-  'advance': {'monthly_limit': 3000, 'used': 500, 'pending': 0, 'remaining': 2500,
-    'over_used': false},
-  'leave_year': {'from': '2026-03-15', 'to': '2027-03-14', 'basis': 'anniversary'},
+  'leave': {
+    'entitlement_days': 14,
+    'used_days': 3,
+    'pending_days': 2,
+    'remaining_days': 9,
+    'over_used': false,
+  },
+  'hourly_leave': {
+    'used_hours': 4,
+    'pending_hours': 0,
+    'deducted_from_annual': false,
+  },
+  'advance': {
+    'monthly_limit': 3000,
+    'used': 500,
+    'pending': 0,
+    'remaining': 2500,
+    'over_used': false,
+  },
+  'leave_year': {
+    'from': '2026-03-15',
+    'to': '2027-03-14',
+    'basis': 'anniversary',
+  },
   'month': {'from': '2026-11-01', 'to': '2026-11-30'},
   'weekly_off_days': [0],
-  'notes': ['Yıllık izin hesabında hafta tatili düşülür, resmi tatiller düşülmez.'],
+  'notes': [
+    'Yıllık izin hesabında hafta tatili düşülür, resmi tatiller düşülmez.',
+  ],
 };
 
 Map<String, Object?> _routes({Map<String, Object?>? status}) => {
-      'GET /pdks/me': status ?? _status(),
-      'GET /pdks/requests/balances': _balance,
-      'GET /pdks/requests': const <Object>[],
-      'GET /pdks/assignments': const <Object>[],
-    };
+  'GET /pdks/me': status ?? _status(),
+  'GET /pdks/requests/balances': _balance,
+  'GET /pdks/requests': const <Object>[],
+  'GET /pdks/assignments': const <Object>[],
+};
 
 void main() {
   setUpAll(initTestFormatting);
@@ -83,7 +115,8 @@ void main() {
   group('Modeller', () {
     test('QR sırrı model alanlarında yok', () {
       final s = PdksStore.fromJson(
-          (_status()['store'] as Map<String, dynamic>));
+        (_status()['store'] as Map<String, dynamic>),
+      );
       // Sunucu sirri dondurmuyor; model de tasimamali.
       expect(s.toString().contains('secret'), isFalse);
       expect(s.hasLocation, isTrue);
@@ -91,17 +124,29 @@ void main() {
     });
 
     test('gece vardiyası tespiti', () {
-      final gece = PdksShift.fromJson(
-          {'start_time': '22:00', 'end_time': '06:00', 'name': 'Gece'});
-      final gunduz = PdksShift.fromJson(
-          {'start_time': '08:00', 'end_time': '17:00', 'name': 'Gündüz'});
+      final gece = PdksShift.fromJson({
+        'start_time': '22:00',
+        'end_time': '06:00',
+        'name': 'Gece',
+      });
+      final gunduz = PdksShift.fromJson({
+        'start_time': '08:00',
+        'end_time': '17:00',
+        'name': 'Gündüz',
+      });
       expect(gece.crossesMidnight, isTrue);
       expect(gunduz.crossesMidnight, isFalse);
     });
 
     test('sabit QR süresi dolmaz', () {
-      expect(QrToken.fromJson({'token': 'PDKS1S:1:x', 'mode': 'static'}).isStatic, isTrue);
-      expect(QrToken.fromJson({'token': 'PDKS1:1:2:x', 'mode': 'rotating'}).isStatic, isFalse);
+      expect(
+        QrToken.fromJson({'token': 'PDKS1S:1:x', 'mode': 'static'}).isStatic,
+        isTrue,
+      );
+      expect(
+        QrToken.fromJson({'token': 'PDKS1:1:2:x', 'mode': 'rotating'}).isStatic,
+        isFalse,
+      );
     });
 
     test('bakiye alanları ayrışır', () {
@@ -116,10 +161,23 @@ void main() {
     test('anlık durum içeride/dışarıda ayırır', () {
       final p = PresenceSnapshot.fromJson({
         'inside_count': 1,
-        'inside': [{'user_id': 1, 'full_name': 'A', 'role': 'barista',
-          'last_type': 'GIRIS', 'minutes_since': 95}],
-        'outside': [{'user_id': 2, 'full_name': 'B', 'role': 'barista',
-          'last_type': 'CIKIS'}],
+        'inside': [
+          {
+            'user_id': 1,
+            'full_name': 'A',
+            'role': 'barista',
+            'last_type': 'GIRIS',
+            'minutes_since': 95,
+          },
+        ],
+        'outside': [
+          {
+            'user_id': 2,
+            'full_name': 'B',
+            'role': 'barista',
+            'last_type': 'CIKIS',
+          },
+        ],
       });
       expect(p.insideCount, 1);
       expect(p.inside.first.isInside, isTrue);
@@ -128,7 +186,9 @@ void main() {
   });
 
   group('Personel ekranı', () {
-    testWidgets('dışarıdayken giriş düğmesi, içerideyken çıkış', (tester) async {
+    testWidgets('dışarıdayken giriş düğmesi, içerideyken çıkış', (
+      tester,
+    ) async {
       tall(tester);
       installFakeApi(_routes());
       signInAs('barista', storeId: 1);
@@ -136,7 +196,10 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(Pill, 'İş yerinde değilsiniz'), findsOneWidget);
+      expect(
+        find.widgetWithText(Pill, 'İş yerinde değilsiniz'),
+        findsOneWidget,
+      );
       expect(find.text('Konumla İşe Başla'), findsOneWidget);
       expect(find.text('Konumla İşi Bitir'), findsNothing);
       expect(find.text('QR Okut (giriş)'), findsOneWidget);
@@ -164,7 +227,10 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('yalnızca giriş/çıkış anında alınır'), findsOneWidget);
+      expect(
+        find.textContaining('yalnızca giriş/çıkış anında alınır'),
+        findsOneWidget,
+      );
       expect(find.textContaining('Arka planda konum izlenmez'), findsOneWidget);
       expect(find.textContaining('100 m'), findsOneWidget);
     });
@@ -177,13 +243,19 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('devam takibi henüz açılmamış'), findsOneWidget);
+      expect(
+        find.textContaining('devam takibi henüz açılmamış'),
+        findsOneWidget,
+      );
       final btn = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Konumla İşe Başla'));
+        find.widgetWithText(FilledButton, 'Konumla İşe Başla'),
+      );
       expect(btn.onPressed, isNull);
     });
 
-    testWidgets('mağaza konumu yoksa konumla giriş kapalı, QR açık', (tester) async {
+    testWidgets('mağaza konumu yoksa konumla giriş kapalı, QR açık', (
+      tester,
+    ) async {
       tall(tester);
       installFakeApi(_routes(status: _status(hasLocation: false)));
       signInAs('barista', storeId: 1);
@@ -192,23 +264,40 @@ void main() {
       await tester.pumpAndSettle();
 
       final gps = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Konumla İşe Başla'));
+        find.widgetWithText(FilledButton, 'Konumla İşe Başla'),
+      );
       expect(gps.onPressed, isNull);
       expect(find.textContaining('konumla giriş kapalı'), findsOneWidget);
       // QR yine kullanilabilir.
       final qr = tester.widget<OutlinedButton>(
-          find.widgetWithText(OutlinedButton, 'QR Okut (giriş)'));
+        find.widgetWithText(OutlinedButton, 'QR Okut (giriş)'),
+      );
       expect(qr.onPressed, isNotNull);
     });
 
     testWidgets('bugünün vardiyası ve kayıtları', (tester) async {
       tall(tester);
-      installFakeApi(_routes(status: _status(logs: [
-        {'id': 1, 'type': 'GIRIS', 'method': 'GPS',
-         'occurred_at': '2026-11-02T05:02:00.000Z', 'distance_m': 42},
-        {'id': 2, 'type': 'CIKIS', 'method': 'QR',
-         'occurred_at': '2026-11-02T14:05:00.000Z'},
-      ])));
+      installFakeApi(
+        _routes(
+          status: _status(
+            logs: [
+              {
+                'id': 1,
+                'type': 'GIRIS',
+                'method': 'GPS',
+                'occurred_at': '2026-11-02T05:02:00.000Z',
+                'distance_m': 42,
+              },
+              {
+                'id': 2,
+                'type': 'CIKIS',
+                'method': 'QR',
+                'occurred_at': '2026-11-02T14:05:00.000Z',
+              },
+            ],
+          ),
+        ),
+      );
       signInAs('barista', storeId: 1);
 
       await tester.pumpWidget(host(const PdksScreen()));
@@ -231,8 +320,8 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('9 gün'), findsOneWidget);   // kalan
-      expect(find.text('2 gün'), findsOneWidget);   // bekleyen
+      expect(find.text('9 gün'), findsOneWidget); // kalan
+      expect(find.text('2 gün'), findsOneWidget); // bekleyen
       expect(find.text('2.500,00 TL'), findsOneWidget);
       expect(find.textContaining('4 saat saatlik izin'), findsOneWidget);
       expect(find.textContaining('resmi tatiller düşülmez'), findsOneWidget);
@@ -250,23 +339,35 @@ void main() {
       expect(find.text('Pzt'), findsOneWidget);
       expect(find.text('Paz'), findsOneWidget);
       // Pazartesi ilk sirada.
-      expect(tester.getTopLeft(find.text('Pzt')).dx,
-          lessThan(tester.getTopLeft(find.text('Paz')).dx));
+      expect(
+        tester.getTopLeft(find.text('Pzt')).dx,
+        lessThan(tester.getTopLeft(find.text('Paz')).dx),
+      );
     });
   });
 
   group('QR gösterici', () {
     testWidgets('zemin her zaman beyaz', (tester) async {
       // Koyu temada koyu zeminde QR okunamaz.
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData.dark(),
-        home: const Scaffold(body: QrView(data: 'PDKS1:1:2:abc', label: 'test')),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: const Scaffold(
+            body: QrView(data: 'PDKS1:1:2:abc', label: 'test'),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(QrImageView), findsOneWidget);
-      final box = tester.widget<Container>(find.ancestor(
-        of: find.byType(QrImageView), matching: find.byType(Container)).first);
+      final box = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byType(QrImageView),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
       final deco = box.decoration as BoxDecoration;
       expect(deco.color, Colors.white);
       expect(find.text('test'), findsOneWidget);
@@ -275,41 +376,88 @@ void main() {
 
   group('Yönetici ekranı', () {
     Map<String, Object?> adminRoutes() => {
-          'GET /pdks/now': {
-            'as_of': '2026-11-02T09:00:00.000Z',
-            'work_date': '2026-11-02',
-            'inside_count': 1,
-            'inside': [{'user_id': 3, 'full_name': 'TALAT HAMZA', 'role': 'barista',
-              'last_type': 'GIRIS', 'last_method': 'GPS',
-              'last_at': '2026-11-02T05:02:00.000Z', 'minutes_since': 95,
-              'distance_m': 42}],
-            'outside': [{'user_id': 4, 'full_name': 'ALİ CANBULAT',
-              'role': 'shift_supervisor', 'last_type': 'CIKIS',
-              'last_at': '2026-11-01T14:00:00.000Z'}],
+      'GET /pdks/now': {
+        'as_of': '2026-11-02T09:00:00.000Z',
+        'work_date': '2026-11-02',
+        'inside_count': 1,
+        'inside': [
+          {
+            'user_id': 3,
+            'full_name': 'TALAT HAMZA',
+            'role': 'barista',
+            'last_type': 'GIRIS',
+            'last_method': 'GPS',
+            'last_at': '2026-11-02T05:02:00.000Z',
+            'minutes_since': 95,
+            'distance_m': 42,
           },
-          'GET /pdks/requests': [
-            {'id': 7, 'user_id': 3, 'full_name': 'TALAT HAMZA', 'type': 'AVANS',
-             'amount': 500, 'reason': 'Acil', 'status': 'PENDING'},
-          ],
-          'GET /pdks/timesheet': {
-            'from': '2026-11-01', 'to': '2026-11-02',
-            'items': [{
-              'user': {'id': 3, 'full_name': 'TALAT HAMZA'},
-              'days': [{'work_date': '2026-11-02', 'presence_minutes': 540,
-                'worked_minutes': 480, 'scheduled_minutes': 480,
-                'overtime_minutes': 0, 'missing_minutes': 0, 'late_minutes': 0,
-                'is_day_off': false, 'on_leave': false, 'statuses': [],
-                'shift_names': ['Gündüz']}],
-              'summary': {'days': 1, 'worked_days': 1, 'absent_days': 0,
-                'leave_days': 0, 'worked_minutes': 480, 'scheduled_minutes': 480,
-                'overtime_minutes': 120, 'missing_minutes': 0, 'late_minutes': 30,
-                'unscheduled_minutes': 0},
-            }],
-            'total': {'days': 1, 'worked_minutes': 480, 'overtime_minutes': 120,
-              'missing_minutes': 0, 'unscheduled_minutes': 0},
-            'notes': ['Mola, İş Kanunu m.68 asgarisi ile...'],
+        ],
+        'outside': [
+          {
+            'user_id': 4,
+            'full_name': 'ALİ CANBULAT',
+            'role': 'shift_supervisor',
+            'last_type': 'CIKIS',
+            'last_at': '2026-11-01T14:00:00.000Z',
           },
-        };
+        ],
+      },
+      'GET /pdks/requests': [
+        {
+          'id': 7,
+          'user_id': 3,
+          'full_name': 'TALAT HAMZA',
+          'type': 'AVANS',
+          'amount': 500,
+          'reason': 'Acil',
+          'status': 'PENDING',
+        },
+      ],
+      'GET /pdks/timesheet': {
+        'from': '2026-11-01',
+        'to': '2026-11-02',
+        'items': [
+          {
+            'user': {'id': 3, 'full_name': 'TALAT HAMZA'},
+            'days': [
+              {
+                'work_date': '2026-11-02',
+                'presence_minutes': 540,
+                'worked_minutes': 480,
+                'scheduled_minutes': 480,
+                'overtime_minutes': 0,
+                'missing_minutes': 0,
+                'late_minutes': 0,
+                'is_day_off': false,
+                'on_leave': false,
+                'statuses': [],
+                'shift_names': ['Gündüz'],
+              },
+            ],
+            'summary': {
+              'days': 1,
+              'worked_days': 1,
+              'absent_days': 0,
+              'leave_days': 0,
+              'worked_minutes': 480,
+              'scheduled_minutes': 480,
+              'overtime_minutes': 120,
+              'missing_minutes': 0,
+              'late_minutes': 30,
+              'unscheduled_minutes': 0,
+            },
+          },
+        ],
+        'total': {
+          'days': 1,
+          'worked_minutes': 480,
+          'overtime_minutes': 120,
+          'missing_minutes': 0,
+          'unscheduled_minutes': 0,
+        },
+        'notes': ['Mola, İş Kanunu m.68 asgarisi ile...'],
+      },
+    };
 
     testWidgets('anlık durum içeridekini süresiyle gösterir', (tester) async {
       tall(tester);
@@ -354,8 +502,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Çalışılan'), findsOneWidget);
-      expect(find.text('8s'), findsOneWidget);       // 480 dk
-      expect(find.text('2s'), findsOneWidget);       // 120 dk mesai
+      expect(find.text('8s'), findsOneWidget); // 480 dk
+      expect(find.text('2s'), findsOneWidget); // 120 dk mesai
       expect(find.textContaining('1 gün çalıştı'), findsOneWidget);
       expect(find.textContaining('30 dk geç'), findsOneWidget);
     });
@@ -372,21 +520,31 @@ void main() {
       expect(admin.roles, isNot(contains('barista')));
     });
 
-    test('devam takibi Operasyon grubunda', () {
-      final op = navGroups.firstWhere((g) => g.title == 'Operasyon');
-      expect(op.items.map((i) => i.path), contains('/pdks'));
-      final yon = navGroups.firstWhere((g) => g.title == 'Yönetim');
-      expect(yon.items.map((i) => i.path), contains('/pdks-admin'));
+    test('devam ve devam yönetimi PDKS ekranında', () {
+      final pdks = navSections.firstWhere((s) => s.id == AppSection.pdks);
+      final paths = pdks.groups.expand((g) => g.items).map((i) => i.path);
+      expect(paths, containsAll(['/pdks', '/pdks-admin', '/timesheet']));
+      // Operasyon ekraninda PDKS yolu bulunmaz: iki ekran ayrisik.
+      final ops = navSections.firstWhere((s) => s.id == AppSection.operations);
+      final opPaths = ops.groups.expand((g) => g.items).map((i) => i.path);
+      expect(opPaths, isNot(contains('/pdks')));
+      expect(opPaths, isNot(contains('/pdks-admin')));
     });
   });
 
   group('Resmi tatiller', () {
-    PublicHoliday h(String date, String name,
-            {bool half = false, int? storeId}) =>
-        PublicHoliday.fromJson({
-          'id': 1, 'holiday_date': date, 'name': name,
-          'is_half_day': half, 'store_id': storeId,
-        });
+    PublicHoliday h(
+      String date,
+      String name, {
+      bool half = false,
+      int? storeId,
+    }) => PublicHoliday.fromJson({
+      'id': 1,
+      'holiday_date': date,
+      'name': name,
+      'is_half_day': half,
+      'store_id': storeId,
+    });
 
     test('mağazaya özel kayıt geneli geçersiz kılar', () {
       // Sunucudaki holidayMap ile ayni kural: iki taraf ayrismamali.
@@ -413,12 +571,19 @@ void main() {
 
     test('puantaj günü tatil alanlarını taşır', () {
       final d = TimesheetDay.fromJson({
-        'work_date': '2026-10-29', 'presence_minutes': 480,
-        'worked_minutes': 480, 'scheduled_minutes': 0,
-        'overtime_minutes': 480, 'missing_minutes': 0, 'late_minutes': 0,
-        'is_day_off': false, 'on_leave': false,
-        'statuses': ['RESMI_TATIL'], 'shift_names': ['Gündüz'],
-        'is_holiday': true, 'holiday_name': 'Cumhuriyet Bayramı',
+        'work_date': '2026-10-29',
+        'presence_minutes': 480,
+        'worked_minutes': 480,
+        'scheduled_minutes': 0,
+        'overtime_minutes': 480,
+        'missing_minutes': 0,
+        'late_minutes': 0,
+        'is_day_off': false,
+        'on_leave': false,
+        'statuses': ['RESMI_TATIL'],
+        'shift_names': ['Gündüz'],
+        'is_holiday': true,
+        'holiday_name': 'Cumhuriyet Bayramı',
       });
       expect(d.isHoliday, isTrue);
       expect(d.holidayName, 'Cumhuriyet Bayramı');
@@ -434,13 +599,20 @@ void main() {
           '-${day.toString().padLeft(2, '0')}';
     }
 
-    testWidgets('takvimde tatil işaretlenir ve açıklaması çıkar', (tester) async {
+    testWidgets('takvimde tatil işaretlenir ve açıklaması çıkar', (
+      tester,
+    ) async {
       tall(tester);
       installFakeApi({
         ..._routes(),
         'GET /pdks/holidays': [
-          {'id': 1, 'holiday_date': thisMonthDay(10), 'name': 'ZZ Bayram',
-           'is_half_day': false, 'store_id': null},
+          {
+            'id': 1,
+            'holiday_date': thisMonthDay(10),
+            'name': 'ZZ Bayram',
+            'is_half_day': false,
+            'store_id': null,
+          },
         ],
       });
       signInAs('barista', storeId: 1);
@@ -458,8 +630,13 @@ void main() {
       installFakeApi({
         ..._routes(),
         'GET /pdks/holidays': [
-          {'id': 2, 'holiday_date': thisMonthDay(11), 'name': 'Arefe',
-           'is_half_day': true, 'store_id': 1},
+          {
+            'id': 2,
+            'holiday_date': thisMonthDay(11),
+            'name': 'Arefe',
+            'is_half_day': true,
+            'store_id': 1,
+          },
         ],
       });
       signInAs('barista', storeId: 1);
@@ -470,5 +647,4 @@ void main() {
       expect(find.text('Arefe ½'), findsOneWidget);
     });
   });
-
 }

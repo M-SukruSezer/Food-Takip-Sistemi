@@ -28,7 +28,12 @@ final _fields = {
   ],
   'derived': [
     {'key': 'at', 'label': 'AT', 'type': 'money', 'formula': 'NET SALES / ADT'},
-    {'key': 'ipt', 'label': 'IPT', 'type': 'number', 'formula': '(PRODUCT QTY − MODIFIERS) / ADT'},
+    {
+      'key': 'ipt',
+      'label': 'IPT',
+      'type': 'number',
+      'formula': '(PRODUCT QTY − MODIFIERS) / ADT',
+    },
     {'key': 'food_markout_pct', 'label': 'FOOD MARKOUT %', 'type': 'percent'},
     {'key': 'food_uph', 'label': 'FOOD UPH', 'type': 'number'},
     {'key': 'modifiers_pct', 'label': 'MODIFIERS %', 'type': 'percent'},
@@ -37,33 +42,67 @@ final _fields = {
 };
 
 final _page = {
-  'from': '2026-09-22', 'to': '2026-09-23', 'period': 'week',
+  'from': '2026-09-22',
+  'to': '2026-09-23',
+  'period': 'week',
   'items': [
     {
-      'id': 1, 'store_id': 1, 'report_date': '2026-09-22',
-      'net_sales': 10000, 'adt': 200, 'product_qty': 500, 'food_usd': 80,
-      'food_usd_try': 4000, 'food_mo_try': 200, 'sold_beverage_qty': 300,
-      'modifiers': 60, 'app_amount': 1500,
-      'created_by_name': 'Şükrü Sezer', 'store_name': 'Merkez',
+      'id': 1,
+      'store_id': 1,
+      'report_date': '2026-09-22',
+      'net_sales': 10000,
+      'adt': 200,
+      'product_qty': 500,
+      'food_usd': 80,
+      'food_usd_try': 4000,
+      'food_mo_try': 200,
+      'sold_beverage_qty': 300,
+      'modifiers': 60,
+      'app_amount': 1500,
+      'created_by_name': 'Şükrü Sezer',
+      'store_name': 'Merkez',
       'metrics': {
-        'at': 50, 'ipt': 2.2, 'food_markout_pct': 0.05,
-        'food_uph': 40, 'modifiers_pct': 0.2, 'app_pct': 0.15,
+        'at': 50,
+        'ipt': 2.2,
+        'food_markout_pct': 0.05,
+        'food_uph': 40,
+        'modifiers_pct': 0.2,
+        'app_pct': 0.15,
       },
     },
   ],
   'summary': {
     'days': 2,
     'totals': {
-      'net_sales': 20000, 'adt': 300, 'product_qty': 750, 'food_usd': 120,
-      'food_usd_try': 6000, 'food_mo_try': 300, 'sold_beverage_qty': 450,
-      'modifiers': 90, 'app_amount': 2000,
+      'net_sales': 20000,
+      'adt': 300,
+      'product_qty': 750,
+      'food_usd': 120,
+      'food_usd_try': 6000,
+      'food_mo_try': 300,
+      'sold_beverage_qty': 450,
+      'modifiers': 90,
+      'app_amount': 2000,
     },
     'metrics': {
-      'at': 66.6667, 'ipt': 2.2, 'food_markout_pct': 0.05,
-      'food_uph': 40, 'modifiers_pct': 0.2, 'app_pct': 0.1,
+      'at': 66.6667,
+      'ipt': 2.2,
+      'food_markout_pct': 0.05,
+      'food_uph': 40,
+      'modifiers_pct': 0.2,
+      'app_pct': 0.1,
     },
   },
 };
+
+/// Gun Ekle bugunun tarihini soruyor. Sabit tarih yazilmasi testi yalnizca o
+/// gun gecerli kiliyordu; anahtar bugunden uretiliyor.
+final _today = () {
+  final d = DateTime.now();
+  return '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+}();
 
 void main() {
   late HttpClientAdapter original;
@@ -101,7 +140,10 @@ void main() {
       tester.view.physicalSize = const Size(800, 2200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
-      installFakeApi({'GET /daily-reports': _page, 'GET /daily-reports/fields': _fields});
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+      });
       signInAs('store_manager', storeId: 1);
 
       await tester.pumpWidget(host(const DailyReportScreen()));
@@ -114,8 +156,13 @@ void main() {
       expect(find.text('APP%: 15.00%'), findsOneWidget);
     });
 
-    testWidgets('dönem özeti toplamlardan hesaplanan oranları gösterir', (tester) async {
-      installFakeApi({'GET /daily-reports': _page, 'GET /daily-reports/fields': _fields});
+    testWidgets('dönem özeti toplamlardan hesaplanan oranları gösterir', (
+      tester,
+    ) async {
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+      });
       signInAs('store_manager', storeId: 1);
 
       await tester.pumpWidget(host(const DailyReportScreen()));
@@ -130,18 +177,27 @@ void main() {
 
     testWidgets('giriş yalnızca iki rolde açık', (tester) async {
       for (final rol in ['store_manager', 'shift_supervisor']) {
-        installFakeApi({'GET /daily-reports': _page, 'GET /daily-reports/fields': _fields});
+        installFakeApi({
+          'GET /daily-reports': _page,
+          'GET /daily-reports/fields': _fields,
+        });
         signInAs(rol, storeId: 1);
         await tester.pumpWidget(host(const DailyReportScreen()));
         await tester.pumpAndSettle();
-        expect(find.text('Gün Ekle'), findsOneWidget, reason: '$rol giriş yapabilmeli');
+        expect(
+          find.text('Gün Ekle'),
+          findsOneWidget,
+          reason: '$rol giriş yapabilmeli',
+        );
       }
       // Ust kademeler paneli hic gormuyor; menu kontrolu asagidaki testte.
     });
 
     testWidgets('haftalık/aylık seçimi sunucuya gider', (tester) async {
-      final adapter =
-          installFakeApi({'GET /daily-reports': _page, 'GET /daily-reports/fields': _fields});
+      final adapter = installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+      });
       signInAs('store_manager', storeId: 1);
 
       await tester.pumpWidget(host(const DailyReportScreen()));
@@ -158,7 +214,7 @@ void main() {
       installFakeApi({
         'GET /daily-reports': _page,
         'GET /daily-reports/fields': _fields,
-        'GET /daily-reports/day/2026-09-25': null,
+        'GET /daily-reports/day/$_today': null,
       });
       signInAs('store_manager', storeId: 1);
 
@@ -170,10 +226,22 @@ void main() {
       // 9 ham alan sorulur; oranlar formda yok. Etiketler ozet kartinda da
       // gectigi icin arama pencereyle sinirlanir.
       final dialog = find.byType(AlertDialog);
-      expect(find.descendant(of: dialog, matching: find.text('NET SALES')), findsOneWidget);
-      expect(find.descendant(of: dialog, matching: find.text('SOLD BEVERAGE QTY')), findsOneWidget);
-      expect(find.descendant(of: dialog, matching: find.text('AT')), findsNothing);
-      expect(find.descendant(of: dialog, matching: find.text('FOOD UPH')), findsNothing);
+      expect(
+        find.descendant(of: dialog, matching: find.text('NET SALES')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('SOLD BEVERAGE QTY')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('AT')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('FOOD UPH')),
+        findsNothing,
+      );
       expect(find.textContaining('otomatik hesaplanır'), findsOneWidget);
     });
   });
@@ -182,7 +250,12 @@ void main() {
     final item = navItems.firstWhere((i) => i.path == '/daily-report');
     expect(item.roles, ['store_manager', 'shift_supervisor']);
     // Ust kademeler ve barista paneli hic gormez.
-    for (final rol in ['super_admin', 'operations_manager', 'regional_manager', 'barista']) {
+    for (final rol in [
+      'super_admin',
+      'operations_manager',
+      'regional_manager',
+      'barista',
+    ]) {
       expect(item.roles, isNot(contains(rol)), reason: '$rol görmemeli');
     }
   });
@@ -197,7 +270,9 @@ void main() {
 
   test('model paydası sıfır olan ölçüyü null tutar', () {
     final r = DailyReport.fromJson({
-      'id': 1, 'store_id': 1, 'report_date': '2026-09-22',
+      'id': 1,
+      'store_id': 1,
+      'report_date': '2026-09-22',
       'metrics': {'at': null, 'ipt': 2.2},
     });
     expect(r.metrics.at, isNull);
@@ -205,18 +280,23 @@ void main() {
   });
   group('Food alanları sistemden gelir, formda girilmez', () {
     Map<String, Object?> dayResponse({Map<String, Object?>? report}) => {
-          'report': report,
-          'suggested': {
-            'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400,
-            'discarded_qty': 2, 'waste_uses_current_price': true,
-          },
-        };
+      'report': report,
+      'suggested': {
+        'food_usd': 31,
+        'food_usd_try': 5980,
+        'food_mo_try': 400,
+        'discarded_qty': 2,
+        'waste_uses_current_price': true,
+      },
+    };
 
-    testWidgets('formda food girişi yok, değerler okunur gösterilir', (tester) async {
+    testWidgets('formda food girişi yok, değerler okunur gösterilir', (
+      tester,
+    ) async {
       installFakeApi({
         'GET /daily-reports': _page,
         'GET /daily-reports/fields': _fields,
-        'GET /daily-reports/day/2026-09-25': dayResponse(),
+        'GET /daily-reports/day/$_today': dayResponse(),
       });
       signInAs('store_manager', storeId: 1);
 
@@ -227,13 +307,27 @@ void main() {
 
       final dialog = find.byType(AlertDialog);
       // Elle girilen 6 alan + baska giris yok: food icin TextField uretilmez.
-      expect(find.descendant(of: dialog, matching: find.byType(TextField)), findsNWidgets(6));
+      expect(
+        find.descendant(of: dialog, matching: find.byType(TextField)),
+        findsNWidgets(6),
+      );
 
       // Food rakamlari okunur blokta gorunur.
-      expect(find.descendant(of: dialog, matching: find.text('Sistemden gelen değerler')),
-          findsOneWidget);
-      expect(find.descendant(of: dialog, matching: find.text('FOOD USD')), findsOneWidget);
-      expect(find.descendant(of: dialog, matching: find.text('31')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.text('Sistemden gelen değerler'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('FOOD USD')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('31')),
+        findsOneWidget,
+      );
       expect(find.textContaining('elle girilmez'), findsOneWidget);
     });
 
@@ -241,7 +335,7 @@ void main() {
       final fake = installFakeApi({
         'GET /daily-reports': _page,
         'GET /daily-reports/fields': _fields,
-        'GET /daily-reports/day/2026-09-25': dayResponse(),
+        'GET /daily-reports/day/$_today': dayResponse(),
         'POST /daily-reports': {'id': 1, 'metrics': {}},
       });
       signInAs('store_manager', storeId: 1);
@@ -251,7 +345,10 @@ void main() {
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();
 
-      final inputs = find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField));
+      final inputs = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      );
       for (var i = 0; i < 6; i++) {
         await tester.enterText(inputs.at(i), '10');
       }
@@ -321,7 +418,12 @@ void main() {
 
   test('sistemden gelen alanlar yalnızca food kalemleri', () {
     expect(SystemFoodValues.keys, ['food_usd', 'food_usd_try', 'food_mo_try']);
-    const v = SystemFoodValues(foodUsd: 31, foodUsdTry: 5980, foodMoTry: 400, discardedQty: 2);
+    const v = SystemFoodValues(
+      foodUsd: 31,
+      foodUsdTry: 5980,
+      foodMoTry: 400,
+      discardedQty: 2,
+    );
     expect(v['food_usd'], 31);
     // NET SALES gibi alanlar elle girilir.
     expect(v['net_sales'], isNull);
@@ -330,8 +432,11 @@ void main() {
   test('alan listesi entry ve system olarak ayrışır', () {
     final f = ReportFields.fromJson(_fields);
     expect(f.entry.map((e) => e.key), isNot(contains('food_usd')));
-    expect(f.system.map((e) => e.key), ['food_usd', 'food_usd_try', 'food_mo_try']);
+    expect(f.system.map((e) => e.key), [
+      'food_usd',
+      'food_usd_try',
+      'food_mo_try',
+    ]);
     expect(f.entry.length, 6);
   });
-
 }
