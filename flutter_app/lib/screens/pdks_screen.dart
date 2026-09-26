@@ -893,14 +893,15 @@ class ShiftCalendar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 )
               else if (dayOff)
-                Text('Tatil', style: TextStyle(fontSize: 9, color: t.muted))
+                Text('Tatil', style: TextStyle(fontSize: 11, color: t.muted))
               else
                 ...list
                     .take(2)
                     .map(
                       (a) => Text(
                         a.startTime ?? '',
-                        style: TextStyle(fontSize: 9, color: t.muted),
+                        // Takvim hucresindeki vardiya saati; 9px okunmuyordu.
+                        style: TextStyle(fontSize: 11, color: t.muted),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -921,7 +922,7 @@ class ShiftCalendar extends StatelessWidget {
                     g,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: t.muted,
                     ),

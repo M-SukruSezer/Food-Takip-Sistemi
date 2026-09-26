@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 class AppTokens extends ThemeExtension<AppTokens> {
   const AppTokens({
     required this.primary,
+    required this.onPrimary,
+    required this.dangerStrong,
     required this.primary600,
     required this.primaryDark,
     required this.primarySoft,
@@ -29,6 +31,18 @@ class AppTokens extends ThemeExtension<AppTokens> {
   });
 
   final Color primary;
+
+  /// Birincil zemin UZERINDEKI metin rengi.
+  ///
+  /// Sabit Colors.white DEGIL: koyu temada primary nane yesili (#34D399) ve
+  /// uzerinde beyaz metin yalnizca 1.92 kontrast veriyor — dugme neredeyse
+  /// okunmuyor. Koyu temada #0B1220 ayni zeminde 9.74 veriyor.
+  /// React tarafindaki --on-primary ile ayni deger.
+  final Color onPrimary;
+
+  /// Beyaz metin tasiyan kirmizi zemin. danger koyu temada acik kirmizi
+  /// (#F87171) olup beyazla 2.77 veriyor; bu ton 6.47 veriyor.
+  final Color dangerStrong;
   final Color primary600;
   final Color primaryDark;
   final Color primarySoft;
@@ -72,6 +86,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
 
   static const AppTokens light = AppTokens(
     primary: Color(0xFF15803D),
+    // Beyaz metin #15803D uzerinde 5.02 veriyor.
+    onPrimary: Color(0xFFFFFFFF),
+    dangerStrong: Color(0xFFDC2626),
     primary600: Color(0xFF16A34A),
     primaryDark: Color(0xFF14532D),
     primarySoft: Color(0xFFEAFAF0),
@@ -96,6 +113,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
 
   static const AppTokens dark = AppTokens(
     primary: Color(0xFF34D399),
+    // #0B1220, #34D399 uzerinde 9.74 veriyor.
+    onPrimary: Color(0xFF0B1220),
+    dangerStrong: Color(0xFFB91C1C),
     primary600: Color(0xFF10B981),
     primaryDark: Color(0xFF6EE7B7),
     primarySoft: Color(0x2434D399),
@@ -121,6 +141,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
   @override
   AppTokens copyWith({
     Color? primary,
+    Color? onPrimary,
+    Color? dangerStrong,
     Color? primary600,
     Color? primaryDark,
     Color? primarySoft,
@@ -144,6 +166,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
   }) {
     return AppTokens(
       primary: primary ?? this.primary,
+      onPrimary: onPrimary ?? this.onPrimary,
+      dangerStrong: dangerStrong ?? this.dangerStrong,
       primary600: primary600 ?? this.primary600,
       primaryDark: primaryDark ?? this.primaryDark,
       primarySoft: primarySoft ?? this.primarySoft,
@@ -172,6 +196,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
     if (other is! AppTokens) return this;
     return AppTokens(
       primary: Color.lerp(primary, other.primary, t)!,
+      onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
+      dangerStrong: Color.lerp(dangerStrong, other.dangerStrong, t)!,
       primary600: Color.lerp(primary600, other.primary600, t)!,
       primaryDark: Color.lerp(primaryDark, other.primaryDark, t)!,
       primarySoft: Color.lerp(primarySoft, other.primarySoft, t)!,
@@ -207,10 +233,16 @@ ThemeData buildAppTheme(Brightness brightness) {
     brightness: brightness,
     useMaterial3: true,
     scaffoldBackgroundColor: t.bg,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: t.primary,
-      brightness: brightness,
-    ).copyWith(primary: t.primary, error: t.danger, surface: t.card),
+    colorScheme:
+        ColorScheme.fromSeed(
+          seedColor: t.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: t.primary,
+          onPrimary: t.onPrimary,
+          error: t.danger,
+          surface: t.card,
+        ),
   );
 
   return base.copyWith(
@@ -227,7 +259,7 @@ ThemeData buildAppTheme(Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: t.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: t.onPrimary,
         minimumSize: const Size(0, AppTokens.tap),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusSm),

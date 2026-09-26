@@ -31,7 +31,15 @@
 
   /* Yuzeyler */
   --ink: #111827;
-  --muted: #6b7280;
+  --muted: #5b6472;
+  /* Ters yuz panel: HER IKI temada koyu kalir.
+     Onceki surumde .dark-card zeminini --sidebar-b'den aliyordu; o belirtec
+     acik temada #ffffff oldugu icin panel beyaz zemin + #e2e8f0 metin haline
+     geliyor ve 1.23 kontrastla OKUNAMIYORDU (olculdu). Artik zemin temadan
+     bagimsiz: #e2e8f0 uzerinde 14.12, #cbd5e1 uzerinde 11.73. */
+  --surface-invert: #101a2c;
+  --on-surface-invert: #e2e8f0;
+  --on-surface-invert-muted: #cbd5e1;
   --border: #e5e7eb;
   --border-strong: #d1d5db;
   --bg: #f5f6f8;
@@ -42,6 +50,17 @@
   --warning-text: #b45309;
   --danger-text: #dc2626;
   --info-text: #0369a1;
+  /* Beyaz metin tasiyan kirmizi zemin. --danger (#dc2626) beyazla 4.83 verip
+     acik temada geciyor ama koyu temadaki --danger (#f87171) yalnizca 2.77
+     veriyordu: bildirim sayaci koyu temada okunmuyordu. */
+  --danger-strong: #dc2626;
+  /* Beyaz metin tasiyan yesil zemin. --success (#16a34a) beyazla 3.30 veriyor
+     ve 13px dugme metninde AA'nin altinda kaliyordu; #15803d 5.02 veriyor ve
+     bu ton uygulamada zaten .side-link.active zemini olarak kullaniliyor. */
+  --success-strong: #15803d;
+  /* Kirmizi tint uzerindeki KUCUK metin. --danger-text (#dc2626) #fef2f2
+     zemininde 4.41 ile sinirin altinda kaliyordu. */
+  --danger-on-soft: #b91c1c;
   --card-strong: #ffffff;
   --panel-glow: rgba(21, 128, 61, 0.10);
   /* Kenar menü artık temayla değişiyor: açık temada açık zemin + koyu yazı. */
@@ -78,6 +97,9 @@
   --info-soft: rgba(125, 211, 252, 0.12);
   --ink: #e5e9f0;
   --muted: #94a3b8;
+  --surface-invert: #101a2c;
+  --on-surface-invert: #e2e8f0;
+  --on-surface-invert-muted: #cbd5e1;
   --border: #243049;
   --border-strong: #33415c;
   --bg: #0b1220;
@@ -88,6 +110,11 @@
   --warning-text: #fbbf24;
   --danger-text: #f87171;
   --info-text: #7dd3fc;
+  --danger-strong: #b91c1c;
+  --success-strong: #15803d;
+  /* Koyu temada tint zemin saydam ve kart uzerinde koyuluyor; --danger-text
+     orada 5.25 veriyor, ayri bir tona gerek yok. */
+  --danger-on-soft: #f87171;
   --card-strong: #16213a;
   --panel-glow: rgba(52, 211, 153, 0.16);
   --sidebar-a: #070d18;
@@ -502,14 +529,22 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   white-space: nowrap;
 }
 
-.badge.frozen { background: var(--info-soft); color: var(--info); }
+/* Durum etiketleri her urun satirinda okunuyor; canli tonlar 12px'te AA'nin
+   altinda kaliyordu. Olculdu (acik tema, soft zeminde):
+     frozen  --info      3.84 -> --info-text     5.57
+     sold    --success   3.15 -> --ok-text       4.79
+     warning --warning   3.07 -> --warning-text  4.84
+     critical --danger   4.41 -> --danger-on-soft 5.91
+   Koyu temada soft zeminler saydam oldugu icin ayni belirtecler 5.25-7.95
+   araliginda geciyor. */
+.badge.frozen { background: var(--info-soft); color: var(--info-text); }
 .badge.thawing { background: #ecfeff; color: #0f766e; }
 .badge.food_cabinet { background: #eef2ff; color: #4338ca; }
-.badge.sold { background: var(--success-soft); color: var(--success); }
+.badge.sold { background: var(--success-soft); color: var(--ok-text); }
 .badge.discarded { background: #f8fafc; color: #475569; }
 
-.badge.warning { background: var(--warning-soft); color: var(--warning); }
-.badge.critical { background: #fef2f2; color: var(--danger); }
+.badge.warning { background: var(--warning-soft); color: var(--warning-text); }
+.badge.critical { background: #fef2f2; color: var(--danger-on-soft); }
 .badge.expired { background: #7f1d1d; color: #fff; }
 
 /* ---------- Buttons ---------- */
@@ -531,16 +566,26 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; }
 
-.btn-primary { background: var(--primary); color: #fff; }
+/* Metin rengi SABIT #fff DEGIL --on-primary belirteci.
+   Koyu temada --primary nane yesili (#34d399); uzerinde beyaz metin yalnizca
+   1.92 kontrast veriyor ve dugme neredeyse okunmuyordu. --on-primary koyu
+   temada #0b1220 oldugu icin ayni zeminde 9.74 veriyor; acik temada belirtec
+   zaten #ffffff, yani gorunum degismiyor (5.02).
+   Bu belirtec uygulamada .side-link.active icin ZATEN dogru kullaniliyordu;
+   dugmeler atlanmisti. */
+.btn-primary { background: var(--primary); color: var(--on-primary); }
 .btn-primary:hover:not(:disabled) { background: var(--primary-strong); }
 
 .btn-secondary { background: var(--card); color: var(--ink); border-color: var(--border-strong); }
 .btn-secondary:hover:not(:disabled) { background: var(--bg); border-color: var(--muted); }
 
-.btn-danger { background: var(--danger); color: #fff; }
+/* Zemin --danger DEGIL --danger-strong: koyu temada --danger acik kirmizi
+   (#f87171) ve beyaz metinle 2.77 veriyordu. --danger-strong koyu temada
+   #b91c1c olup 6.47, acik temada #dc2626 kalip 4.83 veriyor. */
+.btn-danger { background: var(--danger-strong); color: #fff; }
 .btn-danger:hover:not(:disabled) { filter: brightness(0.92); }
 
-.btn-success { background: var(--success); color: #fff; }
+.btn-success { background: var(--success-strong); color: #fff; }
 .btn-success:hover:not(:disabled) { filter: brightness(0.92); }
 
 /* Masaustu tablolarinda yogunluk korunur; dokunmatikte yukarida 44px'e cikar. */
@@ -941,10 +986,10 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   position: absolute;
   top: 0;
   right: calc(50% - 24px);
-  background: var(--danger);
+  background: var(--danger-strong);
   color: #fff;
   border-radius: 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   padding: 2px 6px;
   min-width: 18px;
@@ -1119,10 +1164,13 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   box-shadow: var(--shadow);
 }
 
+/* Ters yuz "one cikan" panel. Zemini temadan BAGIMSIZ koyu: paneli ayirt
+   eden sey zaten bu karsitlik, temaya gore beyaza donmesi hem tasarim
+   niyetini hem okunabilirligi bozuyordu. */
 .dark-card {
-  background: var(--sidebar-b);
-  color: #e2e8f0;
-  border-color: rgba(148,163,184,0.16);
+  background: var(--surface-invert);
+  color: var(--on-surface-invert);
+  border-color: rgba(148, 163, 184, 0.16);
 }
 
 .panel-header {
@@ -1138,7 +1186,8 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 
 .panel-kicker {
-  font-size: 10px;
+  /* Buyuk harfli mikro etiket. 10px cok kucuktu; 11px taban. */
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--muted);
@@ -1152,7 +1201,14 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .dark-card span,
 .dark-card strong,
 .dark-card h3 {
-  color: #e2e8f0;
+  color: var(--on-surface-invert);
+}
+
+/* Ikincil metin ters yuz panelde bir kademe soluk kalir ama 11.73 kontrastla
+   hala AA'nin cok uzerinde. */
+.dark-card .sidebar-metric span,
+.dark-card .panel-kicker {
+  color: var(--on-surface-invert-muted);
 }
 
 .panel-header h3 {
@@ -1250,7 +1306,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .bar-date {
   position: absolute;
   bottom: 0;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -1308,8 +1364,11 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   border-bottom: none;
 }
 
+/* Renk BURADA verilmiyor: bu bilesen hem beyaz karta hem ters yuz panele
+   giriyor. Sabit #cbd5e1 beyaz kartta 1.48 kontrast uretiyordu. Ters yuz
+   panelde .dark-card kurali soluk tonu veriyor. */
 .sidebar-metric span {
-  color: #cbd5e1;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -1749,8 +1808,10 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   .chart-block { padding: 10px 8px 0; }
   .bar-chart { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; min-height: 142px; }
   .bar-col { min-height: 132px; gap: 4px; }
-  .bar-value { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .bar-date { font-size: 10px; }
+  /* Telefonda 10px grafik etiketi magazada okunmuyordu. 375px'te 7 kolon
+     ~45px genisliginde; 11px'te "20.09" ~28px yer kapliyor, sigiyor. */
+  .bar-value { font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .bar-date { font-size: 11px; }
 
   .analytics-sidebar { grid-template-columns: 1fr; gap: 10px; }
   .activity-panel { grid-column: auto; }
@@ -2344,7 +2405,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   border-radius: var(--radius-sm);
   background: var(--card);
 }
-.report-cell span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.report-cell span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .report-cell strong { font-size: 16px; color: var(--ink); }
 .report-cell em { font-size: 10px; color: var(--muted); font-style: normal; }
 .report-cell.derived { border-color: var(--primary-600); }
@@ -2389,7 +2450,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 
 .mo-figures { display: flex; flex-wrap: wrap; gap: 20px; }
 .mo-figure { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
-.mo-figure span { font-size: 11px; color: var(--muted); }
+.mo-figure span { font-size: 12px; color: var(--muted); }
 .mo-figure strong { font-size: 18px; font-weight: 800; }
 
 .mo-bar {
@@ -2475,13 +2536,24 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   flex: 1; border: 0; background: transparent; outline: none;
   padding: 10px 0; font-size: 14px; color: var(--ink);
 }
+/* Odak gostergesi SARMALAYICIDA: input'un kendi kenari yok, kenar ve zemin
+   .search-field uzerinde. Bu kural olmadan outline:none klavye kullanicisini
+   odagin nerede oldugunu goremez halde birakiyordu — diger uc input alaninda
+   karsiligi vardi, burada eksikti.
+   Olculdu: kenar rengi (--primary-600) beyaz kartta 3.30, sayfa zemininde
+   3.05, koyu temada 6.71 kontrast veriyor — WCAG 2.2 odak gostergesi icin
+   gereken 3.0 esigini her uc durumda geciyor. */
+.search-field:focus-within {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
 
 /* --- Yan menu grup basliklari --- */
 .side-group { display: flex; flex-direction: column; }
 .side-group + .side-group { margin-top: 14px; }
 .side-group-title {
   padding: 0 14px 6px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -2963,4 +3035,27 @@ tr.roster-foot td.roster-name { background: var(--bg); }
   height: 1px;
   background: var(--border);
   margin: 4px 0;
+}
+
+/* ---------- Sayisal hizalama ----------
+   Oransal rakamlarda basamak genislikleri farkli (1 dar, 0 genis); bu yuzden
+   tabloda alt alta duran tutarlar egri goruluyor ve degisen bir sayac
+   yanindaki metni titretiyor. Bu uygulama bastan sona sayi gosteriyor, o
+   yuzden rakamlar SABIT GENISLIKTE.
+   Yalnizca sayi tasiyan yuzeylere veriliyor; govde metnine verilmesi normal
+   yazinin ritmini bozardi. */
+.stat .value,
+.stat .sub,
+.mo-figure strong,
+.mo-forecast strong,
+.sidebar-metric strong,
+.bar-value,
+.bar-date,
+.tier-summary .stat .value,
+.report-cell strong,
+.pdks-status .pdks-since,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }

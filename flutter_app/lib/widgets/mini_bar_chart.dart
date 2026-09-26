@@ -56,9 +56,10 @@ class MiniBarChart extends StatelessWidget {
                         showAsMoney ? v.round().toString() : '${v.round()}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        // React tarafinda bu etiketler 9px'ti ve okunmuyordu; 10px taban.
+                        // Grafik ekseni: React tarafinda da 11px taban
+                        // (10px magazada telefonda okunmuyordu).
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           color: t.muted,
                           fontWeight: FontWeight.w600,
                         ),
@@ -85,7 +86,7 @@ class MiniBarChart extends StatelessWidget {
                             : '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 10, color: t.muted),
+                        style: TextStyle(fontSize: 11, color: t.muted),
                       ),
                     ],
                   ),

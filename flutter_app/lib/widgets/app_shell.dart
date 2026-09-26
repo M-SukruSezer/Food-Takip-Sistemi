@@ -360,7 +360,8 @@ class _SideNav extends StatelessWidget {
                           groups[gi].title!.toUpperCase(),
                           style: TextStyle(
                             color: t.sidebarMuted,
-                            fontSize: 10,
+                            // React'teki .side-group-title ile ayni taban.
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
                           ),
@@ -870,7 +871,7 @@ class _NavMenuSheet extends StatelessWidget {
                                         groups[gi].title!.toUpperCase(),
                                         style: TextStyle(
                                           color: t.muted,
-                                          fontSize: 10,
+                                          fontSize: 11,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: 0.8,
                                         ),
@@ -1078,7 +1079,8 @@ class _NavBadge extends StatelessWidget {
         count > 99 ? '99+' : '$count',
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 10,
+          // React'teki .nav-badge ile ayni taban.
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 1.4,
