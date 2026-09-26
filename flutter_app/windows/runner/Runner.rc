@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.skt" "\0"
-            VALUE "FileDescription", "foodtakip" "\0"
+            VALUE "FileDescription", "Saha Takip" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "foodtakip" "\0"
+            VALUE "InternalName", "Saha Takip" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.skt. All rights reserved." "\0"
             VALUE "OriginalFilename", "foodtakip.exe" "\0"
-            VALUE "ProductName", "foodtakip" "\0"
+            VALUE "ProductName", "Saha Takip" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

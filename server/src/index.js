@@ -39,7 +39,7 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   initialize().then(() => {
     app.listen(PORT, () => {
-      console.log(`Food Takip API ${PORT} portunda çalışıyor`);
+      console.log(`Saha Takip API ${PORT} portunda çalışıyor`);
     });
   }).catch((error) => {
     console.error('Veritabanı başlatılamadı:', error);

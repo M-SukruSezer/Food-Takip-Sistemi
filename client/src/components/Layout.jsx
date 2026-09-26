@@ -228,8 +228,8 @@ export default function Layout() {
     <div className={`app ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <img className="logo" src="/logo.png" alt="Operasyon Takip" />
-          <span className="brand-text">Operasyon Takip</span>
+          <img className="logo" src="/logo.png" alt="Saha Takip" />
+          <span className="brand-text">Saha Takip</span>
           <button
             type="button"
             className="sidebar-toggle"
@@ -292,7 +292,7 @@ export default function Layout() {
           <span className="topbar-section">{activeSection ? activeSection.label : ''}</span>
 
           <span className="mobile-header-logo">
-            <img src="/logo.png" alt="Operasyon Takip" />
+            <img src="/logo.png" alt="Saha Takip" />
           </span>
 
           <span className="top-spacer" />

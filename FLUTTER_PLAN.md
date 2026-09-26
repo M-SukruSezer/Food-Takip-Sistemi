@@ -19,9 +19,13 @@ ve test yalnızca ilgili işletim sisteminde ya da CI'da yapılabilir.
 ## Android uygulama kimliği
 
 Capacitor APK'sı `com.skt.pastatakip` kimliğini kullanıyor. Flutter aynı kimliği
-kullanırsa telefona kurulduğunda mevcut uygulamanın **üzerine yazar**. React
-istemcisi kullanımda kaldığı sürece Flutter ayrı kimlikle gider:
-`com.skt.foodtakip`. Geçiş tamamlanınca kimlik devralınabilir.
+kullanırsa telefona kurulduğunda mevcut uygulamanın **üzerine yazar**. Flutter
+ayrı kimlikle gidiyor: `com.sezra.sahatakip`.
+
+**2026-09-27'de değişti:** kimlik `com.skt.foodtakip` iken `com.sezra.sahatakip`
+oldu, görünen ad "Saha Takip". Android bunu FARKLI bir uygulama sayar: eski
+kimlikle kurulu telefonlar güncelleme almaz, yeni APK yanına kurulur ve eskisi
+elle kaldırılmalıdır.
 
 ## Paket seçimleri
 
@@ -110,7 +114,7 @@ test kırılır.
 |---|---|---|
 | Web | ✅ yerel `flutter build web --release` geçiyor | |
 | Linux | ✅ yerel `flutter build linux --release` geçiyor | çalıştırıldı |
-| Android | ⏳ CI'da derleniyor, yerelde denenmedi | `com.skt.foodtakip` (Capacitor APK'sı `com.skt.pastatakip`, çakışmaz) |
+| Android | ✅ yerelde `flutter build apk --release` geçiyor | `com.sezra.sahatakip` (Capacitor APK'sı `com.skt.pastatakip`, çakışmaz) |
 | Windows | ⏳ yalnızca CI (`windows-latest`) | Ubuntu'da derlenemez |
 | iOS | ⏳ yalnızca CI (`macos-latest`), imzasız | App Store için Apple Developer hesabı gerekir |
 

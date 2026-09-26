@@ -1,6 +1,6 @@
 {
-    "name": "Operasyon Takip",
-    "short_name": "Operasyon Takip",
+    "name": "Saha Takip",
+    "short_name": "Saha Takip",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

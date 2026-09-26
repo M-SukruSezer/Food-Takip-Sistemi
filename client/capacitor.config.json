@@ -1,6 +1,6 @@
 {
   "appId": "com.skt.pastatakip",
-  "appName": "Food Takip",
+  "appName": "Saha Takip",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

@@ -61,7 +61,7 @@ void main() {
     await _pumpShell(tester, const Size(375, 812));
     expect(find.byKey(bottomBarKey), findsOneWidget);
     // Cekmece kapali oldugu icin kenar menu agacta olmamali.
-    expect(find.text('Operasyon Takip'), findsNothing);
+    expect(find.text('Saha Takip'), findsNothing);
     expect(find.byIcon(Icons.menu), findsOneWidget);
   });
 
@@ -76,14 +76,14 @@ void main() {
     expect(find.byKey(bottomBarKey), findsNothing);
     expect(find.byIcon(Icons.menu), findsNothing);
     // Serit modunda marka metni ve etiketler gizli, daraltma dugmesi acik yonde.
-    expect(find.text('Operasyon Takip'), findsNothing);
+    expect(find.text('Saha Takip'), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
   });
 
   testWidgets('genis masaustu (1440): kenar menu acik', (tester) async {
     await _pumpShell(tester, const Size(1440, 900));
     expect(find.byKey(bottomBarKey), findsNothing);
-    expect(find.text('Operasyon Takip'), findsOneWidget);
+    expect(find.text('Saha Takip'), findsOneWidget);
     expect(find.text('Ana Sayfa'), findsWidgets);
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
   });

@@ -311,7 +311,7 @@ class _SideNav extends StatelessWidget {
                     if (!rail)
                       Expanded(
                         child: Text(
-                          'Operasyon Takip',
+                          'Saha Takip',
                           style: TextStyle(
                             color: t.sidebarInk,
                             fontWeight: FontWeight.w800,

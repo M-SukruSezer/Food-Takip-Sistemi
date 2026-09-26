@@ -1,5 +1,9 @@
 name: foodtakip
-description: "A new Flutter project."
+# Dart paket adi (name: foodtakip) BILEREK degistirilmedi: uygulama
+# kimligi ve gorunen ad degisti, Dart paket adi ise yalnizca kod ici
+# import yolu (package:foodtakip/...) ve kullaniciya hic gorunmuyor.
+# Degistirmek ~40 dosyadaki importu dokunmayi gerektirirdi.
+description: "Saha Takip — operasyon ve personel takip uygulaması."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
