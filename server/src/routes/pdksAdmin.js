@@ -370,6 +370,263 @@ router.put('/assignments/cell', requireManager, async (req, res) => {
 });
 
 
+/// Birden cok hucreyi TEK ISLEMDE kaydeder.
+///
+/// Cizelgede yonetici once atamalari yapiyor, sonra "Kaydet" diyor. Istemcinin
+/// hucre basina istek atmasi yerine burasi kullaniliyor cunku:
+///   - N istekte biri patlarsa tablo YARIM kaydedilmis kalir ve yoneticinin
+///     gordugu ile veritabani ayrisir
+///   - her istek ayri kontrol sorgulari calistirir
+///
+/// SOZLESME: hepsi ya hicbiri. Once TUM hucreler dogrulanir, tek bir engel
+/// varsa HICBIRI yazilmaz ve cakismalar listelenir. Yonetici ya sorunlu
+/// hucreyi duzeltir ya da force ile hepsini yazar. Yarim kaydetmek
+/// "10 degisiklik yaptim, 9'u kaydedildi" gibi aciklanmasi zor bir durum
+/// uretirdi.
+///
+/// Govde: { changes: [{ user_id, work_date, shift_id|null, is_day_off }], force }
+router.put('/assignments/cells', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const changes = Array.isArray(body.changes) ? body.changes : null;
+  if (!changes || changes.length === 0) {
+    return res.status(400).json({ error: 'Kaydedilecek değişiklik yok' });
+  }
+  // 100 hucre ust siniri: bir haftalik tabloda 20 kisi x 7 gun = 140 hucre
+  // var ama tek oturumda hepsini degistirmek beklenen kullanim degil; sinir
+  // hem sunucuyu hem denetim izini korumak icin.
+  if (changes.length > 100) {
+    return res.status(400).json({ error: 'Tek seferde en fazla 100 hücre kaydedilebilir' });
+  }
+
+  // --- 1) BICIM DOGRULAMASI (hicbir sorgu atmadan)
+  const anahtarlar = new Set();
+  for (const [i, c] of changes.entries()) {
+    const yer = `${i + 1}. değişiklik`;
+    if (!Number.isInteger(Number(c && c.user_id))) {
+      return res.status(400).json({ error: `${yer}: personel geçersiz` });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(c.work_date || ''))) {
+      return res.status(400).json({ error: `${yer}: tarih YYYY-AA-GG biçiminde olmalıdır` });
+    }
+    const dayOff = c.is_day_off === true;
+    const sid = c.shift_id === null || c.shift_id === undefined ? null : Number(c.shift_id);
+    if (dayOff && sid !== null) {
+      return res.status(400).json({ error: `${yer}: hafta tatili ile vardiya birlikte verilemez` });
+    }
+    if (sid !== null && !Number.isInteger(sid)) {
+      return res.status(400).json({ error: `${yer}: vardiya geçersiz` });
+    }
+    // Ayni hucre iki kez gelmemeli: hangisinin kazandigi belirsiz olurdu.
+    const k = `${Number(c.user_id)}|${c.work_date}`;
+    if (anahtarlar.has(k)) {
+      return res.status(400).json({ error: `Aynı hücre iki kez gönderildi: ${c.work_date}` });
+    }
+    anahtarlar.add(k);
+  }
+
+  // --- 2) VERI TOPLAMA (kisi basina TEK sorgu kumesi, hucre basina degil)
+  const userIds = [...new Set(changes.map((c) => Number(c.user_id)))];
+  const shiftIds = [...new Set(changes
+    .map((c) => (c.shift_id === null || c.shift_id === undefined ? null : Number(c.shift_id)))
+    .filter((v) => v !== null))];
+  const tarihler = changes.map((c) => String(c.work_date)).sort();
+  const enErken = tarihler[0];
+  const enGec = tarihler[tarihler.length - 1];
+
+  const users = await queryAll(
+    `SELECT u.id, u.full_name, u.store_id, u.active, p.weekly_off_days
+     FROM users u LEFT JOIN pdks_profiles p ON p.user_id = u.id
+     WHERE u.id IN (${userIds.map(() => '?').join(',')})`, ...userIds);
+  const userById = new Map(users.map((u) => [Number(u.id), u]));
+  for (const id of userIds) {
+    const u = userById.get(id);
+    if (!u || !u.active) return res.status(404).json({ error: 'Personel bulunamadı' });
+    if (!allowsStore(req, u.store_id)) {
+      return res.status(403).json({ error: `${u.full_name}: bu personele erişim yetkiniz yok` });
+    }
+  }
+
+  const shifts = shiftIds.length === 0 ? [] : await queryAll(
+    `SELECT * FROM shifts WHERE id IN (${shiftIds.map(() => '?').join(',')}) AND active = 1`,
+    ...shiftIds);
+  const shiftById = new Map(shifts.map((s) => [Number(s.id), s]));
+  if (shifts.length !== shiftIds.length) {
+    return res.status(404).json({ error: 'Vardiyalardan biri bulunamadı veya pasif' });
+  }
+  for (const s of shifts) {
+    if (s.store_id !== null && !allowsStore(req, s.store_id)) {
+      return res.status(403).json({ error: `"${s.name}" vardiyasına erişim yetkiniz yok` });
+    }
+  }
+
+  // Devam kaydi olan gunler: o gunun plani degistirilemez (puantaj dayanagi).
+  const devamli = new Set((await queryAll(
+    `SELECT DISTINCT user_id, work_date FROM attendance_logs
+     WHERE user_id IN (${userIds.map(() => '?').join(',')})
+       AND work_date >= ? AND work_date <= ?`, ...userIds, enErken, enGec))
+    .map((r) => `${Number(r.user_id)}|${r.work_date}`));
+
+  // Izinler ve tatiller: kisi basina tek sorgu.
+  const izinler = new Map();
+  const tatiller = new Map();
+  for (const u of users) {
+    izinler.set(Number(u.id), await queryAll(`
+      SELECT type, start_at, end_at, hours FROM personnel_requests
+      WHERE user_id = ? AND status = 'APPROVED'
+        AND type IN ('IZIN', 'SAATLIK_IZIN')
+        AND start_at <= ? AND end_at >= ?`,
+      u.id, t.shiftDate(enGec, 1), t.shiftDate(enErken, -1)));
+    tatiller.set(Number(u.id), bal.holidayMap(await queryAll(`
+      SELECT holiday_date, name, is_half_day, store_id FROM public_holidays
+      WHERE holiday_date >= ? AND holiday_date <= ?
+        AND (store_id IS NULL OR store_id = ?)`, enErken, enGec, u.store_id)));
+  }
+
+  // Bildirimde "X yerine Y" diyebilmek icin onceki haller.
+  const oncekiler = new Map();
+  for (const r of await queryAll(`
+    SELECT us.user_id, us.work_date, us.is_day_off, s.name, s.start_time, s.end_time
+    FROM user_shifts us LEFT JOIN shifts s ON s.id = us.shift_id
+    WHERE us.user_id IN (${userIds.map(() => '?').join(',')})
+      AND us.work_date >= ? AND us.work_date <= ?`, ...userIds, enErken, enGec)) {
+    const k = `${Number(r.user_id)}|${r.work_date}`;
+    const etiket = r.is_day_off ? 'hafta tatili' : `${r.name} ${r.start_time}-${r.end_time}`;
+    oncekiler.set(k, oncekiler.has(k) ? `${oncekiler.get(k)} + ${etiket}` : etiket);
+  }
+
+  // --- 3) TUM HUCRELERI DOGRULA (hala hicbir yazma yok)
+  const hazir = [];
+  const engelliler = [];
+  const uyarililar = [];
+  for (const c of changes) {
+    const userId = Number(c.user_id);
+    const workDate = String(c.work_date);
+    const u = userById.get(userId);
+    const isDayOff = c.is_day_off === true;
+    const shiftId = c.shift_id === null || c.shift_id === undefined ? null : Number(c.shift_id);
+    const shift = shiftId === null ? null : shiftById.get(shiftId);
+    const k = `${userId}|${workDate}`;
+
+    if (devamli.has(k)) {
+      return res.status(400).json({
+        error: `${u.full_name} — ${workDate}: o günde devam kaydı var, planı değiştirilemez.`,
+        code: 'ATTENDANCE_EXISTS',
+      });
+    }
+    if (shift && shift.store_id !== null && Number(shift.store_id) !== Number(u.store_id)) {
+      return res.status(400).json({
+        error: `${u.full_name} — ${workDate}: "${shift.name}" vardiyası bu personelin mağazasına ait değil.`,
+      });
+    }
+
+    // Cakisma YALNIZCA vardiya atarken; hafta tatili ya da bosaltma cakismayi
+    // ortadan kaldiran islemler.
+    let c2 = { blocked: false, reasons: [] };
+    if (shiftId !== null) {
+      const [y, m, d] = workDate.split('-').map(Number);
+      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      const off = new Set(bal.parseWeeklyOff(u.weekly_off_days));
+      c2 = conflict.checkDay({
+        workDate,
+        leaves: izinler.get(userId) || [],
+        holiday: (tatiller.get(userId) || {})[workDate] ?? null,
+        weeklyOff: off.has(dow),
+      });
+    }
+    if (c2.blocked) {
+      engelliler.push({
+        user_id: userId,
+        full_name: u.full_name,
+        work_date: workDate,
+        label: conflict.blockLabel(c2),
+        conflicts: c2.reasons.filter((r) => r.level === conflict.BLOCK),
+      });
+    }
+    const uy = c2.reasons.filter((r) => r.level === conflict.WARN);
+    if (uy.length) {
+      uyarililar.push({
+        user_id: userId, full_name: u.full_name, work_date: workDate,
+        label: uy.map((r) => r.label).join(' + '),
+      });
+    }
+    hazir.push({ userId, workDate, isDayOff, shiftId, shift, user: u, blocked: c2.blocked, conflictLabel: conflict.blockLabel(c2) });
+  }
+
+  if (engelliler.length > 0 && body.force !== true) {
+    return res.status(409).json({
+      error: `${engelliler.length} hücrede çakışma var; hiçbir değişiklik kaydedilmedi.`,
+      code: 'SHIFT_CONFLICT',
+      conflicts: engelliler,
+      can_force: true,
+      // Kac hucre bekliyordu: istemci "hepsi mi kaydedilmedi" sorusunu
+      // sormasin.
+      total: changes.length,
+    });
+  }
+
+  // --- 4) TEK ISLEMDE YAZ
+  await transaction(async (client) => {
+    for (const h of hazir) {
+      await execute('DELETE FROM user_shifts WHERE user_id = ? AND work_date = ?',
+        [h.userId, h.workDate], client);
+      if (h.isDayOff) {
+        await execute(`INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, assigned_by)
+          VALUES (?,?,?,1,?)`, [h.userId, null, h.workDate, req.user.id], client);
+      } else if (h.shiftId !== null) {
+        await execute(`INSERT INTO user_shifts (user_id, shift_id, work_date, is_day_off, assigned_by)
+          VALUES (?,?,?,0,?)`, [h.userId, h.shiftId, h.workDate, req.user.id], client);
+      }
+    }
+  });
+
+  // --- 5) DENETIM IZI: hucre basina bir satir.
+  // Ozet yazmak yeterli olmaz; denetim izinin amaci "kimin hangi gununu kim
+  // degistirdi" sorusunu yanitlamak.
+  for (const h of hazir) {
+    const ne = h.isDayOff ? 'hafta tatili'
+      : h.shift ? `${h.shift.name} (${h.shift.start_time}-${h.shift.end_time})`
+        : 'boşaltıldı';
+    await logActivity(req.user, 'VARDIYA_HUCRE', 'shift', h.shiftId,
+      `${h.user.full_name} ${h.workDate}: ${ne}`
+      + (h.blocked ? ` — ÇAKIŞMAYA RAĞMEN atandı (${h.conflictLabel})` : ''),
+      h.user.store_id);
+  }
+
+  // --- 6) BILDIRIM: kisi basina BIR tane.
+  // Hucre basina bildirim 20 degisiklikte 20 bildirim demekti; ozet gonderiliyor.
+  for (const userId of userIds) {
+    const kendi = hazir.filter((h) => h.userId === userId);
+    if (kendi.length === 1) {
+      const h = kendi[0];
+      await notify.shiftChanged({
+        userId,
+        workDate: h.workDate,
+        oldLabel: oncekiler.get(`${userId}|${h.workDate}`) ?? null,
+        newLabel: h.isDayOff ? 'hafta tatili'
+          : h.shift ? `${h.shift.name} ${h.shift.start_time}-${h.shift.end_time}` : null,
+        byName: req.user.full_name,
+      });
+    } else {
+      const gunler = kendi.map((h) => h.workDate).sort();
+      await notify.publish({
+        userId,
+        kind: notify.KIND.changed,
+        title: 'Çalışma planınız güncellendi',
+        body: `${gunler.length} günün vardiyası değişti (${gunler[0]} – ${gunler[gunler.length - 1]}).`
+          + ` Değiştiren: ${req.user.full_name}.`,
+        data: { dates: gunler, screen: '/roster' },
+      });
+    }
+  }
+
+  res.json({
+    ok: true,
+    saved: hazir.length,
+    forced: engelliler.length,
+    warnings: uyarililar,
+  });
+});
+
 router.delete('/assignments/:id', requireManager, async (req, res) => {
   const row = await queryOne(`
     SELECT us.*, u.store_id, u.full_name FROM user_shifts us

@@ -87,6 +87,45 @@ class PdksShift {
   );
 }
 
+/// Cizelgede KAYDEDILMEYI BEKLEYEN bir hucre degisikligi.
+///
+/// Her duzenlemede sunucuya gitmek yerine yerelde birikiyor; tek "Kaydet" ile
+/// gonderiliyor. Boylece yonetici tabloyu once kurup sonra onayliyor.
+class PendingCell {
+  const PendingCell({
+    required this.userId,
+    required this.fullName,
+    required this.workDate,
+    required this.isDayOff,
+    this.shift,
+  });
+
+  final int userId;
+  final String fullName;
+  final String workDate;
+  final bool isDayOff;
+
+  /// Atanan vardiya; hafta tatili ya da bosaltmada null.
+  final ShiftDef? shift;
+
+  int? get shiftId => shift?.id;
+
+  /// Bu degisikligin getirdigi NET calisma suresi (dakika).
+  int get netMinutes => shift?.netMinutes ?? 0;
+
+  /// Hucre anahtari: "kullaniciId|tarih".
+  String get key => '$userId|$workDate';
+
+  static String keyOf(int userId, String workDate) => '$userId|$workDate';
+
+  Map<String, Object?> toJson() => {
+    'user_id': userId,
+    'work_date': workDate,
+    'is_day_off': isDayOff,
+    'shift_id': shiftId,
+  };
+}
+
 /// Atanabilir vardiya TANIMI.
 ///
 /// PdksShift'ten ayri: o "bugun bana atanmis vardiya" gorunumu ve kimlik

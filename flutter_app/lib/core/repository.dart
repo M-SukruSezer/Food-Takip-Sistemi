@@ -682,6 +682,25 @@ class Repository {
     );
   }
 
+  /// Birden cok hucreyi TEK ISTEKTE kaydeder.
+  ///
+  /// Sunucu sozlesmesi "hepsi ya hicbiri": bir hucrede cakisma varsa hicbiri
+  /// yazilmiyor ve 409 ile cakismalar donuyor. [force] ile cakismalara ragmen
+  /// yazilabiliyor; bu denetim izine acikca dusuyor.
+  ///
+  /// Doner: sunucu cevabi ({ saved, forced, warnings }).
+  Future<Map<String, dynamic>> pdksSaveCells({
+    required List<Map<String, Object?>> changes,
+    bool force = false,
+  }) async {
+    final r = await api.dio.put<Map<String, dynamic>>(
+      '/pdks/assignments/cells',
+      data: {'force': force, 'changes': changes},
+      options: apiOptions(noToast: true),
+    );
+    return r.data ?? const {};
+  }
+
   /// Personel ucret ve profil tanimlari (yonetici).
   Future<List<PdksProfile>> pdksProfiles({bool silent = true}) async {
     final r = await api.dio.get<List<dynamic>>(

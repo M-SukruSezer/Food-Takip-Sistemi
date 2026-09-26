@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Moon,
+  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Moon, Save,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -40,6 +40,24 @@ function haftaBasi(d) {
   return x;
 }
 
+/// Kisinin planli NET suresi; bekleyen degisiklikler DAHIL.
+///
+/// Kaydetmeden once toplamin degismesi gerekiyor, aksi halde yonetici
+/// yaptigi degisikligin saat etkisini kaydetmeden goremez.
+function planliSure(kisi, gunler, bekleyen) {
+  let toplam = 0;
+  for (const d of gunler) {
+    const b = bekleyen[`${kisi.user.id}|${d}`];
+    if (b) {
+      // Bekleyen degisiklik o gunun mevcut halini TAMAMEN degistiriyor.
+      toplam += b.shift ? netDakika(b.shift) : 0;
+    } else {
+      toplam += (kisi.cells[d] || []).reduce((a, c) => a + (c.minutes || 0), 0);
+    }
+  }
+  return toplam;
+}
+
 const saat = (dk) => {
   if (!dk) return '-';
   const s = Math.floor(dk / 60);
@@ -59,6 +77,14 @@ export default function Roster() {
   const [disa, setDisa] = useState(false);
   const [vardiyalar, setVardiyalar] = useState([]);
   const [hucre, setHucre] = useState(null);
+  // Bekleyen degisiklikler: "userId|tarih" -> hucre degisikligi.
+  //
+  // Her duzenlemede sunucuya gitmek yerine yerelde birikiyor ve tek "Kaydet"
+  // ile gonderiliyor; yonetici tabloyu once kurup sonra onayliyor.
+  const [bekleyen, setBekleyen] = useState({});
+  const [kaydediyor, setKaydediyor] = useState(false);
+  const [cakisma, setCakisma] = useState(null);
+  const bekleyenSayi = Object.keys(bekleyen).length;
 
   // Cok magazali roller icin magaza secici; tek magazalida gereksiz.
   const cokMagaza = ['super_admin', 'operations_manager', 'regional_manager'].includes(user.role);
@@ -84,6 +110,14 @@ export default function Roster() {
 
   useEffect(() => { yukle(); }, [yukle]);
 
+  // Kaydedilmemis degisiklik varken sekmeyi kapatmak plani kaybettirir.
+  useEffect(() => {
+    if (bekleyenSayi === 0) return undefined;
+    const uyar = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', uyar);
+    return () => window.removeEventListener('beforeunload', uyar);
+  }, [bekleyenSayi]);
+
   // Hucre duzenlemesi icin atanabilir vardiyalar. Yalnizca duzenleme yetkisi
   // olanlar icin cekiliyor; barista bu listeyi hic istemiyor.
   useEffect(() => {
@@ -94,11 +128,66 @@ export default function Roster() {
   }, [veri && veri.can_edit]);
 
   function kaydir(yon) {
+    // Hafta degistirmek bekleyenleri gorunmez kilar; once sorulur.
+    if (bekleyenSayi > 0 && !window.confirm(
+      `${bekleyenSayi} kaydedilmemiş değişiklik var. `
+      + 'Hafta değiştirirseniz kaybolur. Devam edilsin mi?',
+    )) return;
+    setBekleyen({});
+    setCakisma(null);
     if (mod === 'hafta') {
       setAnchor(new Date(anchor.getTime() + yon * 7 * 86400000));
     } else {
       setGun(iso(new Date(new Date(`${gun}T00:00:00`).getTime() + yon * 86400000)));
     }
+  }
+
+  /// Bekleyen degisiklikleri TEK istekte kaydeder.
+  ///
+  /// Sunucu sozlesmesi "hepsi ya hicbiri": bir hucrede cakisma varsa hicbiri
+  /// yazilmiyor ve cakismalar listeleniyor. Yonetici ya sorunlu hucreyi
+  /// duzeltir ya da "yine de kaydet" der.
+  async function kaydet(force = false) {
+    if (bekleyenSayi === 0) return;
+    setKaydediyor(true);
+    setCakisma(null);
+    try {
+      const r = await api.put('/pdks/assignments/cells', {
+        force,
+        changes: Object.values(bekleyen).map((b) => ({
+          user_id: b.user_id,
+          work_date: b.work_date,
+          shift_id: b.shift_id,
+          is_day_off: b.is_day_off,
+        })),
+      }, { noToast: true });
+      toast(`${r.data.saved} değişiklik kaydedildi`
+        + (r.data.forced > 0 ? ` (${r.data.forced} tanesi çakışmaya rağmen)` : ''));
+      for (const u of r.data.warnings || []) {
+        toast(`${u.full_name} ${u.work_date}: ${u.label}`);
+      }
+      setBekleyen({});
+      yukle();
+    } catch (e) {
+      const d = e.response && e.response.data;
+      if (e.response && e.response.status === 409 && d && d.code === 'SHIFT_CONFLICT') {
+        setCakisma(d);
+      } else {
+        toast(errorMessage(e));
+      }
+    } finally {
+      setKaydediyor(false);
+    }
+  }
+
+  /// Tek bir bekleyen degisikligi geri alir.
+  function bekleyeniKaldir(anahtar) {
+    setBekleyen((eski) => {
+      const y = { ...eski };
+      delete y[anahtar];
+      return y;
+    });
+    setCakisma(null);
   }
 
   async function pdfAktar() {
@@ -204,8 +293,63 @@ export default function Roster() {
 
       {hata && <div className="alert error">{hata}</div>}
 
+      {cakisma && (
+        <div className="alert warning">
+          <strong>{cakisma.error}</strong>
+          <ul className="cakisma-list">
+            {cakisma.conflicts.map((c, i) => (
+              <li key={i}>
+                <strong>{c.full_name}</strong> — {fmtDate(c.work_date)}: {c.label}
+                {' '}
+                <button type="button" className="btn btn-sm btn-secondary"
+                  onClick={() => bekleyeniKaldir(`${c.user_id}|${c.work_date}`)}>
+                  bu değişikliği geri al
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+            Yine de kaydederseniz çakışan atamalar hareket kayıtlarına
+            {' '}<strong>çakışmaya rağmen atandı</strong> olarak yazılır.
+          </p>
+          <div className="form-actions" style={{ marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setCakisma(null)}>
+              Kapat
+            </button>
+            <button type="button" className="btn btn-danger" disabled={kaydediyor}
+              onClick={() => kaydet(true)}>
+              Yine de kaydet
+            </button>
+          </div>
+        </div>
+      )}
+
       {veri && veri.people.length === 0 && (
         <div className="surface-panel"><p className="empty">Personel bulunamadı.</p></div>
+      )}
+
+      {bekleyenSayi > 0 && (
+        <div className="kaydet-bar">
+          <span className="kaydet-bilgi">
+            <Save size={16} />
+            <strong>{bekleyenSayi} değişiklik</strong> kaydedilmeyi bekliyor
+          </span>
+          <div className="row-actions">
+            <button type="button" className="btn btn-secondary" disabled={kaydediyor}
+              onClick={() => {
+                if (window.confirm(`${bekleyenSayi} değişiklik geri alınacak.`)) {
+                  setBekleyen({});
+                  setCakisma(null);
+                }
+              }}>
+              Vazgeç
+            </button>
+            <button type="button" className="btn btn-primary" disabled={kaydediyor}
+              onClick={() => kaydet(false)}>
+              {kaydediyor ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
+          </div>
+        </div>
       )}
 
       {veri && veri.people.length > 0 && (
@@ -213,6 +357,7 @@ export default function Roster() {
           ? (
             <HaftaTablosu
               veri={veri}
+              bekleyen={bekleyen}
               onHucre={veri.can_edit ? (kisi, gun) => setHucre({ kisi, gun }) : null}
             />
           )
@@ -224,9 +369,33 @@ export default function Roster() {
           kisi={hucre.kisi}
           gun={hucre.gun}
           mevcut={hucre.kisi.cells[hucre.gun] || []}
+          bekleyen={bekleyen[`${hucre.kisi.user.id}|${hucre.gun}`] || null}
           vardiyalar={vardiyalar}
           onClose={() => setHucre(null)}
-          onDone={() => { setHucre(null); yukle(); }}
+          onSec={(secim) => {
+            const anahtar = `${hucre.kisi.user.id}|${hucre.gun}`;
+            const mevcutHucre = hucre.kisi.cells[hucre.gun] || [];
+            const tatilVar = mevcutHucre.some((c) => c.is_day_off);
+            const mevcutId = mevcutHucre.find((c) => !c.is_day_off)?.shift_id ?? null;
+            const suAnki = tatilVar ? 'HT' : mevcutId ? String(mevcutId) : '';
+            setHucre(null);
+            // Secim SUNUCUDAKI haliyle ayniysa bekleyen listesinden cikar:
+            // "degistirdim sonra geri aldim" bir degisiklik degil.
+            if (secim === suAnki) { bekleyeniKaldir(anahtar); return; }
+            setBekleyen((eski) => ({
+              ...eski,
+              [anahtar]: {
+                user_id: hucre.kisi.user.id,
+                full_name: hucre.kisi.user.full_name,
+                work_date: hucre.gun,
+                is_day_off: secim === 'HT',
+                shift_id: secim === 'HT' || secim === '' ? null : Number(secim),
+                shift: secim === 'HT' || secim === ''
+                  ? null : vardiyalar.find((v) => String(v.id) === secim) || null,
+              },
+            }));
+            setCakisma(null);
+          }}
         />
       )}
     </div>
@@ -237,44 +406,19 @@ export default function Roster() {
 ///
 /// Sunucuya TEK istek gidiyor (PUT /pdks/assignments/cell): "bu gunu su hale
 /// getir". Istemcide once silip sonra eklemek yarim kalabilirdi.
-function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
+/// Tek hucre secimi.
+///
+/// Sunucuya GITMIYOR: secim ust bilesende birikiyor ve tek "Kaydet" ile
+/// gonderiliyor. Cakisma kontrolu de kaydetme aninda sunucuda yapiliyor,
+/// burada degil — kontrolu iki yerde yapmak ikisinin ayrismasi demekti.
+function HucreModal({ kisi, gun, mevcut, bekleyen, vardiyalar, onClose, onSec }) {
   const tatilVar = mevcut.some((c) => c.is_day_off);
   const mevcutId = mevcut.find((c) => !c.is_day_off)?.shift_id ?? '';
-  const [secim, setSecim] = useState(tatilVar ? 'HT' : mevcutId ? String(mevcutId) : '');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  // Sunucu cakisma bildirdiginde (409) sebepler burada tutulur ve kullaniciya
-  // "yine de ata" secenegi sunulur. Sessizce zorlamak yanlis olurdu: izinli
-  // personele vardiya yazmak bilincli bir karar olmali.
-  const [cakisma, setCakisma] = useState(null);
-
-  async function kaydet(force = false) {
-    setErr('');
-    setBusy(true);
-    try {
-      const r = await api.put('/pdks/assignments/cell', {
-        user_id: kisi.user.id,
-        work_date: gun,
-        is_day_off: secim === 'HT',
-        shift_id: secim === 'HT' || secim === '' ? null : Number(secim),
-        force,
-      }, { successMessage: 'Plan güncellendi', noToast: false });
-      // Engellemeyen uyarilar (saatlik izin, yarim tatil) atama yapilsa da
-      // bildiriliyor.
-      for (const u of r.data.warnings || []) toast(u.detail || u.label);
-      onDone();
-    } catch (e) {
-      const d = e.response && e.response.data;
-      if (e.response && e.response.status === 409 && d && d.code === 'SHIFT_CONFLICT') {
-        setCakisma(d);
-        setErr('');
-      } else {
-        setErr(errorMessage(e));
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
+  // Bekleyen bir degisiklik varsa onu gosteriyoruz; yoksa sunucudaki hali.
+  const baslangic = bekleyen
+    ? (bekleyen.is_day_off ? 'HT' : bekleyen.shift_id ? String(bekleyen.shift_id) : '')
+    : (tatilVar ? 'HT' : mevcutId ? String(mevcutId) : '');
+  const [secim, setSecim] = useState(baslangic);
 
   return (
     <Modal
@@ -282,32 +426,6 @@ function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
       onClose={onClose}
     >
       <div className="form-grid">
-        {err && <div className="alert error">{err}</div>}
-
-        {cakisma && (
-          <div className="alert warning" style={{ gridColumn: '1 / -1' }}>
-            <strong>Çakışma var</strong>
-            <ul className="cakisma-list">
-              {cakisma.conflicts.filter((c) => c.level === 'block').map((c, i) => (
-                <li key={i}>{c.detail}</li>
-              ))}
-            </ul>
-            <p style={{ margin: '6px 0 0', fontSize: 13 }}>
-              Yine de atarsanız bu karar hareket kayıtlarına
-              {' '}<strong>çakışmaya rağmen atandı</strong> olarak yazılır.
-            </p>
-            <div className="form-actions" style={{ marginTop: 8 }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setCakisma(null)}>
-                Vazgeç
-              </button>
-              <button type="button" className="btn btn-danger" disabled={busy}
-                onClick={() => { setCakisma(null); kaydet(true); }}>
-                Yine de ata
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="cell-options">
           {vardiyalar.map((v) => {
             const uy = vardiyaUyari(v);
@@ -355,11 +473,14 @@ function HucreModal({ kisi, gun, mevcut, vardiyalar, onClose, onDone }) {
             </span>
           </label>
         </div>
+        <p className="muted" style={{ gridColumn: '1 / -1', fontSize: 12, margin: 0 }}>
+          Seçim tabloya işlenir; kalıcı olması için tablonun altındaki
+          {' '}<strong>Kaydet</strong> düğmesine basın.
+        </p>
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="button" className="btn btn-primary" disabled={busy}
-            onClick={() => kaydet(false)}>
-            Kaydet
+          <button type="button" className="btn btn-primary" onClick={() => onSec(secim)}>
+            Tabloya işle
           </button>
         </div>
       </div>
@@ -408,7 +529,7 @@ function hucreMetin(hucreler, tatil) {
     .join(' / ');
 }
 
-function HaftaTablosu({ veri, onHucre }) {
+function HaftaTablosu({ veri, bekleyen = {}, onHucre }) {
   return (
     <>
       <div className="card table-card">
@@ -438,10 +559,11 @@ function HaftaTablosu({ veri, onHucre }) {
                       key={d}
                       hucreler={p.cells[d]}
                       tatil={veri.holidays[d]}
+                      bekleyen={bekleyen[`${p.user.id}|${d}`] || null}
                       duzenle={onHucre ? () => onHucre(p, d) : null}
                     />
                   ))}
-                  <td className="roster-total">{saat(p.planned_minutes)}</td>
+                  <td className="roster-total">{saat(planliSure(p, veri.dates, bekleyen))}</td>
                 </tr>
               ))}
               <tr className="roster-foot">
@@ -473,8 +595,25 @@ function HaftaTablosu({ veri, onHucre }) {
   );
 }
 
-function Hucre({ hucreler, tatil, duzenle }) {
+function Hucre({ hucreler: gelen, tatil, bekleyen, duzenle }) {
   const tamTatil = tatil && tatil.half !== true;
+  // Bekleyen degisiklik varsa hucre ONU gosteriyor: yonetici tabloyu kurarken
+  // sonucu gormeli, kaydettikten sonra degil.
+  const hucreler = bekleyen
+    ? (bekleyen.is_day_off
+      ? [{ is_day_off: true }]
+      : bekleyen.shift
+        ? [{
+          ...bekleyen.shift,
+          is_day_off: false,
+          crosses_midnight: (bekleyen.shift.end_time || '') <= (bekleyen.shift.start_time || ''),
+          // Kategori ve uyarilar sunucudan gelmiyor (henuz kaydedilmedi);
+          // secim ekranindaki yerel hesap kullaniliyor.
+          category: null,
+          warnings: [],
+        }]
+        : [])
+    : gelen;
   const bos = !hucreler || hucreler.length === 0;
   const tatilKaydi = !bos && hucreler.some((c) => c.is_day_off);
   // Yasal uyari tasiyan hucre kirmizi cerceve aliyor; sebep title'da ve
@@ -514,17 +653,22 @@ function Hucre({ hucreler, tatil, duzenle }) {
     bos && !tamTatil ? 'empty-cell' : '',
     uyarilar.length ? 'uyari' : '',
     duzenle ? 'duzenlenebilir' : '',
+    // Kaydedilmemis degisiklik: kesik cerceve + nokta. Renk TEK BASINA
+    // yeterli degil, o yuzden hucrede nokta isareti de var.
+    bekleyen ? 'bekleyen' : '',
   ].filter(Boolean).join(' ');
 
   // Duzenlenebilir hucre gercek bir dugme: klavyeyle de erisilebilsin.
   if (duzenle && !tamTatil) {
     return (
       <td className={sinif}>
-        <button type="button" className="roster-hucre-btn" onClick={duzenle} title={baslik}>
+        <button type="button" className="roster-hucre-btn" onClick={duzenle}
+          title={bekleyen ? 'Kaydedilmemiş değişiklik' : baslik}>
           {govde}
           {uyarilar.length > 0 && (
             <span className="roster-uyari">{uyarilar[0].etiket}</span>
           )}
+          {bekleyen && <span className="roster-bekleyen" aria-label="kaydedilmemiş">•</span>}
         </button>
       </td>
     );

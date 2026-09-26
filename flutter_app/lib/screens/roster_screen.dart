@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
@@ -107,6 +108,11 @@ class _RosterScreenState extends State<RosterScreen> {
   String _error = '';
   bool _disa = false;
   List<ShiftDef> _vardiyalar = const [];
+  // Kaydedilmeyi bekleyen hucre degisiklikleri: "kullaniciId|tarih" -> degisiklik.
+  final Map<String, PendingCell> _bekleyen = {};
+  bool _kaydediyor = false;
+  // Sunucudan 409 ile donen cakismalar.
+  List<Map<String, dynamic>> _cakismalar = const [];
 
   bool get _cokMagaza => _cokMagazaRolleri.contains(session.user?.role ?? '');
 
@@ -143,13 +149,98 @@ class _RosterScreenState extends State<RosterScreen> {
       }
     }
     if (!mounted) return;
-    final degisti = await showRosterCellDialog(
+    final anahtar = PendingCell.keyOf(kisi.userId, gun);
+    final secim = await showRosterCellDialog(
       context,
       kisi: kisi,
       gun: gun,
       vardiyalar: _vardiyalar,
+      bekleyen: _bekleyen[anahtar],
     );
-    if (degisti == true) await _load(silent: true);
+    if (secim == null || !mounted) return;
+
+    // Secim SUNUCUDAKI haliyle ayniysa bekleyen listesinden cikar:
+    // "degistirdim sonra geri aldim" bir degisiklik degil.
+    final mevcut = kisi.gun(gun);
+    final suAnkiTatil = mevcut.any((c) => c.isDayOff);
+    final suAnkiId = mevcut
+        .where((c) => !c.isDayOff)
+        .map((c) => c.shiftId)
+        .firstOrNull;
+    final ayni = secim.isDayOff
+        ? suAnkiTatil
+        : (secim.shiftId == suAnkiId && !suAnkiTatil);
+
+    setState(() {
+      _cakismalar = const [];
+      if (ayni) {
+        _bekleyen.remove(anahtar);
+      } else {
+        _bekleyen[anahtar] = PendingCell(
+          userId: kisi.userId,
+          fullName: kisi.fullName,
+          workDate: gun,
+          isDayOff: secim.isDayOff,
+          shift: secim.shift,
+        );
+      }
+    });
+  }
+
+  /// Bekleyen degisiklikleri TEK istekte kaydeder.
+  Future<void> _kaydet({bool force = false}) async {
+    if (_bekleyen.isEmpty) return;
+    setState(() {
+      _kaydediyor = true;
+      _cakismalar = const [];
+    });
+    try {
+      final sonuc = await repo.pdksSaveCells(
+        changes: _bekleyen.values.map((b) => b.toJson()).toList(),
+        force: force,
+      );
+      final kayitli = (sonuc['saved'] as num?)?.toInt() ?? 0;
+      final zorlanan = (sonuc['forced'] as num?)?.toInt() ?? 0;
+      if (mounted) {
+        toastSaved(
+          '$kayitli değişiklik kaydedildi'
+          '${zorlanan > 0 ? ' ($zorlanan tanesi çakışmaya rağmen)' : ''}',
+        );
+        setState(_bekleyen.clear);
+      }
+      await _load(silent: true);
+    } on DioException catch (e) {
+      final veri = e.response?.data;
+      if (e.response?.statusCode == 409 &&
+          veri is Map &&
+          veri['code'] == 'SHIFT_CONFLICT') {
+        if (mounted) {
+          setState(() {
+            _cakismalar = ((veri['conflicts'] as List<dynamic>?) ?? [])
+                .map((x) => (x as Map).cast<String, dynamic>())
+                .toList();
+          });
+          toast(
+            veri['error'] as String? ?? 'Çakışma var',
+            kind: ToastKind.error,
+          );
+        }
+      } else if (mounted) {
+        toast(errorMessage(e), kind: ToastKind.error);
+      }
+    } catch (e) {
+      if (mounted) toast(errorMessage(e), kind: ToastKind.error);
+    } finally {
+      if (mounted) setState(() => _kaydediyor = false);
+    }
+  }
+
+  /// Tek bir bekleyen degisikligi geri alir.
+  void _bekleyeniKaldir(String anahtar) {
+    setState(() {
+      _bekleyen.remove(anahtar);
+      _cakismalar = const [];
+    });
   }
 
   Future<void> _load({bool silent = false}) async {
@@ -176,7 +267,24 @@ class _RosterScreenState extends State<RosterScreen> {
     }
   }
 
-  void _kaydir(int yon) {
+  Future<void> _kaydir(int yon) async {
+    // Hafta degistirmek bekleyenleri gorunmez kilar; once sorulur.
+    if (_bekleyen.isNotEmpty) {
+      final devam = await confirmDialog(
+        context,
+        title: 'Kaydedilmemiş değişiklik',
+        body: Text(
+          '${_bekleyen.length} değişiklik kaydedilmedi. '
+          'Hafta değiştirirseniz kaybolur.',
+        ),
+        confirmLabel: 'Devam et',
+      );
+      if (devam != true || !mounted) return;
+      setState(() {
+        _bekleyen.clear();
+        _cakismalar = const [];
+      });
+    }
     setState(() {
       if (_haftalik) {
         _anchor = _anchor.add(Duration(days: 7 * yon));
@@ -240,6 +348,76 @@ class _RosterScreenState extends State<RosterScreen> {
             },
           ),
           const SizedBox(height: AppTokens.gap),
+          // Cakisma paneli: sunucu 409 dondugunde sebepleri ve cikis yollarini
+          // gosterir. Hicbir degisiklik kaydedilmedigi acikca yaziyor.
+          if (_cakismalar.isNotEmpty) ...[
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_cakismalar.length} hücrede çakışma var; '
+                    'hiçbir değişiklik kaydedilmedi.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: context.tokens.danger,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final c in _cakismalar)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${c['full_name']} — ${fmtDate(c['work_date'] as String? ?? '')}'
+                              ': ${c['label']}',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => _bekleyeniKaldir(
+                              PendingCell.keyOf(
+                                (c['user_id'] as num).toInt(),
+                                c['work_date'] as String,
+                              ),
+                            ),
+                            child: const Text('geri al'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Text(
+                    'Yine de kaydederseniz çakışan atamalar hareket '
+                    'kayıtlarına "çakışmaya rağmen atandı" olarak yazılır.',
+                    style: TextStyle(fontSize: 12, color: context.tokens.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => setState(() => _cakismalar = const []),
+                        child: const Text('Kapat'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _kaydediyor
+                            ? null
+                            : () => _kaydet(force: true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: context.tokens.dangerStrong,
+                        ),
+                        child: const Text('Yine de kaydet'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTokens.gap),
+          ],
         ],
       ),
       children: [
@@ -247,9 +425,34 @@ class _RosterScreenState extends State<RosterScreen> {
           _haftalik
               ? _HaftaTablosu(
                   veri: v,
+                  bekleyen: _bekleyen,
                   onHucre: v.canEdit ? _hucreDuzenle : null,
                 )
               : _GunListesi(veri: v, gun: _gun),
+        // Kaydet cubugu listenin SONUNDA: tablo uzun oldugu icin degisiklik
+        // yapildiktan sonra dugmeyi aramak zorunda kalmamali.
+        if (_bekleyen.isNotEmpty) ...[
+          const SizedBox(height: AppTokens.gap),
+          _KaydetCubugu(
+            adet: _bekleyen.length,
+            kaydediyor: _kaydediyor,
+            onKaydet: () => _kaydet(),
+            onVazgec: () async {
+              final ok = await confirmDialog(
+                context,
+                title: 'Değişiklikleri geri al',
+                body: Text('${_bekleyen.length} değişiklik geri alınacak.'),
+                confirmLabel: 'Geri al',
+              );
+              if (ok == true && mounted) {
+                setState(() {
+                  _bekleyen.clear();
+                  _cakismalar = const [];
+                });
+              }
+            },
+          ),
+        ],
       ],
     );
   }
@@ -339,10 +542,39 @@ class _Filtreler extends StatelessWidget {
   }
 }
 
+/// Kisinin planli NET suresi; bekleyen degisiklikler DAHIL.
+///
+/// Kaydetmeden once toplamin degismesi gerekiyor, aksi halde yonetici
+/// yaptigi degisikligin saat etkisini kaydetmeden goremez.
+int _planliSure(
+  RosterPerson kisi,
+  List<String> gunler,
+  Map<String, PendingCell> bekleyen,
+) {
+  var toplam = 0;
+  for (final d in gunler) {
+    final b = bekleyen[PendingCell.keyOf(kisi.userId, d)];
+    if (b != null) {
+      // Bekleyen degisiklik o gunun mevcut halini TAMAMEN degistiriyor.
+      toplam += b.netMinutes;
+    } else {
+      toplam += kisi.gun(d).fold(0, (a, c) => a + c.minutes);
+    }
+  }
+  return toplam;
+}
+
 class _HaftaTablosu extends StatelessWidget {
-  const _HaftaTablosu({required this.veri, this.onHucre});
+  const _HaftaTablosu({
+    required this.veri,
+    this.bekleyen = const {},
+    this.onHucre,
+  });
 
   final Roster veri;
+
+  /// Kaydedilmeyi bekleyen degisiklikler; hucreler bunlari gosteriyor.
+  final Map<String, PendingCell> bekleyen;
 
   /// Duzenleme yetkisi varsa hucreye dokunma geri cagrisi.
   final void Function(RosterPerson kisi, String gun)? onHucre;
@@ -391,12 +623,13 @@ class _HaftaTablosu extends StatelessWidget {
                     _Hucre(
                       hucreler: p.gun(d),
                       tatil: veri.holidays[d],
+                      bekleyen: bekleyen[PendingCell.keyOf(p.userId, d)],
                       onTap: onHucre == null ? null : () => onHucre!(p, d),
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     child: Text(
-                      fmtDuration(p.plannedMinutes),
+                      fmtDuration(_planliSure(p, veri.dates, bekleyen)),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 12,
@@ -481,10 +714,13 @@ class _Baslik extends StatelessWidget {
 }
 
 class _Hucre extends StatelessWidget {
-  const _Hucre({required this.hucreler, this.tatil, this.onTap});
+  const _Hucre({required this.hucreler, this.tatil, this.bekleyen, this.onTap});
 
   final List<RosterCell> hucreler;
   final PublicHoliday? tatil;
+
+  /// Kaydedilmemis degisiklik; varsa hucre bunu gosteriyor.
+  final PendingCell? bekleyen;
 
   /// Duzenleme yetkisi olan kullanicilarda hucre dokunulabilir olur.
   final VoidCallback? onTap;
@@ -494,7 +730,32 @@ class _Hucre extends StatelessWidget {
     final t = context.tokens;
     final koyu = Theme.of(context).brightness == Brightness.dark;
     final tamTatil = tatil != null && !tatil!.isHalfDay;
-    final uyarilar = hucreler.expand((c) => c.warnings).toList();
+    // Bekleyen degisiklik varsa hucre ONU gosteriyor: yonetici tabloyu
+    // kurarken sonucu gormeli, kaydettikten sonra degil. Kategori ve uyarilar
+    // sunucudan gelmiyor (henuz kaydedilmedi).
+    final gosterilen = bekleyen == null
+        ? hucreler
+        : bekleyen!.isDayOff
+        ? const [RosterCell(isDayOff: true)]
+        : bekleyen!.shift == null
+        ? const <RosterCell>[]
+        : [
+            RosterCell(
+              shiftId: bekleyen!.shift!.id,
+              shiftName: bekleyen!.shift!.name,
+              startTime: bekleyen!.shift!.startTime,
+              endTime: bekleyen!.shift!.endTime,
+              breakDurationMinutes: bekleyen!.shift!.breakMinutes,
+              minutes: bekleyen!.shift!.netMinutes,
+              spanMinutes: bekleyen!.shift!.spanMinutes,
+              crossesMidnight:
+                  bekleyen!.shift!.endTime.compareTo(
+                    bekleyen!.shift!.startTime,
+                  ) <=
+                  0,
+            ),
+          ];
+    final uyarilar = gosterilen.expand((c) => c.warnings).toList();
 
     Widget govde;
     if (tamTatil) {
@@ -507,7 +768,7 @@ class _Hucre extends StatelessWidget {
           color: t.danger,
         ),
       );
-    } else if (hucreler.isEmpty) {
+    } else if (gosterilen.isEmpty) {
       govde = Text(
         onTap != null ? '+' : '-',
         textAlign: TextAlign.center,
@@ -517,7 +778,7 @@ class _Hucre extends StatelessWidget {
           color: t.borderStrong,
         ),
       );
-    } else if (hucreler.any((c) => c.isDayOff)) {
+    } else if (gosterilen.any((c) => c.isDayOff)) {
       govde = Text(
         'HT',
         textAlign: TextAlign.center,
@@ -531,7 +792,7 @@ class _Hucre extends StatelessWidget {
       govde = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final c in hucreler) _VardiyaEtiketi(hucre: c, koyu: koyu),
+          for (final c in gosterilen) _VardiyaEtiketi(hucre: c, koyu: koyu),
         ],
       );
     }
@@ -540,6 +801,17 @@ class _Hucre extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         govde,
+        if (bekleyen != null)
+          Text(
+            '•',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              height: 1,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: t.primary600,
+            ),
+          ),
         // Yasal uyari: renk tek basina yeterli degil, kisa etiket de yaziliyor.
         if (uyarilar.isNotEmpty)
           Padding(
@@ -558,7 +830,14 @@ class _Hucre extends StatelessWidget {
     );
 
     final kutu = Container(
-      decoration: uyarilar.isEmpty
+      decoration: bekleyen != null
+          // Kaydedilmemis: birincil renkte cerceve. Renk TEK BASINA yeterli
+          // degil, o yuzden icerikte nokta isareti de var.
+          ? BoxDecoration(
+              border: Border.all(color: t.primary600, width: 2),
+              borderRadius: BorderRadius.circular(8),
+            )
+          : uyarilar.isEmpty
           ? null
           : BoxDecoration(
               border: Border.all(color: t.danger, width: 2),
@@ -769,31 +1048,45 @@ class _Sayi extends StatelessWidget {
   }
 }
 
-/// Tek hucre duzenlemesi: bir personelin bir gunu.
+/// Hucre secim sonucu.
+typedef CellChoice = ({bool isDayOff, int? shiftId, ShiftDef? shift});
+
+/// Tek hucre secimi: bir personelin bir gunu.
 ///
-/// Sunucuya TEK istek gidiyor (PUT /pdks/assignments/cell): "bu gunu su hale
-/// getir". Istemcide once silip sonra eklemek yarim kalabilirdi (silindi ama
-/// eklenemedi -> gun bosalir).
-Future<bool?> showRosterCellDialog(
+/// Sunucuya GITMIYOR. Secim ust bilesende birikiyor ve tum degisiklikler tek
+/// "Kaydet" ile gonderiliyor; cakisma kontrolu de o an sunucuda yapiliyor.
+/// Kontrolu burada da yapmak iki yerin zamanla ayrismasi demekti.
+Future<CellChoice?> showRosterCellDialog(
   BuildContext context, {
   required RosterPerson kisi,
   required String gun,
   required List<ShiftDef> vardiyalar,
-}) {
+  PendingCell? bekleyen,
+}) async {
   final mevcut = kisi.gun(gun);
   final tatilVar = mevcut.any((c) => c.isDayOff);
   final mevcutId = mevcut
       .where((c) => !c.isDayOff)
       .map((c) => c.shiftId)
       .firstOrNull;
-  // null = bos birak, -1 = hafta tatili, digerleri vardiya kimligi
-  int? secim = tatilVar ? -1 : mevcutId;
+  // null = bos birak, -1 = hafta tatili, digerleri vardiya kimligi.
+  // Bekleyen degisiklik varsa ONU gosteriyoruz; yoksa sunucudaki hali.
+  int? secim = bekleyen != null
+      ? (bekleyen.isDayOff ? -1 : bekleyen.shiftId)
+      : (tatilVar ? -1 : mevcutId);
 
-  return showDialog<bool>(
+  // Secim BURADA yakalaniyor, onSubmit icinde pop EDILMIYOR.
+  //
+  // Olculdu: onSubmit icinde Navigator.pop cagrildiginda FormDialog ayni
+  // karede mounted'i hala true gorup IKINCI kez pop ediyor ve alttaki ekrani
+  // da kapatiyordu. Pop'u FormDialog'a birakip sonucu disarida tutmak bu
+  // yarisi ortadan kaldiriyor.
+  CellChoice? sonuc;
+  final onaylandi = await showDialog<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: '${kisi.fullName} — ${fmtDate(gun)} ${_gunAdi(gun, uzun: true)}',
-      submitLabel: 'Kaydet',
+      submitLabel: 'Tabloya işle',
       fields: (context, rebuild) {
         final t = context.tokens;
         Widget secenek({
@@ -882,19 +1175,67 @@ Future<bool?> showRosterCellDialog(
           secenek(deger: null, baslik: 'Boş bırak', alt: 'Atama silinir'),
         ];
       },
+      // Kaydetme yok: secim disariya aktariliyor, pencereyi FormDialog kapatiyor.
       onSubmit: () async {
-        try {
-          await repo.pdksSetCell(
-            userId: kisi.userId,
-            workDate: gun,
-            isDayOff: secim == -1,
-            shiftId: (secim == null || secim == -1) ? null : secim,
-          );
-          return null;
-        } catch (e) {
-          return errorMessage(e);
-        }
+        sonuc = (
+          isDayOff: secim == -1,
+          shiftId: (secim == null || secim == -1) ? null : secim,
+          shift: (secim == null || secim == -1)
+              ? null
+              : vardiyalar.where((v) => v.id == secim).firstOrNull,
+        );
+        return null;
       },
     ),
   );
+  return onaylandi == true ? sonuc : null;
+}
+
+/// Bekleyen degisiklik sayisini ve kaydet/vazgec dugmelerini gosteren cubuk.
+class _KaydetCubugu extends StatelessWidget {
+  const _KaydetCubugu({
+    required this.adet,
+    required this.kaydediyor,
+    required this.onKaydet,
+    required this.onVazgec,
+  });
+
+  final int adet;
+  final bool kaydediyor;
+  final VoidCallback onKaydet;
+  final VoidCallback onVazgec;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.primarySoft,
+        border: Border.all(color: t.primary600),
+        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.save_outlined, size: 18, color: t.primary600),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$adet değişiklik kaydedilmeyi bekliyor',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          OutlinedButton(
+            onPressed: kaydediyor ? null : onVazgec,
+            child: const Text('Vazgeç'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: kaydediyor ? null : onKaydet,
+            child: Text(kaydediyor ? 'Kaydediliyor...' : 'Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
 }

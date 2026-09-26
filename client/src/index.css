@@ -3202,3 +3202,44 @@ th {
 /* Cakisma sebepleri listesi */
 .cakisma-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 .cakisma-list li { margin-bottom: 3px; }
+
+/* ---------- Toplu kaydetme cubugu ----------
+   Bekleyen degisiklik varken gorunur ve EKRANIN ALTINA sabitlenir: tablo uzun
+   oldugu icin yonetici degisiklik yaptiktan sonra kaydet dugmesini aramak
+   zorunda kalmamali. */
+.kaydet-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border: 1px solid var(--primary-600);
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  box-shadow: 0 -6px 16px -12px rgba(17, 24, 39, 0.5);
+}
+.kaydet-bilgi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.kaydet-bilgi svg { color: var(--primary-600); flex: none; }
+
+/* Kaydedilmemis hucre: kesik cerceve + nokta. Renk tek basina bilgi
+   tasimasin diye nokta isareti de var. */
+.roster-cell.bekleyen {
+  box-shadow: inset 0 0 0 2px var(--primary-600);
+  border-radius: 8px;
+}
+.roster-bekleyen {
+  display: block;
+  line-height: 1;
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--primary-600);
+}
