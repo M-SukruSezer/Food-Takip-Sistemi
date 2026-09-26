@@ -113,6 +113,16 @@ const navSections = <NavSection>[
             roles: allRoles,
             inBottomBar: true,
           ),
+          // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
+          // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
+          NavItem(
+            path: '/roster',
+            label: 'Vardiya Çizelgesi',
+            shortLabel: 'Çizelge',
+            icon: Icons.calendar_view_week_outlined,
+            roles: allRoles,
+            inBottomBar: true,
+          ),
           NavItem(
             path: '/pdks-admin',
             label: 'Devam Yönetimi',

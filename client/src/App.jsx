@@ -19,6 +19,7 @@ import Logs from './pages/Logs';
 import Profile from './pages/Profile';
 import Approvals from './pages/Approvals';
 import Timesheet from './pages/Timesheet';
+import Roster from './pages/Roster';
 import { ToastHost, BusyHost } from './components/ui';
 
 function RequireAuth({ children }) {
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="stock-coverage" element={<Guard roles={REPORT_PANEL_ROLES}><StockCoverage /></Guard>} />
         {/* Devam takibi: personel ekrani herkeste, yonetim ekrani yonetici rollerinde. */}
         <Route path="pdks" element={<Guard roles={ALL_ROLES}><Pdks /></Guard>} />
+        <Route path="roster" element={<Guard roles={ALL_ROLES}><Roster /></Guard>} />
         <Route path="pdks-admin" element={<Guard roles={MANAGER_ROLES}><PdksAdmin /></Guard>} />
         <Route path="timesheet" element={<Guard roles={HR_ROLES}><Timesheet /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />

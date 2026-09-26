@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Clock, MapPin, QrCode as QrIcon, LogIn, LogOut, CalendarDays,
-  Wallet, Plus, ScanLine, RefreshCw,
+  Wallet, Plus, ScanLine, RefreshCw, Coffee, Play, AlertTriangle,
 } from 'lucide-react';
 import api from '../api';
 import { Modal, toast } from '../components/ui';
@@ -93,14 +93,23 @@ export default function Pdks() {
 // kayitla arasindaki hiz (teleport) kontrolu.
 const WEB_INTEGRITY = { checked: false };
 
+// Dort adimin uc noktalari ve bildirim metinleri tek yerde: iki islem
+// fonksiyonu da buradan besleniyor, metinler ayrismasin.
+const ADIM = {
+  GIRIS: { yol: 'check-in', mesaj: 'Giriş kaydedildi' },
+  CIKIS: { yol: 'check-out', mesaj: 'Çıkış kaydedildi' },
+  MOLA_BASLA: { yol: 'break-start', mesaj: 'Mola başladı' },
+  MOLA_BITIR: { yol: 'break-end', mesaj: 'Mola bitti' },
+};
+
   async function gpsIslem(tip) {
     setMesgul(true);
     try {
       const konum = await konumAl();
-      await api.post(`/pdks/${tip === 'GIRIS' ? 'check-in' : 'check-out'}`,
+      await api.post(`/pdks/${ADIM[tip].yol}`,
         { method: 'GPS', ...konum, device_integrity: WEB_INTEGRITY },
         { noToast: true, busyMessage: 'Konum doğrulanıyor...' });
-      toast(tip === 'GIRIS' ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      toast(ADIM[tip].mesaj);
       setReload((n) => n + 1);
     } catch (e) {
       toast(errorMessage(e) || e.message);
@@ -116,10 +125,10 @@ const WEB_INTEGRITY = { checked: false };
       // Sabit basili kod konum da istiyor; konum alinabiliyorsa gonderilir.
       let konum = {};
       try { konum = await konumAl(); } catch { /* QR tek basina yeterli olabilir */ }
-      await api.post(`/pdks/${tip === 'GIRIS' ? 'check-in' : 'check-out'}`,
+      await api.post(`/pdks/${ADIM[tip].yol}`,
         { method: 'QR', qr_token: token, ...konum, device_integrity: WEB_INTEGRITY },
         { noToast: true, busyMessage: 'QR doğrulanıyor...' });
-      toast(tip === 'GIRIS' ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      toast(ADIM[tip].mesaj);
       setReload((n) => n + 1);
     } catch (e) {
       toast(errorMessage(e));
@@ -147,22 +156,37 @@ const WEB_INTEGRITY = { checked: false };
   if (!durum) return null;
 
   const iceride = durum.is_inside;
+  const molada = durum.on_break;
+  // Sunucu sonraki gecerli adimlari kendisi bildiriyor; kurali burada tekrar
+  // yazmak iki tarafin ayrismasi demekti.
+  const izin = durum.can || {};
   const magaza = durum.store || {};
   const konumVar = magaza.has_location;
   const pdksAcik = magaza.pdks_enabled;
+  // Operasyon alanindan buraya yonlendirildik mi (sunucu SHIFT_REQUIRED dedi).
+  const mesaiIstendi = new URLSearchParams(window.location.search).get('shift') === '1';
 
   return (
     <div className="page-shell">
       <div className="page-head">
         <h2><Clock size={20} /> Devam Takibi</h2>
-        <span className={`badge ${iceride ? 'sold' : 'discarded'}`}>
-          {iceride ? 'İş yerindesiniz' : 'İş yerinde değilsiniz'}
+        <span className={`badge ${molada ? 'warning' : iceride ? 'sold' : 'discarded'}`}>
+          {molada ? 'Moladasınız' : iceride ? 'İş yerindesiniz' : 'İş yerinde değilsiniz'}
         </span>
       </div>
 
       {!pdksAcik && (
         <div className="alert warning">
           Bu mağazada devam takibi henüz açılmamış. Yöneticinizle görüşün.
+        </div>
+      )}
+
+      {/* Operasyon alanindan yonlendirildiyse sebebi yaziliyor: personel bos
+          bir ekranla kalip ne yapmasi gerektigini bilemesin. */}
+      {mesaiIstendi && !iceride && (
+        <div className="alert warning" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <AlertTriangle size={18} />
+          <span>Ürün, satış ve rapor bölümlerine girmek için önce işe giriş yapmalısınız.</span>
         </div>
       )}
 
@@ -176,30 +200,59 @@ const WEB_INTEGRITY = { checked: false };
                 {fmtDateTime(durum.open_since)} itibarıyla giriş yapıldı
               </p>
             )}
+            {molada && (
+              <p className="pdks-since" style={{ color: 'var(--warning-text)' }}>
+                {fmtDateTime(durum.break_since)} itibarıyla molada
+              </p>
+            )}
+            {durum.break_minutes_today > 0 && (
+              <p className="muted" style={{ fontSize: 12, margin: '2px 0 0' }}>
+                Bugün toplam mola: {durum.break_minutes_today} dk
+              </p>
+            )}
           </div>
         </div>
 
         <div className="pdks-actions">
           <button
-            className={`btn ${iceride ? 'btn-secondary' : 'btn-primary'} btn-lg`}
-            disabled={mesgul || !pdksAcik || iceride || !konumVar}
+            className={`btn ${izin.check_in ? 'btn-primary' : 'btn-secondary'} btn-lg`}
+            disabled={mesgul || !pdksAcik || !izin.check_in || !konumVar}
             onClick={() => gpsIslem('GIRIS')}
           >
             <LogIn size={18} /> Konumla İşe Başla
           </button>
           <button
-            className={`btn ${iceride ? 'btn-primary' : 'btn-secondary'} btn-lg`}
-            disabled={mesgul || !pdksAcik || !iceride || !konumVar}
+            className={`btn ${izin.check_out ? 'btn-primary' : 'btn-secondary'} btn-lg`}
+            disabled={mesgul || !pdksAcik || !izin.check_out || !konumVar}
             onClick={() => gpsIslem('CIKIS')}
           >
             <LogOut size={18} /> Konumla İşi Bitir
           </button>
         </div>
 
+        {/* Mola adimlari. Molada cikis yapilamiyor: sunucu da engelliyor,
+            dugme de kapali kaliyor ki sebebi denemeden anlasilsin. */}
+        <div className="pdks-actions">
+          <button
+            className={`btn ${izin.break_start ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={mesgul || !pdksAcik || !izin.break_start || !konumVar}
+            onClick={() => gpsIslem('MOLA_BASLA')}
+          >
+            <Coffee size={16} /> Molaya Çık
+          </button>
+          <button
+            className={`btn ${izin.break_end ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={mesgul || !pdksAcik || !izin.break_end || !konumVar}
+            onClick={() => gpsIslem('MOLA_BITIR')}
+          >
+            <Play size={16} /> Moladan Dön
+          </button>
+        </div>
+
         <div className="pdks-actions">
           <button className="btn btn-secondary" disabled={mesgul || !pdksAcik}
-            onClick={() => setOkuyucu(iceride ? 'CIKIS' : 'GIRIS')}>
-            <ScanLine size={16} /> QR Okut ({iceride ? 'çıkış' : 'giriş'})
+            onClick={() => setOkuyucu(molada ? 'MOLA_BITIR' : iceride ? 'CIKIS' : 'GIRIS')}>
+            <ScanLine size={16} /> QR Okut ({molada ? 'mola bitişi' : iceride ? 'çıkış' : 'giriş'})
           </button>
           <button className="btn btn-secondary" disabled={!pdksAcik} onClick={kendiQrKodu}>
             <QrIcon size={16} /> Kodumu Göster

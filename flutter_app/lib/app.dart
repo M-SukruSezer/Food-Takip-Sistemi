@@ -19,6 +19,7 @@ import 'screens/pdks_admin_screen.dart';
 import 'screens/pdks_screen.dart';
 import 'screens/petty_cash_screen.dart';
 import 'screens/product_types_screen.dart';
+import 'screens/roster_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/sales_screen.dart';
 import 'screens/stock_coverage_screen.dart';
@@ -43,6 +44,7 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
     key: ValueKey(s.uri.toString()),
     initialTab: s.uri.queryParameters['tab'],
   ),
+  '/roster': (s) => const RosterScreen(),
   '/product-types': (s) => const ProductTypesScreen(),
   '/stores': (s) => const StoresScreen(),
   '/users': (s) => const UsersScreen(),
@@ -56,7 +58,11 @@ final shellScreens = <String, Widget Function(GoRouterState)>{
   '/petty-cash': (s) => const PettyCashScreen(),
   '/daily-report': (s) => const DailyReportScreen(),
   '/stock-coverage': (s) => const StockCoverageScreen(),
-  '/pdks': (s) => const PdksScreen(),
+  '/pdks': (s) => PdksScreen(
+    // shift=1 ile gelindiyse sebep yazisi gosterilsin.
+    key: ValueKey(s.uri.toString()),
+    shiftRequired: s.uri.queryParameters['shift'] == '1',
+  ),
   '/pdks-admin': (s) => const PdksAdminScreen(),
   '/timesheet': (s) => const TimesheetScreen(),
   '/profile': (s) => const ProfileScreen(),
@@ -77,6 +83,13 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
     super.initState();
     // 401 alinirsa oturum dusurulur; router otomatik giris ekranina gecer.
     api.onUnauthorized = () => session.signOut();
+    // Operasyon alani acik mesai istiyorsa Devam Takibi ekranina goturuluyor.
+    // shift=1 sorgusu ekranda sebebi yazdiriyor; ayni ekranda zaten isek
+    // gereksiz gezinme yapilmiyor.
+    api.onShiftRequired = () {
+      final yol = _router.routerDelegate.currentConfiguration.uri.path;
+      if (yol != '/pdks') _router.go('/pdks?shift=1');
+    };
     _router = GoRouter(
       refreshListenable: session,
       // Ilk acilista PDKS ekrani. Oturum henuz yuklenmemis olabilecegi icin

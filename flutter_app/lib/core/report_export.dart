@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
 import '../models/daily_report.dart';
 import 'format.dart';
+import 'pdf_font.dart';
 
 /// Rapor tablosunun ortak iskeleti: basliklar ve satirlar hem Excel hem PDF
 /// icin tek yerden uretilir, iki cikti birbirinden sapmaz.
@@ -28,7 +29,11 @@ String _formatValue(num? value, String type) {
   };
 }
 
-_Table _build(DailyReportPage page, ReportFields fields, {bool showStore = false}) {
+_Table _build(
+  DailyReportPage page,
+  ReportFields fields, {
+  bool showStore = false,
+}) {
   final headers = <String>[
     'Tarih',
     if (showStore) 'Mağaza',
@@ -51,9 +56,15 @@ _Table _build(DailyReportPage page, ReportFields fields, {bool showStore = false
   final summary = <String>[
     'TOPLAM (${page.summary.days} gün)',
     if (showStore) '',
-    ...fields.entry.map((f) => _formatValue(page.summary.totals[f.key], f.type)),
-    ...fields.system.map((f) => _formatValue(page.summary.totals[f.key], f.type)),
-    ...fields.derived.map((f) => _formatValue(page.summary.metrics[f.key], f.type)),
+    ...fields.entry.map(
+      (f) => _formatValue(page.summary.totals[f.key], f.type),
+    ),
+    ...fields.system.map(
+      (f) => _formatValue(page.summary.totals[f.key], f.type),
+    ),
+    ...fields.derived.map(
+      (f) => _formatValue(page.summary.metrics[f.key], f.type),
+    ),
   ];
 
   return _Table(headers, rows, summary);
@@ -65,8 +76,11 @@ String _fileName(DailyReportPage page, String extension) {
 }
 
 /// Excel (.xlsx) uretir ve paylasim/kaydetme penceresini acar.
-Future<void> exportReportExcel(DailyReportPage page, ReportFields fields,
-    {bool showStore = false}) async {
+Future<void> exportReportExcel(
+  DailyReportPage page,
+  ReportFields fields, {
+  bool showStore = false,
+}) async {
   final table = _build(page, fields, showStore: showStore);
 
   final workbook = xlsio.Workbook();
@@ -95,8 +109,11 @@ Future<void> exportReportExcel(DailyReportPage page, ReportFields fields,
     }
 
     final bytes = Uint8List.fromList(workbook.saveAsStream());
-    await _share(bytes, _fileName(page, 'xlsx'),
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    await sharePdksFile(
+      bytes,
+      _fileName(page, 'xlsx'),
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
   } finally {
     // Syncfusion calisma kitabini elle serbest birakmayi bekliyor.
     workbook.dispose();
@@ -104,11 +121,17 @@ Future<void> exportReportExcel(DailyReportPage page, ReportFields fields,
 }
 
 /// PDF uretir ve paylasim/kaydetme penceresini acar.
-Future<void> exportReportPdf(DailyReportPage page, ReportFields fields,
-    {bool showStore = false}) async {
+Future<void> exportReportPdf(
+  DailyReportPage page,
+  ReportFields fields, {
+  bool showStore = false,
+}) async {
   final table = _build(page, fields, showStore: showStore);
-  final doc = pw.Document();
-  final title = page.period == 'month' ? 'Aylık Operasyon Raporu' : 'Haftalık Operasyon Raporu';
+  // Turkce karakterler icin gomulu yazi tipi; okunamazsa varsayilanla devam.
+  final doc = pw.Document(theme: await pdfTurkishTheme());
+  final title = page.period == 'month'
+      ? 'Aylık Operasyon Raporu'
+      : 'Haftalık Operasyon Raporu';
 
   doc.addPage(
     pw.MultiPage(
@@ -120,9 +143,14 @@ Future<void> exportReportPdf(DailyReportPage page, ReportFields fields,
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-            pw.Text('${fmtDate(page.from)} – ${fmtDate(page.to)}',
-                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+            pw.Text(
+              title,
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text(
+              '${fmtDate(page.from)} – ${fmtDate(page.to)}',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            ),
           ],
         ),
       ),
@@ -130,7 +158,10 @@ Future<void> exportReportPdf(DailyReportPage page, ReportFields fields,
         pw.TableHelper.fromTextArray(
           headers: table.headers,
           data: [...table.rows, table.summaryRow],
-          headerStyle: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold),
+          headerStyle: pw.TextStyle(
+            fontSize: 7,
+            fontWeight: pw.FontWeight.bold,
+          ),
           cellStyle: const pw.TextStyle(fontSize: 7),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
           cellAlignment: pw.Alignment.centerRight,
@@ -140,12 +171,16 @@ Future<void> exportReportPdf(DailyReportPage page, ReportFields fields,
     ),
   );
 
-  await _share(await doc.save(), _fileName(page, 'pdf'), 'application/pdf');
+  await sharePdksFile(
+    await doc.save(),
+    _fileName(page, 'pdf'),
+    'application/pdf',
+  );
 }
 
-/// Dosyayi paylasim/kaydetme penceresine verir. share_plus bes platformda da
+/// Dosyayi paylasim/kaydetme penceresine verir; PDKS ciktilari da kullaniyor. share_plus bes platformda da
 /// calisiyor; ayri bir "indirilenler" yolu yonetmeye gerek kalmiyor.
-Future<void> _share(Uint8List bytes, String name, String mime) async {
+Future<void> sharePdksFile(Uint8List bytes, String name, String mime) async {
   await SharePlus.instance.share(
     ShareParams(
       files: [XFile.fromData(bytes, name: name, mimeType: mime)],

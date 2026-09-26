@@ -582,7 +582,7 @@ class Repository {
   /// [isMocked] cihazin sahte konum bayragi. Bilinmiyorsa null gonderilir:
   /// sunucu "bilinmiyor" ile "sahte degil" arasini ayirt ediyor.
   Future<void> pdksPunchGps({
-    required bool entry,
+    required PdksPunch adim,
     required double latitude,
     required double longitude,
     double? accuracy,
@@ -590,7 +590,7 @@ class Repository {
     DeviceIntegrity? integrity,
   }) async {
     await api.dio.post(
-      entry ? '/pdks/check-in' : '/pdks/check-out',
+      '/pdks/${adim.yol}',
       data: {
         'method': 'GPS',
         'latitude': latitude,
@@ -603,10 +603,10 @@ class Repository {
     );
   }
 
-  /// QR ile giris/cikis. Sabit basili kodda konum da zorunlu oldugu icin
+  /// QR ile islem. Sabit basili kodda konum da zorunlu oldugu icin
   /// varsa gonderilir.
   Future<void> pdksPunchQr({
-    required bool entry,
+    required PdksPunch adim,
     required String token,
     double? latitude,
     double? longitude,
@@ -615,7 +615,7 @@ class Repository {
     DeviceIntegrity? integrity,
   }) async {
     await api.dio.post(
-      entry ? '/pdks/check-in' : '/pdks/check-out',
+      '/pdks/${adim.yol}',
       data: {
         'method': 'QR',
         'qr_token': token,
@@ -626,6 +626,79 @@ class Repository {
         'device_integrity': ?integrity?.toJson(),
       },
       options: apiOptions(noToast: true, busyMessage: 'QR doğrulanıyor...'),
+    );
+  }
+
+  /// Toplu vardiya cizelgesi: magazanin TUM ekibi x tarih araligi.
+  Future<Roster> pdksRoster({
+    required String from,
+    required String to,
+    int? storeId,
+    bool silent = false,
+  }) async {
+    final r = await api.dio.get<Map<String, dynamic>>(
+      '/pdks/roster',
+      queryParameters: {
+        'from': from,
+        'to': to,
+        'storeId': ?storeId?.toString(),
+      },
+      options: apiOptions(silent: silent),
+    );
+    return Roster.fromJson(r.data ?? const {});
+  }
+
+  /// Personel ucret ve profil tanimlari (yonetici).
+  Future<List<PdksProfile>> pdksProfiles({bool silent = true}) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/pdks/profiles',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? [])
+        .map((e) => PdksProfile.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Ucret ve profil tanimlarini kaydeder.
+  ///
+  /// Para alanlarinda null ile "gonderilmedi" AYRI: null gondermek tanimi
+  /// KALDIRIR, alani hic gondermemek dokunmadan birakir. Bu yuzden
+  /// [Object?] sentinel yerine acikca hangi alanlarin gonderilecegi
+  /// [degistirilen] ile bildiriliyor.
+  Future<void> pdksSaveProfile({
+    required int userId,
+    String? hiredAt,
+    double? annualLeaveDays,
+    double? monthlyAdvanceLimit,
+    double? monthlySalary,
+    double? hourlyRate,
+    double? mealDaily,
+    Set<String> degistirilen = const {
+      'hired_at',
+      'annual_leave_days',
+      'monthly_advance_limit',
+      'monthly_salary',
+      'hourly_rate',
+      'meal_daily',
+    },
+  }) async {
+    final govde = <String, dynamic>{};
+    if (degistirilen.contains('hired_at')) govde['hired_at'] = hiredAt;
+    if (degistirilen.contains('annual_leave_days')) {
+      govde['annual_leave_days'] = annualLeaveDays;
+    }
+    if (degistirilen.contains('monthly_advance_limit')) {
+      govde['monthly_advance_limit'] = monthlyAdvanceLimit;
+    }
+    if (degistirilen.contains('monthly_salary')) {
+      govde['monthly_salary'] = monthlySalary;
+    }
+    if (degistirilen.contains('hourly_rate')) govde['hourly_rate'] = hourlyRate;
+    if (degistirilen.contains('meal_daily')) govde['meal_daily'] = mealDaily;
+    await api.dio.put(
+      '/pdks/profiles/$userId',
+      data: govde,
+      options: apiOptions(successMessage: 'Kaydedildi'),
     );
   }
 

@@ -2920,3 +2920,47 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 .store-pick-text .muted { font-size: 12px; font-weight: 600; }
 .store-pick-arrow { color: var(--muted); flex-shrink: 0; }
+
+/* ---------- Vardiya cizelgesi ---------- */
+.table-wrap table.roster { min-width: 720px; }
+table.roster th, table.roster td {
+  text-align: center;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+table.roster th { background: var(--bg); font-weight: 800; }
+table.roster th.roster-holiday {
+  /* Resmi tatil sutunu: kirmizi cerceve, --danger-text kucuk yazida 4.5+ */
+  color: var(--danger-text);
+  box-shadow: inset 0 -2px 0 var(--danger);
+}
+.roster-dow { display: block; font-size: 10.5px; color: var(--muted); }
+table.roster th.roster-holiday .roster-dow { color: var(--danger-text); }
+.roster-day { display: block; font-weight: 700; }
+table.roster td.roster-name, table.roster th.roster-name {
+  text-align: left;
+  min-width: 170px;
+  position: sticky;
+  left: 0;
+  background: var(--card);
+  z-index: 1;
+}
+table.roster th.roster-name { background: var(--bg); }
+.roster-cell { white-space: nowrap; }
+.roster-shift { display: block; font-variant-numeric: tabular-nums; }
+.roster-shift svg { vertical-align: -2px; margin-left: 3px; color: var(--muted); }
+.roster-cell.off { color: var(--muted); font-weight: 700; }
+.roster-cell.holiday { color: var(--danger-text); font-weight: 800; }
+.roster-cell.empty-cell { color: var(--border-strong); }
+.roster-total { font-weight: 700; font-variant-numeric: tabular-nums; }
+tr.roster-foot td { background: var(--bg); }
+tr.roster-foot td.roster-name { background: var(--bg); }
+
+/* Form icinde mantiksal ayirici: ucret alanlarini profil alanlarindan ayirir. */
+.form-rule {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}

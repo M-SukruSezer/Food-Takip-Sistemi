@@ -19,7 +19,12 @@ import 'qr_scan_screen.dart';
 /// KVKK: konum yalnizca giris/cikis aninda aliniyor, arka planda izleme yok.
 /// Bu arayuzde de kullaniciya yaziyor.
 class PdksScreen extends StatefulWidget {
-  const PdksScreen({super.key});
+  const PdksScreen({super.key, this.shiftRequired = false});
+
+  /// Operasyon alanindan yonlendirildik mi (sunucu 403 SHIFT_REQUIRED dedi).
+  /// Sebep yaziliyor ki personel bos bir ekranla kalip ne yapmasi gerektigini
+  /// bilemesin.
+  final bool shiftRequired;
 
   @override
   State<PdksScreen> createState() => _PdksScreenState();
@@ -98,8 +103,8 @@ class _PdksScreenState extends State<PdksScreen> {
         .onError((Object _, StackTrace _) {});
   }
 
-  /// Konumla giris/cikis.
-  Future<void> _gpsPunch(bool entry) async {
+  /// Konumla islem (dort adimdan biri).
+  Future<void> _gpsPunch(PdksPunch adim) async {
     setState(() => _busy = true);
     try {
       // Cihaz kontrolu konumla PARALEL yurutulur: seri yapilsa girise kadarki
@@ -111,14 +116,14 @@ class _PdksScreenState extends State<PdksScreen> {
       final pos = results[0] as PdksPosition;
       final integrity = results[1] as DeviceIntegrity;
       await repo.pdksPunchGps(
-        entry: entry,
+        adim: adim,
         latitude: pos.latitude,
         longitude: pos.longitude,
         accuracy: pos.accuracy,
         isMocked: pos.isMocked,
         integrity: integrity,
       );
-      toastSaved(entry ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      toastSaved(adim.mesaj);
       _warnIntegrity(integrity);
       await _load(silent: true);
     } on LocationDenied catch (e) {
@@ -130,12 +135,17 @@ class _PdksScreenState extends State<PdksScreen> {
     }
   }
 
-  /// QR ile giris/cikis.
-  Future<void> _qrPunch(bool entry) async {
+  /// QR ile islem (dort adimdan biri).
+  Future<void> _qrPunch(PdksPunch adim) async {
+    final basliklar = {
+      PdksPunch.checkIn: 'QR ile Giriş',
+      PdksPunch.checkOut: 'QR ile Çıkış',
+      PdksPunch.breakStart: 'QR ile Mola Başlangıcı',
+      PdksPunch.breakEnd: 'QR ile Mola Bitişi',
+    };
     final token = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) =>
-            QrScanScreen(title: entry ? 'QR ile Giriş' : 'QR ile Çıkış'),
+        builder: (_) => QrScanScreen(title: basliklar[adim] ?? 'QR Okut'),
       ),
     );
     if (token == null || !mounted) return;
@@ -152,7 +162,7 @@ class _PdksScreenState extends State<PdksScreen> {
       }
       final integrity = await readDeviceIntegrity();
       await repo.pdksPunchQr(
-        entry: entry,
+        adim: adim,
         token: token,
         latitude: pos?.latitude,
         longitude: pos?.longitude,
@@ -160,7 +170,7 @@ class _PdksScreenState extends State<PdksScreen> {
         isMocked: pos?.isMocked,
         integrity: integrity,
       );
-      toastSaved(entry ? 'Giriş kaydedildi' : 'Çıkış kaydedildi');
+      toastSaved(adim.mesaj);
       _warnIntegrity(integrity);
       await _load(silent: true);
     } catch (e) {
@@ -245,6 +255,16 @@ class _PdksScreenState extends State<PdksScreen> {
               message:
                   'Bu mağazada devam takibi henüz açılmamış. '
                   'Yöneticinizle görüşün.',
+            ),
+            const SizedBox(height: AppTokens.gap),
+          ],
+          if (widget.shiftRequired && !_status.isInside) ...[
+            const AppAlert(
+              danger: false,
+              icon: Icons.warning_amber_outlined,
+              message:
+                  'Ürün, satış ve rapor bölümlerine girmek için '
+                  'önce işe giriş yapmalısınız.',
             ),
             const SizedBox(height: AppTokens.gap),
           ],
@@ -392,17 +412,32 @@ class _PunchCard extends StatelessWidget {
 
   final PdksStatus status;
   final bool busy;
-  final Future<void> Function(bool entry) onGps;
-  final Future<void> Function(bool entry) onQr;
+  final Future<void> Function(PdksPunch adim) onGps;
+  final Future<void> Function(PdksPunch adim) onQr;
   final Future<void> Function() onMyQr;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final inside = status.isInside;
+    final molada = status.onBreak;
     final store = status.store;
     final gps = status.canUseGps && !busy;
     final qr = status.canUseQr && !busy;
+    // Sonraki gecerli adim SUNUCUDAN geliyor; kurali burada tekrar yazmak
+    // iki tarafin ayrismasi demekti.
+    final anaAdim = status.canCheckOut ? PdksPunch.checkOut : PdksPunch.checkIn;
+    final anaAcik = gps && (status.canCheckIn || status.canCheckOut);
+    final qrAdim = molada
+        ? PdksPunch.breakEnd
+        : inside
+        ? PdksPunch.checkOut
+        : PdksPunch.checkIn;
+    final qrEtiket = molada
+        ? 'mola bitişi'
+        : inside
+        ? 'çıkış'
+        : 'giriş';
 
     return AppCard(
       child: Column(
@@ -417,8 +452,16 @@ class _PunchCard extends StatelessWidget {
                 ),
               ),
               Pill(
-                text: inside ? 'İş yerindesiniz' : 'İş yerinde değilsiniz',
-                color: inside ? t.success : t.muted,
+                text: molada
+                    ? 'Moladasınız'
+                    : inside
+                    ? 'İş yerindesiniz'
+                    : 'İş yerinde değilsiniz',
+                color: molada
+                    ? t.warning
+                    : inside
+                    ? t.success
+                    : t.muted,
               ),
             ],
           ),
@@ -433,26 +476,69 @@ class _PunchCard extends StatelessWidget {
               ),
             ),
           ],
+          if (molada && status.breakSince != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${fmtDateTime(status.breakSince)} itibarıyla molada',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.warningText,
+              ),
+            ),
+          ],
+          if (status.breakMinutesToday > 0) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Bugün toplam mola: ${status.breakMinutesToday} dk',
+              style: TextStyle(fontSize: 12, color: t.muted),
+            ),
+          ],
           const SizedBox(height: 14),
           // Ana islem: iceride degilse giris, iceridyse cikis.
+          // Molada iken cikis KAPALI: once mola bitirilmeli (sunucu da
+          // engelliyor, dugmenin kapali olmasi sebebi denemeden gosteriyor).
           SizedBox(
             height: 52,
             child: FilledButton.icon(
-              onPressed: gps && (inside ? true : true)
-                  ? () => onGps(!inside)
-                  : null,
+              onPressed: anaAcik ? () => onGps(anaAdim) : null,
               icon: Icon(inside ? Icons.logout : Icons.login),
               label: Text(inside ? 'Konumla İşi Bitir' : 'Konumla İşe Başla'),
             ),
+          ),
+          const SizedBox(height: 8),
+          // Mola adimlari.
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: gps && status.canBreakStart
+                      ? () => onGps(PdksPunch.breakStart)
+                      : null,
+                  icon: const Icon(Icons.free_breakfast_outlined, size: 18),
+                  label: const Text('Molaya Çık'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: gps && status.canBreakEnd
+                      ? () => onGps(PdksPunch.breakEnd)
+                      : null,
+                  icon: const Icon(Icons.play_arrow_outlined, size: 18),
+                  label: const Text('Moladan Dön'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: qr ? () => onQr(!inside) : null,
+                  onPressed: qr ? () => onQr(qrAdim) : null,
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  label: Text('QR Okut (${inside ? 'çıkış' : 'giriş'})'),
+                  label: Text('QR Okut ($qrEtiket)'),
                 ),
               ),
               const SizedBox(width: 8),

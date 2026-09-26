@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Users, ClipboardCheck, Table2, CalendarClock, Settings, QrCode as QrIcon,
   MapPin, Plus, Trash2, RefreshCw, CalendarDays, ShieldCheck,
+  Wallet, FileSpreadsheet, FileText, Pencil, Coffee,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
+import { PDF_FONT, pdfFontKur } from '../pdfFont';
 import QrCode from '../components/pdks/QrCode';
 import { fmtDate, fmtDateTime, fmtMoney, errorMessage } from '../format';
 
@@ -15,6 +17,7 @@ const SEKMELER = [
   { id: 'now', label: 'Anlık Durum', ico: Users },
   { id: 'requests', label: 'Talepler', ico: ClipboardCheck },
   { id: 'timesheet', label: 'Puantaj', ico: Table2 },
+  { id: 'staff', label: 'Personel', ico: Wallet },
   { id: 'shifts', label: 'Vardiyalar', ico: CalendarClock },
   { id: 'holidays', label: 'Tatiller', ico: CalendarDays },
   { id: 'settings', label: 'Ayarlar', ico: Settings },
@@ -79,6 +82,7 @@ export default function PdksAdmin() {
       {sekme === 'now' && <AnlikDurum />}
       {sekme === 'requests' && <Talepler onChange={() => setReload((n) => n + 1)} />}
       {sekme === 'timesheet' && <Puantaj />}
+      {sekme === 'staff' && <Personel />}
       {sekme === 'shifts' && <Vardiyalar isSuper={user.role === 'super_admin'} />}
       {sekme === 'holidays' && <Tatiller isSuper={user.role === 'super_admin'} />}
       {sekme === 'settings' && <Ayarlar isSuper={user.role === 'super_admin'} />}
@@ -303,6 +307,7 @@ export function Puantaj({ storeId }) {
   const [veri, setVeri] = useState(null);
   const [hata, setHata] = useState('');
   const [acik, setAcik] = useState(null);
+  const [disa, setDisa] = useState(false);
 
   useEffect(() => {
     setHata('');
@@ -312,12 +317,23 @@ export function Puantaj({ storeId }) {
       .catch((e) => { setVeri(null); setHata(errorMessage(e)); });
   }, [from, to, storeId]);
 
+  // Ucret alanlari yalnizca yetkiliye gonderiliyor; sunucu bunu bildiriyor.
+  const ucretVar = !!(veri && veri.wages_included);
+
   return (
     <>
       <div className="surface-panel">
         <div className="filters">
           <label>Başlangıç <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
           <label>Bitiş <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+          <button className="btn btn-sm btn-secondary" disabled={disa || !veri}
+            onClick={() => puantajExcel(veri, setDisa)}>
+            <FileSpreadsheet size={16} /> Excel
+          </button>
+          <button className="btn btn-sm btn-secondary" disabled={disa || !veri}
+            onClick={() => puantajPdf(veri, setDisa)}>
+            <FileText size={16} /> PDF
+          </button>
         </div>
         {veri && veri.notes.map((n, i) => (
           <p className="muted" key={i} style={{ fontSize: 12, margin: '4px 0 0' }}>{n}</p>
@@ -333,11 +349,13 @@ export function Puantaj({ storeId }) {
               <table className="responsive">
                 <thead>
                   <tr><th>Personel</th><th>Çalışılan</th><th>Planlı</th><th>Fazla mesai</th>
-                    <th>Eksik</th><th>Geç</th><th>İzin</th><th>Devamsız</th><th>Uyarı</th><th></th></tr>
+                    <th>Eksik</th><th>Geç</th><th>İzin</th><th>Devamsız</th><th>Uyarı</th>
+                    {ucretVar && <><th>Maaş</th><th>Yemek</th><th>Brüt</th></>}
+                    <th></th></tr>
                 </thead>
                 <tbody>
                   {veri.items.length === 0 && (
-                    <tr><td data-label="" colSpan="10"><p className="empty">Kayıt bulunamadı.</p></td></tr>
+                    <tr><td data-label="" colSpan={ucretVar ? 13 : 10}><p className="empty">Kayıt bulunamadı.</p></td></tr>
                   )}
                   {veri.items.map((it) => (
                     <tr key={it.user.id}>
@@ -367,6 +385,7 @@ export function Puantaj({ storeId }) {
                           ? <span className="badge warning">{it.summary.flagged_days} gün</span>
                           : '-'}
                       </td>
+                      {ucretVar && <UcretHucreleri wage={it.wage} />}
                       <td data-label="">
                         <button className="btn btn-sm btn-secondary"
                           onClick={() => setAcik(acik === it.user.id ? null : it.user.id)}>
@@ -379,6 +398,22 @@ export function Puantaj({ storeId }) {
               </table>
             </div>
           </div>
+
+          {ucretVar && veri.wage_total && veri.wage_total.defined && (
+            <div className="surface-panel mo-figures">
+              <div className="mo-figure"><span>Normal</span><strong>{fmtMoney(veri.wage_total.normal_pay)}</strong></div>
+              <div className="mo-figure"><span>Fazla mesai</span><strong>{fmtMoney(veri.wage_total.overtime_pay)}</strong></div>
+              <div className="mo-figure"><span>İzin</span><strong>{fmtMoney(veri.wage_total.leave_pay)}</strong></div>
+              <div className="mo-figure"><span>Yemek</span><strong>{fmtMoney(veri.wage_total.meal_pay)}</strong></div>
+              <div className="mo-figure"><span>Brüt toplam</span><strong>{fmtMoney(veri.wage_total.gross_total)}</strong></div>
+              {veri.wage_total.undefined_count > 0 && (
+                <div className="mo-figure">
+                  <span>Ücreti tanımsız</span>
+                  <strong className="text-danger">{veri.wage_total.undefined_count} kişi</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           {veri.total.unscheduled_minutes > 0 && (
             <div className="alert warning">
@@ -442,6 +477,286 @@ function GunGun({ item }) {
         </table>
       </div>
     </div>
+  );
+}
+
+/// Kisi satirindaki ucret hucreleri.
+///
+/// Ucret TANIMSIZ ile SIFIR ayri gosteriliyor: "0 TL" yazmak "ucretsiz
+/// calisiyor" anlamina gelirdi, tanimsiz olan "—".
+function UcretHucreleri({ wage }) {
+  if (!wage || !wage.defined) {
+    return (
+      <>
+        <td data-label="Maaş" className="muted">—</td>
+        <td data-label="Yemek" className="muted">—</td>
+        <td data-label="Brüt" className="muted">—</td>
+      </>
+    );
+  }
+  const maas = wage.normal_pay === null && wage.overtime_pay === null
+    ? null : (wage.normal_pay || 0) + (wage.overtime_pay || 0) + (wage.leave_pay || 0);
+  return (
+    <>
+      <td data-label="Maaş">
+        {maas === null ? <span className="muted">—</span> : fmtMoney(maas)}
+        {wage.overtime_pay > 0 && (
+          <span className="muted" style={{ display: 'block', fontSize: 11 }}>
+            mesai {fmtMoney(wage.overtime_pay)}
+          </span>
+        )}
+      </td>
+      <td data-label="Yemek">
+        {wage.meal_pay === null ? <span className="muted">—</span> : fmtMoney(wage.meal_pay)}
+        {wage.meal_pay !== null && (
+          <span className="muted" style={{ display: 'block', fontSize: 11 }}>
+            {wage.worked_days} gün
+          </span>
+        )}
+      </td>
+      <td data-label="Brüt"><strong>{fmtMoney(wage.gross_total)}</strong></td>
+    </>
+  );
+}
+
+/// Puantaj tablosunun disa aktarilacak hali. Excel ve PDF ayni veriyi
+/// kullansin diye tek yerde kuruluyor.
+function puantajTablo(veri) {
+  const ucret = !!veri.wages_included;
+  const basliklar = ['Personel', 'Mağaza', 'Çalışılan (dk)', 'Planlı (dk)', 'Fazla mesai (dk)',
+    'Eksik (dk)', 'Mola (dk)', 'Çalışılan gün', 'İzin günü', 'Devamsız gün',
+    ...(ucret ? ['Saat ücreti', 'Normal', 'Fazla mesai', 'İzin', 'Yemek', 'Brüt toplam'] : [])];
+  const satirlar = veri.items.map((it) => {
+    const s = it.summary;
+    const w = it.wage || {};
+    return [
+      it.user.full_name, it.user.store_name || '',
+      s.worked_minutes, s.scheduled_minutes, s.overtime_minutes,
+      s.missing_minutes, s.deducted_break_minutes || 0,
+      s.worked_days, s.leave_days, s.absent_days,
+      ...(ucret ? [
+        w.hourly_rate ?? '', w.normal_pay ?? '', w.overtime_pay ?? '',
+        w.leave_pay ?? '', w.meal_pay ?? '', w.gross_total ?? '',
+      ] : []),
+    ];
+  });
+  const t = veri.total;
+  const wt = veri.wage_total || {};
+  const toplam = ['TOPLAM', '', t.worked_minutes, t.scheduled_minutes, t.overtime_minutes,
+    t.missing_minutes, t.deducted_break_minutes || 0, t.worked_days, t.leave_days, t.absent_days,
+    ...(ucret ? ['', wt.normal_pay ?? '', wt.overtime_pay ?? '', wt.leave_pay ?? '',
+      wt.meal_pay ?? '', wt.gross_total ?? ''] : [])];
+  return { basliklar, satirlar, toplam, ucret };
+}
+
+async function puantajExcel(veri, setDisa) {
+  if (!veri || veri.items.length === 0) { toast('Dışa aktarılacak kayıt yok'); return; }
+  setDisa(true);
+  try {
+    const XLSX = await import('xlsx');
+    const { basliklar, satirlar, toplam } = puantajTablo(veri);
+    const sheet = XLSX.utils.aoa_to_sheet([
+      [`Puantaj ${veri.from} – ${veri.to}`], [], basliklar, ...satirlar, toplam,
+    ]);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Puantaj');
+    XLSX.writeFile(book, `puantaj-${veri.from}_${veri.to}.xlsx`);
+  } catch (e) {
+    toast('Dışa aktarılamadı');
+  } finally {
+    setDisa(false);
+  }
+}
+
+async function puantajPdf(veri, setDisa) {
+  if (!veri || veri.items.length === 0) { toast('Dışa aktarılacak kayıt yok'); return; }
+  setDisa(true);
+  try {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const { basliklar, satirlar, toplam, ucret } = puantajTablo(veri);
+    // 16 kolon dikey sayfaya sigmiyor.
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const fontTamam = await pdfFontKur(doc);
+    if (!fontTamam) toast('Yazı tipi yüklenemedi, Türkçe karakterler bozuk çıkabilir');
+    const f = fontTamam ? PDF_FONT : 'helvetica';
+    doc.setFont(f, 'bold');
+    doc.setFontSize(15);
+    doc.text('Aylık Puantaj', 14, 14);
+    doc.setFont(f, 'normal');
+    doc.setFontSize(9);
+    doc.text(`${fmtDate(veri.from)} – ${fmtDate(veri.to)}`, 14, 20);
+    autoTable(doc, {
+      head: [basliklar],
+      body: [...satirlar, toplam],
+      startY: 25,
+      styles: { font: f, fontSize: 6.5, cellPadding: 1.8 },
+      headStyles: { font: f, fontStyle: 'bold', fontSize: 6.5, fillColor: [225, 228, 232], textColor: 20 },
+      columnStyles: { 0: { cellWidth: 38, halign: 'left' } },
+      didParseCell: (d) => {
+        if (d.row.index === satirlar.length) d.cell.styles.fontStyle = 'bold';
+      },
+    });
+    let y = doc.lastAutoTable.finalY + 6;
+    doc.setFontSize(6.5);
+    for (const n of veri.notes || []) {
+      if (y > 195) { doc.addPage({ orientation: 'landscape' }); y = 15; }
+      doc.text(`• ${n}`, 14, y);
+      y += 4;
+    }
+    if (ucret) {
+      doc.setFont(f, 'bold');
+      doc.text('Tutarlar brüt hak ediştir; bordro değildir.', 14, y + 2);
+    }
+    doc.save(`puantaj-${veri.from}_${veri.to}.pdf`);
+  } catch (e) {
+    toast('Dışa aktarılamadı');
+  } finally {
+    setDisa(false);
+  }
+}
+
+// ---- Personel: ucret ve profil tanimlari ----
+
+function Personel() {
+  const [liste, setListe] = useState([]);
+  const [form, setForm] = useState(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    api.get('/pdks/profiles', { silent: true }).then((r) => setListe(r.data)).catch(() => {});
+  }, [reload]);
+
+  return (
+    <>
+      <div className="surface-panel">
+        <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+          Saat ücreti girilmişse hak ediş ondan hesaplanır; girilmemişse aylık
+          maaştan türetilir (aylık ÷ 225 saat). Yemek ücreti günlük tutar ×
+          fiilen çalışılan gün sayısıdır.
+        </p>
+      </div>
+      <div className="card table-card">
+        <div className="table-wrap">
+          <table className="responsive">
+            <thead>
+              <tr><th>Personel</th><th>Mağaza</th><th>İşe giriş</th><th>Yıllık izin</th>
+                <th>Aylık maaş</th><th>Saat ücreti</th><th>Yemek (gün)</th><th></th></tr>
+            </thead>
+            <tbody>
+              {liste.length === 0 && (
+                <tr><td data-label="" colSpan="8"><p className="empty">Personel bulunamadı.</p></td></tr>
+              )}
+              {liste.map((p) => (
+                <tr key={p.user_id}>
+                  <td data-label="Personel"><strong>{p.full_name}</strong></td>
+                  <td data-label="Mağaza" className="muted">{p.store_name || '-'}</td>
+                  <td data-label="İşe giriş">{p.hired_at ? fmtDate(p.hired_at) : '-'}</td>
+                  <td data-label="Yıllık izin">{p.annual_leave_days} gün</td>
+                  <td data-label="Aylık maaş">
+                    {p.monthly_salary === null ? <span className="muted">—</span> : fmtMoney(p.monthly_salary)}
+                  </td>
+                  <td data-label="Saat ücreti">
+                    {p.hourly_rate === null
+                      ? <span className="muted">
+                          {p.effective_hourly_rate === null ? '—' : `${fmtMoney(p.effective_hourly_rate)} (türetildi)`}
+                        </span>
+                      : fmtMoney(p.hourly_rate)}
+                  </td>
+                  <td data-label="Yemek (gün)">
+                    {p.meal_daily === null ? <span className="muted">—</span> : fmtMoney(p.meal_daily)}
+                  </td>
+                  <td data-label="">
+                    <button className="btn btn-sm btn-secondary" onClick={() => setForm(p)}>
+                      <Pencil size={14} /> Düzenle
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {form && (
+        <PersonelModal
+          kisi={form}
+          onClose={() => setForm(null)}
+          onDone={() => { setForm(null); setReload((n) => n + 1); }}
+        />
+      )}
+    </>
+  );
+}
+
+function PersonelModal({ kisi, onClose, onDone }) {
+  const [hired, setHired] = useState(kisi.hired_at || '');
+  const [izin, setIzin] = useState(kisi.annual_leave_days ?? 14);
+  const [avans, setAvans] = useState(kisi.monthly_advance_limit ?? 0);
+  const [maas, setMaas] = useState(kisi.monthly_salary ?? '');
+  const [saatlik, setSaatlik] = useState(kisi.hourly_rate ?? '');
+  const [yemek, setYemek] = useState(kisi.meal_daily ?? '');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function gonder(e) {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    try {
+      await api.put(`/pdks/profiles/${kisi.user_id}`, {
+        hired_at: hired || null,
+        annual_leave_days: Number(izin),
+        monthly_advance_limit: Number(avans),
+        // Bos birakmak tanimi KALDIRIR; 0 girmek "tanimli ama odenmiyor".
+        monthly_salary: maas === '' ? null : Number(maas),
+        hourly_rate: saatlik === '' ? null : Number(saatlik),
+        meal_daily: yemek === '' ? null : Number(yemek),
+      }, { successMessage: 'Kaydedildi' });
+      onDone();
+    } catch (e2) {
+      setErr(errorMessage(e2));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`${kisi.full_name} — Personel Tanımları`} onClose={onClose}>
+      <form onSubmit={gonder} className="form-grid">
+        {err && <div className="alert error">{err}</div>}
+        <label>İşe giriş tarihi
+          <input type="date" value={hired} onChange={(e) => setHired(e.target.value)} />
+        </label>
+        <label>Yıllık izin (gün)
+          <input type="number" min="0" max="365" value={izin} onChange={(e) => setIzin(e.target.value)} />
+        </label>
+        <label>Aylık avans limiti
+          <input type="number" min="0" step="0.01" value={avans} onChange={(e) => setAvans(e.target.value)} />
+        </label>
+        <div className="form-rule" />
+        <label>Aylık brüt maaş
+          <input type="number" min="0" step="0.01" placeholder="tanımsız"
+            value={maas} onChange={(e) => setMaas(e.target.value)} />
+        </label>
+        <label>Saat ücreti
+          <input type="number" min="0" step="0.01" placeholder="aylıktan türetilir"
+            value={saatlik} onChange={(e) => setSaatlik(e.target.value)} />
+        </label>
+        <label>Günlük yemek ücreti
+          <input type="number" min="0" step="0.01" placeholder="tanımsız"
+            value={yemek} onChange={(e) => setYemek(e.target.value)} />
+        </label>
+        <p className="muted" style={{ fontSize: 12, gridColumn: '1 / -1', margin: 0 }}>
+          Alanı boş bırakmak tanımı kaldırır. Sıfır yazmak &quot;tanımlı ama
+          ödenmiyor&quot; demektir. Tutarlar brüt hak ediş hesabında kullanılır;
+          SGK ve vergi kesintileri hesaplanmaz.
+        </p>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button className="btn btn-primary" disabled={busy}>Kaydet</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -677,8 +992,9 @@ function AtamaModal({ vardiyalar, onClose, onDone }) {
               <strong>{u.full_name}</strong>
               <span className="muted">{u.days} gün</span>
               {u.skipped_dates.length > 0 && (
-                <span className="badge warning">
-                  {u.skipped_dates.length} gün izinli, atlandı
+                <span className="badge warning" title={u.skipped_dates.map((d) => `${d.date}: ${d.reason}`).join('\n')}>
+                  {u.skipped_dates.length} gün atlandı
+                  {' '}({[...new Set(u.skipped_dates.map((d) => d.reason))].join(', ')})
                 </span>
               )}
             </li>

@@ -1,0 +1,10 @@
+Noto Sans
+Copyright 2010-2022 Google Inc. / Google LLC.
+Licensed under the SIL Open Font License, Version 1.1
+https://scripts.sil.org/OFL
+
+Bu yazi tipi PDF ciktilarinda Turkce karakterlerin dogru cizilmesi icin
+gomulmustur. jsPDF ve Dart pdf paketinin gomulu Helvetica yazi tipi
+WinAnsiEncoding (cp1252) kullaniyor ve bu kume s, g, i, I, S, G
+karakterlerini ICERMIYOR: olculdu, "ISTANBUL" benzeri metinler
+"0ZM0T DOLPH0N" gibi bozuluyordu.

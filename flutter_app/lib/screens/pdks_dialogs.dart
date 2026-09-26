@@ -102,9 +102,14 @@ class _QrDialogState extends State<_QrDialog> {
     final narrow = MediaQuery.sizeOf(context).width < 600;
     return AlertDialog(
       title: Text(widget.title),
-      insetPadding: EdgeInsets.symmetric(horizontal: narrow ? 14 : 40, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: narrow ? 14 : 40,
+        vertical: 24,
+      ),
       content: SizedBox(
-        width: narrow ? MediaQuery.sizeOf(context).width - 2 * 14 - 2 * 24 : 360,
+        width: narrow
+            ? MediaQuery.sizeOf(context).width - 2 * 14 - 2 * 24
+            : 360,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,12 +121,15 @@ class _QrDialogState extends State<_QrDialog> {
                 label: _token.isStatic
                     ? 'Sabit kod — yazdırıp iş yerine asabilirsiniz'
                     : _left > 0
-                        ? '$_left saniye geçerli'
-                        : 'Süresi doldu, yenileniyor...',
+                    ? '$_left saniye geçerli'
+                    : 'Süresi doldu, yenileniyor...',
               ),
               if (widget.note != null) ...[
                 const SizedBox(height: 10),
-                Text(widget.note!, style: TextStyle(fontSize: 12, color: t.muted)),
+                Text(
+                  widget.note!,
+                  style: TextStyle(fontSize: 12, color: t.muted),
+                ),
               ],
               if (_token.isStatic) ...[
                 const SizedBox(height: 10),
@@ -169,7 +177,8 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
   final amount = TextEditingController();
   final reason = TextEditingController();
 
-  String d(DateTime v) => '${v.year.toString().padLeft(4, '0')}'
+  String d(DateTime v) =>
+      '${v.year.toString().padLeft(4, '0')}'
       '-${v.month.toString().padLeft(2, '0')}'
       '-${v.day.toString().padLeft(2, '0')}';
 
@@ -188,7 +197,10 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
               isExpanded: true,
               items: const [
                 DropdownMenuItem(value: 'IZIN', child: Text('Yıllık İzin')),
-                DropdownMenuItem(value: 'SAATLIK_IZIN', child: Text('Saatlik İzin')),
+                DropdownMenuItem(
+                  value: 'SAATLIK_IZIN',
+                  child: Text('Saatlik İzin'),
+                ),
                 DropdownMenuItem(value: 'AVANS', child: Text('Avans')),
               ],
               onChanged: (v) {
@@ -203,14 +215,20 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
                 label: 'Başlangıç',
                 child: DateTimeField(
                   value: start,
-                  onChanged: (v) { start = v; rebuild(); },
+                  onChanged: (v) {
+                    start = v;
+                    rebuild();
+                  },
                 ),
               ),
               right: LabeledField(
                 label: 'Bitiş',
                 child: DateTimeField(
                   value: end,
-                  onChanged: (v) { end = v; rebuild(); },
+                  onChanged: (v) {
+                    end = v;
+                    rebuild();
+                  },
                 ),
               ),
             ),
@@ -229,7 +247,10 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
               label: 'Başlangıç',
               child: DateTimeField(
                 value: hourStart,
-                onChanged: (v) { hourStart = v; rebuild(); },
+                onChanged: (v) {
+                  hourStart = v;
+                  rebuild();
+                },
               ),
             ),
             LabeledField(
@@ -237,7 +258,10 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
               hint: 'Aynı gün içinde ve en fazla 12 saat olabilir.',
               child: DateTimeField(
                 value: hourEnd,
-                onChanged: (v) { hourEnd = v; rebuild(); },
+                onChanged: (v) {
+                  hourEnd = v;
+                  rebuild();
+                },
               ),
             ),
           ],
@@ -249,7 +273,9 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
                   : 'Bu ay kalan limitiniz ${fmtMoney(balance.advanceRemaining)}.',
               child: TextField(
                 controller: amount,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 style: const TextStyle(fontSize: 16),
               ),
             ),
@@ -275,7 +301,9 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
           body['start_at'] = d(start);
           body['end_at'] = d(end);
         } else if (type == 'SAATLIK_IZIN') {
-          if (!hourEnd.isAfter(hourStart)) return 'Bitiş saati başlangıçtan sonra olmalıdır';
+          if (!hourEnd.isAfter(hourStart)) {
+            return 'Bitiş saati başlangıçtan sonra olmalıdır';
+          }
           body['start_at'] = hourStart.toUtc().toIso8601String();
           body['end_at'] = hourEnd.toUtc().toIso8601String();
         } else {
@@ -296,7 +324,10 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
 }
 
 /// Talep reddi. Gerekce zorunlu; sunucu da bos gerekceyi kabul etmiyor.
-Future<bool?> showRequestRejectDialog(BuildContext context, PersonnelRequest request) {
+Future<bool?> showRequestRejectDialog(
+  BuildContext context,
+  PersonnelRequest request,
+) {
   final note = TextEditingController();
   return showDialog<bool>(
     context: context,
@@ -338,3 +369,154 @@ Future<bool?> showRequestRejectDialog(BuildContext context, PersonnelRequest req
     ),
   );
 }
+
+/// Personel ucret ve profil tanimlari.
+///
+/// Para alanlarinda BOS BIRAKMAK tanimi kaldirir (null gonderilir); SIFIR
+/// yazmak "tanimli ama odenmiyor" demektir. Iki durum ayri tutuluyor cunku
+/// 0 TL yazmak "ucretsiz calisiyor" anlamina gelirdi.
+Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
+  final hired = TextEditingController(text: p.hiredAt ?? '');
+  final izin = TextEditingController(text: _n(p.annualLeaveDays));
+  final avans = TextEditingController(text: _n(p.monthlyAdvanceLimit));
+  final maas = TextEditingController(
+    text: p.monthlySalary == null ? '' : _n(p.monthlySalary!),
+  );
+  final saatlik = TextEditingController(
+    text: p.hourlyRate == null ? '' : _n(p.hourlyRate!),
+  );
+  final yemek = TextEditingController(
+    text: p.mealDaily == null ? '' : _n(p.mealDaily!),
+  );
+
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => FormDialog(
+      title: '${p.fullName} — Tanımlar',
+      submitLabel: 'Kaydet',
+      fields: (context, rebuild) {
+        final t = context.tokens;
+        return [
+          FormRow(
+            left: LabeledField(
+              label: 'İşe giriş (YYYY-AA-GG)',
+              child: TextField(
+                controller: hired,
+                keyboardType: TextInputType.datetime,
+                decoration: const InputDecoration(hintText: 'tanımsız'),
+              ),
+            ),
+            right: LabeledField(
+              label: 'Yıllık izin (gün)',
+              child: TextField(
+                controller: izin,
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ),
+          LabeledField(
+            label: 'Aylık avans limiti',
+            child: TextField(
+              controller: avans,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+          ),
+          const Divider(height: 20),
+          FormRow(
+            left: LabeledField(
+              label: 'Aylık brüt maaş',
+              child: TextField(
+                controller: maas,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(hintText: 'tanımsız'),
+              ),
+            ),
+            right: LabeledField(
+              label: 'Saat ücreti',
+              child: TextField(
+                controller: saatlik,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  hintText: 'aylıktan türetilir',
+                ),
+              ),
+            ),
+          ),
+          LabeledField(
+            label: 'Günlük yemek ücreti',
+            child: TextField(
+              controller: yemek,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(hintText: 'tanımsız'),
+            ),
+          ),
+          Text(
+            'Alanı boş bırakmak tanımı kaldırır. Sıfır yazmak "tanımlı ama '
+            'ödenmiyor" demektir. Tutarlar brüt hak ediş hesabında kullanılır; '
+            'SGK ve vergi kesintileri hesaplanmaz.',
+            style: TextStyle(fontSize: 12, color: t.muted),
+          ),
+        ];
+      },
+      onSubmit: () async {
+        final tarih = hired.text.trim();
+        if (tarih.isNotEmpty &&
+            !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(tarih)) {
+          return 'İşe giriş tarihi YYYY-AA-GG biçiminde olmalıdır';
+        }
+        // Bos = null (tanimi kaldir). Gecersiz sayi = hata.
+        double? para(TextEditingController c, String etiket, String? hata) {
+          final ham = c.text.trim().replaceAll(',', '.');
+          if (ham.isEmpty) return null;
+          final n = double.tryParse(ham);
+          if (n == null || n < 0) {
+            throw _FormHata('$etiket 0 veya daha büyük olmalıdır');
+          }
+          return n;
+        }
+
+        try {
+          final gunSayisi = double.tryParse(
+            izin.text.trim().replaceAll(',', '.'),
+          );
+          if (gunSayisi == null || gunSayisi < 0 || gunSayisi > 365) {
+            return 'Yıllık izin 0-365 gün arasında olmalıdır';
+          }
+          await repo.pdksSaveProfile(
+            userId: p.userId,
+            hiredAt: tarih.isEmpty ? null : tarih,
+            annualLeaveDays: gunSayisi,
+            monthlyAdvanceLimit: para(avans, 'Avans limiti', null) ?? 0,
+            monthlySalary: para(maas, 'Aylık maaş', null),
+            hourlyRate: para(saatlik, 'Saat ücreti', null),
+            mealDaily: para(yemek, 'Günlük yemek ücreti', null),
+          );
+          return null;
+        } on _FormHata catch (e) {
+          return e.mesaj;
+        } catch (e) {
+          return errorMessage(e);
+        }
+      },
+    ),
+  );
+}
+
+/// Alan dogrulamasini onSubmit'in string donusune tasimak icin.
+class _FormHata implements Exception {
+  _FormHata(this.mesaj);
+  final String mesaj;
+}
+
+/// Ondalik gereksizse tam sayi gosterir: "14" degil "14.0" yazmak alani
+/// kirli gosteriyordu.
+String _n(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toString();

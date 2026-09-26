@@ -19,18 +19,22 @@ const _tokenKey = 'token';
 ///   busyMessage: '...'    -> yukleme katmaninda genel metin yerine bu yazar
 class ApiClient {
   ApiClient() {
-    _dio = Dio(BaseOptions(
-      baseUrl: apiBaseUrl,
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 30),
-      // Sunucu hata gövdesini kendimiz okuyabilmek icin durum kodunu birakiyoruz.
-      validateStatus: (status) => status != null && status < 400,
-    ));
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: _onRequest,
-      onResponse: _onResponse,
-      onError: _onError,
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: apiBaseUrl,
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 30),
+        // Sunucu hata gövdesini kendimiz okuyabilmek icin durum kodunu birakiyoruz.
+        validateStatus: (status) => status != null && status < 400,
+      ),
+    );
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: _onRequest,
+        onResponse: _onResponse,
+        onError: _onError,
+      ),
+    );
   }
 
   late final Dio _dio;
@@ -38,6 +42,11 @@ class ApiClient {
 
   /// 401 alindiginda oturumu dusurmek icin uygulama tarafindan atanir.
   void Function()? onUnauthorized;
+
+  /// Operasyon alani icin acik mesai gerektiginde cagrilir (403
+  /// SHIFT_REQUIRED). Uygulama kabugu bunu PDKS ekranina yonlendirmeye
+  /// bagliyor.
+  void Function()? onShiftRequired;
 
   Dio get dio => _dio;
   String? get token => _token;
@@ -75,12 +84,17 @@ class ApiClient {
     handler.next(options);
   }
 
-  void _onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+  void _onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     final options = response.requestOptions;
     if (options.extra['__busy'] == true) busy.end();
     // Veri okumalarinda basari bildirimi verilmez; her ekran acilisinda
     // bildirim cikmasi gurultu olurdu. Yazma islemlerinde verilir.
-    if (!_flag(options, 'silent') && !_flag(options, 'noToast') && _isMutation(options)) {
+    if (!_flag(options, 'silent') &&
+        !_flag(options, 'noToast') &&
+        _isMutation(options)) {
       final message = options.extra['successMessage'] as String?;
       toast(message ?? 'İşlem başarılı', kind: ToastKind.success);
     }
@@ -96,6 +110,19 @@ class ApiClient {
       toast(errorMessage(err), kind: ToastKind.error);
     }
     if (unauthorized) onUnauthorized?.call();
+
+    // Sunucu "once ise giris yapmalisiniz" dediyse kullanici Devam Takibi
+    // ekranina goturuluyor. Yoksa personel bos bir operasyon ekraniyla kalir
+    // ve ne yapmasi gerektigini bilemez.
+    //
+    // Karar YALNIZCA sunucunun verdigi koda gore: mesai durumunu istemcide
+    // tahmin etmek iki tarafin ayrismasi demekti.
+    final data = err.response?.data;
+    if (err.response?.statusCode == 403 &&
+        data is Map &&
+        data['code'] == 'SHIFT_REQUIRED') {
+      onShiftRequired?.call();
+    }
     handler.next(err);
   }
 }

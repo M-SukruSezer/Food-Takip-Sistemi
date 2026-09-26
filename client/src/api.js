@@ -79,6 +79,18 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       if (window.location.pathname !== '/login') window.location.href = '/login';
     }
+
+    // Sunucu "once ise giris yapmalisiniz" dediyse kullaniciyi Devam Takibi
+    // ekranina goturuyoruz. Yoksa personel bos bir operasyon ekraniyla kalir
+    // ve ne yapmasi gerektigini bilemez.
+    //
+    // Yonlendirme YALNIZCA sunucunun verdigi koda gore: istemcide mesai
+    // durumunu tahmin etmek iki tarafin ayrismasi demekti.
+    if (err.response && err.response.status === 403
+        && err.response.data && err.response.data.code === 'SHIFT_REQUIRED'
+        && window.location.pathname !== '/pdks') {
+      window.location.href = '/pdks?shift=1';
+    }
     return Promise.reject(err);
   }
 );

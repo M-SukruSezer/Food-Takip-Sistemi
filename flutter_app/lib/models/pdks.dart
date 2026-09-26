@@ -8,6 +8,13 @@ num? _numOrNull(dynamic v) {
 num _num(dynamic v) => _numOrNull(v) ?? 0;
 int _int(dynamic v) => _num(v).toInt();
 
+/// Para ve oran alanlari icin: null KORUNUR.
+///
+/// _num gibi 0'a dusurmek "tanimsiz ucret" ile "sifir ucret" arasini yok
+/// ederdi; sunucu tarafinda ayni hata olculdu ve herkesin hak edisini
+/// sifirliyordu.
+double? _dbl(dynamic v) => _numOrNull(v)?.toDouble();
+
 /// Magazanin PDKS ayarlari (personelin gordugu kadari).
 ///
 /// QR sirri BURADA YOK: sunucu hicbir cevapta dondurmuyor.
@@ -114,6 +121,10 @@ class AttendanceLog {
 }
 
 /// Personelin anlik durumu.
+/// Dort adimli akistaki durum. Sunucu 'state' alanini kendisi bildiriyor;
+/// kurali istemcide tekrar yazmak iki tarafin ayrismasi demekti.
+enum PdksState { disarida, iceride, molada }
+
 class PdksStatus {
   const PdksStatus({
     required this.workDate,
@@ -122,14 +133,36 @@ class PdksStatus {
     required this.logs,
     this.store,
     this.openSince,
+    this.state = PdksState.disarida,
+    this.onBreak = false,
+    this.breakSince,
+    this.breakMinutesToday = 0,
+    this.canCheckIn = false,
+    this.canCheckOut = false,
+    this.canBreakStart = false,
+    this.canBreakEnd = false,
   });
 
   final String workDate;
+
+  /// Molada olan personel de ICERIDE sayilir: mesai devam ediyor.
   final bool isInside;
   final List<PdksShift> shifts;
   final List<AttendanceLog> logs;
   final PdksStore? store;
   final String? openSince;
+  final PdksState state;
+  final bool onBreak;
+  final String? breakSince;
+
+  /// Bu is gununde biriken mola suresi; acik mola sayilmaz.
+  final int breakMinutesToday;
+
+  // Sunucunun bildirdigi izinli sonraki adimlar.
+  final bool canCheckIn;
+  final bool canCheckOut;
+  final bool canBreakStart;
+  final bool canBreakEnd;
 
   bool get canUseGps =>
       (store?.pdksEnabled ?? false) && (store?.hasLocation ?? false);
@@ -139,6 +172,18 @@ class PdksStatus {
     workDate: j['work_date'] as String? ?? '',
     isInside: j['is_inside'] == true,
     openSince: j['open_since'] as String?,
+    state: switch (j['state']) {
+      'MOLADA' => PdksState.molada,
+      'ICERIDE' => PdksState.iceride,
+      _ => PdksState.disarida,
+    },
+    onBreak: j['on_break'] == true,
+    breakSince: j['break_since'] as String?,
+    breakMinutesToday: (j['break_minutes_today'] as num?)?.round() ?? 0,
+    canCheckIn: (j['can'] as Map<String, dynamic>?)?['check_in'] == true,
+    canCheckOut: (j['can'] as Map<String, dynamic>?)?['check_out'] == true,
+    canBreakStart: (j['can'] as Map<String, dynamic>?)?['break_start'] == true,
+    canBreakEnd: (j['can'] as Map<String, dynamic>?)?['break_end'] == true,
     store: j['store'] == null
         ? null
         : PdksStore.fromJson(j['store'] as Map<String, dynamic>),
@@ -469,6 +514,10 @@ class TimesheetDay {
     this.isHoliday = false,
     this.holidayName,
     this.riskFlags = const [],
+    this.deductedBreakMinutes = 0,
+    this.recordedBreakMinutes = 0,
+    this.hasBreakRecords = false,
+    this.breakShortfallMinutes = 0,
   });
 
   final String workDate;
@@ -492,6 +541,15 @@ class TimesheetDay {
   /// burada gorunmez.
   final List<String> riskFlags;
 
+  /// Gunden dusulen mola. Mola kaydi varsa fiili, yoksa tanimli/yasal kucugu.
+  final int deductedBreakMinutes;
+  final int recordedBreakMinutes;
+  final bool hasBreakRecords;
+
+  /// Yasal asgari ara dinlenmesinin (m.68) altinda kalan sure. Dusume etki
+  /// etmez; ihlal olarak bildirilir.
+  final int breakShortfallMinutes;
+
   factory TimesheetDay.fromJson(Map<String, dynamic> j) => TimesheetDay(
     workDate: j['work_date'] as String? ?? '',
     presenceMinutes: _int(j['presence_minutes']),
@@ -513,6 +571,10 @@ class TimesheetDay {
     riskFlags: ((j['risk_flags'] as List<dynamic>?) ?? [])
         .map((e) => e.toString())
         .toList(),
+    deductedBreakMinutes: _int(j['deducted_break_minutes']),
+    recordedBreakMinutes: _int(j['recorded_break_minutes']),
+    hasBreakRecords: j['has_break_records'] == true,
+    breakShortfallMinutes: _int(j['break_shortfall_minutes']),
   );
 }
 
@@ -530,6 +592,9 @@ class TimesheetSummary {
     required this.lateMinutes,
     required this.unscheduledMinutes,
     this.flaggedDays = 0,
+    this.deductedBreakMinutes = 0,
+    this.recordedBreakMinutes = 0,
+    this.breakShortfallDays = 0,
   });
 
   final int days;
@@ -549,6 +614,12 @@ class TimesheetSummary {
   /// En az bir cihaz uyarisi tasiyan gun sayisi.
   final int flaggedDays;
 
+  final int deductedBreakMinutes;
+  final int recordedBreakMinutes;
+
+  /// Yasal asgari molanin altinda kalinan gun sayisi (m.68).
+  final int breakShortfallDays;
+
   factory TimesheetSummary.fromJson(Map<String, dynamic> j) => TimesheetSummary(
     days: _int(j['days']),
     workedDays: _int(j['worked_days']),
@@ -562,6 +633,9 @@ class TimesheetSummary {
     lateMinutes: _int(j['late_minutes']),
     unscheduledMinutes: _int(j['unscheduled_minutes']),
     flaggedDays: _int(j['flagged_days']),
+    deductedBreakMinutes: _int(j['deducted_break_minutes']),
+    recordedBreakMinutes: _int(j['recorded_break_minutes']),
+    breakShortfallDays: _int(j['break_shortfall_days']),
   );
 
   static const empty = TimesheetSummary(
@@ -587,6 +661,7 @@ class TimesheetPerson {
     required this.summary,
     this.role,
     this.storeName,
+    this.wage,
   });
 
   final int userId;
@@ -595,6 +670,10 @@ class TimesheetPerson {
   final String? storeName;
   final List<TimesheetDay> days;
   final TimesheetSummary summary;
+
+  /// Ucret hak edisi. Sunucu yalnizca yetkiliye gonderiyor; yetki yoksa
+  /// alan HIC gelmez ve bu null kalir.
+  final WageLine? wage;
 
   factory TimesheetPerson.fromJson(Map<String, dynamic> j) {
     final u = (j['user'] as Map<String, dynamic>?) ?? const {};
@@ -609,6 +688,9 @@ class TimesheetPerson {
       summary: j['summary'] == null
           ? TimesheetSummary.empty
           : TimesheetSummary.fromJson(j['summary'] as Map<String, dynamic>),
+      wage: j['wage'] == null
+          ? null
+          : WageLine.fromJson(j['wage'] as Map<String, dynamic>),
     );
   }
 }
@@ -620,6 +702,8 @@ class TimesheetReport {
     required this.items,
     required this.total,
     required this.notes,
+    this.wagesIncluded = false,
+    this.wageTotal,
   });
 
   final String from;
@@ -627,6 +711,14 @@ class TimesheetReport {
   final List<TimesheetPerson> items;
   final TimesheetSummary total;
   final List<String> notes;
+
+  /// Sunucu ucret alanlarini gonderdi mi. Arayuz sutunlari buna gore ciziyor;
+  /// yetki yoksa ucret sutunu HIC olusturulmuyor.
+  final bool wagesIncluded;
+
+  /// Kisilerin hak edislerinin toplami. Birlesik ozetten yeniden
+  /// hesaplanamaz: her kisinin saat ucreti farkli.
+  final WageLine? wageTotal;
 
   factory TimesheetReport.fromJson(Map<String, dynamic> j) => TimesheetReport(
     from: j['from'] as String? ?? '',
@@ -640,6 +732,10 @@ class TimesheetReport {
     notes: ((j['notes'] as List<dynamic>?) ?? [])
         .map((e) => e.toString())
         .toList(),
+    wagesIncluded: j['wages_included'] == true,
+    wageTotal: j['wage_total'] == null
+        ? null
+        : WageLine.fromJson(j['wage_total'] as Map<String, dynamic>),
   );
 
   static const empty = TimesheetReport(
@@ -649,4 +745,314 @@ class TimesheetReport {
     total: TimesheetSummary.empty,
     notes: [],
   );
+}
+
+/// Ucret hak edisi. Sunucu bunu YALNIZCA yetkiliye gonderiyor; alan hic
+/// gelmezse null kalir ve arayuz ucret sutunlarini hic cizmez.
+///
+/// BORDRO DEGIL: brut hak edistir, SGK ve vergi kesintisi icermez.
+class WageLine {
+  const WageLine({
+    required this.defined,
+    this.basis,
+    this.hourlyRate,
+    this.monthlySalary,
+    this.mealDaily,
+    this.normalMinutes = 0,
+    this.normalPay,
+    this.overtimeMinutes = 0,
+    this.overtimeMultiplier = 1.5,
+    this.overtimePay,
+    this.leaveMinutes = 0,
+    this.leavePay,
+    this.workedDays = 0,
+    this.mealPay,
+    this.grossTotal,
+  });
+
+  /// Ucret ya da yemek tanimli mi. false ise tutarlar null; "0 TL" yazmak
+  /// "ucretsiz calisiyor" anlamina gelirdi.
+  final bool defined;
+
+  /// 'hourly' (dogrudan girilmis) ya da 'monthly' (aylikdan turetilmis).
+  final String? basis;
+  final double? hourlyRate;
+  final double? monthlySalary;
+  final double? mealDaily;
+  final int normalMinutes;
+  final double? normalPay;
+  final int overtimeMinutes;
+  final double overtimeMultiplier;
+  final double? overtimePay;
+  final int leaveMinutes;
+  final double? leavePay;
+  final int workedDays;
+  final double? mealPay;
+  final double? grossTotal;
+
+  /// Maas satiri: normal + fazla mesai + izin. Yemek ayri gosteriliyor.
+  double? get salaryTotal {
+    if (normalPay == null && overtimePay == null && leavePay == null) {
+      return null;
+    }
+    return (normalPay ?? 0) + (overtimePay ?? 0) + (leavePay ?? 0);
+  }
+
+  factory WageLine.fromJson(Map<String, dynamic> j) => WageLine(
+    defined: j['defined'] == true,
+    basis: j['basis'] as String?,
+    hourlyRate: _dbl(j['hourly_rate']),
+    monthlySalary: _dbl(j['monthly_salary']),
+    mealDaily: _dbl(j['meal_daily']),
+    normalMinutes: _int(j['normal_minutes']),
+    normalPay: _dbl(j['normal_pay']),
+    overtimeMinutes: _int(j['overtime_minutes']),
+    overtimeMultiplier: _dbl(j['overtime_multiplier']) ?? 1.5,
+    overtimePay: _dbl(j['overtime_pay']),
+    leaveMinutes: _int(j['leave_minutes']),
+    leavePay: _dbl(j['leave_pay']),
+    workedDays: _int(j['worked_days']),
+    mealPay: _dbl(j['meal_pay']),
+    grossTotal: _dbl(j['gross_total']),
+  );
+}
+
+/// Personel ucret ve profil tanimlari.
+class PdksProfile {
+  const PdksProfile({
+    required this.userId,
+    required this.fullName,
+    required this.role,
+    this.storeId,
+    this.storeName,
+    this.hiredAt,
+    this.annualLeaveDays = 14,
+    this.monthlyAdvanceLimit = 0,
+    this.weeklyOffDays = const [0],
+    this.monthlySalary,
+    this.hourlyRate,
+    this.mealDaily,
+    this.effectiveHourlyRate,
+    this.wageBasis,
+  });
+
+  final int userId;
+  final String fullName;
+  final String role;
+  final int? storeId;
+  final String? storeName;
+  final String? hiredAt;
+  final double annualLeaveDays;
+  final double monthlyAdvanceLimit;
+  final List<int> weeklyOffDays;
+
+  /// null = TANIMSIZ, 0 = tanimli ama odenmiyor. Ikisi ayri.
+  final double? monthlySalary;
+  final double? hourlyRate;
+  final double? mealDaily;
+  final double? effectiveHourlyRate;
+  final String? wageBasis;
+
+  factory PdksProfile.fromJson(Map<String, dynamic> j) => PdksProfile(
+    userId: _int(j['user_id']),
+    fullName: j['full_name'] as String? ?? '',
+    role: j['role'] as String? ?? '',
+    storeId: j['store_id'] == null ? null : _int(j['store_id']),
+    storeName: j['store_name'] as String?,
+    hiredAt: j['hired_at'] as String?,
+    annualLeaveDays: _dbl(j['annual_leave_days']) ?? 14,
+    monthlyAdvanceLimit: _dbl(j['monthly_advance_limit']) ?? 0,
+    weeklyOffDays: ((j['weekly_off_days'] as List<dynamic>?) ?? [0])
+        .map((e) => _int(e))
+        .toList(),
+    monthlySalary: _dbl(j['monthly_salary']),
+    hourlyRate: _dbl(j['hourly_rate']),
+    mealDaily: _dbl(j['meal_daily']),
+    effectiveHourlyRate: _dbl(j['effective_hourly_rate']),
+    wageBasis: j['wage_basis'] as String?,
+  );
+}
+
+/// Cizelgede bir gunun bir hucresi. Bolunmus vardiyada birden fazla olabilir.
+class RosterCell {
+  const RosterCell({
+    this.shiftId,
+    this.shiftName,
+    this.startTime,
+    this.endTime,
+    this.breakDurationMinutes = 0,
+    this.isDayOff = false,
+    this.crossesMidnight = false,
+    this.minutes = 0,
+  });
+
+  final int? shiftId;
+  final String? shiftName;
+  final String? startTime;
+  final String? endTime;
+  final int breakDurationMinutes;
+  final bool isDayOff;
+
+  /// 22:00-06:00 gibi gece vardiyasi; cizelgede ertesi gune sarkar.
+  final bool crossesMidnight;
+  final int minutes;
+
+  String get saatAraligi {
+    final b = (startTime ?? '');
+    final e = (endTime ?? '');
+    if (b.isEmpty || e.isEmpty) return '';
+    return '${b.length >= 5 ? b.substring(0, 5) : b}'
+        '–${e.length >= 5 ? e.substring(0, 5) : e}';
+  }
+
+  factory RosterCell.fromJson(Map<String, dynamic> j) => RosterCell(
+    shiftId: j['shift_id'] == null ? null : _int(j['shift_id']),
+    shiftName: j['shift_name'] as String?,
+    startTime: j['start_time'] as String?,
+    endTime: j['end_time'] as String?,
+    breakDurationMinutes: _int(j['break_duration_minutes']),
+    isDayOff: j['is_day_off'] == true,
+    crossesMidnight: j['crosses_midnight'] == true,
+    minutes: _int(j['minutes']),
+  );
+}
+
+class RosterPerson {
+  const RosterPerson({
+    required this.userId,
+    required this.fullName,
+    required this.role,
+    required this.cells,
+    this.storeName,
+    this.plannedMinutes = 0,
+    this.shiftDays = 0,
+    this.dayOffDays = 0,
+    this.unassignedDays = 0,
+  });
+
+  final int userId;
+  final String fullName;
+  final String role;
+
+  /// Tarih -> o gunun vardiyalari. Bos liste = atama yok.
+  final Map<String, List<RosterCell>> cells;
+  final String? storeName;
+  final int plannedMinutes;
+  final int shiftDays;
+  final int dayOffDays;
+  final int unassignedDays;
+
+  List<RosterCell> gun(String tarih) => cells[tarih] ?? const [];
+
+  factory RosterPerson.fromJson(Map<String, dynamic> j) {
+    final u = (j['user'] as Map<String, dynamic>?) ?? const {};
+    final raw = (j['cells'] as Map<String, dynamic>?) ?? const {};
+    return RosterPerson(
+      userId: _int(u['id']),
+      fullName: u['full_name'] as String? ?? '',
+      role: u['role'] as String? ?? '',
+      storeName: u['store_name'] as String?,
+      cells: {
+        for (final e in raw.entries)
+          e.key: ((e.value as List<dynamic>?) ?? [])
+              .map((c) => RosterCell.fromJson(c as Map<String, dynamic>))
+              .toList(),
+      },
+      plannedMinutes: _int(j['planned_minutes']),
+      shiftDays: _int(j['shift_days']),
+      dayOffDays: _int(j['day_off_days']),
+      unassignedDays: _int(j['unassigned_days']),
+    );
+  }
+}
+
+class RosterDayTotal {
+  const RosterDayTotal({
+    this.working = 0,
+    this.dayOff = 0,
+    this.unassigned = 0,
+    this.minutes = 0,
+  });
+
+  final int working;
+  final int dayOff;
+  final int unassigned;
+  final int minutes;
+
+  factory RosterDayTotal.fromJson(Map<String, dynamic> j) => RosterDayTotal(
+    working: _int(j['working']),
+    dayOff: _int(j['day_off']),
+    unassigned: _int(j['unassigned']),
+    minutes: _int(j['minutes']),
+  );
+}
+
+/// Toplu vardiya cizelgesi. Ucret ya da puantaj verisi ICERMEZ.
+class Roster {
+  const Roster({
+    required this.from,
+    required this.to,
+    required this.dates,
+    required this.people,
+    required this.totals,
+    required this.holidays,
+    this.storeName,
+    this.canEdit = false,
+  });
+
+  final String from;
+  final String to;
+  final List<String> dates;
+  final List<RosterPerson> people;
+  final Map<String, RosterDayTotal> totals;
+  final Map<String, PublicHoliday> holidays;
+  final String? storeName;
+
+  /// Cizelgeyi degistirebilen roller; arayuz dugmeleri buna gore cizilir.
+  final bool canEdit;
+
+  int get totalPlannedMinutes => people.fold(0, (a, p) => a + p.plannedMinutes);
+
+  RosterDayTotal gunToplam(String tarih) =>
+      totals[tarih] ?? const RosterDayTotal();
+
+  factory Roster.fromJson(Map<String, dynamic> j) => Roster(
+    from: j['from'] as String? ?? '',
+    to: j['to'] as String? ?? '',
+    dates: ((j['dates'] as List<dynamic>?) ?? [])
+        .map((e) => e.toString())
+        .toList(),
+    people: ((j['people'] as List<dynamic>?) ?? [])
+        .map((e) => RosterPerson.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    totals: {
+      for (final e in ((j['totals'] as Map<String, dynamic>?) ?? {}).entries)
+        e.key: RosterDayTotal.fromJson(e.value as Map<String, dynamic>),
+    },
+    holidays: {
+      for (final e in ((j['holidays'] as Map<String, dynamic>?) ?? {}).entries)
+        e.key: PublicHoliday.fromJson({
+          'holiday_date': e.key,
+          ...(e.value as Map<String, dynamic>),
+        }),
+    },
+    storeName: j['store'] as String?,
+    canEdit: j['can_edit'] == true,
+  );
+}
+
+/// Devam takibindeki dort adim.
+enum PdksPunch {
+  checkIn('check-in', 'Giriş kaydedildi'),
+  checkOut('check-out', 'Çıkış kaydedildi'),
+  breakStart('break-start', 'Mola başladı'),
+  breakEnd('break-end', 'Mola bitti');
+
+  const PdksPunch(this.yol, this.mesaj);
+
+  /// Uc noktanin yol parcasi.
+  final String yol;
+
+  /// Basarili islem bildirimi.
+  final String mesaj;
 }

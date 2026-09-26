@@ -114,9 +114,13 @@ class _AppShellState extends State<AppShell> {
               onSection: _goSection,
             ),
       // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
-      floatingActionButton: ShortcutFab(
-        bottomInset: wide ? 0 : kBottomBarHeight,
-      ),
+      //
+      // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
+      // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
+      // giris/mola dugmelerinin uzerine geliyordu.
+      floatingActionButton: section == AppSection.operations
+          ? ShortcutFab(bottomInset: wide ? 0 : kBottomBarHeight)
+          : null,
       body: SafeArea(
         child: Row(
           children: [

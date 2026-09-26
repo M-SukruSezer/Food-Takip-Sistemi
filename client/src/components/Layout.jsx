@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList, CalendarRange,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
@@ -31,7 +31,10 @@ export const NAV_SECTIONS = [
       {
         items: [
           { to: '/pdks', label: 'Devam Takibi', short: 'Devam', ico: Clock, roles: ALL_ROLES, tab: true },
-          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true },
+          // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
+          // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
+          { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: ALL_ROLES, tab: true },
+          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES },
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden
           // gordugu icin bu oge onlara cikmiyor; menu ikiye katlanmasin.
@@ -410,7 +413,11 @@ export default function Layout() {
           onConfirm={() => { setConfirmLogout(false); logout(); navigate('/login'); }}
         />
       )}
-      <ShortcutFab role={user.role} />
+      {/* Yuzen buton yalnizca Operasyon ekraninda. Kisayollarin hepsi
+          operasyon islemi (donuk depoya urun, masraf, gunluk rapor, onaylar);
+          PDKS ekraninda hicbiri o baglama ait degil ve dugme mola/giris
+          dugmelerinin uzerine geliyordu. */}
+      {section === 'operations' && <ShortcutFab role={user.role} />}
     </div>
   );
 }
