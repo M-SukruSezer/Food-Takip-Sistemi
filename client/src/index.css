@@ -648,6 +648,11 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .icon-chip.warning { background: var(--warning-soft); color: var(--warning-text); }
 .icon-chip.danger { background: var(--danger-soft); color: var(--danger-text); }
 .icon-chip.muted { background: var(--bg); color: var(--muted); }
+/* Pasta/vitrin oge grubu icin marka paletinin disinda tek seferlik vurgu.
+   #6d28d9 acik zeminde 5.98 veriyor (olculdu); koyu temada zemin/metin
+   yer degistirir ki karti kaybettirmesin. */
+.icon-chip.accent { background: #ede9fe; color: #6d28d9; }
+:root[data-theme='dark'] .icon-chip.accent { background: rgba(196, 181, 253, 0.16); color: #c4b5fd; }
 
 /* Ana sayfadaki acil islem / bekleyen onay bandi: ikon cip + metin + ok. */
 .urgent-banner {
@@ -2914,16 +2919,16 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .nav-menu {
   position: fixed;
   z-index: 47;
-  left: 8px;
-  right: 8px;
+  left: 0;
+  right: 0;
   /* Alt cubugun UZERINE oturur; cubugun yuksekligi 64 + 8 pay. */
   bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  max-height: 78vh;
+  max-height: 82vh;
   display: flex;
   flex-direction: column;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 24px 24px 0 0;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
   animation: navMenuIn 0.14s ease-out;
 }
@@ -2935,22 +2940,50 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   .nav-menu { animation: none; }
 }
 
+/* Sadece gorsel: sürükleme jesti baglanmadi, bottom-sheet oldugunu belli
+   eden bir tutamac. */
+.nav-menu-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
 .nav-menu-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 8px 8px 14px;
+  gap: 12px;
+  padding: 10px 8px 12px 16px;
   border-bottom: 1px solid var(--border);
 }
-.nav-menu-id { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nav-menu-avatar { position: relative; display: inline-flex; flex-shrink: 0; }
+.nav-menu-avatar-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--success);
+  border: 2px solid var(--card);
+}
+.nav-menu-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .nav-menu-id strong {
-  font-size: 14.5px;
+  font-size: 15px;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .nav-menu-id span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.nav-menu-store {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px;
+  color: var(--primary-dark) !important;
+}
 .nav-menu-close {
   min-width: var(--tap);
   min-height: var(--tap);
@@ -2962,14 +2995,16 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   color: var(--muted);
   cursor: pointer;
   border-radius: 10px;
+  align-self: flex-start;
 }
 .nav-menu-close:hover { color: var(--ink); background: var(--bg); }
 
 .nav-menu .section-switch {
   margin: 10px 12px;
   background: var(--bg);
+  border-radius: 16px;
 }
-.nav-menu .section-switch button { color: var(--muted); }
+.nav-menu .section-switch button { color: var(--muted); border-radius: 13px; }
 .nav-menu .section-switch button.active { color: var(--on-primary); }
 
 .nav-menu-list {
@@ -2978,15 +3013,27 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   padding: 10px;
   border-top: 1px solid var(--border);
 }
-.nav-menu-title {
+.nav-menu-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   padding: 12px 12px 6px;
+}
+.nav-menu-title {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--muted);
 }
-.nav-menu-list > div:first-child .nav-menu-title { padding-top: 0; }
+.nav-menu-title-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ok-text);
+  white-space: nowrap;
+}
+.nav-menu-list > div:first-child .nav-menu-title-row { padding-top: 0; }
 .nav-menu-rule {
   height: 1px;
   background: var(--border);
@@ -2996,18 +3043,50 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: var(--tap);
-  padding: 0 12px;
-  border-radius: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
   color: var(--ink);
-  font-weight: 700;
-  font-size: 14px;
   text-decoration: none;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
 }
-.nav-menu-item svg { color: var(--muted); flex-shrink: 0; }
 .nav-menu-item:hover { background: var(--bg); }
-.nav-menu-item.active { background: var(--primary-soft); color: var(--primary); }
-.nav-menu-item.active svg { color: var(--primary); }
+.nav-menu-item.active { background: var(--primary-soft); }
+.nav-menu-item.active .nav-menu-item-title { color: var(--primary-dark); }
+/* "Canlı" ile isaretli oge (Devam Takibi): yumusak yesil zemin + kenarlik,
+   listede tek basina one cikar. */
+.nav-menu-item.featured {
+  background: var(--success-soft);
+  border-color: rgba(0, 121, 82, 0.25);
+}
+.nav-menu-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.nav-menu-item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.nav-menu-item-desc {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-menu-item-go { color: var(--muted); flex-shrink: 0; }
+.nav-menu-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.nav-menu-pill.live { background: var(--success-soft); color: var(--ok-text); }
+.nav-menu-pill.danger { background: var(--danger-soft); color: var(--danger-text); }
 
 .nav-menu-logout {
   margin: 8px 10px 10px;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList, CalendarRange,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList, CalendarRange, ChevronRight, MapPin,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
@@ -30,16 +30,17 @@ export const NAV_SECTIONS = [
     ico: UserCheck,
     groups: [
       {
+        title: 'PDKS & Kadro',
         items: [
-          { to: '/pdks', label: 'Devam Takibi', short: 'Devam', ico: Clock, roles: ALL_ROLES, tab: true },
+          { to: '/pdks', label: 'Devam Takibi', short: 'Devam', ico: Clock, roles: ALL_ROLES, tab: true, desc: 'Giriş/çıkış, mola süreleri ve QR doğrulama', tone: 'success', live: true },
           // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
           // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
-          { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: ALL_ROLES, tab: true },
-          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true },
+          { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: ALL_ROLES, tab: true, desc: 'Haftalık nöbet planı ve çalışma saatleri', tone: 'muted' },
+          { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true, desc: 'Yıllık izin talepleri, mazeret ve onaylar', tone: 'muted' },
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden
           // gordugu icin bu oge onlara cikmiyor; menu ikiye katlanmasin.
-          { to: '/timesheet', label: 'Puantaj', short: 'Puantaj', ico: ClipboardList, roles: HR_ROLES, tab: true },
+          { to: '/timesheet', label: 'Puantaj', short: 'Puantaj', ico: ClipboardList, roles: HR_ROLES, tab: true, desc: 'Aylık çalışma saati dökümü', tone: 'muted' },
         ],
       },
     ],
@@ -51,30 +52,30 @@ export const NAV_SECTIONS = [
     ico: Building2,
     groups: [
       {
-        title: 'Operasyon',
+        title: 'Mağaza & Ürün Operasyonları',
         items: [
-          { to: '/dashboard', label: 'Ana Sayfa', short: 'Ana Sayfa', ico: Home, roles: ALL_ROLES, tab: true },
-          { to: '/batches', label: 'Ürünler', short: 'Ürünler', ico: Package, roles: ALL_ROLES, tab: true },
-          { to: '/recommendations', label: 'Öneri Satış Listesi', short: 'Öneri', ico: Flame, roles: ALL_ROLES, tab: true, badge: true },
-          { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES },
+          { to: '/dashboard', label: 'Ana Sayfa', short: 'Ana Sayfa', ico: Home, roles: ALL_ROLES, tab: true, desc: 'Günlük özet ve operasyon paneli', tone: 'primary' },
+          { to: '/recommendations', label: 'SKT & Aksiyon Takibi', short: 'Öneri', ico: Flame, roles: ALL_ROLES, tab: true, badge: true, desc: 'Yaklaşan son kullanma & fire aksiyonları', tone: 'warning' },
+          { to: '/batches', label: 'Ürünler & Donuk Depo', short: 'Ürünler', ico: Package, roles: ALL_ROLES, tab: true, desc: 'Donuk stok sayımı, çözünme ve vitrin', tone: 'info' },
+          { to: '/product-types', label: 'Pasta Çeşitleri & Raf Ömrü', ico: Cake, roles: MANAGER_ROLES, desc: 'Reçete, vitrin saati ve porsiyon takibi', tone: 'accent' },
+          { to: '/petty-cash', label: 'Kasa, Petty Cash & Satış', ico: Receipt, roles: PETTY_CASH_ROLES, desc: 'Günlük ciro, gider fişleri ve kasa teslimi', tone: 'success' },
         ],
       },
       {
-        title: 'Kasa ve Raporlar',
+        title: 'Raporlar',
         items: [
-          { to: '/petty-cash', label: 'Petty Cash', ico: Receipt, roles: PETTY_CASH_ROLES },
-          { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES },
-          { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES },
-          { to: '/sales', label: 'Hareket Raporu', short: 'Rapor', ico: Banknote, roles: ALL_ROLES, tab: true },
-          { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES },
+          { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES, desc: 'Aylık ciro ve satış tahmini', tone: 'info' },
+          { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES, desc: 'Tüketim hızı ve stok gün sayısı', tone: 'info' },
+          { to: '/sales', label: 'Hareket Raporu', short: 'Rapor', ico: Banknote, roles: ALL_ROLES, tab: true, desc: 'Satış, ikram ve zayi kayıtları', tone: 'muted' },
+          { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES, desc: 'Sistem denetim günlüğü', tone: 'muted' },
+          { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES, desc: 'Erken aktarım isteklerini onayla', tone: 'muted' },
         ],
       },
       {
         title: 'Yönetim',
         items: [
-          { to: '/product-types', label: 'Pasta Çeşitleri', ico: Cake, roles: MANAGER_ROLES },
-          { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES },
-          { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'] },
+          { to: '/users', label: 'Kullanıcılar', ico: Users, roles: MANAGER_ROLES, desc: 'Personel ve yetki yönetimi', tone: 'muted' },
+          { to: '/stores', label: 'Mağazalar', ico: Store, roles: ['super_admin'], desc: 'Şube tanımları ve ayarları', tone: 'muted' },
         ],
       },
     ],
@@ -85,7 +86,7 @@ export const NAV_SECTIONS = [
 // icin IK dahil herkesin erisebilmesi gerekiyor.
 const PROFILE_GROUP = {
   items: [
-    { to: '/profile', label: 'Profilim', ico: UserCircle, roles: [...ALL_ROLES, ...HR_ROLES] },
+    { to: '/profile', label: 'Profilim', ico: UserCircle, roles: [...ALL_ROLES, ...HR_ROLES], desc: 'Tema, şifre ve bildirim ayarları', tone: 'muted' },
   ],
 };
 
@@ -175,6 +176,15 @@ export default function Layout() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [recCount, setRecCount] = useState(0);
   const [lastSection, setLastSection] = useState('pdks');
+  // Mobil menu tek bir kaydirilan liste: pdks + operasyon gruplari alt alta.
+  // Sekmeler icerigi DEGISTIRMEZ, yalnizca ilgili bolume kaydirir — kenar
+  // menudeki (masaustu) disari-secim davranisindan bilerek farkli.
+  const [mobileSection, setMobileSection] = useState('pdks');
+  const mobileSectionRefs = useRef({});
+  const scrollToMobileSection = (id) => {
+    setMobileSection(id);
+    mobileSectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const [collapsed, setCollapsed] = useState(() => {
     const stored = localStorage.getItem('sidebarCollapsed');
     if (stored !== null) return stored === '1';
@@ -332,11 +342,18 @@ export default function Layout() {
             onClick={() => setMenuOpen(false)}
           />
           <div className="nav-menu" role="dialog" aria-label="Menü">
+            <div className="nav-menu-handle" />
             <div className="nav-menu-head">
-              <Avatar user={user} size={34} />
+              <span className="nav-menu-avatar">
+                <Avatar user={user} size={48} />
+                <span className="nav-menu-avatar-dot" title="Aktif" />
+              </span>
               <div className="nav-menu-id">
                 <strong>{user.full_name}</strong>
                 <span>{ROLE_LABELS[user.role]}</span>
+                {user.store_name && (
+                  <span className="nav-menu-store"><MapPin size={11} /> {user.store_name}</span>
+                )}
               </div>
               <button
                 type="button"
@@ -347,12 +364,45 @@ export default function Layout() {
                 <X size={20} />
               </button>
             </div>
-            <SectionSwitcher sections={sections} active={section} onPick={pickSection} />
+            <SectionSwitcher sections={sections} active={mobileSection} onPick={(s) => scrollToMobileSection(s.id)} />
             <div className="nav-menu-list">
-              {groups.map((g, gi) => (
-                <div key={g.title || `mgrup-${gi}`}>
-                  {g.title && <div className="nav-menu-title">{g.title}</div>}
-                  {!g.title && gi > 0 && <div className="nav-menu-rule" />}
+              {sections.map((s) => (
+                <div key={s.id} ref={(el) => { mobileSectionRefs.current[s.id] = el; }}>
+                  {s.groups.map((g, gi) => (
+                    <div key={g.title || `${s.id}-grup-${gi}`}>
+                      {g.title && (
+                        <div className="nav-menu-title-row">
+                          <span className="nav-menu-title">{g.title}</span>
+                          <span className="nav-menu-title-count">{g.items.length} Aktif Modül</span>
+                        </div>
+                      )}
+                      {!g.title && gi > 0 && <div className="nav-menu-rule" />}
+                      {g.items.map((l) => (
+                        <NavLink
+                          key={l.to}
+                          to={l.to}
+                          className={({ isActive }) => `nav-menu-item ${isActive ? 'active' : ''} ${l.live ? 'featured' : ''}`}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <span className={`icon-chip ${l.tone || 'muted'}`}><l.ico size={20} /></span>
+                          <span className="nav-menu-item-body">
+                            <span className="nav-menu-item-title">
+                              {l.label}
+                              {l.live && <span className="nav-menu-pill live">Canlı</span>}
+                              {l.badge && recCount > 0 && <span className="nav-menu-pill danger">{recCount} Kritik</span>}
+                            </span>
+                            {l.desc && <span className="nav-menu-item-desc">{l.desc}</span>}
+                          </span>
+                          <ChevronRight size={18} className="nav-menu-item-go" />
+                        </NavLink>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {visibleGroups([PROFILE_GROUP], user.role).map((g, gi) => (
+                <div key={`profile-${gi}`}>
+                  <div className="nav-menu-rule" />
                   {g.items.map((l) => (
                     <NavLink
                       key={l.to}
@@ -360,8 +410,12 @@ export default function Layout() {
                       className={({ isActive }) => `nav-menu-item ${isActive ? 'active' : ''}`}
                       onClick={() => setMenuOpen(false)}
                     >
-                      <l.ico size={20} />
-                      <span>{l.label}</span>
+                      <span className={`icon-chip ${l.tone || 'muted'}`}><l.ico size={20} /></span>
+                      <span className="nav-menu-item-body">
+                        <span className="nav-menu-item-title">{l.label}</span>
+                        {l.desc && <span className="nav-menu-item-desc">{l.desc}</span>}
+                      </span>
+                      <ChevronRight size={18} className="nav-menu-item-go" />
                     </NavLink>
                   ))}
                 </div>
