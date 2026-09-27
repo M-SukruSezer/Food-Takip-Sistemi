@@ -33,3 +33,10 @@ yarn-debug.log*
 .DS_Store
 .vercel/
 .vercel
+
+# Firebase servis hesabi ozel anahtari. ASLA depoya girmemeli: bu depo
+# herkese acik ve anahtar sunucu adina bildirim gonderme yetkisi veriyor.
+# Gercek dosya ~/.config/saha-takip/ altinda, sunucuya Vercel ortam
+# degiskeni (FIREBASE_SERVICE_ACCOUNT) olarak veriliyor.
+*firebase-adminsdk*.json
+*service-account*.json

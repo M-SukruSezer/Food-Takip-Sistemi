@@ -14,7 +14,15 @@ app.use(cors());
 // Profil fotosu base64 veri URL'si olarak gelir; varsayilan 100kb yetmez.
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+// Saglik ucu. push alani YALNIZCA boolean: anahtarin tanimli olup olmadigini
+// soyluyor, degerinden hicbir sey sizdirmiyor. Dagitimdan sonra push'un
+// gercekten baglandigini dogrulamanin tek yolu bu — Vercel "sensitive"
+// degiskenleri geri okutmuyor.
+app.get('/api/health', (req, res) => res.json({
+  ok: true,
+  time: new Date().toISOString(),
+  push: require('./pdks/fcm').isConfigured(),
+}));
 app.use('/api', routes);
 
 // production: client build klasörünü servis et

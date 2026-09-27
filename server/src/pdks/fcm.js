@@ -169,10 +169,22 @@ async function sendToToken({ token, title, body, data }) {
   if (r.ok) return { ok: true };
 
   const metin = await r.text();
-  // UNREGISTERED / INVALID_ARGUMENT: jeton artik ise yaramaz.
+  // Jeton artik ise yaramaz mi?
+  //
+  //   404 / UNREGISTERED   uygulama silinmis ya da jeton iptal edilmis.
+  //   400 INVALID_ARGUMENT jeton DIZESI bozuk.
+  //
+  // DIKKAT: 400 TEK BASINA yeterli sayilmiyor. INVALID_ARGUMENT mesajin
+  // kendisi hatali oldugunda da doner; her 400'de jetonu silmek, gonderim
+  // govdesinde bir hata oldugunda TUM cihazlari veritabanindan silerdi.
+  // Bu yuzden yalnizca hata metni acikca KAYIT JETONUNU isaret ediyorsa
+  // siliniyor.
+  const jetonuIsaretEdiyor = /registration token|not a valid FCM registration/i
+    .test(metin);
   const gecersiz = r.status === 404
     || metin.includes('UNREGISTERED')
-    || metin.includes('NOT_FOUND');
+    || metin.includes('NOT_FOUND')
+    || (r.status === 400 && jetonuIsaretEdiyor);
   return {
     ok: false,
     invalidToken: gecersiz,
