@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Flame, Search } from 'lucide-react';
+import { Flame, Search, TriangleAlert, Clock3, CheckCircle2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Confirm, sellConfirmMessage, ikramConfirmMessage } from '../components/ui';
@@ -48,25 +48,33 @@ export default function Recommendations() {
       </div>
 
       {expired.length > 0 && (
-        <div className="alert error">
-          <strong>{sum(expired)} adet</strong> ürünün SKT'si doldu. Lütfen zayi girin veya satışı durdurun.
+        <div className="urgent-banner">
+          <span className="icon-chip"><TriangleAlert size={20} /></span>
+          <span className="urgent-copy">
+            <span className="urgent-kicker">Acil Operasyonel Aksiyon</span>
+            <p className="urgent-title">{sum(expired)} adet ürünün SKT'si doldu!</p>
+            <p className="urgent-sub">Lütfen zayi girin veya satışı durdurun.</p>
+          </span>
         </div>
       )}
 
       <div className="surface-panel tier-summary">
         <div className="grid stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="stat stat-card">
-            <div className="label"><span><span className="dot dot-red" />Son Gün</span></div>
+            <span className="icon-chip danger"><TriangleAlert size={16} /></span>
+            <div className="label"><span>Son Gün</span></div>
             <div className="value" style={{ color: 'var(--danger)' }}>{sum(grouped.critical)}</div>
             <div className="sub">{grouped.critical.length} kayıt öncelikli</div>
           </div>
           <div className="stat stat-card">
-            <div className="label"><span><span className="dot dot-orange" />2 Gün</span></div>
+            <span className="icon-chip warning"><Clock3 size={16} /></span>
+            <div className="label"><span>2 Gün</span></div>
             <div className="value" style={{ color: 'var(--warning)' }}>{sum(grouped.warning)}</div>
             <div className="sub">{grouped.warning.length} kayıt</div>
           </div>
           <div className="stat stat-card">
-            <div className="label"><span><span className="dot dot-green" />3 Gün</span></div>
+            <span className="icon-chip success"><CheckCircle2 size={16} /></span>
+            <div className="label"><span>3 Gün</span></div>
             <div className="value" style={{ color: 'var(--success)' }}>{sum(grouped.normal)}</div>
             <div className="sub">{grouped.normal.length} kayıt</div>
           </div>

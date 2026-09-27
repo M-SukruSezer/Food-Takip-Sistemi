@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Cake } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Cake, Search, Layers } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
-import { errorMessage, fmtMoney, hasPrice, can } from '../format';
+import { errorMessage, fmtMoney, hasPrice, can, normalizeSearch } from '../format';
 
 export default function ProductTypes() {
   const { user } = useAuth();
@@ -13,6 +13,7 @@ export default function ProductTypes() {
   const [showAdd, setShowAdd] = useState(false);
   const [edit, setEdit] = useState(null);
   const [del, setDel] = useState(null);
+  const [search, setSearch] = useState('');
   // Ana Yonetici ya da "Pasta cesidi yonetimi" yetkisi verilmis kullanici.
   const canManage = can(user, 'manage_product_types');
 
@@ -24,6 +25,14 @@ export default function ProductTypes() {
   useEffect(() => { load(); }, [load, reload]);
 
   const missingPrice = types.filter((t) => t.active === 1 && !hasPrice(t.unit_price));
+  const shown = useMemo(() => {
+    const q = normalizeSearch(search.trim());
+    if (!q) return types;
+    return types.filter((t) => normalizeSearch(t.name).includes(q));
+  }, [types, search]);
+  const activeCount = types.filter((t) => t.active === 1).length;
+  const stdSkt = types.length === 0 ? '-'
+    : (types.every((t) => t.skt_days === types[0].skt_days) ? types[0].skt_days : '—');
 
   return (
     <div className="page-shell">
@@ -31,6 +40,39 @@ export default function ProductTypes() {
         <h2><Cake size={20} /> Pasta Çeşitleri ve SKT Süreleri</h2>
         {canManage && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Yeni Çeşit</button>}
       </div>
+
+      <div className="surface-panel">
+        <div className="grid stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 12 }}>
+          <div className="stat stat-card">
+            <span className="icon-chip primary"><Layers size={16} /></span>
+            <div className="label"><span>Kayıtlı Çeşit</span></div>
+            <div className="value">{types.length}</div>
+            <div className="sub">ürün</div>
+          </div>
+          <div className="stat stat-card">
+            <span className="icon-chip info"><Cake size={16} /></span>
+            <div className="label"><span>Standart SKT</span></div>
+            <div className="value">{stdSkt}</div>
+            <div className="sub">gün</div>
+          </div>
+          <div className="stat stat-card">
+            <span className="icon-chip success"><Cake size={16} /></span>
+            <div className="label"><span>Aktif Çeşit</span></div>
+            <div className="value">{activeCount}</div>
+            <div className="sub">vitrinde tanımlı</div>
+          </div>
+        </div>
+        <div className="input-wrap search">
+          <span className="in-ico"><Search size={17} /></span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Çeşit ara..."
+            aria-label="Pasta çeşidi ara"
+          />
+        </div>
+      </div>
+
       {canManage && missingPrice.length > 0 && (
         <div className="alert warning">
           <strong>{missingPrice.length} aktif çeşidin</strong> satış fiyatı tanımlı değil. Bu çeşitler satıldığında ciroya 0 TL yazılır:{' '}
@@ -47,7 +89,7 @@ export default function ProductTypes() {
       )}
 
       <div className="grid products">
-        {types.map((t) => (
+        {shown.map((t) => (
           <div className="card" key={t.id} style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -76,6 +118,9 @@ export default function ProductTypes() {
       </div>
 
       {types.length === 0 && <div className="card"><p className="empty">Henüz ürün çeşidi eklenmemiş.</p></div>}
+      {types.length > 0 && shown.length === 0 && (
+        <div className="card"><p className="empty">"{search}" ile eşleşen çeşit bulunamadı.</p></div>
+      )}
 
       {showAdd && (
         <TypeModal
