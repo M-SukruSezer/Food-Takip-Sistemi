@@ -92,10 +92,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color sidebarMuted;
   final Color sidebarBorder;
 
-  /// Giris ekraninin panel rengi. Temaya gore degismez: koyu temanin nane
-  /// yesili tum ekrani kaplayinca goz aliyor, marka yesili ise iki temada da
-  /// beyaz yaziyla 5:1 kontrast veriyor.
-  static const Color brandGreen = Color(0xFF15803D);
+  /// Giris ekraninin panel rengi. Temaya gore degismez: koyu temanin
+  /// turkuazi tum ekrani kaplayinca goz aliyor, marka rengi ise iki temada da
+  /// beyaz yaziyla 5:1 ustu kontrast veriyor.
+  static const Color brandGreen = Color(0xFF005C55);
 
   /// Dokunma hedefi tabani. React tarafindaki --tap ile ayni.
   static const double tap = 44;
@@ -105,44 +105,46 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const double gap = 12;
 
   static const AppTokens light = AppTokens(
-    primary: Color(0xFF15803D),
-    // Beyaz metin #15803D uzerinde 5.02 veriyor.
+    // Stitch yeniden tasarim setinden (Material 3, tohum rengi #005c55).
+    primary: Color(0xFF005C55),
+    // Beyaz metin #005C55 uzerinde 7.89 veriyor.
     onPrimary: Color(0xFFFFFFFF),
-    dangerStrong: Color(0xFFDC2626),
-    primary600: Color(0xFF16A34A),
-    primaryDark: Color(0xFF14532D),
-    primarySoft: Color(0xFFEAFAF0),
-    danger: Color(0xFFDC2626),
-    dangerSoft: Color(0xFFFEF2F2),
+    dangerStrong: Color(0xFFBA1A1A),
+    primary600: Color(0xFF006A63),
+    primaryDark: Color(0xFF00504A),
+    primarySoft: Color(0xFFB5EFDA),
+    danger: Color(0xFFBA1A1A),
+    dangerSoft: Color(0xFFFFDAD6),
     warning: Color(0xFFD97706),
     warningSoft: Color(0xFFFFFBEB),
     warningText: Color(0xFFB45309),
-    infoSoft: Color(0xFFF0F9FF),
-    infoText: Color(0xFF0369A1),
-    successSoft: Color(0xFFF0FDF4),
-    okText: Color(0xFF15803D),
-    success: Color(0xFF16A34A),
-    info: Color(0xFF0284C7),
-    ink: Color(0xFF111827),
-    muted: Color(0xFF5B6472),
-    border: Color(0xFFE5E7EB),
-    borderStrong: Color(0xFFD1D5DB),
-    bg: Color(0xFFF5F6F8),
+    infoSoft: Color(0xFFECFEFF),
+    infoText: Color(0xFF0E7490),
+    successSoft: Color(0xFF99FFCD),
+    okText: Color(0xFF005E3F),
+    success: Color(0xFF007952),
+    info: Color(0xFF0E7490),
+    ink: Color(0xFF0B1C30),
+    muted: Color(0xFF3E4947),
+    border: Color(0xFFBDC9C6),
+    borderStrong: Color(0xFF6E7977),
+    bg: Color(0xFFF8F9FF),
     card: Color(0xFFFFFFFF),
     sidebar: Color(0xFFFFFFFF),
-    sidebarInk: Color(0xFF111827),
-    sidebarMuted: Color(0xFF4B5563),
-    sidebarBorder: Color(0xFFE5E7EB),
+    sidebarInk: Color(0xFF0B1C30),
+    sidebarMuted: Color(0xFF3E4947),
+    sidebarBorder: Color(0xFFBDC9C6),
   );
 
   static const AppTokens dark = AppTokens(
-    primary: Color(0xFF34D399),
-    // #0B1220, #34D399 uzerinde 9.74 veriyor.
-    onPrimary: Color(0xFF0B1220),
+    // M3 setinin koyu zeminde okunmak icin uretilen "inverse-primary" tonu.
+    primary: Color(0xFF80D5CB),
+    // #00201D, #80D5CB uzerinde 10.04 veriyor.
+    onPrimary: Color(0xFF00201D),
     dangerStrong: Color(0xFFB91C1C),
-    primary600: Color(0xFF10B981),
-    primaryDark: Color(0xFF6EE7B7),
-    primarySoft: Color(0x2434D399),
+    primary600: Color(0xFF4EDEA3),
+    primaryDark: Color(0xFF9CF2E8),
+    primarySoft: Color(0x2480D5CB),
     danger: Color(0xFFF87171),
     dangerSoft: Color(0x1FF87171),
     warning: Color(0xFFFBBF24),

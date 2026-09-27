@@ -5,86 +5,84 @@
   --radius-lg: 20px;
   --tap: 44px;
 
-  /* Marka */
-  --primary: #15803d;
-  --primary-600: #16a34a;
-  --primary-dark: #14532d;
-  --primary-soft: #eafaf0;
-  --primary-strong: #0b5f2c;
+  /* Marka — Stitch yeniden tasarim setinden (Material 3, tohum rengi #005c55). */
+  --primary: #005c55;
+  --primary-600: #006a63;
+  --primary-dark: #00504a;
+  --primary-soft: #b5efda;
+  --primary-strong: #00504a;
   /* --primary ZEMINI uzerine gelen yazi/ikon rengi. Acik temada beyaz ile
-     5.02 kontrast (olculdu). Koyu temada --primary nane yesili oldugu icin
-     beyaz yalnizca 1.92 veriyordu (AA siniri 4.5) — orada koyu yaziya
-     donuyor. Bu belirtec olmadan koyu temada aktif menu bagi okunmuyordu. */
+     7.89 kontrast (olculdu). Koyu temada --primary parlak nane-turkuaz
+     oldugu icin beyaz yeterli kontrast vermez — orada koyu yaziya donuyor. */
   --on-primary: #ffffff;
 
-  /* Durum renkleri */
-  --danger: #dc2626;
-  --danger-soft: #fef2f2;
-  --danger-light: #fee2e2;
+  /* Durum renkleri — Stitch setinin M3 error rolu + mockuplarda kullanilan
+     amber/cyan degerleri. */
+  --danger: #ba1a1a;
+  --danger-soft: #ffdad6;
+  --danger-light: #ffb4ab;
   --warning: #d97706;
   --warning-soft: #fffbeb;
-  --success: #16a34a;
-  --success-soft: #f0fdf4;
-  --success-light: #dcfce7;
-  --info: #0284c7;
-  --info-soft: #f0f9ff;
+  --success: #007952;
+  --success-soft: #99ffcd;
+  --success-light: #6ffbbe;
+  --info: #0e7490;
+  --info-soft: #ecfeff;
 
   /* Yuzeyler */
-  --ink: #111827;
-  --muted: #5b6472;
-  /* Ters yuz panel: HER IKI temada koyu kalir.
-     Onceki surumde .dark-card zeminini --sidebar-b'den aliyordu; o belirtec
-     acik temada #ffffff oldugu icin panel beyaz zemin + #e2e8f0 metin haline
-     geliyor ve 1.23 kontrastla OKUNAMIYORDU (olculdu). Artik zemin temadan
-     bagimsiz: #e2e8f0 uzerinde 14.12, #cbd5e1 uzerinde 11.73. */
+  --ink: #0b1c30;
+  --muted: #3e4947;
+  /* Ters yuz panel: HER IKI temada koyu kalir. Marka rengi degisse de bu
+     jeton cifti degismez; degerler onceki olcumle ayni (e2e8f0: 14.12,
+     cbd5e1: 11.73). */
   --surface-invert: #101a2c;
   --on-surface-invert: #e2e8f0;
   --on-surface-invert-muted: #cbd5e1;
-  --border: #e5e7eb;
-  --border-strong: #d1d5db;
-  --bg: #f5f6f8;
+  --border: #bdc9c6;
+  --border-strong: #6e7977;
+  --bg: #f8f9ff;
   --card: #ffffff;
   /* Metin icin koyulastirilmis tonlar; olculen kontrast beyaz uzerinde
-     5.02 / 5.02 / 4.83 / 5.93. */
-  --ok-text: #15803d;
+     7.86 / 5.02 / 9.35 / 5.36. */
+  --ok-text: #005e3f;
   --warning-text: #b45309;
-  --danger-text: #dc2626;
-  --info-text: #0369a1;
-  /* Beyaz metin tasiyan kirmizi zemin. --danger (#dc2626) beyazla 4.83 verip
-     acik temada geciyor ama koyu temadaki --danger (#f87171) yalnizca 2.77
-     veriyordu: bildirim sayaci koyu temada okunmuyordu. */
-  --danger-strong: #dc2626;
-  /* Beyaz metin tasiyan yesil zemin. --success (#16a34a) beyazla 3.30 veriyor
-     ve 13px dugme metninde AA'nin altinda kaliyordu; #15803d 5.02 veriyor ve
-     bu ton uygulamada zaten .side-link.active zemini olarak kullaniliyor. */
-  --success-strong: #15803d;
-  /* Kirmizi tint uzerindeki KUCUK metin. --danger-text (#dc2626) #fef2f2
-     zemininde 4.41 ile sinirin altinda kaliyordu. */
-  --danger-on-soft: #b91c1c;
+  --danger-text: #93000a;
+  --info-text: #0e7490;
+  /* Beyaz metin tasiyan kirmizi zemin. --danger (#ba1a1a) beyazla 6.46
+     veriyor, ayri bir koyulastirmaya gerek yok. */
+  --danger-strong: #ba1a1a;
+  /* Beyaz metin tasiyan yesil zemin (M3 tertiary). #005e3f beyazla 7.86
+     veriyor. */
+  --success-strong: #005e3f;
+  /* Kirmizi tint uzerindeki KUCUK metin. --danger-soft (#ffdad6) zemininde
+     7.24 veriyor. */
+  --danger-on-soft: #93000a;
   --card-strong: #ffffff;
-  --panel-glow: rgba(21, 128, 61, 0.10);
+  --panel-glow: rgba(0, 92, 85, 0.10);
   /* Kenar menü artık temayla değişiyor: açık temada açık zemin + koyu yazı. */
   --sidebar-a: #ffffff;
   --sidebar-b: #ffffff;
-  --sidebar-ink: #111827;
-  --sidebar-muted: #4b5563;
-  --sidebar-border: #e5e7eb;
-  --sidebar-hover: rgba(17, 24, 39, 0.06);
-  --sidebar-footer: #f9fafb;
+  --sidebar-ink: #0b1c30;
+  --sidebar-muted: #3e4947;
+  --sidebar-border: #bdc9c6;
+  --sidebar-hover: rgba(11, 28, 48, 0.06);
+  --sidebar-footer: #eff4ff;
 
-  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.06);
-  --shadow: 0 1px 3px rgba(17, 24, 39, 0.08), 0 8px 24px rgba(17, 24, 39, 0.05);
-  --shadow-lg: 0 8px 16px rgba(17, 24, 39, 0.08), 0 24px 48px rgba(17, 24, 39, 0.10);
+  --shadow-sm: 0 1px 2px rgba(11, 28, 48, 0.06);
+  --shadow: 0 1px 3px rgba(11, 28, 48, 0.08), 0 8px 24px rgba(11, 28, 48, 0.05);
+  --shadow-lg: 0 8px 16px rgba(11, 28, 48, 0.08), 0 24px 48px rgba(11, 28, 48, 0.10);
 }
 
 :root[data-theme='dark'] {
-  --primary: #34d399;
-  --primary-600: #10b981;
-  --primary-dark: #6ee7b7;
-  --primary-soft: rgba(52, 211, 153, 0.14);
-  --primary-strong: #a7f3d0;
-  /* Nane yesili uzerine koyu yazi: 9.74 kontrast (olculdu). */
-  --on-primary: #0b1220;
+  /* Koyu temada M3 setinin "inverse-primary" / "primary-fixed" rolleri
+     kullanilir; bunlar zaten koyu zeminde okunmak icin uretilmis tonlar. */
+  --primary: #80d5cb;
+  --primary-600: #4edea3;
+  --primary-dark: #9cf2e8;
+  --primary-soft: rgba(128, 213, 203, 0.14);
+  --primary-strong: #9cf2e8;
+  /* Parlak turkuaz uzerine koyu yazi: 10.04 kontrast (olculdu). */
+  --on-primary: #00201d;
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.12);
   --danger-light: rgba(248, 113, 113, 0.20);
@@ -116,7 +114,7 @@
      orada 5.25 veriyor, ayri bir tona gerek yok. */
   --danger-on-soft: #f87171;
   --card-strong: #16213a;
-  --panel-glow: rgba(52, 211, 153, 0.16);
+  --panel-glow: rgba(128, 213, 203, 0.16);
   --sidebar-a: #070d18;
   --sidebar-b: #101a2c;
   --sidebar-ink: #ffffff;
@@ -141,6 +139,16 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Baslik/rakam yazi ailesi — Stitch setinde headline ve numeric-metric
+   rolleri icin kullanilan 'Plus Jakarta Sans'. Govde metni Inter'de kalir. */
+h1, h2, h3, h4,
+.page-head h2,
+.stat .value,
+.login-title,
+.numeric-metric {
+  font-family: 'Plus Jakarta Sans', Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 button { font-family: inherit; cursor: pointer; }
@@ -330,7 +338,7 @@ a { color: inherit; }
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  color: #14532d;
+  color: var(--primary-dark);
   font-size: 16px;
   white-space: nowrap;
 }

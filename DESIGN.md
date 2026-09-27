@@ -46,22 +46,49 @@ gerekir.
 
 ### 2.1 Renk
 
-Marka rengi yeşil; kurumsal kimlikten geliyor.
+Marka rengi koyu turkuaz (`#005c55`); 2026 Stitch yeniden tasarım setinden
+(Material 3, tohum rengi `#005c55`) geldi. Önceki sürümde marka rengi yeşildi
+(`#15803d`) — palet bu setle birlikte değiştirildi, jeton **isimleri**
+(`--primary`, `--danger`…) aynı kaldı ki tüketen ~200 bileşen dokunulmadan
+kalsın.
 
 | Jeton | Açık tema | Rol |
 |---|---|---|
-| `--primary` | `#15803d` | Birincil eylem, marka |
-| `--primary-600` | `#16a34a` | Vurgu, kenarlık |
-| `--primary-soft` | `#eafaf0` | Seçili/bekleyen zemin |
+| `--primary` | `#005c55` | Birincil eylem, marka |
+| `--primary-600` | `#006a63` | Vurgu, kenarlık, odak halkası |
+| `--primary-dark` | `#00504a` | Büyük harfli etiket, bağlantı metni |
+| `--primary-soft` | `#b5efda` | Seçili/bekleyen zemin |
 | `--on-primary` | `#ffffff` | Birincil zemin üstü metin |
-| `--danger` | `#dc2626` | Yıkıcı işlem, hata |
+| `--danger` | `#ba1a1a` | Yıkıcı işlem, hata |
 | `--warning` | `#d97706` | Uyarı |
-| `--success` | `#16a34a` | Onay, olumlu |
-| `--info` | `#0284c7` | Bilgi |
-| `--ink` | `#111827` | Ana metin |
-| `--muted` | `#5b6472` | İkincil metin |
-| `--bg` / `--card` | `#f5f6f8` / `#ffffff` | Sayfa / yüzey |
-| `--border` | `#e5e7eb` | Kenarlık |
+| `--success` | `#007952` | Onay, olumlu |
+| `--info` | `#0e7490` | Bilgi |
+| `--ink` | `#0b1c30` | Ana metin |
+| `--muted` | `#3e4947` | İkincil metin |
+| `--bg` / `--card` | `#f8f9ff` / `#ffffff` | Sayfa / yüzey |
+| `--border` | `#bdc9c6` | Kenarlık |
+
+Kaynak dosyalar `stitch_t_m_ekranlar_n_yeniden_tasar_m/` klasöründeki 30
+ekranın hepsinde **aynı** Tailwind/M3 renk paletini kullanıyor (tek kaynaktan
+üretilmiş); bu yüzden tüm paletin buraya taşınması güvenliydi. Koyu tema için
+eşdeğer bir mockup verilmedi — koyu temanın marka ailesi (`--primary`,
+`--primary-600`, `--primary-dark`, `--primary-soft`, `--on-primary`) aynı M3
+setinin "koyu zeminde okunmak için üretilmiş" `inverse-primary` /
+`primary-fixed` tonlarına (`#80d5cb`, `#4edea3`, `#9cf2e8`) çekildi; nötr
+yüzeyler (`--bg`, `--card`, `--ink`, `--muted`, `--border`, `--surface-invert`)
+ölçülmüş kontrastları bozmamak için **değiştirilmedi**.
+
+`--success` artık M3 setinin "tertiary" (yeşil) ailesinden geliyor — mockuplarda
+zaten pozitif/onay anlamı bu renkle veriliyor (bkz. `ana_sayfa_operasyon_paneli`
+ekranındaki "Ay Sonu Tahmini" ve "En Çok Satanlar" blokları). `--warning`
+değişmedi: mockuplarda kullanılan Tailwind `amber-600/700/800` üçlüsü zaten
+eski değerlerle (`#d97706` / `#b45309`) örtüşüyordu.
+
+Başlık ve rakam yazı ailesi de bu setle geldi: `Plus Jakarta Sans` (govde
+metni yine Inter). React'te `h1-h4`, `.page-head h2`, `.stat .value`,
+`.login-title` bu aileyi kullanır; yükleme `client/index.html`'de Google
+Fonts üzerinden yapılır. Flutter tarafı şimdilik sistem fontunda kalıyor —
+`google_fonts` paketi eklenmedi (bkz. §12 bilinen boşluklar).
 
 **`-soft` / `-text` çifti kuralı:** yumuşak zeminlerin (`--warning-soft`)
 üstünde ana metin rengi kullanılmaz; o zemin için ayrı bir metin jetonu
@@ -365,6 +392,14 @@ Kontrol listesi:
 
 Dürüst olmak gerekirse tasarım sistemi eksiksiz değil:
 
+- **Flutter tarafı `Plus Jakarta Sans` kullanmıyor.** React'in yeni başlık
+  fontu Flutter'a taşınmadı; iki istemci artık başlıklarda farklı yazı
+  ailesi gösteriyor. Taşımak `google_fonts` paketi + font ağırlıklarının
+  bundle'a eklenmesini gerektiriyor.
+- **Koyu tema için Stitch mockup'ı yok.** Koyu temanın marka rengi aynı M3
+  setinin "inverse" tonlarına çekilerek türetildi (bkz. §2.1); nötr yüzeyler
+  değiştirilmedi. Tasarım ekibi koyu tema mockup'ı üretirse bu jetonlar
+  gözden geçirilmeli.
 - **Jetonlar iki yerde elle eşleniyor.** Tek kaynaktan üretilmiyor;
   birini değiştirip diğerini unutmak mümkün. Kontrast testi Flutter
   tarafını koruyor, React tarafında eşdeğer test **yok**.
