@@ -48,13 +48,14 @@ export default function Users() {
         <div className="table-wrap">
           <table className="responsive users-table">
             <thead>
-              <tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Rol</th><th>Mağaza</th><th>Yetkiler</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr>
+              <tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Telefon</th><th>Rol</th><th>Mağaza</th><th>Yetkiler</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
                   <td data-label="Kullanıcı"><strong>{u.username}</strong></td>
                   <td data-label="Ad Soyad">{u.full_name}</td>
+                  <td data-label="Telefon" className="muted">{u.phone || '-'}</td>
                   <td data-label="Rol">{ROLE_LABELS[u.role]}</td>
                   <td data-label="Mağaza">
                     {MULTI_STORE_ROLES.includes(u.role)
@@ -143,6 +144,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
   const { user: me } = useAuth();
   const [username, setUsername] = useState(user?.username || '');
   const [full_name, setFullName] = useState(user?.full_name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState(user?.role || 'barista');
   const [store_id, setStoreId] = useState(user?.store_id || '');
@@ -171,7 +173,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
     setErr('');
     try {
       if (editing) {
-        const payload = { full_name, role, active };
+        const payload = { full_name, role, active, phone: phone.trim() || null };
         if (isSuper && store_id !== '') payload.store_id = Number(store_id);
         // Ana Yonetici hesabinda yetkiler rolden gelir, gonderilmez.
         if (role !== 'super_admin') payload.permissions = permissions;
@@ -180,7 +182,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
         toast('Kullanıcı güncellendi');
       } else {
         await api.post('/users', {
-          username, password, full_name, role,
+          username, password, full_name, role, phone: phone.trim() || undefined,
           store_id: store_id === '' ? undefined : Number(store_id),
           active,
           permissions: role === 'super_admin' ? undefined : permissions,
@@ -217,6 +219,13 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
         <div className="field">
           <label>Ad Soyad</label>
           <input value={full_name} onChange={(e) => setFullName(e.target.value)} required />
+        </div>
+        <div className="field">
+          <label>Telefon</label>
+          <input type="tel" placeholder="05xx xxx xx xx" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+            WhatsApp ile ekibe gönderim için kullanılır.
+          </p>
         </div>
         <div className="field">
           <label>Rol</label>

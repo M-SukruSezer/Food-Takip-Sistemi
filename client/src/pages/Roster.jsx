@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Save, Send,
+  MessageCircle, RotateCcw, CheckCircle2,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -85,6 +86,7 @@ export default function Roster() {
   const [bekleyen, setBekleyen] = useState({});
   const [kaydediyor, setKaydediyor] = useState(false);
   const [cakisma, setCakisma] = useState(null);
+  const [whatsapp, setWhatsapp] = useState(false);
   const bekleyenSayi = Object.keys(bekleyen).length;
 
   // Cok magazali roller icin magaza secici; tek magazalida gereksiz.
@@ -321,6 +323,9 @@ export default function Roster() {
               <button className="btn btn-secondary" disabled={disa} onClick={pdfAktar}>
                 <FileText size={16} /> PDF
               </button>
+              <button className="btn btn-secondary" onClick={() => setWhatsapp(true)}>
+                <MessageCircle size={16} /> WhatsApp
+              </button>
             </>
           )}
         </div>
@@ -457,7 +462,122 @@ export default function Roster() {
           }}
         />
       )}
+
+      {whatsapp && veri && (
+        <WhatsAppModal veri={veri} onClose={() => setWhatsapp(false)} />
+      )}
     </div>
+  );
+}
+
+/// Varsayilan WhatsApp mesaj sablonu. {hafta}/{sube}/{personel_sayisi}/{notlar}
+/// yer tutucularini gercek degerlerle doldurur.
+function varsayilanMesaj(veri) {
+  const sube = veri.store || 'Şube';
+  const satirlar = veri.people
+    .filter((p) => p.shift_days > 0)
+    .slice(0, 8)
+    .map((p) => {
+      const ilkGun = veri.dates.find((d) => p.cells[d].some((c) => !c.is_day_off));
+      const hucre = ilkGun ? p.cells[ilkGun].find((c) => !c.is_day_off) : null;
+      return hucre
+        ? `🔹 ${p.user.full_name}: ${hucre.start_time}–${hucre.end_time} (${gunAdi(ilkGun, true)} itibarıyla)`
+        : `🔹 ${p.user.full_name}`;
+    });
+  return `☕ *${sube.toUpperCase()} - VARDİYA PLANI*
+📅 Tarih: ${fmtDate(veri.from)} – ${fmtDate(veri.to)}
+
+Değerli Ekip Arkadaşlarımız, yeni haftanın vardiya çizelgesi onaylanmıştır.
+
+👥 ÇALIŞMA SAATLERİ:
+${satirlar.join('\n')}
+
+⚠️ Lütfen çalışma saatlerinizi kontrol edip giriş-çıkışlarda QR okutmayı unutmayınız.`;
+}
+
+/// Vardiya planini WhatsApp'tan ekibe gonderme ekrani.
+///
+/// GERCEK API ENTEGRASYONU YOK: WhatsApp Business API kimlik bilgisi bu
+/// ortamda tanimli degil. Bu yuzden gonderim OTOMATIK degil — her personel
+/// icin ayri bir wa.me linki acilir, mesaji gonderen kisi kendi WhatsApp'indan
+/// tek tek onaylar. Toplu/otomatik gonderim gerekirse WhatsApp Business API
+/// (ör. Cloud API) baglanmasi gerekir.
+function WhatsAppModal({ veri, onClose }) {
+  const [mesaj, setMesaj] = useState(() => varsayilanMesaj(veri));
+  const [gonderildi, setGonderildi] = useState({});
+
+  const alicilar = veri.people.filter((p) => p.shift_days > 0);
+  const telefonlu = alicilar.filter((p) => p.user.phone);
+  const telefonsuz = alicilar.filter((p) => !p.user.phone);
+
+  function waLinki(phone) {
+    const digits = String(phone).replace(/\D/g, '');
+    // Turkiye numaralari 0 ile basliyor; wa.me ulke koduyla (90) bekliyor.
+    const uluslararasi = digits.startsWith('0') ? `90${digits.slice(1)}` : digits;
+    return `https://wa.me/${uluslararasi}?text=${encodeURIComponent(mesaj)}`;
+  }
+
+  function gonder(userId) {
+    setGonderildi((g) => ({ ...g, [userId]: true }));
+  }
+
+  return (
+    <Modal title="WhatsApp ile Ekibe Gönder" onClose={onClose}>
+      <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        {fmtDate(veri.from)} – {fmtDate(veri.to)} haftasının çizelgesi. Gerçek WhatsApp
+        API bağlantısı olmadığı için gönderim otomatik değildir: her personel için
+        WhatsApp açılır, mesajı siz gönderirsiniz.
+      </p>
+
+      <div className="field">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ margin: 0 }}>Mesaj Metni</label>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setMesaj(varsayilanMesaj(veri))}>
+            <RotateCcw size={13} /> Varsayılana Sıfırla
+          </button>
+        </div>
+        <textarea rows={8} value={mesaj} onChange={(e) => setMesaj(e.target.value)} style={{ marginTop: 6 }} />
+        <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>{mesaj.length} karakter</p>
+      </div>
+
+      <div className="field">
+        <label>Alıcılar ({telefonlu.length}/{alicilar.length} telefon numarası kayıtlı)</label>
+        {telefonlu.length === 0 ? (
+          <p className="empty">Bu haftanın çalışanlarından hiçbirinin telefon numarası kayıtlı değil. Kullanıcılar ekranından ekleyin.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 6 }}>
+            {telefonlu.map((p) => (
+              <div key={p.user.id} className="surface-panel" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 10,
+              }}>
+                <span>
+                  <strong>{p.user.full_name}</strong>{' '}
+                  <span className="muted" style={{ fontSize: 12 }}>{p.user.phone}</span>
+                </span>
+                <a
+                  className={`btn btn-sm ${gonderildi[p.user.id] ? 'btn-secondary' : 'btn-primary'}`}
+                  href={waLinki(p.user.phone)}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => gonder(p.user.id)}
+                >
+                  {gonderildi[p.user.id] ? <><CheckCircle2 size={14} /> Gönderildi</> : <><MessageCircle size={14} /> Gönder</>}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+        {telefonsuz.length > 0 && (
+          <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+            Telefonu kayıtlı olmayan {telefonsuz.length} kişi: {telefonsuz.map((p) => p.user.full_name).join(', ')}
+          </p>
+        )}
+      </div>
+
+      <div className="form-actions">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>Kapat</button>
+      </div>
+    </Modal>
   );
 }
 

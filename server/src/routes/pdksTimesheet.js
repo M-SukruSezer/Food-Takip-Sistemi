@@ -293,7 +293,7 @@ router.get('/roster', async (req, res) => {
   // veriyi cekip JS'te siraliyoruz ki iki yerde iki farkli kademe tanimi
   // olusmasin.
   const users = (await queryAll(`
-    SELECT u.id, u.full_name, u.role, u.store_id, st.name AS store_name,
+    SELECT u.id, u.full_name, u.role, u.store_id, u.phone, st.name AS store_name,
            p.hired_at, p.employment_type
     FROM users u
     LEFT JOIN stores st ON st.id = u.store_id
@@ -365,7 +365,7 @@ router.get('/roster', async (req, res) => {
       + cells[d].reduce((x, c) => x + (c.minutes || 0), 0), 0);
     return {
       user: {
-        id: u.id, full_name: u.full_name, role: u.role,
+        id: u.id, full_name: u.full_name, role: u.role, phone: u.phone,
         store_id: u.store_id, store_name: u.store_name,
         // Cizelge ciktisindaki "ÇALIŞMA ŞEKLİ" ve "GÖREV" sutunlari.
         employment_type: u.employment_type || 'FULL_TIME',

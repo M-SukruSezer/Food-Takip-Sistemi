@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   TriangleAlert, Snowflake, Hourglass, Refrigerator, Banknote, ShoppingBag,
   ClipboardCheck, Trash2, Store, TrendingUp, Activity, ArrowUpRight, ArrowDownRight, Award, TrendingDown,
+  ChevronRight,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
@@ -152,22 +153,27 @@ export default function Dashboard() {
       )}
 
       {expiredCount > 0 && (
-        <div className="alert error" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ display: 'inline-flex' }}><TriangleAlert size={22} /></span>
-          <span style={{ flex: 1 }}>
-            <strong>{expiredCount} adet</strong> ürünün SKT'si doldu! Satışa sunulmamalı, hemen zayi verilmeli.
+        <Link to="/recommendations" className="urgent-banner">
+          <span className="icon-chip"><TriangleAlert size={20} /></span>
+          <span className="urgent-copy">
+            <span className="urgent-kicker">Acil İşlem Gerekiyor</span>
+            <p className="urgent-title">{expiredCount} adet ürünün SKT'si doldu!</p>
+            <p className="urgent-sub">Tezgaha sunulmamalı, hemen zayi kaydı girilmeli.</p>
           </span>
-        </div>
+          <span className="urgent-go"><ChevronRight size={18} /></span>
+        </Link>
       )}
 
       {pendingApprovals > 0 && (
-        <div className="alert warning" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ display: 'inline-flex' }}><ClipboardCheck size={22} /></span>
-          <span style={{ flex: 1 }}>
-            <strong>{pendingApprovals} erken aktarım isteği</strong> onayını bekliyor.
+        <Link to="/approvals" className="urgent-banner tone-warning">
+          <span className="icon-chip"><ClipboardCheck size={20} /></span>
+          <span className="urgent-copy">
+            <span className="urgent-kicker">Onay Bekliyor</span>
+            <p className="urgent-title">{pendingApprovals} erken aktarım isteği</p>
+            <p className="urgent-sub">Onayınızı bekleyen kayıtları inceleyin.</p>
           </span>
-          <Link to="/approvals" className="btn btn-sm btn-primary">İncele</Link>
-        </div>
+          <span className="urgent-go"><ChevronRight size={18} /></span>
+        </Link>
       )}
 
       {isSuper && (
@@ -214,12 +220,12 @@ export default function Dashboard() {
       </section>
 
       <div className="grid stats kpi-grid">
-        <Stat icon={Snowflake} label="Donuk Depo" value={c.frozen_qty} sub={`${c.frozen} kayıt`} color="var(--info)" to="/batches?tab=frozen" />
-        <Stat icon={Hourglass} label="Çözülme" value={c.thawing_qty} sub={`${c.thawing} kayıt`} color="var(--warning)" to="/batches?tab=thawing" />
-        <Stat icon={Refrigerator} label="Food Dolabı" value={c.food_cabinet_qty} sub={`${c.food_cabinet} kayıt`} color="var(--success)" to="/batches?tab=food_cabinet" />
-        <Stat icon={TriangleAlert} label="SKT Geçen" value={c.expired_qty} sub="zayi verilmeli" color="var(--danger)" to="/recommendations" />
-        <Stat icon={Banknote} label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} to="/sales?range=today&kind=sale" />
-        <Stat icon={ShoppingBag} label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
+        <Stat icon={Snowflake} tone="info" label="Donuk Depo" value={c.frozen_qty} sub={`${c.frozen} kayıt`} to="/batches?tab=frozen" />
+        <Stat icon={Hourglass} tone="warning" label="Çözülme" value={c.thawing_qty} sub={`${c.thawing} kayıt`} to="/batches?tab=thawing" />
+        <Stat icon={Refrigerator} tone="success" label="Food Dolabı" value={c.food_cabinet_qty} sub={`${c.food_cabinet} kayıt`} to="/batches?tab=food_cabinet" />
+        <Stat icon={TriangleAlert} tone="danger" label="SKT Geçen" value={c.expired_qty} sub="zayi verilmeli" to="/recommendations" />
+        <Stat icon={Banknote} tone="primary" label="Bugün Satılan" value={`${data.soldToday.qty} adet`} sub={`${(data.soldToday.revenue || 0).toLocaleString('tr-TR')} TL ciro`} to="/sales?range=today&kind=sale" />
+        <Stat icon={ShoppingBag} tone="muted" label="Bugünkü İşlem" value={data.soldToday.count} sub="satış kaydı" to="/sales?range=today" />
       </div>
 
 
@@ -449,10 +455,11 @@ function RankList({ title, icon: Icon, rows, tone, empty }) {
 }
 
 // to verilirse kutu tiklanabilir olur ve ilgili ekrani acar.
-function Stat({ icon: Icon, label, value, sub, color, to }) {
+function Stat({ icon: Icon, label, value, sub, color, tone = 'muted', to }) {
   const inner = (
     <>
-      <div className="label"><span>{Icon && <Icon size={15} />} {label}</span></div>
+      {Icon && <span className={`icon-chip ${tone}`}><Icon size={16} /></span>}
+      <div className="label"><span>{label}</span></div>
       <div className="value" style={color ? { color } : undefined}>{value}</div>
       <div className="sub">{sub}</div>
     </>

@@ -31,7 +31,7 @@ export default function ManagerOverview({ overview, fields }) {
     <div className="manager-overview">
       <Link to="/daily-report" className="surface-panel mo-link">
         <div className="mo-head">
-          <h3><TrendingUp size={18} /> Ciro Forecast <ChevronRight size={18} className="mo-go" /></h3>
+          <h3><span className="icon-chip primary"><TrendingUp size={16} /></span> Ciro Forecast <ChevronRight size={18} className="mo-go" /></h3>
           <span className="muted">
             Ay başından bugüne {rv.days_with_data} günün raporu girildi
             {rv.days_missing > 0 ? ` · ${rv.days_missing} gün eksik` : ''}
@@ -77,7 +77,7 @@ export default function ManagerOverview({ overview, fields }) {
       </Link>
       <Link to="/petty-cash" className="surface-panel mo-link">
         <div className="mo-head">
-          <h3><Wallet size={18} /> Petty Cash <ChevronRight size={18} className="mo-go" /></h3>
+          <h3><span className="icon-chip success"><Wallet size={16} /></span> Petty Cash <ChevronRight size={18} className="mo-go" /></h3>
           <span className="muted">
             {pc.limit_set
               ? `Haftalık limit · ${pc.expense_count} masraf kaydı`

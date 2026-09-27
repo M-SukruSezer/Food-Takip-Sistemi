@@ -27,7 +27,12 @@ const saat = (dk) => {
   if (!dk) return '-';
   return `${Math.floor(dk / 60)}s ${dk % 60}dk`;
 };
-const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin' };
+const TALEP_ETIKET = {
+  IZIN: 'Yıllık İzin',
+  SAATLIK_IZIN: 'Saatlik İzin',
+  VARDIYA_TAKAS: 'Vardiya Takas',
+  VARDIYA_DEVIR: 'Vardiya Devir',
+};
 
 // Cihaz butunluk bayraklari; sunucudaki FLAG_LABELS ile ayni anahtarlar.
 // Engelleyen bayraklar (sahte konum, emulator) hic kayit yazmadigi icin
@@ -178,6 +183,7 @@ function Talepler({ onChange }) {
   const [liste, setListe] = useState([]);
   const [durum, setDurum] = useState('PENDING');
   const [ret, setRet] = useState(null);
+  const [ata, setAta] = useState(null);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -185,10 +191,10 @@ function Talepler({ onChange }) {
       .then((r) => setListe(r.data)).catch(() => {});
   }, [durum, reload]);
 
-  async function karar(r, onayla, note) {
+  async function karar(r, onayla, extra) {
     try {
       await api.post(`/pdks/requests/${r.id}/${onayla ? 'approve' : 'reject'}`,
-        note ? { note } : undefined,
+        extra || undefined,
         { successMessage: onayla ? 'Talep onaylandı' : 'Talep reddedildi' });
       setReload((n) => n + 1);
       onChange();
@@ -222,37 +228,56 @@ function Talepler({ onChange }) {
               {liste.length === 0 && (
                 <tr><td data-label="" colSpan="6"><p className="empty">Kayıt bulunamadı.</p></td></tr>
               )}
-              {liste.map((r) => (
-                <tr key={r.id}>
-                  <td data-label="Personel"><strong>{r.full_name}</strong></td>
-                  <td data-label="Tür">{TALEP_ETIKET[r.type]}</td>
-                  <td data-label="Detay">
-                    {r.type === 'IZIN'
-                      ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
-                      : `${fmtDateTime(r.start_at)} · ${r.hours} saat`}
-                  </td>
-                  <td data-label="Gerekçe" style={{ maxWidth: 200 }}>{r.reason}</td>
-                  <td data-label="Durum">
-                    <span className={`badge ${r.status === 'PENDING' ? 'warning'
-                      : r.status === 'APPROVED' ? 'sold' : 'critical'}`}>
-                      {r.status === 'PENDING' ? 'Bekliyor'
-                        : r.status === 'APPROVED' ? 'Onaylandı'
-                        : r.status === 'REJECTED' ? 'Reddedildi' : 'İptal'}
-                    </span>
-                    {r.decision_note && (
-                      <div className="muted" style={{ fontSize: 11 }}>{r.decision_note}</div>
-                    )}
-                  </td>
-                  <td data-label="İşlem">
-                    {r.status === 'PENDING' && (
-                      <div className="row-actions">
-                        <button className="btn btn-sm btn-primary" onClick={() => karar(r, true)}>Onayla</button>
-                        <button className="btn btn-sm btn-danger" onClick={() => setRet(r)}>Reddet</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {liste.map((r) => {
+                const isShift = r.type === 'VARDIYA_TAKAS' || r.type === 'VARDIYA_DEVIR';
+                const bekliyorOnay = r.type === 'VARDIYA_TAKAS' && !r.target_confirmed_at;
+                return (
+                  <tr key={r.id}>
+                    <td data-label="Personel"><strong>{r.full_name}</strong></td>
+                    <td data-label="Tür">{TALEP_ETIKET[r.type]}</td>
+                    <td data-label="Detay">
+                      {r.type === 'IZIN'
+                        ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
+                        : r.type === 'SAATLIK_IZIN'
+                        ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
+                        : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
+                      {isShift && r.status === 'PENDING' && (
+                        <div className="muted" style={{ fontSize: 11 }}>
+                          {r.type === 'VARDIYA_TAKAS'
+                            ? (bekliyorOnay ? 'Karşı taraf onayı bekleniyor' : 'Karşı taraf onayladı')
+                            : (r.target_name ? 'Personel atandı' : 'Yedek personel atanmadı')}
+                        </div>
+                      )}
+                    </td>
+                    <td data-label="Gerekçe" style={{ maxWidth: 200 }}>{r.reason}</td>
+                    <td data-label="Durum">
+                      <span className={`badge ${r.status === 'PENDING' ? 'warning'
+                        : r.status === 'APPROVED' ? 'sold' : 'critical'}`}>
+                        {r.status === 'PENDING' ? 'Bekliyor'
+                          : r.status === 'APPROVED' ? 'Onaylandı'
+                          : r.status === 'REJECTED' ? 'Reddedildi' : 'İptal'}
+                      </span>
+                      {r.decision_note && (
+                        <div className="muted" style={{ fontSize: 11 }}>{r.decision_note}</div>
+                      )}
+                    </td>
+                    <td data-label="İşlem">
+                      {r.status === 'PENDING' && (
+                        <div className="row-actions">
+                          {r.type === 'VARDIYA_DEVIR' && !r.target_user_id ? (
+                            <button className="btn btn-sm btn-primary" onClick={() => setAta(r)}>Ata &amp; Onayla</button>
+                          ) : (
+                            <button className="btn btn-sm btn-primary" disabled={bekliyorOnay}
+                              title={bekliyorOnay ? 'Karşı taraf henüz onaylamadı' : undefined}
+                              onClick={() => karar(r, true)}>Onayla</button>
+                          )}
+                          <button className="btn btn-sm btn-danger" onClick={() => setRet(r)}>Reddet</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -260,9 +285,56 @@ function Talepler({ onChange }) {
 
       {ret && (
         <RetModal talep={ret} onClose={() => setRet(null)}
-          onDone={(note) => { const t = ret; setRet(null); karar(t, false, note); }} />
+          onDone={(note) => { const t = ret; setRet(null); karar(t, false, { note }); }} />
+      )}
+      {ata && (
+        <AtaModal talep={ata} onClose={() => setAta(null)}
+          onDone={(targetUserId) => { const t = ata; setAta(null); karar(t, true, { target_user_id: targetUserId }); }} />
       )}
     </>
+  );
+}
+
+/// Vardiya devir talebine yedek personel atayip aninda onaylar.
+function AtaModal({ talep, onClose, onDone }) {
+  const [users, setUsers] = useState([]);
+  const [secim, setSecim] = useState('');
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    api.get('/users', { silent: true }).then((r) => {
+      setUsers(r.data.filter((u) => u.active && Number(u.store_id) === Number(talep.store_id)
+        && Number(u.id) !== Number(talep.user_id)));
+    }).catch(() => {});
+  }, [talep]);
+
+  return (
+    <Modal title="Yedek Personel Ata" onClose={onClose}>
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (!secim) { setErr('Bir personel seçin'); return; }
+        onDone(Number(secim));
+      }}>
+        {err && <div className="alert error">{err}</div>}
+        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+          {talep.full_name} · {fmtDate(talep.shift_date)} vardiyası
+        </p>
+        <div className="field">
+          <label>Yedek Personel</label>
+          <select value={secim} onChange={(e) => setSecim(e.target.value)} autoFocus required>
+            <option value="">Seçin…</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+          </select>
+          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+            Vardiya onayla birlikte bu personele devredilir ve çizelgeye yansır.
+          </p>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary">Ata &amp; Onayla</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

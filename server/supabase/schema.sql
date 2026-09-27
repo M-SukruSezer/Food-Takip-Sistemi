@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS users (
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
+-- WhatsApp ile ekibe gönderim icin: gercek API entegrasyonu yok, wa.me
+-- linki bu numaradan olusturuluyor.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 
 CREATE TABLE IF NOT EXISTS product_types (
   id BIGSERIAL PRIMARY KEY,
@@ -456,22 +459,37 @@ CREATE TABLE IF NOT EXISTS personnel_requests (
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
 
+-- Vardiya takas (VARDIYA_TAKAS) ve devir/destek (VARDIYA_DEVIR) talepleri
+-- icin ek alanlar. target_user_id: takasta karsi taraf, devirde onerilen/
+-- atanan yedek personel (nullable, yonetici sonradan atayabilir).
+-- target_confirmed_at: takasta karsi tarafin mobilden onay verdigi an;
+-- yonetici onayi bundan SONRA anlamli (bkz. pdksRequests.js decide()).
+ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS target_user_id BIGINT REFERENCES users(id);
+ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS shift_date TEXT;
+ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS target_confirmed_at TEXT;
+
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_type_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_type_check
-  CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS'));
+  CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR'));
 -- NOT: 'AVANS' kisitta BIRAKILDI. Avans ozelligi kaldirildi ama tur listesini
 -- daraltmak, veritabaninda tek bir eski avans talebi kalmissa bu semayi ve
 -- dolayisiyla tum API'yi dusururdu. API artik AVANS talebi olusturmuyor.
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_status_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_status_check
   CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'));
--- Tur ile dolu alanlar tutarli olmali: avansta tutar, izinde tarih.
+-- Tur ile dolu alanlar tutarli olmali: avansta tutar, izinde tarih,
+-- takasta karsi taraf + vardiya tarihi, devirde en az vardiya tarihi.
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_shape_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_shape_check
   CHECK (
     (type = 'AVANS' AND amount IS NOT NULL AND amount > 0)
     OR (type IN ('IZIN', 'SAATLIK_IZIN') AND start_at IS NOT NULL AND end_at IS NOT NULL)
+    OR (type = 'VARDIYA_TAKAS' AND shift_date IS NOT NULL AND target_user_id IS NOT NULL)
+    OR (type = 'VARDIYA_DEVIR' AND shift_date IS NOT NULL)
   );
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_shift_date_format_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_shift_date_format_check
+  CHECK (shift_date IS NULL OR shift_date ~ '^\d{4}-\d{2}-\d{2}$');
 -- Karar verilmis talepte karar veren ve zamani bulunmali.
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_decision_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_decision_check
@@ -481,6 +499,8 @@ CREATE INDEX IF NOT EXISTS idx_personnel_requests_user ON personnel_requests(use
 -- Yoneticinin onay kuyrugu.
 CREATE INDEX IF NOT EXISTS idx_personnel_requests_pending
   ON personnel_requests(store_id) WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_personnel_requests_target
+  ON personnel_requests(target_user_id) WHERE target_user_id IS NOT NULL;
 
 -- Resmi tatiller.
 --

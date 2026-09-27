@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../db');
+const { queryAll, queryOne, execute, transaction } = require('../db');
 const {
   requireAuth, requireRole, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
 } = require('../auth');
@@ -15,7 +15,12 @@ router.use(requireAuth);
 const requireManager = requireRole(...MANAGER_ROLES);
 
 /// Bildirim metinlerinde kullanilan tur adi.
-const TUR_ADI = { IZIN: 'Yıllık izin', SAATLIK_IZIN: 'Saatlik izin' };
+const TUR_ADI = {
+  IZIN: 'Yıllık izin',
+  SAATLIK_IZIN: 'Saatlik izin',
+  VARDIYA_TAKAS: 'Vardiya takas talebi',
+  VARDIYA_DEVIR: 'Vardiya devir talebi',
+};
 const turAdi = (tip) => TUR_ADI[tip] || tip;
 
 /// Talebin tek satirlik ozeti.
@@ -24,6 +29,9 @@ function talepOzet(row) {
     return `${row.start_at} – ${row.end_at}, ${row.days} gün`;
   }
   if (row.type === 'SAATLIK_IZIN') return `${row.hours} saat`;
+  if (row.type === 'VARDIYA_TAKAS' || row.type === 'VARDIYA_DEVIR') {
+    return `${row.shift_date} tarihli vardiya`;
+  }
   return '';
 }
 
@@ -50,7 +58,8 @@ async function kararVericiler(storeId, haricUserId) {
     ...MANAGER_ROLES, storeId, ...UST_ROLLER, haricUserId);
   return rows.map((r) => Number(r.id));
 }
-const TYPES = ['IZIN', 'SAATLIK_IZIN'];
+const TYPES = ['IZIN', 'SAATLIK_IZIN', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR'];
+const SHIFT_TYPES = ['VARDIYA_TAKAS', 'VARDIYA_DEVIR'];
 
 /// Bir tarih araligindaki resmi tatiller.
 ///
@@ -123,6 +132,18 @@ async function balancesOf(userId, atIso = new Date().toISOString()) {
   };
 }
 
+/// Vardiya takas/devir talebinde secilecek personel listesi. Herkes kendi
+/// magazasindaki aktif meslektaslarini gorebilir (isim + id disinda bilgi yok).
+router.get('/requests/colleagues', async (req, res) => {
+  const storeId = req.user.store_id;
+  if (!storeId) return res.json([]);
+  const rows = await queryAll(`
+    SELECT id, full_name FROM users
+    WHERE store_id = ? AND active = 1 AND id <> ?
+    ORDER BY full_name`, storeId, req.user.id);
+  res.json(rows);
+});
+
 router.get('/requests/balances', async (req, res) => {
   const userId = req.query.userId ? Number(req.query.userId) : req.user.id;
   if (userId !== req.user.id) {
@@ -145,8 +166,9 @@ router.get('/requests', async (req, res) => {
   let where = '1 = 1';
 
   if (!isManager) {
-    where += ' AND r.user_id = ?';
-    params.push(req.user.id);
+    // Takas talebinde hedef taraf da kendi listesinde gormeli (onaylayabilsin).
+    where += ' AND (r.user_id = ? OR r.target_user_id = ?)';
+    params.push(req.user.id, req.user.id);
   } else {
     const scope = resolveStoreScope(req, res);
     if (!scope.ok) return undefined;
@@ -171,11 +193,13 @@ router.get('/requests', async (req, res) => {
   }
 
   const rows = await queryAll(`
-    SELECT r.*, u.full_name, m.full_name AS manager_name, s.name AS store_name
+    SELECT r.*, u.full_name, m.full_name AS manager_name, s.name AS store_name,
+      tu.full_name AS target_name
     FROM personnel_requests r
     JOIN users u ON u.id = r.user_id
     LEFT JOIN users m ON m.id = r.manager_id
     LEFT JOIN stores s ON s.id = r.store_id
+    LEFT JOIN users tu ON tu.id = r.target_user_id
     WHERE ${where}
     ORDER BY CASE WHEN r.status = 'PENDING' THEN 0 ELSE 1 END, r.created_at DESC
     LIMIT 500`, ...params);
@@ -187,7 +211,7 @@ router.post('/requests', async (req, res) => {
   const body = req.body || {};
   const type = String(body.type || '').toUpperCase();
   if (!TYPES.includes(type)) {
-    return res.status(400).json({ error: 'Talep türü IZIN veya SAATLIK_IZIN olmalıdır' });
+    return res.status(400).json({ error: 'Geçersiz talep türü' });
   }
   const storeId = req.user.store_id;
   if (!storeId) return res.status(403).json({ error: 'Size mağaza atanmamış' });
@@ -195,10 +219,80 @@ router.post('/requests', async (req, res) => {
   if (!reason) return res.status(400).json({ error: 'Gerekçe zorunludur' });
   if (reason.length > 500) return res.status(400).json({ error: 'Gerekçe en fazla 500 karakter' });
 
+  // amount kolonu semada duruyor (eski kayitlar icin) ama artik hep null.
+  const fields = {
+    start_at: null, end_at: null, days: null, hours: null, amount: null,
+    target_user_id: null, shift_date: null,
+  };
+
+  if (SHIFT_TYPES.includes(type)) {
+    const shiftDate = String(body.shift_date || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(shiftDate)) {
+      return res.status(400).json({ error: 'Vardiya tarihi YYYY-AA-GG biçiminde olmalıdır' });
+    }
+    const myShift = await queryOne(`
+      SELECT id FROM user_shifts
+      WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL`, req.user.id, shiftDate);
+    if (!myShift) {
+      return res.status(400).json({ error: 'Bu tarihte size ait bir vardiya bulunamadı' });
+    }
+    const openRequest = await queryOne(`
+      SELECT id FROM personnel_requests
+      WHERE user_id = ? AND shift_date = ? AND status = 'PENDING' AND type IN ('VARDIYA_TAKAS','VARDIYA_DEVIR')
+      LIMIT 1`, req.user.id, shiftDate);
+    if (openRequest) {
+      return res.status(400).json({ error: 'Bu vardiya için zaten bekleyen bir talebiniz var' });
+    }
+    fields.shift_date = shiftDate;
+
+    if (type === 'VARDIYA_TAKAS') {
+      const targetId = Number(body.target_user_id);
+      if (!targetId) return res.status(400).json({ error: 'Takas için bir personel seçmelisiniz' });
+      if (targetId === req.user.id) {
+        return res.status(400).json({ error: 'Kendinizle takas talebi oluşturamazsınız' });
+      }
+      const target = await queryOne(
+        'SELECT id, active, store_id FROM users WHERE id = ?', targetId);
+      if (!target || !target.active || Number(target.store_id) !== Number(storeId)) {
+        return res.status(400).json({ error: 'Geçersiz hedef personel' });
+      }
+      fields.target_user_id = targetId;
+    }
+
+    const r = await execute(`
+      INSERT INTO personnel_requests
+        (user_id, store_id, type, target_user_id, shift_date, reason)
+      VALUES (?,?,?,?,?,?) RETURNING id`,
+      req.user.id, storeId, type, fields.target_user_id, fields.shift_date, reason);
+
+    for (const yoneticiId of await kararVericiler(storeId, req.user.id)) {
+      await notify.requestCreated({
+        managerId: yoneticiId,
+        requesterName: req.user.full_name,
+        typeLabel: turAdi(type),
+        detail: talepOzet({ type, ...fields }),
+        requestId: Number(r.lastInsertRowid),
+      });
+    }
+    // Takasta karsi tarafa da haber verilir; onayi o baslatir.
+    if (type === 'VARDIYA_TAKAS') {
+      await notify.requestCreated({
+        managerId: fields.target_user_id,
+        requesterName: req.user.full_name,
+        typeLabel: turAdi(type),
+        detail: talepOzet({ type, ...fields }),
+        requestId: Number(r.lastInsertRowid),
+      });
+    }
+
+    await logActivity(req.user, 'TALEP_OLUSTUR', 'personnel_request', r.lastInsertRowid,
+      `${type}: ${fields.shift_date}`, storeId);
+
+    return res.status(201).json({ id: Number(r.lastInsertRowid), ...fields, type, status: 'PENDING' });
+  }
+
   const balances = await balancesOf(req.user.id);
   const profile = await profileOf(req.user.id);
-  // amount kolonu semada duruyor (eski kayitlar icin) ama artik hep null.
-  const fields = { start_at: null, end_at: null, days: null, hours: null, amount: null };
 
   if (type === 'IZIN') {
     const from = String(body.start_at || '');
@@ -311,6 +405,7 @@ async function decide(req, res, next) {
 
   // Talep olusturulduktan sonra hak degismis olabilir (yonetici izin gununu
   // dusurmus ya da baska talep onaylanmis olabilir). Onay aninda tekrar bakilir.
+  let assignedTargetId = row.target_user_id ? Number(row.target_user_id) : null;
   if (approve) {
     const b = await balancesOf(row.user_id);
     if (row.type === 'IZIN') {
@@ -324,12 +419,65 @@ async function decide(req, res, next) {
         });
       }
     }
+    if (row.type === 'VARDIYA_TAKAS' && !row.target_confirmed_at) {
+      return res.status(400).json({
+        error: 'Karşı taraf henüz onay vermedi; önce personelin mobil onayı bekleniyor',
+      });
+    }
+    if (row.type === 'VARDIYA_DEVIR' && !assignedTargetId) {
+      assignedTargetId = Number(req.body && req.body.target_user_id);
+      if (!assignedTargetId) {
+        return res.status(400).json({ error: 'Devir için bir personel atamalısınız' });
+      }
+      const target = await queryOne(
+        'SELECT id, active, store_id FROM users WHERE id = ?', assignedTargetId);
+      if (!target || !target.active || Number(target.store_id) !== Number(row.store_id)) {
+        return res.status(400).json({ error: 'Geçersiz hedef personel' });
+      }
+      if (assignedTargetId === Number(row.user_id)) {
+        return res.status(400).json({ error: 'Personel kendi vardiyasına atanamaz' });
+      }
+    }
   }
 
-  await execute(`
-    UPDATE personnel_requests SET status=?, manager_id=?, decision_note=?,
-      decided_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-    WHERE id = ?`, next, req.user.id, note, row.id);
+  if (approve && SHIFT_TYPES.includes(row.type)) {
+    // Vardiya, onayla birlikte yeni personele devredilir; ayni islemde
+    // talep de onaylanir ki yari yolda kalmis (vardiya devretti ama talep
+    // hala bekliyor) bir durum olusmasin.
+    try {
+      await transaction(async (client) => {
+        const shift = await queryOne(`
+          SELECT id FROM user_shifts
+          WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL`,
+          row.user_id, row.shift_date, client);
+        if (!shift) {
+          throw Object.assign(new Error('shift-gone'), {
+            userMessage: 'Bu vardiya artık çizelgede bulunmuyor; talep onaylanamadı',
+          });
+        }
+        await execute('UPDATE user_shifts SET user_id = ? WHERE id = ?',
+          [assignedTargetId, shift.id], client);
+        await execute(`
+          UPDATE personnel_requests SET status=?, manager_id=?, decision_note=?,
+            target_user_id=?,
+            decided_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+          WHERE id = ?`, [next, req.user.id, note, assignedTargetId, row.id], client);
+      });
+    } catch (e) {
+      if (e.userMessage) return res.status(400).json({ error: e.userMessage });
+      if (e.code === '23505') {
+        return res.status(400).json({
+          error: 'Hedef personelin o tarihte zaten bir vardiyası var; önce onu düzenleyin',
+        });
+      }
+      throw e;
+    }
+  } else {
+    await execute(`
+      UPDATE personnel_requests SET status=?, manager_id=?, decision_note=?,
+        decided_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+      WHERE id = ?`, next, req.user.id, note, row.id);
+  }
 
   // Talebi acan kisiye karar bildirimi.
   await notify.requestDecided({
@@ -352,6 +500,42 @@ async function decide(req, res, next) {
 
 router.post('/requests/:id/approve', requireManager, (req, res) => decide(req, res, 'APPROVED'));
 router.post('/requests/:id/reject', requireManager, (req, res) => decide(req, res, 'REJECTED'));
+
+/// Vardiya takas talebinde karsi tarafin mobilden onayi. Yalnizca hedef
+/// personel cagirabilir; yonetici onayi bundan SONRA anlamli olur.
+router.post('/requests/:id/confirm', async (req, res) => {
+  const row = await queryOne('SELECT * FROM personnel_requests WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Talep bulunamadı' });
+  if (row.type !== 'VARDIYA_TAKAS') {
+    return res.status(400).json({ error: 'Yalnızca vardiya takas talepleri onay bekler' });
+  }
+  if (Number(row.target_user_id) !== Number(req.user.id)) {
+    return res.status(403).json({ error: 'Bu talebi yalnızca hedef personel onaylayabilir' });
+  }
+  if (row.status !== 'PENDING') {
+    return res.status(400).json({ error: 'Bu talep artık bekleyen durumda değil' });
+  }
+  if (row.target_confirmed_at) return res.status(400).json({ error: 'Bu talebi zaten onayladınız' });
+
+  await execute(`
+    UPDATE personnel_requests SET
+      target_confirmed_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    WHERE id = ?`, row.id);
+
+  for (const yoneticiId of await kararVericiler(row.store_id, row.user_id)) {
+    await notify.requestCreated({
+      managerId: yoneticiId,
+      requesterName: req.user.full_name,
+      typeLabel: 'Vardiya takas onayı verildi',
+      detail: talepOzet(row),
+      requestId: row.id,
+    });
+  }
+  await logActivity(req.user, 'TALEP_ONAY', 'personnel_request', row.id,
+    'Vardiya takas talebine karşı taraf onayı verildi', row.store_id);
+
+  res.json({ ok: true });
+});
 
 /// Personel bekleyen kendi talebini geri alabilir.
 router.post('/requests/:id/cancel', async (req, res) => {

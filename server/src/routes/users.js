@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
   const f = storeFilter(scope, 'u.store_id');
   const rows = await queryAll(`
     SELECT u.id, u.username, u.full_name, u.role, u.active, u.store_id, u.permissions, u.created_at,
-           s.name AS store_name
+           u.phone, s.name AS store_name
     FROM users u LEFT JOIN stores s ON s.id = u.store_id
     WHERE u.role IN (${below.map(() => '?').join(',')}) ${f.sql}
     ORDER BY u.created_at DESC
@@ -91,7 +91,7 @@ async function grantableBy(user) {
 }
 
 router.post('/', async (req, res) => {
-  const { username, password, full_name, role, store_id, active } = req.body || {};
+  const { username, password, full_name, role, store_id, active, phone } = req.body || {};
   if (!username || !password || !full_name || !role) {
     return res.status(400).json({ error: 'Kullanıcı adı, şifre, ad soyad ve rol zorunludur' });
   }
@@ -138,8 +138,9 @@ router.post('/', async (req, res) => {
   const permissions = role === 'super_admin' ? null : serializePermissions(wanted);
 
   const r = await execute(
-    'INSERT INTO users (store_id, username, password_hash, full_name, role, active, permissions) VALUES (?,?,?,?,?,?,?) RETURNING id'
-  ,sid, String(username).trim(), hashPassword(String(password)), String(full_name).trim(), role, active === false ? 0 : 1, permissions);
+    'INSERT INTO users (store_id, username, password_hash, full_name, role, active, permissions, phone) VALUES (?,?,?,?,?,?,?,?) RETURNING id'
+  ,sid, String(username).trim(), hashPassword(String(password)), String(full_name).trim(), role, active === false ? 0 : 1, permissions,
+    phone ? String(phone).trim() : null);
   const newId = Number(r.lastInsertRowid);
   // Cok magazali rolde sorumluluk listesi ayri tabloya yazilir.
   if (isMultiStoreRole(role)) {
@@ -159,7 +160,7 @@ router.put('/:id', async (req, res) => {
   const existing = await queryOne('SELECT * FROM users WHERE id = ?',Number(req.params.id));
   if (!existing) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
 
-  const { full_name, role, active, store_id } = req.body || {};
+  const { full_name, role, active, store_id, phone } = req.body || {};
 
   const isSelf = existing.id === req.user.id;
   if (!isSelf && !canManageUser(req, existing)) {
@@ -209,9 +210,9 @@ router.put('/:id', async (req, res) => {
   }
   if (newRole === 'super_admin') permissions = null;
 
-  await execute('UPDATE users SET full_name = ?, role = ?, active = ?, store_id = ?, permissions = ? WHERE id = ?',
+  await execute('UPDATE users SET full_name = ?, role = ?, active = ?, store_id = ?, permissions = ?, phone = ? WHERE id = ?',
     (full_name || existing.full_name), newRole, active === undefined ? existing.active : (active ? 1 : 0), sid,
-    permissions, existing.id
+    permissions, phone === undefined ? existing.phone : (phone ? String(phone).trim() : null), existing.id
   );
   const permissionNote = req.body.permissions === undefined
     ? ''

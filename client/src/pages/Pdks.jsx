@@ -4,6 +4,7 @@ import {
   Wallet, Plus, ScanLine, RefreshCw, Coffee, Play, AlertTriangle,
 } from 'lucide-react';
 import api from '../api';
+import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
 import QrScanner from '../components/pdks/QrScanner';
 import { fmtDate, fmtDateTime, errorMessage } from '../format';
@@ -15,11 +16,17 @@ import { fmtDate, fmtDateTime, errorMessage } from '../format';
 //
 // KVKK: konum yalnizca okutma aninda aliniyor, arka planda izleme yok.
 
-const TALEP_ETIKET = { IZIN: 'Yıllık İzin', SAATLIK_IZIN: 'Saatlik İzin' };
+const TALEP_ETIKET = {
+  IZIN: 'Yıllık İzin',
+  SAATLIK_IZIN: 'Saatlik İzin',
+  VARDIYA_TAKAS: 'Vardiya Takas',
+  VARDIYA_DEVIR: 'Vardiya Devir',
+};
 const DURUM_ETIKET = { PENDING: 'Bekliyor', APPROVED: 'Onaylandı', REJECTED: 'Reddedildi', CANCELLED: 'İptal' };
 const DURUM_SINIF = { PENDING: 'warning', APPROVED: 'sold', REJECTED: 'critical', CANCELLED: 'discarded' };
 
 export default function Pdks() {
+  const { user } = useAuth();
   const [durum, setDurum] = useState(null);
   const [bakiye, setBakiye] = useState(null);
   const [talepler, setTalepler] = useState([]);
@@ -334,8 +341,16 @@ const ADIM = {
                     <td data-label="Detay">
                       {r.type === 'IZIN'
                         ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
-                        : `${fmtDateTime(r.start_at)} · ${r.hours} saat`}
+                        : r.type === 'SAATLIK_IZIN'
+                        ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
+                        : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
                       <div className="muted" style={{ fontSize: 12 }}>{r.reason}</div>
+                      {r.type === 'VARDIYA_TAKAS' && r.status === 'PENDING' && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {r.target_confirmed_at ? 'Karşı taraf onayladı · yönetici onayı bekleniyor'
+                            : 'Karşı taraf onayı bekleniyor'}
+                        </div>
+                      )}
                     </td>
                     <td data-label="Durum">
                       <span className={`badge ${DURUM_SINIF[r.status]}`}>{DURUM_ETIKET[r.status]}</span>
@@ -345,7 +360,17 @@ const ADIM = {
                       {r.decision_note && <div>{r.decision_note}</div>}
                     </td>
                     <td data-label="İşlem">
-                      {r.status === 'PENDING' && (
+                      {r.status === 'PENDING' && r.type === 'VARDIYA_TAKAS'
+                        && Number(r.target_user_id) === Number(user.id) && !r.target_confirmed_at && (
+                        <button className="btn btn-sm btn-primary" onClick={async () => {
+                          try {
+                            await api.post(`/pdks/requests/${r.id}/confirm`, undefined,
+                              { successMessage: 'Takas talebi onaylandı' });
+                            setReload((n) => n + 1);
+                          } catch { /* bildirim api katmaninda */ }
+                        }}>Onayla</button>
+                      )}
+                      {r.status === 'PENDING' && Number(r.user_id) === Number(user.id) && (
                         <button className="btn btn-sm btn-secondary" onClick={async () => {
                           try {
                             await api.post(`/pdks/requests/${r.id}/cancel`, undefined,
@@ -455,16 +480,33 @@ function Takvim({ ay, atamalar, tatiller = [] }) {
   );
 }
 
-/// Izin / saatlik izin talep formu.
+/// Izin / saatlik izin / vardiya takas-devir talep formu.
 function TalepModal({ bakiye, onClose, onDone }) {
   const [tur, setTur] = useState('IZIN');
   const [baslangic, setBaslangic] = useState('');
   const [bitis, setBitis] = useState('');
   const [saatBas, setSaatBas] = useState('');
   const [saatBit, setSaatBit] = useState('');
+  const [vardiyaTarih, setVardiyaTarih] = useState('');
+  const [hedefId, setHedefId] = useState('');
   const [gerekce, setGerekce] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [vardiyalarim, setVardiyalarim] = useState([]);
+  const [meslektaslar, setMeslektaslar] = useState([]);
+
+  useEffect(() => {
+    if (tur !== 'VARDIYA_TAKAS' && tur !== 'VARDIYA_DEVIR') return;
+    const bugunIso = new Date().toISOString().slice(0, 10);
+    const ileriIso = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    api.get(`/pdks/assignments?from=${bugunIso}&to=${ileriIso}`, { silent: true })
+      .then((r) => setVardiyalarim(r.data.filter((a) => !a.is_day_off)))
+      .catch(() => {});
+    if (tur === 'VARDIYA_TAKAS') {
+      api.get('/pdks/requests/colleagues', { silent: true })
+        .then((r) => setMeslektaslar(r.data)).catch(() => {});
+    }
+  }, [tur]);
 
   async function gonder(e) {
     e.preventDefault();
@@ -475,11 +517,18 @@ function TalepModal({ bakiye, onClose, onDone }) {
       if (!baslangic || !bitis) { setErr('Tarih aralığı seçin'); return; }
       govde.start_at = baslangic;
       govde.end_at = bitis;
-    } else {
+    } else if (tur === 'SAATLIK_IZIN') {
       if (!saatBas || !saatBit) { setErr('Saat aralığı seçin'); return; }
       // datetime-local yerel saat verir; ISO'ya cevrilir.
       govde.start_at = new Date(saatBas).toISOString();
       govde.end_at = new Date(saatBit).toISOString();
+    } else {
+      if (!vardiyaTarih) { setErr('Bir vardiya seçin'); return; }
+      govde.shift_date = vardiyaTarih;
+      if (tur === 'VARDIYA_TAKAS') {
+        if (!hedefId) { setErr('Takas için bir personel seçin'); return; }
+        govde.target_user_id = Number(hedefId);
+      }
     }
     setBusy(true);
     try {
@@ -502,8 +551,50 @@ function TalepModal({ bakiye, onClose, onDone }) {
           <select value={tur} onChange={(e) => setTur(e.target.value)}>
             <option value="IZIN">Yıllık İzin</option>
             <option value="SAATLIK_IZIN">Saatlik İzin</option>
+            <option value="VARDIYA_TAKAS">Vardiya Takas</option>
+            <option value="VARDIYA_DEVIR">Vardiya Devir</option>
           </select>
         </div>
+
+        {(tur === 'VARDIYA_TAKAS' || tur === 'VARDIYA_DEVIR') && (
+          <>
+            <div className="field">
+              <label>Vardiya</label>
+              <select value={vardiyaTarih} onChange={(e) => setVardiyaTarih(e.target.value)} required>
+                <option value="">Seçin…</option>
+                {vardiyalarim.map((a) => (
+                  <option key={`${a.work_date}-${a.shift_id}`} value={a.work_date}>
+                    {fmtDate(a.work_date)} · {a.start_time}–{a.end_time}
+                  </option>
+                ))}
+              </select>
+              {vardiyalarim.length === 0 && (
+                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                  Önümüzdeki 60 gün içinde size ait vardiya bulunamadı.
+                </p>
+              )}
+            </div>
+            {tur === 'VARDIYA_TAKAS' && (
+              <div className="field">
+                <label>Takas Edilecek Personel</label>
+                <select value={hedefId} onChange={(e) => setHedefId(e.target.value)} required>
+                  <option value="">Seçin…</option>
+                  {meslektaslar.map((m) => (
+                    <option key={m.id} value={m.id}>{m.full_name}</option>
+                  ))}
+                </select>
+                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                  Seçilen personelin mobil onayı olmadan yönetici bu talebi onaylayamaz.
+                </p>
+              </div>
+            )}
+            {tur === 'VARDIYA_DEVIR' && (
+              <p className="muted" style={{ fontSize: 12 }}>
+                Yönetici, uygun bir personeli talebe atayarak onaylayacaktır.
+              </p>
+            )}
+          </>
+        )}
 
         {tur === 'IZIN' && (
           <>
