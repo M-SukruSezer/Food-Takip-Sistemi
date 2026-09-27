@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, ShoppingCart, Gift, Package, Banknote, ShieldCheck } from 'lucide-react';
 import { fmtMoney, hasPrice } from '../format';
 import { subscribeBusy } from '../busy';
 
@@ -63,33 +63,61 @@ export function Confirm({ title, message, onCancel, onConfirm, confirmLabel = 'O
   );
 }
 
-// Satis onay metni. Uc ekranda da ayni: her zaman tam 1 adet dusulur.
-export function sellConfirmMessage(b) {
+// Satis/ikram onayi icin zengin gorsel modal (sat_onayla_modal mockup'ı).
+// Her zaman TAM 1 adet duser.
+export function SellConfirmModal({ batch: b, kind, onCancel, onConfirm }) {
+  const isSale = kind === 'sale';
+  const priced = hasPrice(b.product_unit_price);
   return (
-    <>
-      <strong>{b.product_name}</strong> ürününden <strong>1 adet</strong> satılacak.
-      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
-      <br />
-      {hasPrice(b.product_unit_price)
-        ? <>Ciroya <strong>{fmtMoney(b.product_unit_price)}</strong> eklenecek.</>
-        : <>Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.</>}
-    </>
-  );
-}
+    <Modal title={<><ShoppingCart size={17} /> {isSale ? 'Satışı Onayla' : 'İkramı Onayla'}</>} onClose={onCancel}>
+      <div className="sell-confirm">
+        <div className="sell-confirm-head">
+          <span className="icon-chip primary"><Banknote size={18} /></span>
+          <div>
+            <strong>Kasa İşlemi</strong>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>Stok düşümü ve ciro güncelleme</p>
+          </div>
+        </div>
 
-// Ikram stoktan duser ama satis sayilmaz: ciroya girmez, satis adedine
-// yazilmaz. Personel ikisini karistirmasin diye onay metni bunu soyler.
-export function ikramConfirmMessage(b) {
-  return (
-    <>
-      <strong>{b.product_name}</strong> ürününden <strong>1 adet ikram</strong> edilecek.
-      {' '}Kalan {b.remaining} adetten {b.remaining - 1} adede düşecek.
-      <br />
-      Ciroya <strong>eklenmez</strong> ve satış adedine sayılmaz.
-      {hasPrice(b.product_unit_price)
-        ? <> İkram değeri olarak {fmtMoney(b.product_unit_price)} kaydedilir.</>
-        : <> Bu çeşit için fiyat tanımlı olmadığı için ikram değeri kaydedilemez.</>}
-    </>
+        <div className="sell-confirm-product">
+          <strong>{b.product_name}</strong>
+          {b.urgency && <StatusBadge status="food_cabinet" urgency={b.urgency} />}
+        </div>
+
+        <div className="sell-stock-row">
+          <span className="icon-chip muted"><Package size={16} /></span>
+          <span className="muted">Stok Değişimi</span>
+          <span className="sell-stock-change">{b.remaining} Adet → <strong>{b.remaining - 1} Adet</strong> Kalan</span>
+        </div>
+
+        <div className="sell-amount-box">
+          <div className="sell-amount-label">
+            <span className={`icon-chip ${isSale ? 'success' : 'accent'}`}>{isSale ? <Banknote size={18} /> : <Gift size={18} />}</span>
+            <div>
+              <strong>{isSale ? 'Ciroya Eklenecek Tutar' : 'İkram Değeri'}</strong>
+              <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                {priced ? `Birim Fiyat: ${fmtMoney(b.product_unit_price)}` : 'Bu çeşit için fiyat tanımlı değil'}
+              </p>
+            </div>
+          </div>
+          <strong className="sell-amount-value">{isSale && priced ? '+' : ''}{priced ? fmtMoney(b.product_unit_price) : '0,00 ₺'}</strong>
+        </div>
+
+        <p className="sell-confirm-note">
+          <ShieldCheck size={14} />
+          {isSale
+            ? 'Kasa raporuna ve anlık gün sonu cirosuna hemen işlenir.'
+            : 'Ciroya eklenmez ve satış adedine sayılmaz; ayrı ikram raporuna işlenir.'}
+        </p>
+
+        <div className="form-actions">
+          <button className="btn btn-secondary" onClick={onCancel}>Vazgeç</button>
+          <button className="btn btn-primary" onClick={onConfirm}>
+            1 Adet {isSale ? 'Satışı Yap' : 'İkram Et'}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

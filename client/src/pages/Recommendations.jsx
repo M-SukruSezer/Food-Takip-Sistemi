@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Search, TriangleAlert, Clock3, CheckCircle2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Confirm, sellConfirmMessage, ikramConfirmMessage } from '../components/ui';
+import { Confirm, SellConfirmModal } from '../components/ui';
 import { fmtDateTime, normalizeSearch, can } from '../format';
 
 export default function Recommendations() {
@@ -152,11 +152,9 @@ export default function Recommendations() {
       </p>
 
       {sellBatch && (
-        <Confirm
-          title="Satışı Onayla"
-          danger={false}
-          confirmLabel="1 Adet Sat"
-          message={sellConfirmMessage(sellBatch)}
+        <SellConfirmModal
+          batch={sellBatch}
+          kind="sale"
           onCancel={() => setSellBatch(null)}
           onConfirm={async () => {
             try {
@@ -173,11 +171,9 @@ export default function Recommendations() {
       )}
 
       {ikramBatch && (
-        <Confirm
-          title="İkramı Onayla"
-          danger={false}
-          confirmLabel="1 Adet İkram Et"
-          message={ikramConfirmMessage(ikramBatch)}
+        <SellConfirmModal
+          batch={ikramBatch}
+          kind="ikram"
           onCancel={() => setIkramBatch(null)}
           onConfirm={async () => {
             try {

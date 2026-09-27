@@ -1716,6 +1716,49 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 .recommendation-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 7px; color: var(--muted); font-size: 12px; }
 .recommendation-actions { flex-shrink: 0; margin-top: 0; }
 
+/* ---------- Satış/İkram onay modalı (sat_onayla_modal mockup'ı) ---------- */
+.sell-confirm { display: flex; flex-direction: column; gap: 12px; }
+.sell-confirm-head { display: flex; align-items: center; gap: 10px; }
+.sell-confirm-head strong { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sell-confirm-product {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.sell-confirm-product strong { font-size: 15px; overflow-wrap: anywhere; }
+.sell-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+  font-size: 13px;
+}
+.sell-stock-change { margin-left: auto; font-weight: 700; }
+.sell-amount-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--success-soft);
+}
+.sell-amount-label { display: flex; align-items: center; gap: 10px; }
+.sell-amount-value { font-size: 20px; color: var(--ok-text); white-space: nowrap; }
+.sell-confirm-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sell-confirm-note svg { flex-shrink: 0; color: var(--primary-dark); }
+
 /* ---------- Karanlık tema yüzey düzeltmeleri ---------- */
 :root[data-theme='dark'] .card.table-card,
 :root[data-theme='dark'] .card.table-card table.responsive tr,
