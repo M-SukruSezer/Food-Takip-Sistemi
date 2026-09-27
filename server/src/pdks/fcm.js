@@ -58,6 +58,31 @@ function isConfigured() {
   return readConfig() !== null;
 }
 
+/// FCM'in data yukunde REZERVE ettigi anahtarlar. Kullanilirsa istek
+/// komple 400 doner ve bildirim HIC gitmez.
+///
+/// Olculdu: shiftPublished data'sinda 'from' gonderiyordu ve FCM
+/// "Invalid data payload key: from" ile reddediyordu — yani her vardiya
+/// paylasim bildirimi sessizce dusuyordu. Temizlik cagiran katmanda degil
+/// BURADA: tek bogaz noktasi, yeni bir cagiran ayni tuzaga dusmesin.
+const REZERVE = new Set([
+  'from', 'to', 'message_type', 'notification', 'collapse_key',
+  'message_id', 'ttl', 'priority',
+]);
+
+/// Data yukunu FCM'in kabul edecegi hale getirir: degerler metne cevrilir,
+/// rezerve anahtarlar 'd_' onekiyle yeniden adlandirilir (atilmaz — istemci
+/// derin baglanti icin kullanabilsin).
+function temizData(data) {
+  const cikti = {};
+  for (const [k, v] of Object.entries(data || {})) {
+    if (v === undefined || v === null || v === '') continue;
+    const anahtar = REZERVE.has(k) || /^(google|gcm)/i.test(k) ? `d_${k}` : k;
+    cikti[anahtar] = String(v);
+  }
+  return cikti;
+}
+
 function b64url(input) {
   return Buffer.from(input).toString('base64url');
 }
@@ -137,9 +162,7 @@ async function sendToToken({ token, title, body, data }) {
     message: {
       token,
       notification: { title, body },
-      data: Object.fromEntries(
-        Object.entries(data || {}).map(([k, v]) => [k, String(v)])
-      ),
+      data: temizData(data),
       android: {
         priority: 'high',
         notification: {

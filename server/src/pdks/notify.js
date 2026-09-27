@@ -52,6 +52,15 @@ async function dbTransport(n) {
   n.id = Number(r.lastInsertRowid);
 }
 
+/// Uretimde SESSIZ tani izi. Bildirim yolu tamamen sessizdi ve bir FCM
+/// sorunu teshis edilemedi; bu iz olmadan "gonderildi mi" sorusunun cevabi
+/// yok. Kisisel veri yazilmiyor: yalnizca kullanici kimligi ve sonuc.
+function _iz(mesaj) {
+  if (process.env.NODE_ENV === 'production' && !process.env.PUSH_DEBUG) return;
+  // eslint-disable-next-line no-console
+  console.log(`[push] ${mesaj}`);
+}
+
 /// Gunluk tasiyicisi: gercek push/e-posta yerine izlenebilir bir satir.
 /// PRODUCTION'da sessiz: Vercel gunlukleri kisisel veriyle dolmasin.
 function logTransport(n) {
@@ -69,9 +78,13 @@ function logTransport(n) {
 /// soylerse satir SILINIYOR. Yapilmazsa olu jetonlar birikir ve her
 /// bildirimde bosuna istek atilir.
 async function fcmTransport(n) {
-  if (!fcm.isConfigured()) return;
+  if (!fcm.isConfigured()) {
+    _iz('FCM yapılandırılmamış, atlandı');
+    return;
+  }
   const cihazlar = await queryAll(
     'SELECT token FROM device_tokens WHERE user_id = ?', n.userId);
+  _iz(`kullanıcı ${n.userId} için ${cihazlar.length} cihaz`);
   if (cihazlar.length === 0) return;
 
   for (const c of cihazlar) {
@@ -88,6 +101,8 @@ async function fcmTransport(n) {
         ...(n.data || {}),
       },
     });
+    _iz(`gönderim: ok=${sonuc.ok} fatal=${!!sonuc.fatal} `
+      + `gecersiz=${!!sonuc.invalidToken} ${sonuc.error || ''}`);
     if (sonuc.ok) continue;
     if (sonuc.invalidToken) {
       // Olu jeton: satir silinmezse her bildirimde bosuna istek atilir.
@@ -115,7 +130,12 @@ async function publish(n) {
     try {
       await fn(n);
     } catch (e) {
-      hatalar.push(e.message);
+      hatalar.push(`${fn.name || 'tasiyici'}: ${e.message}`);
+      // Hata YUTULMUYOR, sessizce gecilmiyor: cagiran islem bozulmasin diye
+      // yayilmiyor ama gunluge DUSUYOR. Bu satir olmadigi icin bir FCM
+      // hatasi teshis edilemedi — "delivered" sayisina bakan da yoktu.
+      // eslint-disable-next-line no-console
+      console.error(`[bildirim HATASI] ${fn.name || 'tasiyici'}: ${e.message}`);
     }
   }
   return { delivered: transports.length - hatalar.length, errors: hatalar };
