@@ -23,6 +23,7 @@ export default function StockCoverage() {
   const [stock, setStock] = useState(null);
   const [windowDays, setWindowDays] = useState(14);
   const [query, setQuery] = useState('');
+  const [risk, setRisk] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
@@ -37,9 +38,13 @@ export default function StockCoverage() {
   const items = !stock ? [] : q
     ? stock.items.filter((i) => normalizeSearch(i.name).includes(q))
     : stock.items;
-  const active = items.filter((i) => i.days_of_cover !== null);
-  const idle = items.filter((i) => i.days_of_cover === null);
+  const filtered = risk === '' ? items : items.filter((i) => String(i.risk) === risk);
+  const active = filtered.filter((i) => i.days_of_cover !== null);
+  const idle = filtered.filter((i) => i.days_of_cover === null);
   const critical = stock ? stock.items.filter((i) => i.risk === 0 || i.risk === 1).length : 0;
+  const riskCounts = stock
+    ? Object.keys(RISK).reduce((acc, k) => ({ ...acc, [k]: stock.items.filter((i) => String(i.risk) === k).length }), {})
+    : {};
 
   return (
     <div className="page-shell">
@@ -87,6 +92,17 @@ export default function StockCoverage() {
               Temizle
             </button>
           )}
+        </div>
+
+        <div className="chip-row" style={{ marginTop: 10 }}>
+          <button type="button" className={`chip ${risk === '' ? 'chip-on' : ''}`} onClick={() => setRisk('')}>
+            Tümü ({stock ? stock.items.length : 0})
+          </button>
+          {Object.entries(RISK).map(([k, r]) => (
+            <button key={k} type="button" className={`chip ${risk === k ? 'chip-on' : ''}`} onClick={() => setRisk(k)}>
+              {r.label} ({riskCounts[k] || 0})
+            </button>
+          ))}
         </div>
       </div>
 
