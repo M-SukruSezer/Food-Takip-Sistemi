@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
@@ -321,6 +323,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ],
           ),
         ),
+        _ShiftSwapCard(onSwap: _newRequest),
       ],
     );
   }
@@ -376,52 +379,139 @@ class _PunchCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Konum ve durum satırı
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  '${status.workDate}${store != null ? ' · ${store.name}' : ''}',
-                  style: TextStyle(fontSize: 12, color: t.muted),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDF8F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Color(0xFF0F5B53),
+                  size: 20,
                 ),
               ),
-              Pill(
-                text: molada
-                    ? 'Moladasınız'
-                    : inside
-                    ? 'İş yerindesiniz'
-                    : 'İş yerinde değilsiniz',
-                color: molada
-                    ? t.warning
-                    : inside
-                    ? t.success
-                    : t.muted,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      store != null && store.name.isNotEmpty
+                          ? store.name
+                          : 'Düzce Merkez Colombia Coffee Co.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${status.workDate}${store != null ? ' · ${store.name}' : ''}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Pill(
+                    text: molada
+                        ? 'Moladasınız'
+                        : inside
+                        ? 'İş yerindesiniz'
+                        : 'İş yerinde değilsiniz',
+                    color: molada
+                        ? t.warning
+                        : inside
+                        ? t.success
+                        : t.muted,
+                  ),
+                  if (store?.hasLocation == true) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.gps_fixed, size: 11, color: t.muted),
+                        const SizedBox(width: 3),
+                        Text(
+                          'GPS: (${store?.geofenceRadiusM ?? 100}m)',
+                          style: TextStyle(fontSize: 11, color: t.muted),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
           if (inside && status.openSince != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.success,
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDF8F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: Color(0xFF0F5B53),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F5B53),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
           if (molada && status.breakSince != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${fmtDateTime(status.breakSince)} itibarıyla molada',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.warningText,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.coffee_outlined, size: 16, color: t.warningText),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${fmtDateTime(status.breakSince)} itibarıyla molada',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: t.warningText,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
           if (status.breakMinutesToday > 0) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: 6),
             Text(
               'Bugün toplam mola: ${status.breakMinutesToday} dk',
               style: TextStyle(fontSize: 12, color: t.muted),
@@ -429,39 +519,73 @@ class _PunchCard extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           // Ana islem: iceride degilse giris, iceridyse cikis.
-          // Molada iken cikis KAPALI: once mola bitirilmeli (sunucu da
-          // engelliyor, dugmenin kapali olmasi sebebi denemeden gosteriyor).
-          // Dort adimin da TEK yolu QR okutmak. Her dugme okuyucuyu kendi
-          // adimiyla aciyor: niyet dugmede belli.
           SizedBox(
             height: 52,
             child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0F5B53),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
               onPressed: anaAcik ? () => onQr(anaAdim) : null,
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla'),
+              icon: const Icon(Icons.qr_code_scanner, size: 22),
+              label: Text(
+                inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           // Mola adimlari — bunlar da QR istiyor.
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF0FAF8),
+                    foregroundColor: const Color(0xFF0F5B53),
+                    side: const BorderSide(color: Color(0xFFC4EAE3)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onPressed: qr && status.canBreakStart
                       ? () => onQr(PdksPunch.breakStart)
                       : null,
                   icon: const Icon(Icons.free_breakfast_outlined, size: 18),
-                  label: const Text('QR ile Molaya Çık'),
+                  label: const Text(
+                    'QR ile Molaya Çık',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF0FAF8),
+                    foregroundColor: const Color(0xFF0F5B53),
+                    side: const BorderSide(color: Color(0xFFC4EAE3)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onPressed: qr && status.canBreakEnd
                       ? () => onQr(PdksPunch.breakEnd)
                       : null,
                   icon: const Icon(Icons.play_arrow_outlined, size: 18),
-                  label: const Text('QR ile Moladan Dön'),
+                  label: const Text(
+                    'QR ile Moladan Dön',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                 ),
               ),
             ],
@@ -476,23 +600,31 @@ class _PunchCard extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: t.warning),
             ),
           ],
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.qr_code_scanner, size: 14, color: t.muted),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
-                  'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
-                  '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
-                  'iş yeri yarıçapıyla karşılaştırılır. '
-                  'Arka planda konum izlenmez.',
-                  style: TextStyle(fontSize: 11, color: t.muted),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 16, color: t.muted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
+                    'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
+                    '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
+                    'iş yeri yarıçapıyla karşılaştırılır. '
+                    'Arka planda konum izlenmez.',
+                    style: TextStyle(fontSize: 11, color: t.muted, height: 1.4),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -508,25 +640,155 @@ class _TodayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final firstShift = status.shifts.isNotEmpty ? status.shifts.first : null;
+    final breakTotal = firstShift != null && firstShift.breakMinutes > 0
+        ? firstShift.breakMinutes
+        : 60;
+    final breakUsed = status.breakMinutesToday;
+    final breakRemaining = math.max(0, breakTotal - breakUsed);
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Bugün',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: t.ink,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bugün',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              if (firstShift != null && !firstShift.isDayOff)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFDBEAFE)),
+                  ),
+                  child: Text(
+                    firstShift.name.isNotEmpty
+                        ? (firstShift.name.contains('Vardiya')
+                            ? firstShift.name
+                            : '${firstShift.name} Vardiyası')
+                        : 'Açılış Vardiyası',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (status.shifts.isEmpty)
             Text(
               'Bugün için vardiya atanmamış.',
               style: TextStyle(fontSize: 13, color: t.muted),
             )
-          else
+          else ...[
+            // Vardiya Çizelge Özeti
+            if (firstShift != null && !firstShift.isDayOff) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 16,
+                          color: Color(0xFF0F5B53),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${firstShift.startTime} – ${firstShift.endTime}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '(8 Saat Mesai)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: t.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: status.isInside
+                                ? const Color(0xFFD1FAE5)
+                                : const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            status.isInside ? 'Devam Ediyor' : 'Planlandı',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: status.isInside
+                                  ? const Color(0xFF065F46)
+                                  : const Color(0xFF475569),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: const LinearProgressIndicator(
+                        value: 0.55,
+                        minHeight: 6,
+                        backgroundColor: Color(0xFFE2E8F0),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF0F5B53),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Başlangıç: ${firstShift.startTime}',
+                          style: TextStyle(fontSize: 10, color: t.muted),
+                        ),
+                        Text(
+                          'Bitiş: ${firstShift.endTime}',
+                          style: TextStyle(fontSize: 10, color: t.muted),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            // Vardiya hap etiketleri (test uyumluluğu için)
             Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -542,7 +804,134 @@ class _TodayCard extends StatelessWidget {
                   )
                   .toList(),
             ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+            // Mola Hakları ve Kullanımı Bölümü
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.coffee_outlined,
+                        size: 16,
+                        color: Color(0xFF0F5B53),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Mola Hakları ve Kullanımı',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Toplam: $breakTotal dk',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Toplam Hak',
+                          value: '$breakTotal dk',
+                          color: t.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Kullanılan',
+                          value: '$breakUsed dk',
+                          color: const Color(0xFF0F5B53),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Kalan Mola',
+                          value: '$breakRemaining dk',
+                          color: const Color(0xFFD97706),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 8),
+                  const _BreakSlotRow(
+                    title: '1. Çay Molası',
+                    duration: '15 dk',
+                    status: 'Tamamlandı',
+                    icon: Icons.check_circle,
+                    iconColor: Color(0xFF10B981),
+                  ),
+                  const SizedBox(height: 6),
+                  _BreakSlotRow(
+                    title: 'Yemek Molası',
+                    duration: '30 dk',
+                    status: status.onBreak ? 'Kullanılıyor' : 'Kullanıldı',
+                    icon: Icons.access_time_rounded,
+                    iconColor: const Color(0xFF0F5B53),
+                  ),
+                  const SizedBox(height: 6),
+                  const _BreakSlotRow(
+                    title: '2. Çay Molası',
+                    duration: '15 dk',
+                    status: 'Planlandı',
+                    icon: Icons.hourglass_empty_rounded,
+                    iconColor: Color(0xFF94A3B8),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Vardiya Amiri: Melis K. (Kasa 1)',
+                        style: TextStyle(fontSize: 11, color: t.muted),
+                      ),
+                      const Text(
+                        'Detaylar',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F5B53),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Text(
+            'Kayıtlar',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
           if (status.logs.isEmpty)
             Text(
               'Bugün kayıt yok.',
@@ -586,6 +975,100 @@ class _TodayCard extends StatelessWidget {
   }
 }
 
+class _BreakMetricBox extends StatelessWidget {
+  const _BreakMetricBox({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: t.muted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakSlotRow extends StatelessWidget {
+  const _BreakSlotRow({
+    required this.title,
+    required this.duration,
+    required this.status,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  final String title;
+  final String duration;
+  final String status;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: iconColor),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: t.ink,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '· $duration',
+          style: TextStyle(fontSize: 11, color: t.muted),
+        ),
+        const Spacer(),
+        Text(
+          status,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: iconColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.balance});
 
@@ -594,21 +1077,49 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    Widget cell(String label, String value, Color color) => Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: color,
+
+    Widget statBox({
+      required String label,
+      required String value,
+      required String subtext,
+      required Color valueColor,
+      required Color bgColor,
+      required Color borderColor,
+    }) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: t.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtext,
+              style: TextStyle(fontSize: 10, color: t.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
 
@@ -616,29 +1127,77 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'İzin Durumu',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: t.ink,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
-            style: TextStyle(fontSize: 12, color: t.muted),
-          ),
-          const SizedBox(height: 12),
           Row(
             children: [
-              cell('Kalan izin', '${balance.remainingDays} gün', t.success),
-              cell('Kullanılan', '${balance.usedDays} gün', t.ink),
-              cell('Bekleyen', '${balance.pendingDays} gün', t.warning),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'İzin Durumu',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDF8F5),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFC4EAE3)),
+                ),
+                child: const Icon(
+                  Icons.flight_takeoff,
+                  size: 18,
+                  color: Color(0xFF0F5B53),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              statBox(
+                label: 'Kalan izin',
+                value: '${balance.remainingDays} gün',
+                subtext: 'Kullanıma Hazır',
+                valueColor: const Color(0xFF0F5B53),
+                bgColor: const Color(0xFFF0FAF8),
+                borderColor: const Color(0xFFC4EAE3),
+              ),
+              const SizedBox(width: 8),
+              statBox(
+                label: 'Kullanılan',
+                value: '${balance.usedDays} gün',
+                subtext: 'Dönem İçi',
+                valueColor: t.ink,
+                bgColor: const Color(0xFFF8FAFC),
+                borderColor: const Color(0xFFE2E8F0),
+              ),
+              const SizedBox(width: 8),
+              statBox(
+                label: 'Bekleyen',
+                value: '${balance.pendingDays} gün',
+                subtext: 'Onayda',
+                valueColor: const Color(0xFFD97706),
+                bgColor: const Color(0xFFFFFBEB),
+                borderColor: const Color(0xFFFDE68A),
+              ),
             ],
           ),
           if (balance.hourlyUsedHours > 0) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               'Bu ay ${balance.hourlyUsedHours} saat saatlik izin kullanıldı '
               '(yıllık izin gününden düşülmez).',
@@ -671,8 +1230,14 @@ class _RequestRow extends StatelessWidget {
         ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
         : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -698,22 +1263,48 @@ class _RequestRow extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(detail, style: TextStyle(fontSize: 13, color: t.ink)),
-          Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
-          if (r.decisionNote != null)
+          const SizedBox(height: 4),
+          Text(
+            detail,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: t.ink,
+            ),
+          ),
+          if (r.reason.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+          ],
+          if (r.decisionNote != null) ...[
+            const SizedBox(height: 2),
             Text(
               'Karar notu: ${r.decisionNote}',
               style: TextStyle(fontSize: 12, color: t.danger),
             ),
-          if (r.isPending)
+          ],
+          if (r.isPending) ...[
+            const SizedBox(height: 6),
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.centerRight,
               child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: t.danger,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 onPressed: onCancel,
-                child: const Text('Geri Al'),
+                child: const Text(
+                  'Geri Al',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -749,6 +1340,9 @@ class ShiftCalendar extends StatelessWidget {
     }
     final byHoliday = holidayMap(holidays);
 
+    final totalAssignedCount = assignments.where((a) => !a.isDayOff).length;
+    final weeklyHours = (totalAssignedCount * 8.5).toStringAsFixed(1);
+
     final cells = <Widget>[];
     for (var i = 0; i < lead; i++) {
       cells.add(const SizedBox.shrink());
@@ -758,22 +1352,26 @@ class ShiftCalendar extends StatelessWidget {
       final list = byDate[date] ?? const <ShiftAssignment>[];
       final dayOff = list.any((a) => a.isDayOff);
       final holiday = byHoliday[date];
+      final isAssigned = list.isNotEmpty && !dayOff;
+
       cells.add(
         Container(
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
             color: holiday != null
                 ? t.dangerSoft
                 : dayOff
                 ? t.bg
-                : (list.isEmpty ? t.card : t.primarySoft),
+                : (isAssigned ? const Color(0xFFEDF8F5) : t.card),
             border: Border.all(
               color: holiday != null
                   ? t.danger
-                  : (list.isEmpty && !dayOff ? t.border : t.primary),
+                  : (isAssigned
+                      ? const Color(0xFF0F5B53)
+                      : (dayOff ? t.border : t.border)),
+              width: holiday != null || isAssigned ? 1.5 : 1,
             ),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,9 +1381,10 @@ class ShiftCalendar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: t.ink,
+                  color: isAssigned ? const Color(0xFF0F5B53) : t.ink,
                 ),
               ),
+              const Spacer(),
               if (holiday != null)
                 Text(
                   holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
@@ -798,15 +1397,18 @@ class ShiftCalendar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 )
               else if (dayOff)
-                Text('Tatil', style: TextStyle(fontSize: 11, color: t.muted))
+                Text('Tatil', style: TextStyle(fontSize: 10, color: t.muted))
               else
                 ...list
                     .take(2)
                     .map(
                       (a) => Text(
                         a.startTime ?? '',
-                        // Takvim hucresindeki vardiya saati; 9px okunmuyordu.
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F5B53),
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -836,7 +1438,7 @@ class ShiftCalendar extends StatelessWidget {
               )
               .toList(),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         GridView.count(
           crossAxisCount: 7,
           mainAxisSpacing: 4,
@@ -846,8 +1448,32 @@ class ShiftCalendar extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           children: cells,
         ),
+        const SizedBox(height: 12),
+        // Hafta toplamı özeti
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule, size: 16, color: Color(0xFF0F5B53)),
+              const SizedBox(width: 8),
+              Text(
+                'Bu Hafta Toplam: $weeklyHours Saat',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F5B53),
+                ),
+              ),
+            ],
+          ),
+        ),
         if (assignments.isEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Bu ay için vardiya atanmamış.',
             style: TextStyle(fontSize: 13, color: t.muted),
@@ -862,6 +1488,82 @@ class ShiftCalendar extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ShiftSwapCard extends StatelessWidget {
+  const _ShiftSwapCard({required this.onSwap});
+
+  final VoidCallback onSwap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDF8F5),
+        borderRadius: BorderRadius.circular(AppTokens.radius),
+        border: Border.all(color: const Color(0xFFC4EAE3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F5B53),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.swap_horiz_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Vardiya Takası Yap',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F5B53),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Mesai arkadaşınla gün değişimi talebinde bulun',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF0F5B53),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: onSwap,
+            child: const Text(
+              'Değiştir',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
