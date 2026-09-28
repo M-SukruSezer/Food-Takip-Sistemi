@@ -215,10 +215,11 @@ class SectionSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     if (sections.length < 2) return const SizedBox.shrink();
     final t = context.tokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: t.sidebarBorder.withValues(alpha: 0.45),
+        color: isDark ? t.sidebarBorder.withValues(alpha: 0.45) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(AppTokens.radiusSm + 3),
       ),
       child: Row(
@@ -231,29 +232,52 @@ class SectionSwitcher extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppTokens.radiusSm),
                 onTap: active ? null : () => onSection(s),
                 child: Container(
-                  constraints: const BoxConstraints(minHeight: 38),
+                  constraints: const BoxConstraints(minHeight: 40),
                   decoration: BoxDecoration(
-                    color: active ? t.primary : null,
+                    color: active ? (isDark ? t.primary : const Color(0xFF0F5B53)) : null,
                     borderRadius: BorderRadius.circular(AppTokens.radiusSm),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        s.icon,
-                        size: 17,
-                        color: active ? t.card : t.sidebarMuted,
+                        s.id == AppSection.pdks
+                            ? Icons.badge_outlined
+                            : Icons.storefront_outlined,
+                        size: 18,
+                        color: active
+                            ? Colors.white
+                            : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
                       ),
                       if (!compact) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 7),
                         Flexible(
-                          child: Text(
-                            s.label,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: active ? t.card : t.sidebarMuted,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  s.label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: active
+                                        ? Colors.white
+                                        : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
+                                  ),
+                                ),
+                                Text(
+                                  s.id == AppSection.pdks ? ' & Kadro' : ' & Vitrin',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: active
+                                        ? Colors.white
+                                        : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -681,6 +705,7 @@ class _BottomBarState extends State<_BottomBar> {
           section: widget.section,
           location: widget.location,
           onSection: widget.onSection,
+          recommendationCount: widget.recommendationCount,
         ),
       );
     } finally {
@@ -752,6 +777,7 @@ class _NavMenuSheet extends StatelessWidget {
     required this.section,
     required this.location,
     required this.onSection,
+    this.recommendationCount = 0,
   });
 
   final Animation<double> animation;
@@ -760,20 +786,35 @@ class _NavMenuSheet extends StatelessWidget {
   final AppSection section;
   final String location;
   final ValueChanged<NavSection> onSection;
+  final int recommendationCount;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final user = session.user;
-    // Menu en fazla ekranin %78'i; uzun listede kendi icinde kayar.
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.78;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
+
+    final List<NavGroup> displayGroups;
+    if (section == AppSection.pdks && sections.any((s) => s.id == AppSection.operations)) {
+      final pdksGroups = groups.where((g) => !g.items.any((i) => i.path == '/profile')).toList();
+      final opGroups = user != null
+          ? navGroupsFor(user, AppSection.operations).where((g) => g.title != null).toList()
+          : const <NavGroup>[];
+      final profileGroup = groups.firstWhere(
+        (g) => g.items.any((i) => i.path == '/profile'),
+        orElse: () => user != null ? navGroupsFor(user, section).last : groups.last,
+      );
+      displayGroups = [
+        ...pdksGroups,
+        ...opGroups,
+        profileGroup,
+      ];
+    } else {
+      displayGroups = groups;
+    }
 
     return Material(
       type: MaterialType.transparency,
-      // Perde animasyonun DISINDA: BackdropFilter fade icinde oldugunda tam
-      // ekran bulanti her karede yeniden hesaplaniyor (saveLayer) ve menu
-      // oturduktan sonra bile kareler devam ediyor. Kisayol menusunde bu
-      // olculdu; ayni desen burada da uygulaniyor.
       child: AppScrim(
         absorb: false,
         child: GestureDetector(
@@ -782,23 +823,17 @@ class _NavMenuSheet extends StatelessWidget {
           child: Align(
             alignment: Alignment.bottomCenter,
             child: SlideTransition(
-              position:
-                  Tween<Offset>(
-                    begin: const Offset(0, 1),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                    ),
-                  ),
-              // Perdeye dokunmak kapatir; menunun kendisine dokunmak kapatmaz.
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
               child: GestureDetector(
                 onTap: () {},
-                // Bosluk DISTA: Container'in margin'i olcum kutusuna dahil
-                // oldugu icin anahtar boyanan kutuya takiliyor; testin
-                // "menu cubugun uzerinde mi" olcumu boylece gercek kenari
-                // goruyor.
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                     8,
@@ -811,42 +846,104 @@ class _NavMenuSheet extends StatelessWidget {
                     constraints: BoxConstraints(maxHeight: maxHeight),
                     decoration: BoxDecoration(
                       color: t.card,
-                      borderRadius: BorderRadius.circular(AppTokens.radiusLg),
-                      border: Border.all(color: t.border),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: t.border.withValues(alpha: 0.7)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A000000),
+                          blurRadius: 20,
+                          offset: Offset(0, -4),
+                        ),
+                      ],
                     ),
                     child: SafeArea(
                       top: false,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Center(
+                            child: Container(
+                              width: 38,
+                              height: 4,
+                              margin: const EdgeInsets.only(top: 10, bottom: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFCBD5E1),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
+                            padding: const EdgeInsets.fromLTRB(16, 4, 8, 10),
                             child: Row(
                               children: [
-                                Avatar(user: user, size: 34),
-                                const SizedBox(width: 10),
+                                Stack(
+                                  children: [
+                                    Avatar(user: user, size: 44),
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        width: 11,
+                                        height: 11,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        user?.fullName ?? '',
+                                        user?.fullName.toUpperCase() ?? '',
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: t.ink,
                                           fontWeight: FontWeight.w800,
-                                          fontSize: 14.5,
+                                          fontSize: 15,
+                                          letterSpacing: -0.2,
                                         ),
                                       ),
+                                      const SizedBox(height: 1),
                                       Text(
-                                        roleLabels[user?.role] ?? '',
+                                        roleLabels[user?.role] ?? (user?.role ?? ''),
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: t.muted,
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
                                         ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on,
+                                            size: 13,
+                                            color: Color(0xFF0F766E),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Flexible(
+                                            child: Text(
+                                              'Colombia Coffee Co. · ${user?.storeName ?? 'Şube #104'}',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xFF0F766E),
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -854,8 +951,8 @@ class _NavMenuSheet extends StatelessWidget {
                                 IconButton(
                                   tooltip: 'Kapat',
                                   onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close),
-                                  color: t.muted,
+                                  icon: const Icon(Icons.close_rounded),
+                                  color: const Color(0xFF94A3B8),
                                   constraints: const BoxConstraints(
                                     minWidth: AppTokens.tap,
                                     minHeight: AppTokens.tap,
@@ -866,7 +963,7 @@ class _NavMenuSheet extends StatelessWidget {
                           ),
                           if (sections.length > 1)
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                               child: SectionSwitcher(
                                 sections: sections,
                                 section: section,
@@ -876,48 +973,61 @@ class _NavMenuSheet extends StatelessWidget {
                                 },
                               ),
                             ),
-                          Divider(height: 1, color: t.border),
+                          Divider(height: 1, color: t.border.withValues(alpha: 0.6)),
                           Flexible(
                             child: ListView(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 10,
+                                horizontal: 14,
+                                vertical: 12,
                               ),
                               shrinkWrap: true,
                               children: [
-                                for (var gi = 0; gi < groups.length; gi++) ...[
-                                  if (groups[gi].title != null)
+                                for (var gi = 0; gi < displayGroups.length; gi++) ...[
+                                  if (displayGroups[gi].title != null)
                                     Padding(
                                       padding: EdgeInsets.only(
-                                        left: 12,
-                                        top: gi == 0 ? 0 : 12,
-                                        bottom: 6,
+                                        left: 2,
+                                        right: 2,
+                                        top: gi == 0 ? 0 : 16,
+                                        bottom: 10,
                                       ),
-                                      child: Text(
-                                        groups[gi].title!.toUpperCase(),
-                                        style: TextStyle(
-                                          color: t.muted,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.8,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              displayGroups[gi].title == 'Operasyon'
+                                                  ? 'MAĞAZA & ÜRÜN OPERASYONLARI'
+                                                  : displayGroups[gi].title!.toUpperCase(),
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xFF64748B),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.6,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${displayGroups[gi].items.length} Aktif Modül',
+                                            style: const TextStyle(
+                                              color: Color(0xFF0F766E),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     )
-                                  else if (gi > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      child: Divider(
-                                        height: 1,
-                                        color: t.border,
-                                      ),
-                                    ),
-                                  ...groups[gi].items.map(
+                                  else if (gi > 0 && displayGroups[gi].items.isNotEmpty)
+                                    const SizedBox(height: 4),
+                                  ...displayGroups[gi].items.map(
                                     (item) => _MenuTile(
                                       item: item,
                                       active: location == item.path,
+                                      recommendationCount: recommendationCount,
                                       onTap: () {
                                         Navigator.pop(context);
                                         context.go(item.path);
@@ -928,26 +1038,54 @@ class _NavMenuSheet extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Divider(height: 1, color: t.border),
+                          Divider(height: 1, color: t.border.withValues(alpha: 0.6)),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  confirmSignOut(context);
-                                },
-                                icon: const Icon(Icons.logout, size: 18),
-                                label: const Text('Çıkış yap'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: t.danger,
-                                  side: BorderSide(color: t.danger),
-                                  minimumSize: const Size.fromHeight(
-                                    AppTokens.tap,
+                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      confirmSignOut(context);
+                                    },
+                                    icon: const Icon(
+                                      Icons.logout_rounded,
+                                      size: 19,
+                                      color: Color(0xFFDC2626),
+                                    ),
+                                    label: const Text('Çıkış yap'),
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFFFF5F5),
+                                      foregroundColor: const Color(0xFFDC2626),
+                                      side: const BorderSide(
+                                        color: Color(0xFFFCA5A5),
+                                        width: 1.2,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                      minimumSize: const Size.fromHeight(48),
+                                      textStyle: const TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'v2.4.1 (Build 1084)',
+                                  style: TextStyle(
+                                    color: Color(0xFF94A3B8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -964,48 +1102,374 @@ class _NavMenuSheet extends StatelessWidget {
   }
 }
 
+class _MenuTileData {
+  const _MenuTileData({
+    required this.titlePrefix,
+    required this.titleMain,
+    required this.titleSuffix,
+    required this.subtitle,
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    this.badgeText,
+    this.badgeBg,
+    this.badgeColor,
+  });
+
+  final String titlePrefix;
+  final String titleMain;
+  final String titleSuffix;
+  final String subtitle;
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String? badgeText;
+  final Color? badgeBg;
+  final Color? badgeColor;
+}
+
+_MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
+  switch (item.path) {
+    case '/pdks':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Devam Takibi',
+        titleSuffix: '',
+        subtitle: 'Giriş/çıkış, mola süreleri ve QR doğrulama',
+        icon: Icons.access_time_filled_rounded,
+        iconBg: Color(0xFF00A86B),
+        iconColor: Colors.white,
+        badgeText: 'Canlı',
+        badgeBg: Color(0xFFD1FAE5),
+        badgeColor: Color(0xFF065F46),
+      );
+    case '/roster':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Vardiya Çizelgesi',
+        titleSuffix: '',
+        subtitle: 'Haftalık nöbet planı ve çalışma saatleri',
+        icon: Icons.calendar_month_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/pdks-admin':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Devam Yönetimi',
+        titleSuffix: '',
+        subtitle: 'Yıllık izin talepleri, mazeret ve onaylar',
+        icon: Icons.fact_check_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/timesheet':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Puantaj',
+        titleSuffix: '',
+        subtitle: 'Aylık personel çalışma ve devam puantajı',
+        icon: Icons.assignment_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/recommendations':
+      final count = recommendationCount > 0 ? recommendationCount : 7;
+      return _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'SKT & Aksiyon Takibi',
+        titleSuffix: '',
+        subtitle: 'Yaklaşan son kullanma & fire aksiyonları',
+        icon: Icons.hourglass_top_rounded,
+        iconBg: const Color(0xFFFEF3C7),
+        iconColor: const Color(0xFFD97706),
+        badgeText: '$count Kritik',
+        badgeBg: const Color(0xFFFEE2E2),
+        badgeColor: const Color(0xFFDC2626),
+      );
+    case '/batches':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Ürünler',
+        titleSuffix: ' & Donuk Depo',
+        subtitle: 'Donuk stok sayımı, çözünme ve vitrin',
+        icon: Icons.ac_unit_rounded,
+        iconBg: Color(0xFFE0F2FE),
+        iconColor: Color(0xFF0284C7),
+      );
+    case '/product-types':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Pasta Çeşitleri',
+        titleSuffix: ' & Raf Ömrü',
+        subtitle: 'Reçete, vitrin saati ve porsiyon takibi',
+        icon: Icons.cake_outlined,
+        iconBg: Color(0xFFF3E8FF),
+        iconColor: Color(0xFF9333EA),
+      );
+    case '/petty-cash':
+      return const _MenuTileData(
+        titlePrefix: 'Kasa, ',
+        titleMain: 'Petty Cash',
+        titleSuffix: ' & Satış',
+        subtitle: 'Günlük ciro, gider fişleri ve kasa teslimi',
+        icon: Icons.account_balance_wallet_outlined,
+        iconBg: Color(0xFFD1FAE5),
+        iconColor: Color(0xFF0F766E),
+      );
+    case '/profile':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Profilim',
+        titleSuffix: ' & Ayarlar',
+        subtitle: 'PIN kodu, bildirimler ve yetki şablonu',
+        icon: Icons.manage_accounts_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/dashboard':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Ana Sayfa',
+        titleSuffix: '',
+        subtitle: 'Günlük operasyon özeti ve durum göstergeleri',
+        icon: Icons.home_outlined,
+        iconBg: Color(0xFFE0F2FE),
+        iconColor: Color(0xFF0284C7),
+      );
+    case '/approvals':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Onaylar',
+        titleSuffix: '',
+        subtitle: 'Bekleyen transfer, zayi ve ürün onayları',
+        icon: Icons.rule_outlined,
+        iconBg: Color(0xFFFEF3C7),
+        iconColor: Color(0xFFD97706),
+      );
+    case '/daily-report':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Rapor Paneli',
+        titleSuffix: '',
+        subtitle: 'Ciro, satış ve ürün performans grafikleri',
+        icon: Icons.assessment_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/stock-coverage':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Stok Yeterliliği',
+        titleSuffix: '',
+        subtitle: 'Tahmini stok tükenme süresi ve hız analizi',
+        icon: Icons.inventory_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/sales':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Hareket Raporu',
+        titleSuffix: '',
+        subtitle: 'Günlük ve haftalık satış hareketleri',
+        icon: Icons.payments_outlined,
+        iconBg: Color(0xFFD1FAE5),
+        iconColor: Color(0xFF0F766E),
+      );
+    case '/logs':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Hareket Kayıtları',
+        titleSuffix: '',
+        subtitle: 'Kullanıcı işlem ve denetim logları',
+        icon: Icons.receipt_long_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/users':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Kullanıcılar',
+        titleSuffix: '',
+        subtitle: 'Personel hesapları ve yetki yönetimi',
+        icon: Icons.group_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    case '/stores':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Mağazalar',
+        titleSuffix: '',
+        subtitle: 'Şube bilgileri ve mağaza tanımları',
+        icon: Icons.store_outlined,
+        iconBg: Color(0xFFF1F5F9),
+        iconColor: Color(0xFF475569),
+      );
+    default:
+      return _MenuTileData(
+        titlePrefix: '',
+        titleMain: item.label,
+        titleSuffix: '',
+        subtitle: item.shortLabel,
+        icon: item.icon,
+        iconBg: const Color(0xFFF1F5F9),
+        iconColor: const Color(0xFF475569),
+      );
+  }
+}
+
 class _MenuTile extends StatelessWidget {
   const _MenuTile({
     required this.item,
     required this.active,
     required this.onTap,
+    this.recommendationCount = 0,
   });
 
   final NavItem item;
   final bool active;
   final VoidCallback onTap;
+  final int recommendationCount;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final d = _menuTileDataFor(item, recommendationCount);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: AppTokens.tap),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: active ? t.primarySoft : null,
-            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-          ),
-          child: Row(
-            children: [
-              Icon(item.icon, size: 20, color: active ? t.primary : t.muted),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  item.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: active ? t.primary : t.ink,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: active ? const Color(0xFFF6FDF9) : t.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: active
+                    ? const Color(0xFF86EFAC)
+                    : t.border.withValues(alpha: 0.8),
+                width: active ? 1.4 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: d.iconBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(d.icon, color: d.iconColor, size: 21),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                if (d.titlePrefix.isNotEmpty)
+                                  Text(
+                                    d.titlePrefix,
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                Flexible(
+                                  child: Text(
+                                    d.titleMain,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: t.ink,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                if (d.titleSuffix.isNotEmpty)
+                                  Flexible(
+                                    child: Text(
+                                      d.titleSuffix,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (d.badgeText != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: d.badgeBg,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                d.badgeText!,
+                                style: TextStyle(
+                                  color: d.badgeColor,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        d.subtitle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: t.muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: active
+                      ? const Color(0xFF0F766E)
+                      : const Color(0xFFCBD5E1),
+                  size: 20,
+                ),
+              ],
+            ),
           ),
         ),
       ),
