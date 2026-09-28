@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Colombia Coffee Ops - QR ile Giriş</title>
+<!-- Tailwind CSS v3 CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              dark: '#111827',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Animation Styles -->
+<style data-purpose="scanner-animations">
+    @keyframes scanLaser {
+      0% {
+        top: 6%;
+        opacity: 0.2;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        top: 92%;
+        opacity: 0.2;
+      }
+    }
+    .animate-laser {
+      animation: scanLaser 2.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseTarget {
+      0%, 100% {
+        border-color: rgba(16, 185, 129, 0.9);
+        box-shadow: 0 0 24px rgba(16, 185, 129, 0.25), inset 0 0 20px rgba(16, 185, 129, 0.15);
+      }
+      50% {
+        border-color: rgba(52, 211, 153, 0.4);
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.1), inset 0 0 8px rgba(16, 185, 129, 0.05);
+      }
+    }
+    .scanner-target-pulse {
+      animation: pulseTarget 3s ease-in-out infinite;
+    }
+  </style>
+<!-- END: Custom Animation Styles -->
+</head>
+<body class="bg-neutral-900 text-slate-800 antialiased font-sans flex justify-center items-center min-h-screen selection:bg-brand-500 selection:text-white">
+<!-- BEGIN: Mobile App Screen Container -->
+<div class="w-full max-w-[420px] h-[100dvh] max-h-[920px] bg-slate-900 flex flex-col relative overflow-hidden shadow-2xl rounded-none sm:rounded-[36px] border border-slate-800/80" data-purpose="mobile-frame">
+<!-- BEGIN: Top Status Bar -->
+<div class="w-full pt-3 px-6 pb-1 flex justify-between items-center bg-white z-30 select-none text-slate-900 text-xs font-semibold" data-purpose="ios-status-bar">
+<span class="tracking-tight text-sm font-bold">05:14</span>
+<!-- Notch / Dynamic Island placeholder spacer -->
+<div class="w-20 h-4 bg-slate-100 rounded-full hidden sm:block opacity-40"></div>
+<div class="flex items-center space-x-1.5 text-slate-700">
+<!-- 5G Indicator -->
+<span class="text-[10px] font-bold tracking-tight bg-slate-100 px-1 py-0.5 rounded text-slate-600">5G</span>
+<!-- Signal Icon -->
+<svg class="w-3.5 h-3.5" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25C2.88 16.32 2 13.9 2 11.25 2 5.59 6.59 1 12.25 1c3.16 0 6 1.45 7.89 3.73l-1.39 1.15C17.18 4.22 14.7 3 12 3zm0 4c-2.76 0-5 2.24-5 5 0 1.25.46 2.39 1.22 3.28l.89-.73A3.86 3.86 0 0 1 8.5 12c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5c0 .99-.41 1.88-1.07 2.52l.9.74A4.973 4.973 0 0 0 17 12c0-2.76-2.24-5-5-5zm0 8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path>
+</svg>
+<!-- Battery with % -->
+<div class="flex items-center gap-1">
+<span class="text-[11px] font-semibold">85%</span>
+<div class="w-5 h-2.5 border border-slate-700 rounded-sm p-0.5 flex items-center">
+<div class="h-full w-4/5 bg-slate-800 rounded-2xs"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- END: Top Status Bar -->
+<!-- BEGIN: Top Navigation & User Header -->
+<header class="bg-white border-b border-slate-100 px-4 py-2.5 z-20 flex items-center justify-between shadow-xs">
+<!-- Brand Logo / Prefix -->
+<div class="flex items-center">
+<span class="font-extrabold tracking-tighter text-emerald-800 text-lg">P<span class="text-brand-600">...</span></span>
+</div>
+<!-- User Profile Badge matching reference -->
+<div class="flex items-center bg-slate-50 border border-slate-200/80 rounded-full py-1 pl-1 pr-3.5 gap-2 max-w-[210px] shadow-xs" data-purpose="user-chip">
+<div class="w-7 h-7 rounded-full bg-slate-800 ring-1 ring-emerald-600 flex items-center justify-center text-white text-[11px] font-bold overflow-hidden flex-shrink-0">
+<span class="bg-gradient-to-tr from-brand-700 to-emerald-500 w-full h-full flex items-center justify-center">MŞ</span>
+</div>
+<div class="flex flex-col text-left truncate leading-tight">
+<span class="text-[11px] font-bold text-slate-800 truncate tracking-tight">MUHAMMED ŞÜKRÜ SEZER</span>
+<span class="text-[9px] font-medium text-slate-500">Store Manager</span>
+</div>
+</div>
+<!-- Action Buttons: Notification & Logout -->
+<div class="flex items-center gap-1.5">
+<button aria-label="Bildirimler" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors relative" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-white"></span>
+</button>
+<button aria-label="Çıkış Yap" class="w-8 h-8 rounded-lg border border-red-200 bg-red-50/70 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- END: Top Navigation & User Header -->
+<!-- BEGIN: Sub-Header / Screen Title -->
+<div class="bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between z-20">
+<div class="flex items-center gap-3">
+<button aria-label="Geri" class="p-1 rounded-full text-slate-700 hover:bg-slate-100 transition-colors" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+</button>
+<div>
+<h1 class="text-base font-bold text-slate-900 tracking-tight">QR ile Giriş</h1>
+</div>
+</div>
+<!-- Quick Manual Entry fallback button -->
+<button class="p-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors flex items-center gap-1.5 text-xs font-semibold" title="Manuel Kod Girişi" type="button">
+<svg class="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<!-- END: Sub-Header / Screen Title -->
+<!-- BEGIN: Scanner / Viewport View -->
+<main class="flex-1 relative bg-black flex flex-col items-center justify-between p-4 overflow-hidden">
+<!-- Simulated Camera Background with subtle vignette and dark ambiance -->
+<div class="absolute inset-0 bg-radial from-slate-900 via-neutral-950 to-black opacity-95 pointer-events-none"></div>
+<!-- Store Geo-Fence / Location Verification Badge -->
+<div class="relative z-10 mt-2 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs px-3.5 py-1.5 rounded-full shadow-lg" data-purpose="location-pill">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+<span class="font-medium tracking-wide">Düzce Merkez Colombia Coffee 📍</span>
+</div>
+<!-- Central QR Target Area -->
+<div class="relative z-10 w-full flex flex-col items-center justify-center my-auto" data-purpose="scanner-viewport-target">
+<!-- Target Frame Container -->
+<div class="relative w-64 h-64 sm:w-72 sm:h-72 rounded-3xl border-2 border-emerald-400/90 scanner-target-pulse flex items-center justify-center overflow-hidden bg-emerald-950/5 backdrop-blur-[1px]">
+<!-- Corner Accents for high-tech camera scanner feel -->
+<div class="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl"></div>
+<div class="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl"></div>
+<div class="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl"></div>
+<div class="absolute bottom-2 right-2 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl"></div>
+<!-- Scanning Laser Line -->
+<div class="absolute w-[88%] h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#34d399] animate-laser pointer-events-none"></div>
+<!-- Subtle Center Crosshair -->
+<div class="w-6 h-6 border border-emerald-400/30 rounded-full flex items-center justify-center pointer-events-none">
+<div class="w-1 h-1 bg-emerald-400/60 rounded-full"></div>
+</div>
+</div>
+<!-- Camera Controls: Flashlight & Retake -->
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs font-medium backdrop-blur-md border border-white/15 transition-all" data-purpose="flash-toggle" type="button">
+<svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewbox="0 0 20 20">
+<path clip-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" fill-rule="evenodd"></path>
+</svg>
+<span>Flaş Aç</span>
+</button>
+<button class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white text-xs font-medium backdrop-blur-md border border-white/15 transition-all" data-purpose="manual-code-btn" type="button">
+<svg class="w-3.5 h-3.5 text-slate-200" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>PIN Girişi</span>
+</button>
+</div>
+</div>
+<!-- Informative Text / Privacy Guard from reference -->
+<div class="relative z-10 w-full max-w-xs text-center mb-3" data-purpose="scanner-instructions">
+<p class="text-white text-sm font-semibold tracking-wide mb-1.5">
+          QR kodu çerçeveye alın.
+        </p>
+<p class="text-[11px] text-slate-400 leading-relaxed font-normal">
+          Kamera görüntüsü cihazdan çıkmıyor, sunucuya gönderilmiyor.
+        </p>
+</div>
+</main>
+<!-- END: Scanner / Viewport View -->
+<!-- BEGIN: Bottom PDKS Navigation Bar -->
+<nav class="w-full bg-white border-t border-slate-200 py-2 px-3 z-30 select-none shadow-lg" data-purpose="bottom-tab-bar">
+<div class="grid grid-cols-4 items-center justify-items-center gap-1">
+<!-- Tab 1: Devam (Active Tab) -->
+<a aria-current="page" class="flex flex-col items-center justify-center w-full py-1 text-emerald-700 group focus:outline-hidden" href="#devam">
+<div class="w-12 h-7 bg-emerald-50 rounded-full flex items-center justify-center mb-1 group-hover:bg-emerald-100 transition-colors">
+<!-- Clock Icon -->
+<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<polyline points="12 7 12 12 15 15"></polyline>
+</svg>
+</div>
+<span class="text-[11px] font-bold tracking-tight text-emerald-800">Devam</span>
+</a>
+<!-- Tab 2: Çizelge -->
+<a class="flex flex-col items-center justify-center w-full py-1 text-slate-500 hover:text-slate-800 group focus:outline-hidden transition-colors" href="#cizelge">
+<div class="w-12 h-7 flex items-center justify-center mb-1">
+<!-- Barcode / Schedule Icon matching original -->
+<svg class="w-5 h-5 text-slate-600 group-hover:text-slate-800" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<rect height="16" rx="2" width="18" x="3" y="4"></rect>
+<line x1="7" x2="7" y1="8" y2="16"></line>
+<line x1="10" x2="10" y1="8" y2="16"></line>
+<line x1="14" x2="14" y1="8" y2="16"></line>
+<line x1="17" x2="17" y1="8" y2="16"></line>
+</svg>
+</div>
+<span class="text-[11px] font-medium tracking-tight text-slate-600 group-hover:text-slate-900">Çizelge</span>
+</a>
+<!-- Tab 3: Yönetim -->
+<a class="flex flex-col items-center justify-center w-full py-1 text-slate-500 hover:text-slate-800 group focus:outline-hidden transition-colors" href="#yonetim">
+<div class="w-12 h-7 flex items-center justify-center mb-1">
+<!-- Checklist / Management Icon -->
+<svg class="w-5 h-5 text-slate-600 group-hover:text-slate-800" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[11px] font-medium tracking-tight text-slate-600 group-hover:text-slate-900">Yönetim</span>
+</a>
+<!-- Tab 4: Menü -->
+<a class="flex flex-col items-center justify-center w-full py-1 text-slate-500 hover:text-slate-800 group focus:outline-hidden transition-colors" href="#menu">
+<div class="w-12 h-7 flex items-center justify-center mb-1">
+<!-- Hamburger Menu Icon -->
+<svg class="w-5 h-5 text-slate-600 group-hover:text-slate-800" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<line x1="4" x2="20" y1="7" y2="7"></line>
+<line x1="4" x2="20" y1="12" y2="12"></line>
+<line x1="4" x2="20" y1="17" y2="17"></line>
+</svg>
+</div>
+<span class="text-[11px] font-medium tracking-tight text-slate-600 group-hover:text-slate-900">Menü</span>
+</a>
+</div>
+<!-- iOS Home Bar Indicator -->
+<div class="w-32 h-1 bg-slate-300 rounded-full mx-auto mt-2 mb-0.5"></div>
+</nav>
+<!-- END: Bottom PDKS Navigation Bar -->
+</div>
+<!-- END: Mobile App Screen Container -->
+</body></html>

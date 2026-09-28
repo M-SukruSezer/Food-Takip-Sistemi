@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+<html lang="tr"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "primary": "#005c55", "on-secondary-fixed-variant": "#155041", "surface-bright": "#f8f9ff", "on-surface-variant": "#3e4947", "inverse-primary": "#80d5cb", "tertiary": "#005e3f", "tertiary-fixed-dim": "#4edea3", "surface-container-high": "#dce9ff", "on-error-container": "#93000a", "inverse-surface": "#213145", "surface-container-lowest": "#ffffff", "secondary-container": "#b5efda", "primary-container": "#0f766e", "tertiary-fixed": "#6ffbbe", "surface-container-highest": "#d3e4fe", "surface-variant": "#d3e4fe", "secondary-fixed-dim": "#99d2be", "error-container": "#ffdad6", "on-tertiary-fixed-variant": "#005236", "outline-variant": "#bdc9c6", "surface-container-low": "#eff4ff", "tertiary-container": "#007952", "on-error": "#ffffff", "background": "#f8f9ff", "on-primary": "#ffffff", "surface-tint": "#006a63", "surface": "#f8f9ff", "on-secondary-fixed": "#002018", "on-secondary-container": "#376e5e", "on-primary-container": "#a3faef", "outline": "#6e7977", "on-surface": "#0b1c30", "primary-fixed": "#9cf2e8", "on-secondary": "#ffffff", "surface-container": "#e5eeff", "on-primary-fixed": "#00201d", "error": "#ba1a1a", "on-primary-fixed-variant": "#00504a", "on-background": "#0b1c30", "secondary": "#316858", "on-tertiary-container": "#99ffcd", "on-tertiary": "#ffffff", "on-tertiary-fixed": "#002113", "surface-dim": "#cbdbf5", "primary-fixed-dim": "#80d5cb", "secondary-fixed": "#b5efda", "inverse-on-surface": "#eaf1ff" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-lg": "1.5rem", "margin-tablet": "1.5rem", "gutter-sm": "0.75rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "gutter": "1rem", "space-xl": "2rem", "margin": "1rem", "space-md": "1rem" }, fontFamily: { "body-sm": ["Inter"], "body-lg": ["Inter"], "numeric-metric": ["Plus Jakarta Sans"], "body-md": ["Inter"], "label-sm": ["Inter"], "display-lg": ["Plus Jakarta Sans"], "label-md": ["Inter"], "label-lg": ["Inter"], "headline-lg": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"] }, fontSize: { "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }], "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }], "numeric-metric": ["28px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }], "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }], "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.03em", fontWeight: "600" }], "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }], "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }], "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "700" }], "headline-sm": ["18px", { lineHeight: "24px", fontWeight: "600" }], "headline-md": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }] } } } }</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100vh;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface font-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-20 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><div class="flex flex-col justify-center min-w-0"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span><span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold truncate">Düzce Merkez Şube</span></div><h1 class="font-headline-sm text-headline-sm text-on-surface font-bold truncate tracking-tight">Ana Sayfa</h1><p class="font-label-sm text-label-sm text-on-surface-variant truncate">Muhammed Ş. Sezer · Mağaza Müdürü</p></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><button aria-label="Bildirimler" class="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[24px]">notifications</span><span class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-on-error font-label-sm text-[10px] flex items-center justify-center font-bold">7</span></button><button aria-label="Mağaza Durumu / Hızlı Çıkış" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[24px]">power_settings_new</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 w-full pt-20 pb-24 bg-surface flex flex-col"><div class="flex flex-col w-full pb-10">
+<!-- Top Segmented Controls & Quick Action -->
+<div class="px-margin pt-space-sm pb-space-xs flex items-center justify-between gap-space-sm">
+<div class="inline-flex p-1 bg-surface-container rounded-full flex-1 max-w-[270px]">
+<button class="flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 bg-primary text-on-primary shadow-sm flex items-center justify-center gap-1" id="tabFinans" onclick="switchView('finans')">
+<span class="material-symbols-outlined text-[16px]">analytics</span>
+<span>Finans &amp; Satış</span>
+</button>
+<button class="flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1" id="tabPetty" onclick="switchView('petty')">
+<span class="material-symbols-outlined text-[16px]">payments</span>
+<span>Petty Cash</span>
+</button>
+</div>
+<button class="h-10 px-3.5 rounded-full bg-primary-container text-on-primary flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="font-label-md text-label-md" id="actionBtnLabel">Gün Ekle</span>
+</button>
+</div>
+<!-- Date Range Filter & Export Strip -->
+<div class="px-margin pt-space-xs pb-space-sm">
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+<button class="px-3 py-1.5 rounded-full bg-surface-container font-label-md text-label-md text-on-surface-variant whitespace-nowrap active:scale-95 transition-all">Bugün</button>
+<button class="px-3.5 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md whitespace-nowrap flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+<span>Haftalık (21-27 Eyl)</span>
+</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container font-label-md text-label-md text-on-surface-variant whitespace-nowrap active:scale-95 transition-all">Aylık</button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container font-label-md text-label-md text-on-surface-variant whitespace-nowrap flex items-center gap-1 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[15px]">date_range</span>
+<span>Özel</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span>
+<span>21.09.2026 – 27.09.2026 (7 Gün)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<button class="h-8 px-2.5 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-sm text-label-sm flex items-center gap-1 active:scale-95 transition-all" title="Excel İndir">
+<span class="material-symbols-outlined text-[16px] text-tertiary">table_view</span>
+<span class="font-semibold">Excel</span>
+</button>
+<button class="h-8 px-2.5 rounded-lg bg-surface-container-low text-on-surface hover:bg-surface-container font-label-sm text-label-sm flex items-center gap-1 active:scale-95 transition-all" title="PDF Rapor">
+<span class="material-symbols-outlined text-[16px] text-error">picture_as_pdf</span>
+<span class="font-semibold">PDF</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 1: Petty Cash / Kasa Masraf Hızlı Kartı -->
+<div class="px-margin mb-space-sm" id="pettyCashBanner">
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-secondary-fixed/40 rounded-full blur-xl pointer-events-none"></div>
+<div class="flex items-start justify-between mb-space-xs">
+<div>
+<div class="flex items-center gap-1.5 mb-0.5">
+<span class="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">Şube Kasası / Petty Cash</span>
+</div>
+<p class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">Kalan: 10.000,00 ₺</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<span>Aktif Dönem</span>
+</span>
+</div>
+<!-- Linear progress meter -->
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden my-2.5">
+<div class="bg-primary-container h-full rounded-full transition-all duration-500" style="width: 4.5%;"></div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Harcama: <strong class="text-on-surface font-semibold">0,00 ₺</strong> / 10.000 ₺</span>
+<span class="text-tertiary font-medium">Bütçe %100 Hazır</span>
+</div>
+<div class="mt-space-sm pt-2 flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[15px]">schedule</span>
+<span>Dönem Başı: 21.09.2026</span>
+</div>
+<button class="h-8 px-3 rounded-full bg-tertiary text-on-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+<span>Masraf Gir</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SECTION 2: Dönem Finansal Özeti (KPIs) -->
+<div class="px-margin mb-space-sm" id="donemOzetiSection">
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">query_stats</span>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">Dönem Özeti</h2>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Konsolide</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md leading-relaxed">
+        Oranlar günlük aritmetik ortalama değil, 7 günlük fiş verisinin konsolide toplamından hesaplanır.
+      </p>
+<!-- Primary Sales Stat Block -->
+<div class="bg-surface-container-low p-space-md rounded-xl mb-space-md flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold tracking-wide uppercase">Net Sales (Toplam Ciro)</span>
+<p class="font-numeric-metric text-numeric-metric text-primary font-bold mt-0.5 tracking-tight">51.258,00 ₺</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-primary-fixed/60 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[26px]">point_of_sale</span>
+</div>
+</div>
+<!-- Financial Metrics Grid -->
+<div class="grid grid-cols-2 gap-space-sm mb-space-md">
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>ADT (Fiş Adedi)</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary">receipt</span>
+</div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">168 <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">fiş</span></p>
+</div>
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Product Qty</span>
+<span class="material-symbols-outlined text-[16px] text-primary">inventory_2</span>
+</div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">25 <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">adet</span></p>
+</div>
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Satılan İçecek</span>
+<span class="material-symbols-outlined text-[16px] text-tertiary">local_cafe</span>
+</div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">30 <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">adet</span></p>
+</div>
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Modifiers</span>
+<span class="material-symbols-outlined text-[16px] text-secondary">tune</span>
+</div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">2 <span class="font-label-sm text-label-sm font-normal text-on-surface-variant">şurup/süt</span></p>
+</div>
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Mobil App Satışı</span>
+<span class="material-symbols-outlined text-[16px] text-primary">smartphone</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">2.563,00 ₺</p>
+<span class="font-label-sm text-label-sm text-tertiary font-semibold">%5.00 Ciro Payı</span>
+</div>
+</div>
+<div class="bg-surface-container-low/70 p-3 rounded-xl flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>Food Değeri</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">lunch_dining</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">0,00 ₺</p>
+<span class="font-label-sm text-label-sm text-on-surface-variant">0 USD / 0 MO</span>
+</div>
+</div>
+</div>
+<!-- KPI Pills Cloud -->
+<div class="flex flex-wrap gap-1.5 pt-1">
+<span class="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">shopping_basket</span>
+<span>AT: 305,11 ₺</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">pin</span>
+<span>IPT: 0.14</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">percent</span>
+<span>MODIFIERS: %6.67</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">speed</span>
+<span>FOOD UPH: 0.00</span>
+</span>
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">
+          MARKOUT: -
+        </span>
+</div>
+</div>
+</div>
+<!-- SECTION 3: Günün Raporu & Kapanış Özeti -->
+<div class="px-margin mb-space-sm">
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">27.09.2026 · Bugün</h3>
+</div>
+<span class="font-numeric-metric text-[20px] font-bold text-primary">51.258,00 ₺</span>
+</div>
+<div class="flex flex-wrap gap-1.5 mb-space-sm">
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-primary font-label-sm text-label-sm font-semibold">AT: 305,11 ₺</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-primary font-label-sm text-label-sm font-semibold">IPT: 0.14</span>
+<span class="px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">MODIFIERS: %6.67</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold">APP: %5.00</span>
+</div>
+<div class="flex items-center justify-between pt-2">
+<div class="flex flex-col min-w-0 pr-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">168 fiş · 25 ürün satışı</span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold truncate">Muhammed Şükrü Sezer (Müdür)</span>
+</div>
+<button class="h-10 px-3.5 rounded-xl bg-tertiary-container text-on-tertiary font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Günlük Rapor</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SECTION 4: Hareket Türü & İşlem Akışı -->
+<div class="px-margin mb-space-sm">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[20px] text-on-surface">receipt_long</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Hareket Raporu</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Toplam 186 Kayıt</span>
+</div>
+<!-- Category Pill Filters with live stats -->
+<div class="grid grid-cols-3 gap-1.5 mb-space-sm">
+<div class="bg-surface-container-lowest p-2.5 rounded-xl shadow-sm flex flex-col items-start cursor-pointer hover:bg-secondary-container/40 transition-colors">
+<div class="flex items-center gap-1 mb-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm font-bold text-tertiary">Satış</span>
+</div>
+<span class="font-headline-sm text-[15px] font-bold text-on-surface">162 <span class="font-label-sm text-[11px] font-normal text-on-surface-variant">adet</span></span>
+<span class="font-label-sm text-[11px] text-on-surface-variant truncate">30.755 ₺</span>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-xl shadow-sm flex flex-col items-start cursor-pointer hover:bg-secondary-container/40 transition-colors">
+<div class="flex items-center gap-1 mb-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm font-bold text-secondary">İkram</span>
+</div>
+<span class="font-headline-sm text-[15px] font-bold text-on-surface">7 <span class="font-label-sm text-[11px] font-normal text-on-surface-variant">adet</span></span>
+<span class="font-label-sm text-[11px] text-on-surface-variant truncate">1.350 ₺</span>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-xl shadow-sm flex flex-col items-start cursor-pointer hover:bg-error-container/40 transition-colors">
+<div class="flex items-center gap-1 mb-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+<span class="font-label-sm text-label-sm font-bold text-error">Zayi</span>
+</div>
+<span class="font-headline-sm text-[15px] font-bold text-on-surface">19 <span class="font-label-sm text-[11px] font-normal text-on-surface-variant">adet</span></span>
+<span class="font-label-sm text-[11px] text-on-surface-variant truncate">3.780 ₺</span>
+</div>
+</div>
+<!-- Live Transaction Items List -->
+<div class="flex flex-col gap-space-xs" id="transactionList">
+<!-- Item 1: Üç Çikolatalı Brownie -->
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<img class="w-11 h-11 rounded-lg object-cover flex-shrink-0" data-alt="A luxurious square gourmet triple chocolate brownie topped with delicate glossy ganache on a clean aesthetic cafe counter, professional food photography, natural warm lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAacanYOPy0Idfilqvq3rioefE3SjMXLW21sjRhrAeuBIxZopQVbezBPQChInTlkFbVgpAPabdP3eDNHEnFpjq2Jl9yK1dCQ6EBBnuGk-27_gnTSD-Y9UcyvLHdeC0-MlF2YaypJMnYEGqro89JFIBkKhrZgVkpbWTYEhzL8Id7zl9NOMS6fG-iqhys4vHKxkYVMfQHLV5WbVVKBc3AxP56cIsI9vcd-1Pn2IHSptFWXRQtWQUGZJd8"/>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between mb-0.5">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Üç Çikolatalı Brownie</h4>
+<span class="font-label-lg text-label-lg font-bold text-tertiary flex-shrink-0 ml-1">220,00 ₺</span>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-bold">Satış</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-[10px]">1 adet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[11px] truncate">22:59 · M. Şükrü Sezer</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 2: Molten Kek -->
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<img class="w-11 h-11 rounded-lg object-cover flex-shrink-0" data-alt="Warm chocolate lava molten cake with melted chocolate center oozing on artisanal ceramic dish in soft coffee shop ambient, high contrast editorial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9fvMHQ83ziSyW1qAh9IAd5Ey2fJU4ndjQVN-Ag3jcX_kTafbp3xPyYAkFrfXiLMavbb95cpmv5Dt_cV2SasNS8asdchmuNdZMzFl4uLzrBebLGXlJV4dU2iTXXmpCVSyN699xfL4Tmr0Ck-a623qAe_JRvc3G3khD-LVrQHILr-ZWxDHm2VWfLmUA8FHj5H3iqA1SMcvl04f7U4Lfv0_MUlOp52PUFC6uEQ_Dfr1xpePu5ubJb3l2"/>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between mb-0.5">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Molten Kek</h4>
+<span class="font-label-lg text-label-lg font-bold text-tertiary flex-shrink-0 ml-1">250,00 ₺</span>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-bold">Satış</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-[10px]">1 adet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[11px] truncate">22:45 · M. Şükrü Sezer</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 3: Havuçlu Kek (İkram) -->
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<img class="w-11 h-11 rounded-lg object-cover flex-shrink-0" data-alt="Moist carrot cake slice layered with smooth cream cheese frosting and cinnamon spice sprinkled on top, boutique bakery presentation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD87EUmfG-Y1aH5zc8j2mwll1f3N4L036SQxe6J0RDdDlx8SL2rJUjD2GIJnN8OAR4ij4vgCtcrpllA66Mm8pIKiOae2vdJ8INcdteZxfxUkEjYjBaBeuBevfx0y3IB42VJiv8SCRSgk3z1RSUsIfvIhca312Bd5gL5i0TPeki6jMx_RkQAti7VGp6DZuVXYery_r0GfBNFNZLV4Gu6mNPZaU6_6tIywwQSzbU0H-daXvSyhlvvOEou"/>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between mb-0.5">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Havuçlu Kek</h4>
+<span class="font-label-lg text-label-lg font-bold text-secondary flex-shrink-0 ml-1">190,00 ₺</span>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-[10px] font-bold">İkram</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-[10px]">1 adet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[11px] truncate">22:23 · Super Admin</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 4: Toscana Cheesecake -->
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<img class="w-11 h-11 rounded-lg object-cover flex-shrink-0" data-alt="Classic Italian baked rustic cheesecake with caramelized Basque top edge on artisanal wooden tray in modern coffee house, high resolution commercial shot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqqYuJinp86vl1mRcX_4bARimR98IKZOmDbM2n93loYj6xj9KbwFtP8tH-UnD7qK-yRm00R5v08qy3So7cmA8YbUp_z-xzgexLZ4kV86xpwwKQ_2GkDfUvIjI_TuOy8i_B9vJaHuL_-qnRHRjXwWhK1EYgMeQ9Xly5YMoQIDEItP1mBIlZbfqSuGiK7tlsPgllZW4NtgcdDcXJM3RNVZJeNrvUpedOTXKLgACok3kSLjMBt2vgsUR2"/>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between mb-0.5">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Toscana Cheesecake</h4>
+<span class="font-label-lg text-label-lg font-bold text-tertiary flex-shrink-0 ml-1">250,00 ₺</span>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[10px] font-bold">Satış</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-[10px]">1 adet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[11px] truncate">22:21 · Super Admin</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 5: Krepli Yaban Mersinli Pasta (Zayi) -->
+<div class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<img class="w-11 h-11 rounded-lg object-cover flex-shrink-0" data-alt="Layered French blueberry crepe cake with fresh purple berries and vanilla mascarpone cream, dramatic clean lighting on slate surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6dmVYICe9OZ630ZbWVFRd9rxSgIaGKgqgqs-lsyRwWs2iFbRBLUhXIiMIcrY6J4kDWfpkfgBTxFxqa-k-wS6Eo1oE5eccvHMv_xLeo_U1HtHeRopHr2ZnthMZBP8orkELaQxw5D9A4T23fupIizbJqyJt5ts0TCfKV4Q6In0jdwBrfYDbEOtNxpwZvS63wGsoXriejj-W1LHCrblLx7kSDlBq5nCSsCyDTy9A8xpzLrcgcPHAeeCj"/>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between mb-0.5">
+<h4 class="font-label-lg text-label-lg font-bold text-on-surface truncate">Yaban Mersinli Pasta</h4>
+<span class="font-label-lg text-label-lg font-bold text-error flex-shrink-0 ml-1">240,00 ₺</span>
+</div>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-label-sm text-[10px] font-bold">Zayi (Fire)</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-label-sm text-[10px]">1 adet</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-[11px] truncate">13:46 · SKT Nedeniyle</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Load More Footer Button -->
+<button class="w-full mt-space-sm py-2.5 rounded-xl bg-surface-container text-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1 active:scale-[0.99] transition-all">
+<span>Tüm 186 İşlemi Görüntüle</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+<script>
+  function switchView(mode) {
+    const tabFinans = document.getElementById('tabFinans');
+    const tabPetty = document.getElementById('tabPetty');
+    const actionBtnLabel = document.getElementById('actionBtnLabel');
+    const donemOzeti = document.getElementById('donemOzetiSection');
+    const pettyBanner = document.getElementById('pettyCashBanner');
+
+    if (mode === 'petty') {
+      tabPetty.className = "flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 bg-primary text-on-primary shadow-sm flex items-center justify-center gap-1";
+      tabFinans.className = "flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1";
+      actionBtnLabel.textContent = "Masraf Ekle";
+      if (donemOzeti) donemOzeti.style.opacity = '0.4';
+      if (pettyBanner) pettyBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      tabFinans.className = "flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 bg-primary text-on-primary shadow-sm flex items-center justify-center gap-1";
+      tabPetty.className = "flex-1 py-1.5 px-space-xs rounded-full font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1";
+      actionBtnLabel.textContent = "Gün Ekle";
+      if (donemOzeti) donemOzeti.style.opacity = '1';
+    }
+  }
+
+  // Ensure bottom navigation reflects 'Rapor' active state in the app shell
+  document.addEventListener('DOMContentLoaded', () => {
+    const navItems = document.querySelectorAll('nav a');
+    navItems.forEach(item => {
+      if (item.getAttribute('data-path') === 'raporlar') {
+        item.classList.remove('text-on-surface-variant');
+        item.classList.add('text-primary', 'font-bold');
+      } else {
+        item.classList.remove('text-primary', 'font-bold');
+        item.classList.add('text-on-surface-variant');
+      }
+    });
+  });
+</script></main><div class="fixed bottom-20 right-margin z-40 pb-safe"><button aria-label="Hızlı Barkod / Stok İşlemi" class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-[0_4px_12px_rgba(0,92,85,0.35)] active:scale-95 transition-all"><span class="material-symbols-outlined text-[28px]">barcode_scanner</span></button></div><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-bold"><div class="flex items-center justify-around h-16 px-gutter-sm"><a class="flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] text-on-surface-variant transition-colors" data-path="ana-sayfa" href="#"><span class="material-symbols-outlined text-[22px]">dashboard</span><span class="font-label-sm text-label-sm mt-0.5">Ana Sayfa</span></a><a class="flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] text-on-surface-variant transition-colors" data-path="urunler" href="#"><span class="material-symbols-outlined text-[22px]">inventory_2</span><span class="font-label-sm text-label-sm mt-0.5">Ürünler</span></a><a class="flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] relative text-on-surface-variant transition-colors" data-path="oneri-skt" href="#"><span class="material-symbols-outlined text-[22px]">timer</span><span class="absolute top-1 right-[calc(50%-18px)] px-1.5 h-4 min-w-4 rounded-full bg-error text-on-error font-label-sm text-[9px] flex items-center justify-center leading-none font-bold">72</span><span class="font-label-sm text-label-sm mt-0.5">Öneri / SKT</span></a><a class="flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] text-on-surface-variant transition-colors" data-path="raporlar" href="#"><span class="material-symbols-outlined text-[22px]">monitoring</span><span class="font-label-sm text-label-sm mt-0.5">Rapor</span></a><a class="flex-1 flex flex-col items-center justify-center py-1 min-h-[44px] text-on-surface-variant transition-colors" data-path="menu" href="#"><span class="material-symbols-outlined text-[22px]">widgets</span><span class="font-label-sm text-label-sm mt-0.5">Menü</span></a></div></nav></body></html>
