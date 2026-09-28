@@ -13,6 +13,7 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/theme_mode.dart';
 import '../core/tokens.dart';
+import '../models/user.dart';
 import '../widgets/avatar.dart';
 import '../widgets/panels.dart';
 
@@ -134,10 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: EdgeInsets.zero,
       children: [
         AppCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Avatar(user: user, size: narrow ? 56 : 72),
+              _RingedAvatar(user: user, size: narrow ? 56 : 72),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -151,15 +152,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: t.ink,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      roleLabels[user.role] ?? user.role,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: t.primary,
+                    const SizedBox(height: 6),
+                    // Rol, duz metin yerine rozetle okunur: primarySoft/primary
+                    // cifti tum ekranlarda durum etiketleri icin kullaniliyor.
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.primarySoft,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        roleLabels[user.role] ?? user.role,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.primary,
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 6),
                     Text(
                       '@${user.username} · ${user.storeName ?? 'Merkezi'}',
                       style: TextStyle(fontSize: 13, color: t.muted),
@@ -244,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       _FlexChild(
                         narrow: narrow,
-                        child: _ThemeButton(
+                        child: _ThemeTile(
                           selected: !dark,
                           icon: Icons.light_mode_outlined,
                           label: 'Açık Tema',
@@ -254,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SizedBox(width: narrow ? 0 : 8, height: narrow ? 8 : 0),
                       _FlexChild(
                         narrow: narrow,
-                        child: _ThemeButton(
+                        child: _ThemeTile(
                           selected: dark,
                           icon: Icons.dark_mode_outlined,
                           label: 'Koyu Tema',
@@ -361,8 +375,32 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _ThemeButton extends StatelessWidget {
-  const _ThemeButton({
+/// Gradyan halka icine gercek avatar: fotograf ya da bas harf olsun fark etmez,
+/// profil basligi her iki durumda da ayni cerceveye oturur.
+class _RingedAvatar extends StatelessWidget {
+  const _RingedAvatar({required this.user, required this.size});
+
+  final AppUser user;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(2.5),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(colors: [t.primary, t.success]),
+      ),
+      child: Avatar(user: user, size: size),
+    );
+  }
+}
+
+/// Tema secimi: dugme yerine secili durumu kenarlikla vurgulanan tile.
+/// 44px dokunma hedefi korunur; secili yuzey primarySoft ile okunur.
+class _ThemeTile extends StatelessWidget {
+  const _ThemeTile({
     required this.selected,
     required this.icon,
     required this.label,
@@ -376,13 +414,41 @@ class _ThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)],
+    final t = context.tokens;
+    return Material(
+      color: selected ? t.primarySoft : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Container(
+          height: AppTokens.tap,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+            border: Border.all(
+              color: selected ? t.primary : t.borderStrong,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: selected ? t.primary : t.muted),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? t.primary : t.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-    return selected
-        ? FilledButton(onPressed: onPressed, child: child)
-        : OutlinedButton(onPressed: onPressed, child: child);
   }
 }
 
