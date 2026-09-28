@@ -9,6 +9,7 @@ import '../models/batch.dart';
 import '../widgets/panels.dart';
 import '../widgets/search_field.dart';
 import '../widgets/sell_confirm_bottom_sheet.dart';
+import 'batch_dialogs.dart';
 
 /// Food dolabındaki tüm ürünler, SKT'si en yakın olan en üstte.
 /// Arama listeyi ve kademe sayaçlarını birlikte filtreler (ekranda görünen ile
@@ -143,21 +144,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   }
 
   Future<void> _discard(Batch b) async {
-    final ok = await _confirm(
-      title: 'Zayi Gir',
-      confirmLabel: 'Zayi Gir',
-      danger: true,
-      body: Text(
-        '${b.productName} (${b.remaining} adet) için zayi girilecek. Onaylıyor musunuz?',
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await repo.discardAll(b);
-    } catch (_) {
-      // Bildirim API katmanında gösterilir.
+    final ok = await showDiscardDialog(context, b);
+    if (ok == true) {
+      await _load(silent: true);
     }
-    await _load(silent: true);
   }
 
   Future<void> _discardAll(List<Batch> expiredList) async {

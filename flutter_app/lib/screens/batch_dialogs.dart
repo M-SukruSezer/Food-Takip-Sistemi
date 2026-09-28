@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/format.dart';
+import '../core/opts.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
@@ -1049,57 +1050,1032 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
   );
 }
 
-/// Zayi: adet ve sebep.
-Future<bool?> showDiscardDialog(BuildContext context, Batch batch) {
-  final quantity = TextEditingController(text: '${batch.remaining}');
-  final reason = TextEditingController();
-  return showDialog<bool>(
+/// Zayi: adet ve sebep - modern Zayi & İkram Kayıt Formu.
+Future<bool?> showDiscardDialog(
+  BuildContext context,
+  Batch batch, {
+  bool isIkram = false,
+}) {
+  return showModalBottomSheet<bool>(
     context: context,
-    builder: (ctx) => FormDialog(
-      title: 'Zayi Gir',
-      submitLabel: 'Zayi Gir',
-      fields: (context, rebuild) => [
-        Text(
-          '${batch.productName} — kalan ${batch.remaining} adet',
-          style: TextStyle(color: context.tokens.muted),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.45),
+    builder: (ctx) => _ZayiIkramSheet(batch: batch, initialIsIkram: isIkram),
+  );
+}
+
+class _ZayiIkramSheet extends StatefulWidget {
+  const _ZayiIkramSheet({
+    required this.batch,
+    this.initialIsIkram = false,
+  });
+
+  final Batch batch;
+  final bool initialIsIkram;
+
+  @override
+  State<_ZayiIkramSheet> createState() => _ZayiIkramSheetState();
+}
+
+class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
+  late String _activeType; // 'zayi' or 'ikram'
+  late int _quantity;
+  late String _selectedReasonKey;
+  final TextEditingController _notes = TextEditingController();
+  bool _hasPhoto = false;
+  bool _saving = false;
+
+  static const _zayiReasons = [
+    (key: 'skt', label: 'SKT Dolumu / Bozulma', icon: Icons.event_busy_rounded),
+    (key: 'hasar', label: 'Düşürme / Fiziksel Hasar', icon: Icons.broken_image_rounded),
+    (key: 'kalite', label: 'Tat / Kalite Bozukluğu', icon: Icons.sentiment_very_dissatisfied_rounded),
+    (key: 'hazirlik', label: 'Personel Hatalı Hazırlık', icon: Icons.person_off_rounded),
+    (key: 'vitrin', label: 'Vitrin / Teşhir Eskimesi', icon: Icons.storefront_rounded),
+  ];
+
+  static const _ikramReasons = [
+    (key: 'memnuniyet', label: 'Müşteri Memnuniyeti / Jest', icon: Icons.sentiment_very_satisfied_rounded),
+    (key: 'tadim', label: 'Tadım / Numune İkramı', icon: Icons.restaurant_rounded),
+    (key: 'personel', label: 'Personel İkramı', icon: Icons.badge_rounded),
+    (key: 'mudur', label: 'Müdür / Yönetici İnisiyatifi', icon: Icons.verified_user_rounded),
+    (key: 'diger', label: 'Diğer / Tanıtım', icon: Icons.card_giftcard_rounded),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _activeType = widget.initialIsIkram ? 'ikram' : 'zayi';
+    _quantity = widget.batch.remaining > 0 ? widget.batch.remaining : 1;
+    _selectedReasonKey = _activeType == 'zayi' ? 'skt' : 'memnuniyet';
+  }
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+
+    final reasons = _activeType == 'zayi' ? _zayiReasons : _ikramReasons;
+    final reasonLabel = reasons.firstWhere(
+      (r) => r.key == _selectedReasonKey,
+      orElse: () => reasons.first,
+    ).label;
+
+    final noteText = _notes.text.trim();
+    final fullReason = noteText.isEmpty ? reasonLabel : '$reasonLabel: $noteText';
+
+    try {
+      if (_activeType == 'zayi') {
+        await repo.discard(
+          widget.batch.id,
+          quantity: _quantity,
+          reason: fullReason,
+        );
+      } else {
+        await api.dio.post(
+          '/batches/${widget.batch.id}/sell',
+          data: {'quantity': _quantity, 'kind': 'ikram'},
+          options: apiOptions(
+            successMessage: '${widget.batch.productName} — $_quantity adet ikram edildi',
+          ),
+        );
+      }
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage(e)),
+          backgroundColor: const Color(0xFFBA1A1A),
+          behavior: SnackBarBehavior.floating,
         ),
-        const SizedBox(height: 12),
-        LabeledField(
-          label: 'Adet',
-          child: TextField(
-            controller: quantity,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 16),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
+    final maxH = mediaQuery.size.height * 0.92;
+
+    final unitPrice = widget.batch.productUnitPrice ?? 0;
+    final totalCost = _quantity * unitPrice;
+    final formattedTotal = fmtMoney(totalCost);
+
+    final now = DateTime.now();
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} $timeStr';
+
+    final user = session.user;
+    final fullName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Muhammed Şükrü Sezer';
+    final initials = fullName.split(' ').where((w) => w.isNotEmpty).map((w) => w[0].toUpperCase()).take(2).join();
+    final roleName = switch (user?.role) {
+      'super_admin' => 'Ana Yönetici',
+      'operations_manager' => 'Operasyon Müdürü',
+      'regional_manager' => 'Bölge Müdürü',
+      'store_manager' => 'Store Manager',
+      'shift_supervisor' => 'Vardiya Müdürü',
+      'barista' => 'Barista',
+      _ => 'Store Manager',
+    };
+    final idStr = 'CLM-${user?.id ?? 8492}';
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: maxH),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 6),
+              child: Container(
+                width: 48,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFBA1A1A),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'KRİTİK STOK HAREKETİ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFBA1A1A),
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Zayi & İkram Kayıt Formu',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0B1C30),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(false),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEFF4FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 18, color: Color(0xFF0B1C30)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+            // Scrollable Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Transaction Type Toggle (Zayi / İkram)
+                    _buildTypeToggle(),
+                    const SizedBox(height: 12),
+
+                    // 2. Selected Product Card
+                    _buildProductCard(unitPrice),
+                    const SizedBox(height: 12),
+
+                    // 3. Quantity Stepper & Cost Computation
+                    _buildQuantityStepper(formattedTotal),
+                    const SizedBox(height: 12),
+
+                    // 4. Reason Selector
+                    _buildReasonSelector(),
+                    const SizedBox(height: 12),
+
+                    // 5. Camera & Proof Card
+                    _buildCameraAndProof(timeStr),
+                    const SizedBox(height: 12),
+
+                    // 6. Notes Field
+                    _buildNotesField(),
+                    const SizedBox(height: 12),
+
+                    // 7. Authorization & E-Signature Strip
+                    _buildSignatureStamp(fullName, initials, roleName, idStr, dateStr),
+                    const SizedBox(height: 16),
+
+                    // 8. Action Buttons
+                    _buildActionButtons(formattedTotal),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeToggle() {
+    final isZayi = _activeType == 'zayi';
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          // Tab 1: Zayi Çıkışı
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                if (!isZayi) {
+                  setState(() {
+                    _activeType = 'zayi';
+                    _selectedReasonKey = 'skt';
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isZayi ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: isZayi
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.delete_forever_rounded,
+                      size: 18,
+                      color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Zayi Çıkışı',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFFBDC9C6),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Tab 2: İkram
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                if (isZayi) {
+                  setState(() {
+                    _activeType = 'ikram';
+                    _selectedReasonKey = 'memnuniyet';
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: !isZayi ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: !isZayi
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.redeem_rounded,
+                      size: 18,
+                      color: !isZayi ? const Color(0xFF007952) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'İkram',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: !isZayi ? const Color(0xFF007952) : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: !isZayi ? const Color(0xFF007952) : const Color(0xFFBDC9C6),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(num unitPrice) {
+    final sktText = widget.batch.sktEnd == null
+        ? 'SKT Belirtilmemiş'
+        : widget.batch.isExpired
+            ? 'SKT: ${fmtDate(widget.batch.sktEnd)} (${widget.batch.daysLeft != null ? widget.batch.daysLeft!.abs() : 1} gün geçti)'
+            : 'SKT: ${fmtDate(widget.batch.sktEnd)}';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'SEÇİLİ VİTRİN ÜRÜNÜ',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F766E),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Değiştir',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F766E),
+                    ),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF0F766E)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            widget.batch.productName,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0B1C30),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'Birim: ',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              Text(
+                fmtMoney(unitPrice),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0B1C30),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                width: 3,
+                height: 3,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF64748B),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Mevcut: ',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              Text(
+                '${widget.batch.remaining} Adet',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0B1C30),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: widget.batch.isExpired
+                  ? const Color(0xFFFEE2E2)
+                  : const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: widget.batch.isExpired
+                        ? const Color(0xFFBA1A1A)
+                        : const Color(0xFFF59E0B),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  sktText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: widget.batch.isExpired
+                        ? const Color(0xFF93000A)
+                        : const Color(0xFF92400E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuantityStepper(String formattedTotal) {
+    final maxQty = widget.batch.remaining > 0 ? widget.batch.remaining : 1;
+    final isZayi = _activeType == 'zayi';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ÇIKIŞ MİKTARI',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF64748B),
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$_quantity Adet',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0B1C30),
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Toplam Tutar: $formattedTotal',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFF0F766E),
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF4FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InkWell(
+                  onTap: _quantity > 1
+                      ? () => setState(() => _quantity -= 1)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _quantity > 1 ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.remove_rounded,
+                      size: 20,
+                      color: _quantity > 1 ? const Color(0xFF0B1C30) : const Color(0xFFBDC9C6),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    '$_quantity',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F766E),
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: _quantity < maxQty
+                      ? () => setState(() => _quantity += 1)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _quantity < maxQty
+                          ? const Color(0xFF0F766E)
+                          : const Color(0xFF0F766E).withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReasonSelector() {
+    final isZayi = _activeType == 'zayi';
+    final reasons = isZayi ? _zayiReasons : _ikramReasons;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  isZayi ? 'Zayi / İptal Nedeni' : 'İkram Nedeni',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0B1C30),
+                  ),
+                ),
+                const Text(
+                  ' *',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFBA1A1A),
+                  ),
+                ),
+              ],
+            ),
+            const Text(
+              'Zorunlu Seçim',
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...reasons.map((r) {
+          final isSelected = _selectedReasonKey == r.key;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedReasonKey = r.key),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFD1FAE5) : const Color(0xFFEFF4FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: isSelected
+                      ? Border.all(color: const Color(0xFF0F766E), width: 1.2)
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      r.icon,
+                      size: 20,
+                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        r.label,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? const Color(0xFF065F46) : const Color(0xFF0B1C30),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF0F766E) : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: isSelected
+                            ? null
+                            : Border.all(color: const Color(0xFFBDC9C6), width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: isSelected
+                          ? const Icon(Icons.check, size: 13, color: Colors.white)
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildCameraAndProof(String timeStr) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.videocam_rounded, size: 18, color: Color(0xFF0F766E)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Kamera & Kasa Kaydı',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0B1C30),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCE9FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'POS-01 ($timeStr)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F766E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () {
+                setState(() => _hasPhoto = !_hasPhoto);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _hasPhoto
+                          ? 'Fotoğraf kanıtı eklendi.'
+                          : 'Fotoğraf kanıtı kaldırıldı.',
+                    ),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _hasPhoto ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _hasPhoto ? Icons.check_circle : Icons.photo_camera_rounded,
+                      size: 22,
+                      color: _hasPhoto ? const Color(0xFF10B981) : const Color(0xFF0F766E),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _hasPhoto ? 'Fotoğraf / Kanıt Eklendi ✓' : 'Fotoğraf / Kanıt Ekle',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: _hasPhoto ? const Color(0xFF065F46) : const Color(0xFF0B1C30),
+                            ),
+                          ),
+                          Text(
+                            _hasPhoto ? '1 görsel iliştirildi (kaldırmak için dokunun)' : 'Tutanak veya ürün görseli (opsiyonel)',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Operasyonel Açıklama & Not',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF0B1C30),
           ),
         ),
-        LabeledField(
-          label: 'Sebep',
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
           child: TextField(
-            controller: reason,
-            style: const TextStyle(fontSize: 16),
+            controller: _notes,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 13.5, color: Color(0xFF0B1C30)),
+            decoration: const InputDecoration(
+              hintText: 'Örn: Dolap sıcaklık dalgalanması sebebiyle krema formu bozulmuştur.',
+              hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.all(12),
+            ),
           ),
         ),
       ],
-      onSubmit: () async {
-        final qty = int.tryParse(quantity.text.trim());
-        if (qty == null || qty < 1) return 'Miktar en az 1 olmalıdır';
-        if (qty > batch.remaining) {
-            return 'Yeterli stok yok. Kalan: ${batch.remaining}';
-          }
-        try {
-          await repo.discard(
-            batch.id,
-            quantity: qty,
-            reason: reason.text.trim().isEmpty ? null : reason.text.trim(),
-          );
-          return null;
-        } catch (e) {
-          return errorMessage(e);
-        }
-      },
-    ),
-  );
+    );
+  }
+
+  Widget _buildSignatureStamp(
+    String fullName,
+    String initials,
+    String roleName,
+    String idStr,
+    String dateStr,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 17,
+            backgroundColor: const Color(0xFF0F766E),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fullName,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0B1C30),
+                  ),
+                ),
+                Text(
+                  '$roleName · ID: $idStr',
+                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text(
+                'E-ONAY DAMGASI',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F766E),
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                dateStr,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0B1C30),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(String formattedTotal) {
+    final isZayi = _activeType == 'zayi';
+    final label = isZayi
+        ? 'Zayi Kaydını Onayla ($formattedTotal)'
+        : 'İkramı Onayla ($formattedTotal)';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 48,
+          child: FilledButton.icon(
+            onPressed: _saving ? null : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: isZayi ? const Color(0xFF005C55) : const Color(0xFF007952),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.check_circle_rounded, size: 20),
+            label: Text(
+              label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text(
+            'Vazgeç',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
+
 
 /// Donuk stoka adet ekleme.
 Future<bool?> showStockAddDialog(BuildContext context, Batch batch) {
