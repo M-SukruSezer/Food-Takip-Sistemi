@@ -8,6 +8,7 @@ import '../core/tokens.dart';
 import '../models/batch.dart';
 import '../widgets/panels.dart';
 import '../widgets/search_field.dart';
+import '../widgets/sell_confirm_bottom_sheet.dart';
 
 /// Food dolabindaki tum urunler, SKT'si en yakin olan en ustte.
 /// Arama listeyi ve kademe sayaclarini birlikte filtreler (ekranda gorunen ile
@@ -73,12 +74,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
       list.fold<int>(0, (a, b) => a + b.remaining);
 
   Future<void> _sell(Batch b) async {
-    final ok = await _confirm(
-      title: 'Satışı Onayla',
-      confirmLabel: '1 Adet Sat',
-      danger: false,
-      body: _sellMessage(b),
-    );
+    final ok = await showSellConfirmBottomSheet(context, b);
     if (ok != true) return;
     try {
       await repo.sellOne(b);
@@ -122,53 +118,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     await _load(silent: true);
   }
 
-  Widget _sellMessage(Batch b) {
-    final t = context.tokens;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: b.productName,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: ' ürününden '),
-              const TextSpan(
-                text: '1 adet',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              TextSpan(
-                text:
-                    ' satılacak. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (b.hasPrice)
-          Text.rich(
-            TextSpan(
-              children: [
-                const TextSpan(text: 'Ciroya '),
-                TextSpan(
-                  text: fmtMoney(b.productUnitPrice),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const TextSpan(text: ' eklenecek.'),
-              ],
-            ),
-          )
-        else
-          Text(
-            'Bu çeşit için satış fiyatı tanımlı değil; ciroya 0 TL yazılacak.',
-            style: TextStyle(color: t.warning),
-          ),
-      ],
-    );
-  }
 
   /// Ikram stoktan duser ama satis sayilmaz. Personel ikisini karistirmasin
   /// diye onay metni bunu acikca yazar.
