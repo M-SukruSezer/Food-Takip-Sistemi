@@ -1,17 +1,23 @@
-
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'dart:ui';
+
 import '../core/api_client.dart';
 import '../core/format.dart';
 import '../core/notify.dart';
 import '../core/pdks_export.dart';
 import '../core/repository.dart';
-import '../core/new_theme.dart';
+import '../core/tokens.dart';
 import '../models/pdks.dart';
+import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/panels.dart';
 import 'pdks_dialogs.dart';
 
+/// Yonetici devam takibi ekrani: anlik durum, talep onayi, puantaj.
+///
+/// Vardiya tanimi ve magaza ayarlari web arayuzunde; telefonda gunluk
+/// operasyon (kim iste, talepler, puantaj) one alindi.
 class PdksAdminScreen extends StatefulWidget {
   const PdksAdminScreen({super.key});
 
@@ -42,6 +48,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
   void initState() {
     super.initState();
     _load();
+    // "Su an kimler iste" canli olmali.
     _timer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (_tab == _Tab.now) _loadPresence();
     });
@@ -114,17 +121,16 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
       danger: false,
       confirmLabel: 'Onayla',
       body: Text(
-        '${r.fullName ?? ''} · ${r.typeLabel}
-'
-        '${_detail(r)}
-
-${r.reason}',
+        '${r.fullName ?? ''} · ${r.typeLabel}\n'
+        '${_detail(r)}\n\n${r.reason}',
       ),
     );
     if (ok != true) return;
     try {
       await repo.pdksDecideRequest(r.id, true);
-    } catch (_) {}
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
     _loadRequests();
     _loadSheet();
   }
@@ -141,11 +147,216 @@ ${r.reason}',
       ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
       : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return CrudScaffold(
+      title: 'Devam Yönetimi',
+      loaded: _loaded,
+      error: _error,
+      onRetry: () => _load(),
+      onRefresh: () => _load(silent: true),
+      emptyText: '',
+      banner: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            padding: const EdgeInsets.all(12),
+            child: SegmentedButton<_Tab>(
+              segments: [
+                const ButtonSegment(value: _Tab.now, label: Text('Anlık')),
+                ButtonSegment(
+                  value: _Tab.requests,
+                  label: Text(
+                    _pendingCount > 0
+                        ? 'Talepler ($_pendingCount)'
+                        : 'Talepler',
+                  ),
+                ),
+                const ButtonSegment(
+                  value: _Tab.timesheet,
+                  label: Text('Puantaj'),
+                ),
+                const ButtonSegment(value: _Tab.staff, label: Text('Personel')),
+              ],
+              selected: {_tab},
+              showSelectedIcon: false,
+              onSelectionChanged: (v) {
+                setState(() => _tab = v.first);
+                if (_tab == _Tab.now) _loadPresence();
+                if (_tab == _Tab.requests) _loadRequests();
+                if (_tab == _Tab.timesheet) _loadSheet();
+                if (_tab == _Tab.staff) _loadProfiles();
+              },
+            ),
+          ),
+          const SizedBox(height: AppTokens.gap),
+          if (_tab == _Tab.now)
+            AppCard(
+              child: Row(
+                children: [
+                  Icon(Icons.groups_outlined, size: 20, color: t.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Şu an işte: ${_presence.insideCount} kişi',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: t.ink,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '60 sn’de yenilenir',
+                    style: TextStyle(fontSize: 11, color: t.muted),
+                  ),
+                ],
+              ),
+            ),
+          if (_tab == _Tab.requests)
+            AppCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'PENDING', label: Text('Bekleyen')),
+                      ButtonSegment(value: 'APPROVED', label: Text('Onaylı')),
+                      ButtonSegment(value: '', label: Text('Tümü')),
+                    ],
+                    selected: {_requestFilter},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (v) {
+                      setState(() => _requestFilter = v.first);
+                      _loadRequests();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Onaylanan izin günlerine vardiya atanmaz ve o günler '
+                    'puantajda izin olarak sayılır.',
+                    style: TextStyle(fontSize: 12, color: t.muted),
+                  ),
+                ],
+              ),
+            ),
+          if (_tab == _Tab.timesheet)
+            AppCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FormRow(
+                    left: LabeledField(
+                      label: 'Başlangıç',
+                      child: DateTimeField(
+                        value: _from,
+                        onChanged: (v) {
+                          setState(() => _from = v);
+                          _loadSheet();
+                        },
+                      ),
+                    ),
+                    right: LabeledField(
+                      label: 'Bitiş',
+                      child: DateTimeField(
+                        value: _to,
+                        onChanged: (v) {
+                          setState(() => _to = v);
+                          _loadSheet();
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_sheet.total.unscheduledMinutes > 0)
+                    Text(
+                      '${fmtDuration(_sheet.total.unscheduledMinutes)} çalışma, vardiya '
+                      'atanmamış günlerde yapılmış ve sınıflandırılmadı.',
+                      style: TextStyle(fontSize: 12, color: t.warning),
+                    ),
+                  // Aylik puantaj disa aktarma: bordro programina girdi
+                  // olacagi icin Excel de sunuluyor.
+                  if (_sheet.items.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _disa ? null : _excelAktar,
+                            icon: const Icon(
+                              Icons.table_view_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('Excel'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _disa ? null : _pdfAktar,
+                            icon: const Icon(
+                              Icons.picture_as_pdf_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('PDF'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  // Ucret toplami: yalnizca yetkiliye gonderiliyor.
+                  if (_sheet.wagesIncluded &&
+                      (_sheet.wageTotal?.defined ?? false)) ...[
+                    const SizedBox(height: 8),
+                    const Divider(height: 12),
+                    Text(
+                      'Brüt hak ediş toplamı: '
+                      '${fmtMoney(_sheet.wageTotal!.grossTotal ?? 0)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: t.ink,
+                      ),
+                    ),
+                    Text(
+                      'maaş ${fmtMoney(_sheet.wageTotal!.salaryTotal ?? 0)}'
+                      ' · yemek ${fmtMoney(_sheet.wageTotal!.mealPay ?? 0)}'
+                      '${(_sheet.wageTotal!.overtimePay ?? 0) > 0 ? ' · fazla mesai ${fmtMoney(_sheet.wageTotal!.overtimePay!)}' : ''}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                  ..._sheet.notes.map(
+                    (n) => Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        n,
+                        style: TextStyle(fontSize: 11, color: t.muted),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      children: switch (_tab) {
+        _Tab.now => _presenceRows(t),
+        _Tab.requests => _requestRows(t),
+        _Tab.timesheet => _sheetRows(t),
+        _Tab.staff => _staffRows(t),
+      },
+    );
+  }
+
   Future<void> _loadProfiles() async {
     try {
       final p = await repo.pdksProfiles();
       if (mounted) setState(() => _profiles = p);
-    } catch (_) {}
+    } catch (_) {
+      // Sessiz: sekme zaten bos liste gosteriyor.
+    }
   }
 
   Future<void> _excelAktar() async {
@@ -170,959 +381,421 @@ ${r.reason}',
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: NewTokens.surface,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: EdgeInsets.only(top: 80, bottom: 96),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildModeSwitcher(),
-                    _buildStatusBanner(),
-                    _buildActionCard(),
-                    _buildShiftDetail(),
-                    _buildLeaveStatus(),
-                    _buildRequests(),
-                    _buildCalendar(),
-                    _buildBottomAction(),
-                  ]),
+  /// Personel ucret ve profil tanimlari.
+  List<Widget> _staffRows(AppTokens t) {
+    if (_profiles.isEmpty) {
+      return [
+        AppCard(
+          child: Text(
+            'Personel bulunamadı.',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
+        ),
+      ];
+    }
+    return [
+      AppCard(
+        child: Text(
+          'Saat ücreti girilmişse hak ediş ondan hesaplanır; girilmemişse '
+          'aylık maaştan türetilir (aylık ÷ 225 saat). Yemek ücreti günlük '
+          'tutar × fiilen çalışılan gün sayısıdır.',
+          style: TextStyle(fontSize: 12, color: t.muted),
+        ),
+      ),
+      ..._profiles.map(
+        (p) => AppCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.fullName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      // null = TANIMSIZ, 0 = tanimli ama odenmiyor.
+                      // "0 TL" yazmak "ucretsiz calisiyor" anlamina gelirdi.
+                      'Maaş ${p.monthlySalary == null ? '—' : fmtMoney(p.monthlySalary!)}'
+                      ' · Saat ${p.hourlyRate != null
+                          ? fmtMoney(p.hourlyRate!)
+                          : p.effectiveHourlyRate != null
+                          ? '${fmtMoney(p.effectiveHourlyRate!)} (türetildi)'
+                          : '—'}'
+                      ' · Yemek ${p.mealDaily == null ? '—' : fmtMoney(p.mealDaily!)}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Düzenle',
+                onPressed: () => _editProfile(p),
+                icon: const Icon(Icons.edit_outlined),
               ),
             ],
           ),
-          _buildHeader(),
-          _buildFab(),
-          _buildBottomNav(),
-        ],
+        ),
       ),
-    );
+    ];
   }
 
-  Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            color: NewTokens.surface.withOpacity(0.85),
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-            child: Container(
-              height: 80,
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    offset: Offset(0, 1),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: NewTokens.tertiaryContainer,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      'Düzce Merkez Şube'.toUpperCase(),
-                                      style: NewTokens.labelSm.copyWith(
-                                        color: NewTokens.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                'Ana Sayfa',
-                                style: NewTokens.headlineSm.copyWith(
-                                  color: NewTokens.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                'Muhammed Ş. Sezer · Mağaza Müdürü',
-                                style: NewTokens.labelSm.copyWith(
-                                  color: NewTokens.onSurfaceVariant,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Stack(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.notifications, color: NewTokens.onSurfaceVariant),
-                            onPressed: () {},
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              padding: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: NewTokens.error,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                '7',
-                                style: NewTokens.labelSm.copyWith(
-                                  color: NewTokens.onError,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.power_settings_new, color: NewTokens.onSurfaceVariant),
-                        onPressed: () {},
-                      ),
-                      Container(
-                        width: 32,
-                        height: 32,
-                        margin: EdgeInsets.only(left: 4),
-                        decoration: BoxDecoration(
-                          color: NewTokens.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.person, color: NewTokens.onPrimary, size: 18),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+  Future<void> _editProfile(PdksProfile p) async {
+    final ok = await showProfileDialog(context, p);
+    if (ok == true) await _loadProfiles();
+  }
+
+  List<Widget> _presenceRows(AppTokens t) {
+    final rows = [..._presence.inside, ..._presence.outside];
+    if (rows.isEmpty) {
+      return [
+        AppCard(
+          child: Text(
+            'Personel bulunamadı.',
+            style: TextStyle(fontSize: 13, color: t.muted),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildModeSwitcher() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Container(
-        padding: EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: NewTokens.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.badge, size: 18, color: NewTokens.primary),
-                    SizedBox(width: 6),
-                    Text('PDKS & Devam', style: NewTokens.labelMd.copyWith(color: NewTokens.primary)),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.storefront, size: 18, color: NewTokens.onSurfaceVariant),
-                    SizedBox(width: 6),
-                    Text('Operasyon', style: NewTokens.labelMd.copyWith(color: NewTokens.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBanner() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      ];
+    }
+    return rows
+        .map(
+          (p) => AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_on, color: NewTokens.primary, size: 20),
-                    SizedBox(width: 4),
-                    Text('Düzce Merkez Colombia', style: NewTokens.labelLg.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.bold)),
-                  ],
-                ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: NewTokens.secondaryContainer,
-                    borderRadius: BorderRadius.circular(999),
+                    color: p.isInside ? t.success : t.muted,
+                    shape: BoxShape.circle,
                   ),
-                  child: Row(
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: NewTokens.primary, shape: BoxShape.circle)),
-                      SizedBox(width: 6),
-                      Text('İş yerindesiniz', style: NewTokens.labelSm.copyWith(color: NewTokens.onSecondaryContainer)),
+                      Text(
+                        p.fullName,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.ink,
+                        ),
+                      ),
+                      Text(
+                        p.lastAt == null
+                            ? 'kayıt yok'
+                            : '${p.isInside ? 'Giriş' : 'Çıkış'} '
+                                  '${fmtDateTime(p.lastAt)}'
+                                  '${p.lastMethod != null ? ' · ${p.lastMethod}' : ''}'
+                                  '${p.distanceM != null ? ' · ${p.distanceM!.round()} m' : ''}',
+                        style: TextStyle(fontSize: 12, color: t.muted),
+                      ),
                     ],
                   ),
                 ),
+                if (p.isInside && p.minutesSince != null)
+                  Pill(text: fmtDuration(p.minutesSince!), color: t.success),
               ],
             ),
-            SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('27 Eylül 2026, Pazar', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                Row(
-                  children: [
-                    Icon(Icons.my_location, size: 14, color: NewTokens.primary),
-                    SizedBox(width: 4),
-                    Text('GPS: Şube sınırları içi (12m)', style: NewTokens.labelSm.copyWith(color: NewTokens.primary, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        )
+        .toList();
   }
 
-  Widget _buildActionCard() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
+  List<Widget> _requestRows(AppTokens t) {
+    if (_requests.isEmpty) {
+      return [
+        AppCard(
+          child: Text(
+            'Kayıt bulunamadı.',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
         ),
+      ];
+    }
+    return _requests
+        .map(
+          (r) => AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        r.fullName ?? '',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: t.ink,
+                        ),
+                      ),
+                    ),
+                    Pill(
+                      text: r.statusLabel,
+                      color: r.isPending
+                          ? t.warning
+                          : r.status == 'APPROVED'
+                          ? t.success
+                          : t.danger,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${r.typeLabel} · ${_detail(r)}',
+                  style: TextStyle(fontSize: 13, color: t.ink),
+                ),
+                Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+                if (r.decisionNote != null)
+                  Text(
+                    'Karar notu: ${r.decisionNote}',
+                    style: TextStyle(fontSize: 12, color: t.danger),
+                  ),
+                if (r.isPending) ...[
+                  const SizedBox(height: 10),
+                  CardActions(
+                    children: [
+                      FilledButton(
+                        onPressed: () => _approve(r),
+                        child: const Text('Onayla'),
+                      ),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: t.danger,
+                          side: BorderSide(color: t.danger),
+                        ),
+                        onPressed: () => _reject(r),
+                        child: const Text('Reddet'),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  List<Widget> _sheetRows(AppTokens t) {
+    if (_sheet.items.isEmpty) {
+      return [
+        AppCard(
+          child: Text(
+            'Kayıt bulunamadı.',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
+        ),
+      ];
+    }
+    return _sheet.items.map((it) {
+      final s = it.summary;
+      final open = _expanded == it.userId;
+      return AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: NewTokens.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.qr_code_scanner, color: NewTokens.primary, size: 20),
+                Expanded(
+                  child: Text(
+                    it.fullName,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: t.ink,
                     ),
-                    SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Hızlı Devam Kaydı', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface)),
-                        Text('Karekod okutarak durum güncelle', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                      ],
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: NewTokens.surfaceContainer,
-                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text('Aktif Terminal', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
+                ),
+                IconButton(
+                  tooltip: open ? 'Kapat' : 'Gün gün',
+                  onPressed: () =>
+                      setState(() => _expanded = open ? null : it.userId),
+                  icon: Icon(open ? Icons.expand_less : Icons.expand_more),
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: NewTokens.primary,
-                foregroundColor: NewTokens.onPrimary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                minimumSize: Size.fromHeight(48),
-              ),
-              onPressed: () {},
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner, size: 22),
-                  SizedBox(width: 8),
-                  Text('QR ile İşe Başla', style: NewTokens.headlineSm.copyWith(fontSize: 15, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NewTokens.surfaceContainerLow,
-                      foregroundColor: NewTokens.onSurface,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      minimumSize: Size.fromHeight(44),
-                    ),
-                    onPressed: () {},
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.local_cafe, size: 18, color: NewTokens.secondary),
-                        SizedBox(width: 6),
-                        Text('QR ile Molaya Çık', style: NewTokens.labelLg),
-                      ],
-                    ),
-                  ),
+                _Fig(
+                  label: 'Çalışılan',
+                  value: fmtDuration(s.workedMinutes),
+                  color: t.ink,
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: NewTokens.surfaceContainerLow,
-                      foregroundColor: NewTokens.onSurface,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      minimumSize: Size.fromHeight(44),
-                    ),
-                    onPressed: () {},
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_circle, size: 18, color: NewTokens.primary),
-                        SizedBox(width: 6),
-                        Text('QR ile Moladan Dön', style: NewTokens.labelLg),
-                      ],
-                    ),
-                  ),
+                _Fig(
+                  label: 'Fazla mesai',
+                  value: fmtDuration(s.overtimeMinutes),
+                  color: t.success,
+                ),
+                _Fig(
+                  label: 'Eksik',
+                  value: fmtDuration(s.missingMinutes),
+                  color: s.missingMinutes > 0 ? t.danger : t.muted,
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: NewTokens.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info, color: NewTokens.onSurfaceVariant, size: 16),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Giriş, çıkış ve mola işlemleri kasadaki kiosk QR kodunu okutarak yapılır. Konum doğrulaması 100m yarıçapında geçerlidir; arka planda konum izlenmez.',
-                      style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShiftDetail() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Bugünün Çizelgesi', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface)),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: NewTokens.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text('Açılış Vardiyası', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurface)),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: NewTokens.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Planlanan Saat', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                        SizedBox(height: 2),
-                        Text('08:30 – 17:00', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(width: 6, height: 6, decoration: BoxDecoration(color: NewTokens.tertiary, shape: BoxShape.circle)),
-                            SizedBox(width: 4),
-                            Text('8.5 Saat Görev', style: NewTokens.labelSm.copyWith(color: NewTokens.tertiary, fontSize: 11)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: NewTokens.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Kullanılan Mola', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                        SizedBox(height: 2),
-                        Text('15 / 45 dk', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: 15 / 45,
-                          backgroundColor: NewTokens.surfaceContainer,
-                          color: NewTokens.primary,
-                          minHeight: 6,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.schedule, size: 18, color: NewTokens.onSurfaceVariant),
-                    SizedBox(width: 8),
-                    Text('Vardiya Amiri: Melis K. (Kasa 1)', style: NewTokens.labelMd.copyWith(color: NewTokens.onSurfaceVariant)),
-                  ],
-                ),
-                Text('Detaylar', style: NewTokens.labelSm.copyWith(color: NewTokens.primary, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLeaveStatus() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('İzin Durumu', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface)),
-                    Text('İzin yılı: 14.06.2026 – 13.06.2027', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                  ],
-                ),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: NewTokens.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.flight_takeoff, size: 16, color: NewTokens.onSecondaryContainer),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: NewTokens.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Kalan İzin', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                        SizedBox(height: 2),
-                        Text('7 Gün', style: NewTokens.numericMetric.copyWith(color: NewTokens.primary, fontSize: 20)),
-                        Text('Kullanıma Hazır', style: NewTokens.labelSm.copyWith(color: NewTokens.primary, fontSize: 10)),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: NewTokens.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Kullanılan', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                        SizedBox(height: 2),
-                        Text('0 Gün', style: NewTokens.numericMetric.copyWith(color: NewTokens.onSurface, fontSize: 20)),
-                        Text('Dönem içi', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant, fontSize: 10)),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: NewTokens.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Bekleyen', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                        SizedBox(height: 2),
-                        Text('${_pendingCount} Talep', style: NewTokens.numericMetric.copyWith(color: NewTokens.secondary, fontSize: 20)),
-                        Text('Onayda', style: NewTokens.labelSm.copyWith(color: NewTokens.secondary, fontSize: 10)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              'Yıllık izin hesabında hafta tatilleri düşülür; arife gibi yarım tatiller 0,5 gün sayılır. Dini ve resmi bayram günleri takvime sistemce otomatik yansıtılır.',
-              style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant, fontSize: 11),
+              '${s.workedDays} gün çalıştı · ${s.leaveDays} gün izin'
+              '${s.holidayDays > 0 ? ' · ${s.holidayDays} resmi tatil' : ''}'
+              '${s.absentDays > 0 ? ' · ${s.absentDays} gün devamsız' : ''}'
+              '${s.lateMinutes > 0 ? ' · ${s.lateMinutes} dk geç' : ''}'
+              '${s.deductedBreakMinutes > 0 ? ' · ${s.deductedBreakMinutes} dk mola' : ''}',
+              style: TextStyle(fontSize: 12, color: t.muted),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequests() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Taleplerim', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface)),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: NewTokens.primary,
-                    borderRadius: BorderRadius.circular(8),
+            // Yasal asgari molanin altinda kalinan gunler (m.68). Dusume etki
+            // etmez; uyum sorunu oldugu icin yoneticiye bildiriliyor.
+            if (s.breakShortfallDays > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '${s.breakShortfallDays} gün yasal asgari mola süresinin altında',
+                  style: TextStyle(fontSize: 12, color: t.warningText),
+                ),
+              ),
+            // Ucret hak edisi: sunucu yetki yoksa bu alani HIC gondermiyor.
+            if (it.wage != null && it.wage!.defined) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _Fig(
+                    label: 'Maaş',
+                    value: fmtMoney(it.wage!.salaryTotal ?? 0),
+                    color: t.ink,
                   ),
+                  _Fig(
+                    label: 'Yemek (${it.wage!.workedDays} gün)',
+                    value: it.wage!.mealPay == null
+                        ? '—'
+                        : fmtMoney(it.wage!.mealPay!),
+                    color: t.ink,
+                  ),
+                  _Fig(
+                    label: 'Brüt',
+                    value: it.wage!.grossTotal == null
+                        ? '—'
+                        : fmtMoney(it.wage!.grossTotal!),
+                    color: t.primary,
+                  ),
+                ],
+              ),
+            ],
+            if (open) ...[
+              const Divider(height: 20),
+              ...it.days.map(
+                (d) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      Icon(Icons.add, size: 16, color: NewTokens.onPrimary),
-                      SizedBox(width: 4),
-                      Text('Yeni İzin', style: NewTokens.labelMd.copyWith(color: NewTokens.onPrimary)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            ..._requests.map((r) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: NewTokens.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(width: 8, height: 8, decoration: BoxDecoration(color: NewTokens.secondary, shape: BoxShape.circle)),
-                            SizedBox(width: 8),
-                            Text(r.fullName ?? 'Yıllık İzin', style: NewTokens.labelLg.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.bold)),
-                            SizedBox(width: 8),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: NewTokens.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(r.statusLabel, style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant, fontSize: 11)),
-                            ),
-                          ],
+                      SizedBox(
+                        width: 76,
+                        child: Text(
+                          fmtDate(d.workDate),
+                          style: TextStyle(fontSize: 12, color: t.ink),
                         ),
-                        if (r.isPending)
-                          InkWell(
-                            onTap: () => _reject(r),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: NewTokens.errorContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text('İptal', style: NewTokens.labelSm.copyWith(color: NewTokens.onErrorContainer)),
-                            ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          // Resmi tatilde adi gostermek durum listesinden
+                          // daha bilgilendirici.
+                          d.isHoliday
+                              ? (d.holidayName ?? 'Resmi tatil')
+                              : d.isDayOff
+                              ? 'Hafta tatili'
+                              : d.statuses.isEmpty
+                              ? (d.shiftNames.join(', ').isEmpty
+                                    ? '-'
+                                    : d.shiftNames.join(', '))
+                              : d.statuses
+                                    .map(
+                                      (x) =>
+                                          x.replaceAll('_', ' ').toLowerCase(),
+                                    )
+                                    .join(', '),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: d.isHoliday ? t.danger : t.muted,
+                            fontWeight: d.isHoliday
+                                ? FontWeight.w700
+                                : FontWeight.w400,
                           ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(_detail(r), style: NewTokens.bodyMd.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.w500)),
-                    Text('Açıklama: ${r.reason}', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-            )).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalendar() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Vardiya Takvimi', style: NewTokens.headlineSm.copyWith(color: NewTokens.onSurface)),
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: NewTokens.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(8),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      child: Icon(Icons.chevron_left, size: 18, color: NewTokens.onSurfaceVariant),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('Eylül 2026', style: NewTokens.headlineSm.copyWith(fontSize: 15, fontWeight: FontWeight.bold, color: NewTokens.onSurface)),
-                    ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: NewTokens.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(8),
+                      SizedBox(
+                        width: 62,
+                        child: Text(
+                          fmtDuration(d.workedMinutes),
+                          textAlign: TextAlign.right,
+                          style: TextStyle(fontSize: 12, color: t.ink),
+                        ),
                       ),
-                      child: Icon(Icons.chevron_right, size: 18, color: NewTokens.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d) => Expanded(
-                child: Center(child: Text(d, style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant))),
-              )).toList(),
-            ),
-            SizedBox(height: 8),
-            // Dummy grid just to match HTML design look
-            GridView.builder(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                childAspectRatio: 0.8,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: 35,
-              itemBuilder: (ctx, i) {
-                if (i < 5) return SizedBox();
-                int day = i - 4;
-                bool isToday = day == 27;
-                bool isActive = day >= 21 && day <= 26;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: isToday ? NewTokens.primary : isActive ? NewTokens.surfaceContainerHigh : NewTokens.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('$day', style: NewTokens.labelSm.copyWith(
-                        color: isToday ? NewTokens.onPrimary : NewTokens.onSurface,
-                        fontWeight: isToday ? FontWeight.w900 : FontWeight.bold,
-                      )),
-                      Text(
-                        isToday ? 'Tatil' : isActive ? '16:00' : (day > 27 ? 'Tatil' : ''),
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                          color: isToday ? NewTokens.onPrimary : isActive ? NewTokens.primary : NewTokens.onSurfaceVariant,
+                      SizedBox(
+                        width: 56,
+                        child: Text(
+                          d.overtimeMinutes > 0
+                              ? '+${fmtDuration(d.overtimeMinutes)}'
+                              : d.missingMinutes > 0
+                              ? '-${fmtDuration(d.missingMinutes)}'
+                              : '',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: d.overtimeMinutes > 0 ? t.success : t.danger,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: NewTokens.surfaceContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.timelapse, color: NewTokens.primary, size: 18),
-                      SizedBox(width: 6),
-                      Text('Bu Hafta Toplam:', style: NewTokens.labelMd.copyWith(color: NewTokens.onSurface)),
-                    ],
-                  ),
-                  Text('42.5 Saat', style: NewTokens.headlineSm.copyWith(color: NewTokens.primary, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomAction() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: NewTokens.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: NewTokens.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.swap_horiz, color: NewTokens.onSecondaryContainer, size: 20),
-                ),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Vardiya Takası Yap', style: NewTokens.labelLg.copyWith(color: NewTokens.onSurface, fontWeight: FontWeight.bold)),
-                    Text('Mesai arkadaşınla gün değişimi talep et', style: NewTokens.labelSm.copyWith(color: NewTokens.onSurfaceVariant)),
-                  ],
-                ),
-              ],
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: NewTokens.surfaceContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text('Değiştir', style: NewTokens.labelMd.copyWith(color: NewTokens.primary)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFab() {
-    return Positioned(
-      bottom: 80,
-      right: 16,
-      child: FloatingActionButton(
-        backgroundColor: NewTokens.primary,
-        foregroundColor: NewTokens.onPrimary,
-        child: Icon(Icons.barcode_reader, size: 28),
-        onPressed: () {},
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            height: 64,
-            color: NewTokens.surface.withOpacity(0.9),
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  offset: Offset(0, -2),
-                  blurRadius: 12,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.dashboard, 'Ana Sayfa', true),
-                _buildNavItem(Icons.inventory_2, 'Ürünler', false),
-                _buildNavItem(Icons.timer, 'Öneri / SKT', false, badge: '72'),
-                _buildNavItem(Icons.monitoring, 'Rapor', false),
-                _buildNavItem(Icons.widgets, 'Menü', false),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive, {String? badge}) {
-    return Expanded(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: isActive ? NewTokens.primary : NewTokens.onSurfaceVariant, size: 22),
-              SizedBox(height: 2),
-              Text(
-                label,
-                style: NewTokens.labelSm.copyWith(
-                  color: isActive ? NewTokens.primary : NewTokens.onSurfaceVariant,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],
-          ),
-          if (badge != null)
-            Positioned(
-              top: 8,
-              right: 16,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: NewTokens.error,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  badge,
-                  style: NewTokens.labelSm.copyWith(color: NewTokens.onError, fontSize: 9),
-                ),
-              ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+}
+
+class _Fig extends StatelessWidget {
+  const _Fig({required this.label, required this.value, required this.color});
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: color,
             ),
+          ),
         ],
       ),
     );

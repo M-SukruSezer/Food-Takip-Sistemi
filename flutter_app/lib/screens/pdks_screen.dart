@@ -13,45 +13,38 @@ import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import 'pdks_dialogs.dart';
 import 'qr_scan_screen.dart';
-import '../core/new_theme.dart';
 
+/// Personel devam takibi ekrani.
+///
+/// KVKK: konum yalnizca giris/cikis aninda aliniyor, arka planda izleme yok.
+/// Bu arayuzde de kullaniciya yaziyor.
 class PdksScreen extends StatefulWidget {
   const PdksScreen({super.key, this.shiftRequired = false});
 
+  /// Operasyon alanindan yonlendirildik mi (sunucu 403 SHIFT_REQUIRED dedi).
+  /// Sebep yaziliyor ki personel bos bir ekranla kalip ne yapmasi gerektigini
+  /// bilemesin.
   final bool shiftRequired;
 
   @override
   State<PdksScreen> createState() => _PdksScreenState();
 }
 
-class _PdksScreenState extends State<PdksScreen>
-    with SingleTickerProviderStateMixin {
+class _PdksScreenState extends State<PdksScreen> {
   PdksStatus _status = PdksStatus.empty;
   PdksBalance? _balance;
   List<PersonnelRequest> _requests = const [];
   List<ShiftAssignment> _assignments = const [];
   List<PublicHoliday> _holidays = const [];
-  final DateTime _month = DateTime.now();
+  DateTime _month = DateTime.now();
   String? _error;
   bool _loaded = false;
   bool _busy = false;
 
-  late AnimationController _laserController;
-
   @override
   void initState() {
     super.initState();
-    _laserController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2600),
-    )..repeat(reverse: true);
     _load();
-  }
-
-  @override
-  void dispose() {
-    _laserController.dispose();
-    super.dispose();
   }
 
   String get _monthKey =>
@@ -74,6 +67,7 @@ class _PdksScreenState extends State<PdksScreen>
       });
       return;
     }
+    // Yardimci veriler kritik degil: gelmezse ekranin geri kalani calisir.
     repo
         .pdksBalance()
         .then((b) {
@@ -99,6 +93,8 @@ class _PdksScreenState extends State<PdksScreen>
           if (mounted) setState(() => _assignments = a);
         })
         .onError((Object _, StackTrace _) {});
+    // Resmi tatiller takvimde isaretlenir: personel izin planlarken hangi
+    // gunun tatil oldugunu gormeli.
     repo
         .pdksHolidays(from: from, to: to)
         .then((h) {
@@ -107,6 +103,7 @@ class _PdksScreenState extends State<PdksScreen>
         .onError((Object _, StackTrace _) {});
   }
 
+  /// QR ile islem (dort adimdan biri).
   Future<void> _qrPunch(PdksPunch adim) async {
     final basliklar = {
       PdksPunch.checkIn: 'QR ile Giriş',
@@ -123,6 +120,9 @@ class _PdksScreenState extends State<PdksScreen>
 
     setState(() => _busy = true);
     try {
+      // Konum ZORUNLU: QR "kodu okuttu" der, konum "IS YERINDE okuttu" der.
+      // Cihaz kontrolu konumla PARALEL yurutulur; seri yapilsa bekleme iki
+      // islemin toplami olurdu.
       final sonuclar = await Future.wait([
         currentPosition(),
         readDeviceIntegrity(),
@@ -135,6 +135,8 @@ class _PdksScreenState extends State<PdksScreen>
         latitude: pos.latitude,
         longitude: pos.longitude,
         accuracy: pos.accuracy,
+        // Android'in bu OLCUM icin verdigi sahte konum karari. Sunucu
+        // true ise kaydi REDDEDIYOR.
         isMocked: pos.isMocked,
         integrity: integrity,
       );
@@ -150,6 +152,11 @@ class _PdksScreenState extends State<PdksScreen>
     }
   }
 
+  /// Engellemeyen uyarilari personele bildirir.
+  ///
+  /// Islem KABUL EDILDI; bu yalnizca "kaydin yaninda su not durdu" bilgisi.
+  /// Sessiz kalmak dogru olmazdi: yonetici ekraninda bayrak gorunurken
+  /// personelin sebebini bilmemesi sonradan tartisma uretir.
   void _warnIntegrity(DeviceIntegrity integrity) {
     final w = integrity.warnings;
     if (w.isEmpty || !mounted) return;
@@ -174,496 +181,144 @@ class _PdksScreenState extends State<PdksScreen>
     if (ok != true) return;
     try {
       await repo.pdksCancelRequest(r.id);
-    } catch (_) {}
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
     await _load(silent: true);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final store = _status.store;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF171717), // neutral-900
-      body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F172A), // slate-900
-          ),
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildSubHeader(),
-              Expanded(
-                child: _buildScannerView(store?.name ?? 'Bilinmeyen Mağaza'),
-              ),
-              _buildBottomNav(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      color: NewTokens.surfaceContainerLowest, // white
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return CrudScaffold(
+      title: 'Devam Takibi',
+      loaded: _loaded,
+      error: _error,
+      onRetry: () => _load(),
+      onRefresh: () => _load(silent: true),
+      emptyText: '',
+      banner: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Text(
-                'P',
-                style: NewTokens.headlineSm.copyWith(
-                  color: NewTokens.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                '...',
-                style: NewTokens.headlineSm.copyWith(
-                  color: NewTokens.primaryContainer,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.only(
-              left: 4,
-              right: 14,
-              top: 4,
-              bottom: 4,
+          if (store != null && !store.pdksEnabled) ...[
+            const AppAlert(
+              danger: false,
+              icon: Icons.info_outline,
+              message:
+                  'Bu mağazada devam takibi henüz açılmamış. '
+                  'Yöneticinizle görüşün.',
             ),
-            decoration: BoxDecoration(
-              color: NewTokens.surfaceBright,
-              border: Border.all(
-                color: NewTokens.outlineVariant.withValues(alpha: 0.5),
-              ),
-              borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: AppTokens.gap),
+          ],
+          if (widget.shiftRequired && !_status.isInside) ...[
+            const AppAlert(
+              danger: false,
+              icon: Icons.warning_amber_outlined,
+              message:
+                  'Ürün, satış ve rapor bölümlerine girmek için '
+                  'önce işe giriş yapmalısınız.',
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [NewTokens.tertiary, NewTokens.primary],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: NewTokens.primaryContainer),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'MŞ',
-                    style: NewTokens.labelSm.copyWith(
-                      color: NewTokens.onPrimary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'MUHAMMED ŞÜKRÜ SEZER',
-                      style: NewTokens.labelSm.copyWith(
-                        color: NewTokens.onSurface,
-                      ),
-                    ),
-                    Text(
-                      'Store Manager',
-                      style: NewTokens.bodySm.copyWith(
-                        fontSize: 9,
-                        color: NewTokens.outline,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.notifications_none,
-                      color: NewTokens.outline,
-                      size: 20,
-                    ),
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: NewTokens.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: NewTokens.onError, width: 1),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: NewTokens.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: NewTokens.errorContainer),
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.logout,
-                    color: NewTokens.error,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            const SizedBox(height: AppTokens.gap),
+          ],
+          _PunchCard(status: _status, busy: _busy, onQr: _qrPunch),
+          const SizedBox(height: AppTokens.gap),
+          _TodayCard(status: _status),
+          if (_balance != null) ...[
+            const SizedBox(height: AppTokens.gap),
+            _BalanceCard(balance: _balance!),
+          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildSubHeader() {
-    return Container(
-      color: NewTokens.surfaceContainerLowest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: NewTokens.outlineVariant.withValues(alpha: 0.2),
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: NewTokens.onSurface,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'QR ile Giriş',
-                style: NewTokens.bodyLg.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: NewTokens.onSurface,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: NewTokens.surfaceVariant,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.pin_outlined,
-              color: NewTokens.onSurfaceVariant,
-              size: 16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScannerView(String storeName) {
-    return Container(
-      color: Colors.black,
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF0A0A0A), Colors.black],
-                radius: 1.2,
-              ),
-            ),
-          ),
-          Positioned(
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A).withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: NewTokens.primary.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: NewTokens.primaryFixed,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$storeName 📍',
-                    style: NewTokens.labelMd.copyWith(
-                      color: NewTokens.primaryFixed,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 256,
-                height: 256,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: NewTokens.primaryFixed.withValues(alpha: 0.9),
-                    width: 2,
-                  ),
-                  color: NewTokens.primary.withValues(alpha: 0.05),
-                ),
-                child: Stack(
-                  children: [
-                    // Corners
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _buildCorner(top: true, left: true),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: _buildCorner(top: true, left: false),
-                    ),
-                    Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: _buildCorner(top: false, left: true),
-                    ),
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: _buildCorner(top: false, left: false),
-                    ),
-
-                    // Laser
-                    AnimatedBuilder(
-                      animation: _laserController,
-                      builder: (context, child) {
-                        return Positioned(
-                          top: 240 * _laserController.value + 8,
-                          left: 12,
-                          right: 12,
-                          child: Container(
-                            height: 2,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  NewTokens.primaryFixed,
-                                  Colors.transparent,
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: NewTokens.primaryFixed.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Crosshair
-                    Center(
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: NewTokens.primaryFixed.withValues(
-                              alpha: 0.3,
-                            ),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: NewTokens.primaryFixed.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildCameraButton(Icons.flash_on, 'Flaş Aç', Colors.amber),
-                  const SizedBox(width: 16),
-                  _buildCameraButton(Icons.pin, 'PIN Girişi', Colors.white),
-                ],
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 24,
-            child: Column(
-              children: [
-                Text(
-                  'QR kodu çerçeveye alın.',
-                  style: NewTokens.bodyMd.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Kamera görüntüsü cihazdan çıkmıyor, sunucuya gönderilmiyor.',
-                  style: NewTokens.bodySm.copyWith(
-                    color: Colors.white54,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCorner({required bool top, required bool left}) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        border: Border(
-          top: top
-              ? const BorderSide(color: NewTokens.primaryFixed, width: 4)
-              : BorderSide.none,
-          bottom: !top
-              ? const BorderSide(color: NewTokens.primaryFixed, width: 4)
-              : BorderSide.none,
-          left: left
-              ? const BorderSide(color: NewTokens.primaryFixed, width: 4)
-              : BorderSide.none,
-          right: !left
-              ? const BorderSide(color: NewTokens.primaryFixed, width: 4)
-              : BorderSide.none,
-        ),
-        borderRadius: BorderRadius.only(
-          topLeft: top && left ? const Radius.circular(12) : Radius.zero,
-          topRight: top && !left ? const Radius.circular(12) : Radius.zero,
-          bottomLeft: !top && left ? const Radius.circular(12) : Radius.zero,
-          bottomRight: !top && !left ? const Radius.circular(12) : Radius.zero,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCameraButton(IconData icon, String label, Color iconColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 14),
-          const SizedBox(width: 8),
-          Text(label, style: NewTokens.labelMd.copyWith(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      color: NewTokens.surfaceContainerLowest,
-      padding: const EdgeInsets.only(top: 8, bottom: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.access_time, 'Devam', true),
-          _buildNavItem(Icons.calendar_view_week, 'Çizelge', false),
-          _buildNavItem(Icons.check_box_outlined, 'Yönetim', false),
-          _buildNavItem(Icons.menu, 'Menü', false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 48,
-          height: 28,
-          decoration: BoxDecoration(
-            color: isActive
-                ? NewTokens.surfaceContainerLow
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            icon,
-            color: isActive ? NewTokens.primary : NewTokens.outline,
-            size: 20,
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Taleplerim',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _newRequest,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Yeni'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (_requests.isEmpty)
+                Text(
+                  'Henüz talebiniz yok.',
+                  style: TextStyle(fontSize: 13, color: t.muted),
+                )
+              else
+                ..._requests.map(
+                  (r) => _RequestRow(request: r, onCancel: () => _cancel(r)),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: NewTokens.labelSm.copyWith(
-            color: isActive ? NewTokens.primary : NewTokens.outline,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Vardiya Takvimi',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(
+                        () => _month = DateTime(_month.year, _month.month - 1),
+                      );
+                      _loadMonth();
+                    },
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  Text(
+                    fmtMonth(_monthKey),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: t.ink,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(
+                        () => _month = DateTime(_month.year, _month.month + 1),
+                      );
+                      _loadMonth();
+                    },
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ShiftCalendar(
+                monthKey: _monthKey,
+                assignments: _assignments,
+                holidays: _holidays,
+              ),
+            ],
           ),
         ),
       ],
@@ -671,6 +326,7 @@ class _PdksScreenState extends State<PdksScreen>
   }
 }
 
+/// 'YYYY-MM' -> 'Kasım 2026'
 String fmtMonth(String key) {
   const names = [
     'Ocak',
@@ -691,4 +347,521 @@ String fmtMonth(String key) {
   final m = int.tryParse(parts[1]);
   if (m == null || m < 1 || m > 12) return key;
   return '${names[m - 1]} ${parts[0]}';
+}
+
+class _PunchCard extends StatelessWidget {
+  const _PunchCard({
+    required this.status,
+    required this.busy,
+    required this.onQr,
+  });
+
+  final PdksStatus status;
+  final bool busy;
+  final Future<void> Function(PdksPunch adim) onQr;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final inside = status.isInside;
+    final molada = status.onBreak;
+    final store = status.store;
+    final qr = status.canUseQr && !busy;
+    // Sonraki gecerli adim SUNUCUDAN geliyor; kurali burada tekrar yazmak
+    // iki tarafin ayrismasi demekti.
+    final anaAdim = status.canCheckOut ? PdksPunch.checkOut : PdksPunch.checkIn;
+    final anaAcik = qr && (status.canCheckIn || status.canCheckOut);
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${status.workDate}${store != null ? ' · ${store.name}' : ''}',
+                  style: TextStyle(fontSize: 12, color: t.muted),
+                ),
+              ),
+              Pill(
+                text: molada
+                    ? 'Moladasınız'
+                    : inside
+                    ? 'İş yerindesiniz'
+                    : 'İş yerinde değilsiniz',
+                color: molada
+                    ? t.warning
+                    : inside
+                    ? t.success
+                    : t.muted,
+              ),
+            ],
+          ),
+          if (inside && status.openSince != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.success,
+              ),
+            ),
+          ],
+          if (molada && status.breakSince != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${fmtDateTime(status.breakSince)} itibarıyla molada',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: t.warningText,
+              ),
+            ),
+          ],
+          if (status.breakMinutesToday > 0) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Bugün toplam mola: ${status.breakMinutesToday} dk',
+              style: TextStyle(fontSize: 12, color: t.muted),
+            ),
+          ],
+          const SizedBox(height: 14),
+          // Ana islem: iceride degilse giris, iceridyse cikis.
+          // Molada iken cikis KAPALI: once mola bitirilmeli (sunucu da
+          // engelliyor, dugmenin kapali olmasi sebebi denemeden gosteriyor).
+          // Dort adimin da TEK yolu QR okutmak. Her dugme okuyucuyu kendi
+          // adimiyla aciyor: niyet dugmede belli.
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: anaAcik ? () => onQr(anaAdim) : null,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Mola adimlari — bunlar da QR istiyor.
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: qr && status.canBreakStart
+                      ? () => onQr(PdksPunch.breakStart)
+                      : null,
+                  icon: const Icon(Icons.free_breakfast_outlined, size: 18),
+                  label: const Text('QR ile Molaya Çık'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: qr && status.canBreakEnd
+                      ? () => onQr(PdksPunch.breakEnd)
+                      : null,
+                  icon: const Icon(Icons.play_arrow_outlined, size: 18),
+                  label: const Text('QR ile Moladan Dön'),
+                ),
+              ),
+            ],
+          ),
+          if (store != null &&
+              store.pdksEnabled &&
+              (!store.hasQr || !store.hasLocation)) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Bu mağazada ${!store.hasQr ? 'QR kod' : 'mağaza konumu'} '
+              'tanımlı değil. Giriş/çıkış yapılamaz, yöneticinizle görüşün.',
+              style: TextStyle(fontSize: 12, color: t.warning),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.qr_code_scanner, size: 14, color: t.muted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
+                  'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
+                  '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
+                  'iş yeri yarıçapıyla karşılaştırılır. '
+                  'Arka planda konum izlenmez.',
+                  style: TextStyle(fontSize: 11, color: t.muted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({required this.status});
+
+  final PdksStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Bugün',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (status.shifts.isEmpty)
+            Text(
+              'Bugün için vardiya atanmamış.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: status.shifts
+                  .map(
+                    (s) => Pill(
+                      text: s.isDayOff
+                          ? 'Hafta tatili'
+                          : '${s.name} · ${s.startTime}-${s.endTime}'
+                                '${s.lateToleranceMinutes > 0 ? ' (${s.lateToleranceMinutes} dk tolerans)' : ''}',
+                      color: s.isDayOff ? t.muted : t.info,
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: 12),
+          if (status.logs.isEmpty)
+            Text(
+              'Bugün kayıt yok.',
+              style: TextStyle(fontSize: 13, color: t.muted),
+            )
+          else
+            ...status.logs.map(
+              (l) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Pill(
+                      text: l.typeLabel,
+                      color: l.isEntry ? t.success : t.danger,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        fmtDateTime(l.occurredAt),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: t.ink,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l.method +
+                          (l.distanceM != null
+                              ? ' · ${l.distanceM!.round()} m'
+                              : ''),
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({required this.balance});
+
+  final PdksBalance balance;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget cell(String label, String value, Color color) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'İzin Durumu',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
+            style: TextStyle(fontSize: 12, color: t.muted),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              cell('Kalan izin', '${balance.remainingDays} gün', t.success),
+              cell('Kullanılan', '${balance.usedDays} gün', t.ink),
+              cell('Bekleyen', '${balance.pendingDays} gün', t.warning),
+            ],
+          ),
+          if (balance.hourlyUsedHours > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Bu ay ${balance.hourlyUsedHours} saat saatlik izin kullanıldı '
+              '(yıllık izin gününden düşülmez).',
+              style: TextStyle(fontSize: 11, color: t.muted),
+            ),
+          ],
+          ...balance.notes.map(
+            (n) => Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(n, style: TextStyle(fontSize: 11, color: t.muted)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequestRow extends StatelessWidget {
+  const _RequestRow({required this.request, required this.onCancel});
+
+  final PersonnelRequest request;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final r = request;
+    final detail = r.type == 'IZIN'
+        ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
+        : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  r.typeLabel,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              Pill(
+                text: r.statusLabel,
+                color: r.isPending
+                    ? t.warning
+                    : r.status == 'APPROVED'
+                    ? t.success
+                    : t.danger,
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(detail, style: TextStyle(fontSize: 13, color: t.ink)),
+          Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+          if (r.decisionNote != null)
+            Text(
+              'Karar notu: ${r.decisionNote}',
+              style: TextStyle(fontSize: 12, color: t.danger),
+            ),
+          if (r.isPending)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: onCancel,
+                child: const Text('Geri Al'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Aylik vardiya takvimi. Pazartesi ile baslar (TR takvim alisligi).
+class ShiftCalendar extends StatelessWidget {
+  const ShiftCalendar({
+    super.key,
+    required this.monthKey,
+    required this.assignments,
+    this.holidays = const [],
+  });
+
+  final String monthKey;
+  final List<ShiftAssignment> assignments;
+  final List<PublicHoliday> holidays;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final parts = monthKey.split('-');
+    final year = int.tryParse(parts.first) ?? DateTime.now().year;
+    final month = int.tryParse(parts.length > 1 ? parts[1] : '') ?? 1;
+    final dayCount = DateTime.utc(year, month + 1, 0).day;
+    // DateTime.weekday: 1=Pazartesi. Pazartesi basli izgara icin -1.
+    final lead = DateTime.utc(year, month, 1).weekday - 1;
+
+    final byDate = <String, List<ShiftAssignment>>{};
+    for (final a in assignments) {
+      byDate.putIfAbsent(a.workDate, () => []).add(a);
+    }
+    final byHoliday = holidayMap(holidays);
+
+    final cells = <Widget>[];
+    for (var i = 0; i < lead; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+    for (var d = 1; d <= dayCount; d++) {
+      final date = '$monthKey-${d.toString().padLeft(2, '0')}';
+      final list = byDate[date] ?? const <ShiftAssignment>[];
+      final dayOff = list.any((a) => a.isDayOff);
+      final holiday = byHoliday[date];
+      cells.add(
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
+            color: holiday != null
+                ? t.dangerSoft
+                : dayOff
+                ? t.bg
+                : (list.isEmpty ? t.card : t.primarySoft),
+            border: Border.all(
+              color: holiday != null
+                  ? t.danger
+                  : (list.isEmpty && !dayOff ? t.border : t.primary),
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$d',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: t.ink,
+                ),
+              ),
+              if (holiday != null)
+                Text(
+                  holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    color: t.danger,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                )
+              else if (dayOff)
+                Text('Tatil', style: TextStyle(fontSize: 11, color: t.muted))
+              else
+                ...list
+                    .take(2)
+                    .map(
+                      (a) => Text(
+                        a.startTime ?? '',
+                        // Takvim hucresindeki vardiya saati; 9px okunmuyordu.
+                        style: TextStyle(fontSize: 11, color: t.muted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
+              .map(
+                (g) => Expanded(
+                  child: Text(
+                    g,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: t.muted,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 4),
+        GridView.count(
+          crossAxisCount: 7,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          childAspectRatio: 0.85,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: cells,
+        ),
+        if (assignments.isEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Bu ay için vardiya atanmamış.',
+            style: TextStyle(fontSize: 13, color: t.muted),
+          ),
+        ],
+        if (holidays.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Kırmızı çerçeveli günler resmi tatil; yıllık izin hakkınızdan '
+            'düşülmez.',
+            style: TextStyle(fontSize: 11, color: t.muted),
+          ),
+        ],
+      ],
+    );
+  }
 }

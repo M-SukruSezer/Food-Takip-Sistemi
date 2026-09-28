@@ -987,7 +987,7 @@ class _MenuTile extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: AppTokens.tap),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            
+            color: active ? t.primarySoft : null,
             borderRadius: BorderRadius.circular(AppTokens.radiusSm),
           ),
           child: Row(
@@ -1034,7 +1034,7 @@ class _BottomTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final color = active ? const Color(0xFF005C55) : const Color(0xFF3E4947);
+    final color = active ? t.primary : t.muted;
 
     return InkWell(
       onTap: onTap,
@@ -1043,7 +1043,7 @@ class _BottomTab extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: AppTokens.tap),
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         decoration: BoxDecoration(
-          
+          color: active ? t.primarySoft : null,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -1056,7 +1056,7 @@ class _BottomTab extends StatelessWidget {
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, size: 22, color: color),
+                  Icon(icon, size: 24, color: color),
                   if (badge > 0)
                     Positioned(
                       top: -8,

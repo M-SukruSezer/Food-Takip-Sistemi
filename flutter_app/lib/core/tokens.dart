@@ -92,98 +92,69 @@ class AppTokens extends ThemeExtension<AppTokens> {
   final Color sidebarMuted;
   final Color sidebarBorder;
 
-  /// Giris ekraninin panel rengi. Temaya gore DEGISMEZ: koyu temanin acik
-  /// teali tum ekrani kaplayinca goz aliyor. Derin orman yesili (sistemin
-  /// secondary tonu) iki temada da beyaz yaziyla 9.59 kontrast veriyor.
-  static const Color brandGreen = Color(0xFF134E3F);
+  /// Giris ekraninin panel rengi. Temaya gore degismez: koyu temanin nane
+  /// yesili tum ekrani kaplayinca goz aliyor, marka yesili ise iki temada da
+  /// beyaz yaziyla 5:1 kontrast veriyor.
+  static const Color brandGreen = Color(0xFF15803D);
 
-  /// Dokunma hedefi. Sistem birincil eylemler icin 48px istiyor; magazada
-  /// telefon tek elle ve acele kullaniliyor. [tapMin] mutlak taban olarak
-  /// testlerde zorlanmaya devam ediyor.
-  ///
-  /// React karsiligi: --tap / --tap-min.
-  static const double tap = 48;
-  static const double tapMin = 44;
-
-  /// Kose yaricapi. Sistem "Rounded 2" tabani: 8px kucuk ogeler,
-  /// 16px kart/dugme, 24px alt sayfa ve modal.
-  static const double radiusSm = 8;
-  static const double radius = 16;
-  static const double radiusLg = 24;
-
-  /// 4px/8px artimli bosluk izgarasi.
+  /// Dokunma hedefi tabani. React tarafindaki --tap ile ayni.
+  static const double tap = 44;
+  static const double radiusSm = 10;
+  static const double radius = 14;
+  static const double radiusLg = 20;
   static const double gap = 12;
-  static const double spaceXs = 4;
-  static const double spaceSm = 8;
-  static const double spaceMd = 16;
-  static const double spaceLg = 24;
-  static const double spaceXl = 32;
 
-  /// Yazi tipleri. Basliklar ve sayisal gostergeler Plus Jakarta Sans,
-  /// govde metni Inter. Ikisi de assets/fonts altindan gomulu geliyor.
-  static const String fontDisplay = 'PlusJakartaSans';
-  static const String fontBody = 'Inter';
-
-  /// Acik tema. Kaynak: stitch yeniden tasarim paketi
-  /// (retail_operations_system/DESIGN.md). Her deger React tarafindaki
-  /// index.css :root ile ELLE ESLENIYOR.
   static const AppTokens light = AppTokens(
-    // Derin perakende yesili. Beyaz metinle 7.89 (olculdu).
-    primary: Color(0xFF005C55),
+    primary: Color(0xFF15803D),
+    // Beyaz metin #15803D uzerinde 5.02 veriyor.
     onPrimary: Color(0xFFFFFFFF),
-    dangerStrong: Color(0xFF991B1B),
-    primary600: Color(0xFF0F766E),
-    primaryDark: Color(0xFF00403B),
-    primarySoft: Color(0xFFD6F0EC),
-    danger: Color(0xFFBA1A1A),
-    dangerSoft: Color(0xFFFEE2E2),
-    warning: Color(0xFFB45309),
-    warningSoft: Color(0xFFFEF3C7),
-    warningText: Color(0xFF92400E),
-    infoSoft: Color(0xFFE0F2FE),
-    infoText: Color(0xFF075985),
-    successSoft: Color(0xFFD1FAE5),
-    okText: Color(0xFF065F46),
-    // Sistemin parlak zumrutu (#10B981) BILEREK kullanilmadi: beyaz
-    // metinle 2.54 veriyor ve kucuk metin esigini gecmiyor. Ayni ailenin
-    // koyu tonu hem esigi geciyor hem ayni okumayi veriyor.
-    success: Color(0xFF047857),
-    info: Color(0xFF0369A1),
-    ink: Color(0xFF0B1C30),
-    muted: Color(0xFF475569),
-    border: Color(0xFFE2E8F0),
-    borderStrong: Color(0xFFCBD5E1),
-    bg: Color(0xFFF8FAFC),
+    dangerStrong: Color(0xFFDC2626),
+    primary600: Color(0xFF16A34A),
+    primaryDark: Color(0xFF14532D),
+    primarySoft: Color(0xFFEAFAF0),
+    danger: Color(0xFFDC2626),
+    dangerSoft: Color(0xFFFEF2F2),
+    warning: Color(0xFFD97706),
+    warningSoft: Color(0xFFFFFBEB),
+    warningText: Color(0xFFB45309),
+    infoSoft: Color(0xFFF0F9FF),
+    infoText: Color(0xFF0369A1),
+    successSoft: Color(0xFFF0FDF4),
+    okText: Color(0xFF15803D),
+    success: Color(0xFF16A34A),
+    info: Color(0xFF0284C7),
+    ink: Color(0xFF111827),
+    muted: Color(0xFF5B6472),
+    border: Color(0xFFE5E7EB),
+    borderStrong: Color(0xFFD1D5DB),
+    bg: Color(0xFFF5F6F8),
     card: Color(0xFFFFFFFF),
     sidebar: Color(0xFFFFFFFF),
-    sidebarInk: Color(0xFF0B1C30),
-    sidebarMuted: Color(0xFF475569),
-    sidebarBorder: Color(0xFFE2E8F0),
+    sidebarInk: Color(0xFF111827),
+    sidebarMuted: Color(0xFF4B5563),
+    sidebarBorder: Color(0xFFE5E7EB),
   );
 
-  /// Koyu tema. Kaynak sistemde TANIMLI DEGIL — yalnizca acik tema icin
-  /// ayarlanmis. Buradaki degerler ayni teal kimligi koruyacak sekilde
-  /// TURETILDI ve tek tek olculdu; contrast_test.dart hepsini zorluyor.
   static const AppTokens dark = AppTokens(
-    primary: Color(0xFF5EEAD4),
-    // Acik teal uzerine koyu yazi: 11.56 (olculdu).
-    onPrimary: Color(0xFF03201D),
-    dangerStrong: Color(0xFFFCA5A5),
-    primary600: Color(0xFF2DD4BF),
-    primaryDark: Color(0xFF99F6E4),
-    primarySoft: Color(0xFF16343A),
-    danger: Color(0xFFFCA5A5),
-    dangerSoft: Color(0xFF3A2230),
+    primary: Color(0xFF34D399),
+    // #0B1220, #34D399 uzerinde 9.74 veriyor.
+    onPrimary: Color(0xFF0B1220),
+    dangerStrong: Color(0xFFB91C1C),
+    primary600: Color(0xFF10B981),
+    primaryDark: Color(0xFF6EE7B7),
+    primarySoft: Color(0x2434D399),
+    danger: Color(0xFFF87171),
+    dangerSoft: Color(0x1FF87171),
     warning: Color(0xFFFBBF24),
-    warningSoft: Color(0xFF33332D),
+    warningSoft: Color(0x1FFBBF24),
     warningText: Color(0xFFFBBF24),
-    infoSoft: Color(0xFF17304A),
+    infoSoft: Color(0xFF203247),
     infoText: Color(0xFF7DD3FC),
-    successSoft: Color(0xFF18363D),
-    okText: Color(0xFF34D399),
-    success: Color(0xFF34D399),
+    successSoft: Color(0xFF1A3338),
+    okText: Color(0xFF4ADE80),
+    success: Color(0xFF4ADE80),
     info: Color(0xFF7DD3FC),
-    ink: Color(0xFFE6EDF5),
+    ink: Color(0xFFE5E9F0),
     muted: Color(0xFF94A3B8),
     border: Color(0xFF243049),
     borderStrong: Color(0xFF33415C),
