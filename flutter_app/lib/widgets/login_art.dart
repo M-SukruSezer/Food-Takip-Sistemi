@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import '../core/login_branding.dart';
+
 import 'package:flutter/material.dart';
 
 /// Giris ekranindaki illustrasyon.
@@ -11,15 +15,35 @@ class LoginArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/colombia_cafe.png',
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        'assets/login-art.png',
-        fit: BoxFit.contain,
-        semanticLabel: 'Colombia Cafe illüstrasyonu',
-      ),
-      semanticLabel: 'Colombia Cafe illüstrasyonu',
+    return ValueListenableBuilder<String?>(
+      valueListenable: loginArtwork,
+      builder: (context, value, _) {
+        if (value != null) {
+          try {
+            return Image.memory(
+              base64Decode(value.split(',').last),
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+              semanticLabel: 'Giriş görseli',
+              errorBuilder: (_, _, _) => _defaultArt(),
+            );
+          } catch (_) {
+            return _defaultArt();
+          }
+        }
+        return _defaultArt();
+      },
     );
   }
+
+  Widget _defaultArt() => Image.asset(
+    'assets/colombia_cafe.png',
+    fit: BoxFit.contain,
+    errorBuilder: (context, error, stackTrace) => Image.asset(
+      'assets/login-art.png',
+      fit: BoxFit.contain,
+      semanticLabel: 'Colombia Cafe illüstrasyonu',
+    ),
+    semanticLabel: 'Colombia Cafe illüstrasyonu',
+  );
 }

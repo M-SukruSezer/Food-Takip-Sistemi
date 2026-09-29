@@ -1,3 +1,8 @@
+import 'package:dio/dio.dart';
+import 'package:foodtakip/core/api_client.dart';
+
+import 'support/fake_api.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodtakip/core/tokens.dart';
@@ -5,10 +10,8 @@ import 'package:foodtakip/screens/login_screen.dart';
 import 'package:foodtakip/widgets/login_art.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Widget _app(Brightness brightness) => MaterialApp(
-      theme: buildAppTheme(brightness),
-      home: const LoginScreen(),
-    );
+Widget _app(Brightness brightness) =>
+    MaterialApp(theme: buildAppTheme(brightness), home: const LoginScreen());
 
 /// Bir rengin uzerindeki yazinin okunurlugu: WCAG kontrast orani.
 double _contrast(Color a, Color b) {
@@ -20,10 +23,19 @@ double _contrast(Color a, Color b) {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  late HttpClientAdapter original;
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    original = api.dio.httpClientAdapter;
+    installFakeApi({
+      'GET /branding/login': {'image': null},
+    });
+  });
+  tearDown(() => api.dio.httpClientAdapter = original);
 
   testWidgets('illustrasyon, iki alan ve giriş düğmesi var', (tester) async {
     await tester.pumpWidget(_app(Brightness.light));
+    await tester.pumpAndSettle();
 
     expect(find.byType(LoginArt), findsOneWidget);
     expect(find.text('Hoş geldin!'), findsOneWidget);
@@ -39,8 +51,11 @@ void main() {
 
   testWidgets('alanlar ve düğme hap biçiminde, 44px üstünde', (tester) async {
     await tester.pumpWidget(_app(Brightness.light));
+    await tester.pumpAndSettle();
 
-    final button = tester.getSize(find.widgetWithText(FilledButton, 'Giriş Yap'));
+    final button = tester.getSize(
+      find.widgetWithText(FilledButton, 'Giriş Yap'),
+    );
     expect(button.height, greaterThanOrEqualTo(AppTokens.tap));
 
     // Sifre goster dugmesi parmak boyutunda olmali.
@@ -49,14 +64,20 @@ void main() {
     expect(eye.width, greaterThanOrEqualTo(AppTokens.tap));
 
     // "Sifremi unuttum?" de dokunulabilir yukseklikte.
-    final forgot = tester.getSize(find.widgetWithText(TextButton, 'Şifremi unuttum?'));
+    final forgot = tester.getSize(
+      find.widgetWithText(TextButton, 'Şifremi unuttum?'),
+    );
     expect(forgot.height, greaterThanOrEqualTo(AppTokens.tap));
   });
 
-  testWidgets('şifre alanı gizli başlar ve göz düğmesiyle açılır', (tester) async {
+  testWidgets('şifre alanı gizli başlar ve göz düğmesiyle açılır', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(Brightness.light));
+    await tester.pumpAndSettle();
 
-    TextField passwordField() => tester.widgetList<TextField>(find.byType(TextField)).last;
+    TextField passwordField() =>
+        tester.widgetList<TextField>(find.byType(TextField)).last;
     expect(passwordField().obscureText, isTrue);
 
     await tester.tap(find.byType(IconButton).first);
@@ -67,6 +88,7 @@ void main() {
   testWidgets('panel yazısı her iki temada okunur kalır', (tester) async {
     for (final brightness in [Brightness.light, Brightness.dark]) {
       await tester.pumpWidget(_app(brightness));
+      await tester.pumpAndSettle();
       await tester.pump();
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
@@ -84,11 +106,17 @@ void main() {
       final style = btn.style!;
       final bg = style.backgroundColor!.resolve({})!;
       final fg = style.foregroundColor!.resolve({})!;
-      expect(_contrast(bg, fg), greaterThan(4.5), reason: '$brightness temasinda düğme kontrastı');
+      expect(
+        _contrast(bg, fg),
+        greaterThan(4.5),
+        reason: '$brightness temasinda düğme kontrastı',
+      );
     }
   });
 
-  testWidgets('küçük telefonda taşma olmaz ve klavye açılınca kaydırılır', (tester) async {
+  testWidgets('küçük telefonda taşma olmaz ve klavye açılınca kaydırılır', (
+    tester,
+  ) async {
     // 360x640: yaygin kucuk Android ekrani.
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1.0;
@@ -100,12 +128,17 @@ void main() {
 
     // Icerik kaydirilabilir olmali ki klavye acilinca dugme erisilebilsin.
     expect(find.byType(SingleChildScrollView), findsOneWidget);
-    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -120));
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -120),
+    );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('geniş ekranda içerik ortalanır ve aşırı genişlemez', (tester) async {
+  testWidgets('geniş ekranda içerik ortalanır ve aşırı genişlemez', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -113,16 +146,21 @@ void main() {
     await tester.pumpWidget(_app(Brightness.light));
     await tester.pumpAndSettle();
 
-    final button = tester.getRect(find.widgetWithText(FilledButton, 'Giriş Yap'));
+    final button = tester.getRect(
+      find.widgetWithText(FilledButton, 'Giriş Yap'),
+    );
     expect(button.width, lessThanOrEqualTo(460));
     // Yatayda ortalanmis olmali.
     expect(button.center.dx, closeTo(700, 1));
   });
   group('Beni hatırla', () {
-    testWidgets('kayıtlı kullanıcı adı alana yazılır ve kutu işaretli gelir', (tester) async {
+    testWidgets('kayıtlı kullanıcı adı alana yazılır ve kutu işaretli gelir', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({'rememberedUser': 'ayse'});
 
       await tester.pumpWidget(_app(Brightness.light));
+      await tester.pumpAndSettle();
       await tester.pumpAndSettle();
 
       expect(find.text('ayse'), findsOneWidget);
@@ -133,6 +171,7 @@ void main() {
     testWidgets('kayıt yoksa kutu boş gelir', (tester) async {
       await tester.pumpWidget(_app(Brightness.light));
       await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
       final box = tester.widget<Checkbox>(find.byType(Checkbox));
       expect(box.value, isFalse);
@@ -141,6 +180,7 @@ void main() {
 
     testWidgets('kutu dokunma hedefini korur', (tester) async {
       await tester.pumpWidget(_app(Brightness.light));
+      await tester.pumpAndSettle();
       await tester.pumpAndSettle();
 
       final size = tester.getSize(find.byType(Checkbox));
@@ -159,7 +199,8 @@ void main() {
         of: find.byType(TextField).first,
         matching: find.byType(AnimatedContainer),
       );
-      return tester.widget<AnimatedContainer>(finder.first).decoration! as BoxDecoration;
+      return tester.widget<AnimatedContainer>(finder.first).decoration!
+          as BoxDecoration;
     }
 
     // Kendi çerçevesi olmadığı için odak halkası olmadan hiçbir işaret yoktu.
@@ -170,7 +211,9 @@ void main() {
     expect(pill().boxShadow, isNotNull);
   });
 
-  testWidgets('illüstrasyon kart içinde değil, doğrudan zemin üzerinde', (tester) async {
+  testWidgets('illüstrasyon kart içinde değil, doğrudan zemin üzerinde', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(Brightness.light));
     await tester.pumpAndSettle();
 
@@ -181,7 +224,11 @@ void main() {
         .map((e) => (e.widget as Container).decoration)
         .whereType<BoxDecoration>()
         .where((d) => d.color != null);
-    expect(kaplar, isEmpty, reason: 'illüstrasyonun etrafında hâlâ bir kart var');
+    expect(
+      kaplar,
+      isEmpty,
+      reason: 'illüstrasyonun etrafında hâlâ bir kart var',
+    );
   });
 
   testWidgets('sayfa zemini temaya göre değişir', (tester) async {
@@ -189,7 +236,10 @@ void main() {
     for (final b in [Brightness.light, Brightness.dark]) {
       await tester.pumpWidget(_app(b));
       await tester.pumpAndSettle();
-      zeminler.add(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor!);
+      await tester.pumpAndSettle();
+      zeminler.add(
+        tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor!,
+      );
     }
     expect(zeminler[0], AppTokens.light.bg);
     expect(zeminler[1], AppTokens.dark.bg);
@@ -219,5 +269,4 @@ void main() {
     expect(daire!.shape, BoxShape.circle);
     expect(daire.color, const Color(0xFFFFFFFF));
   });
-
 }

@@ -225,7 +225,7 @@ void main() {
 
       // 9 ham alan sorulur; oranlar formda yok. Etiketler ozet kartinda da
       // gectigi icin arama pencereyle sinirlanir.
-      final dialog = find.byType(AlertDialog);
+      final dialog = find.byType(FormDialog);
       expect(
         find.descendant(of: dialog, matching: find.text('NET SALES')),
         findsOneWidget,
@@ -305,7 +305,7 @@ void main() {
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();
 
-      final dialog = find.byType(AlertDialog);
+      final dialog = find.byType(FormDialog);
       // Elle girilen 6 alan + baska giris yok: food icin TextField uretilmez.
       expect(
         find.descendant(of: dialog, matching: find.byType(TextField)),
@@ -316,7 +316,7 @@ void main() {
       expect(
         find.descendant(
           of: dialog,
-          matching: find.text('Sistemden gelen değerler'),
+          matching: find.text('SİSTEMDEN GELEN DEĞERLER'),
         ),
         findsOneWidget,
       );
@@ -346,7 +346,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final inputs = find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(FormDialog),
         matching: find.byType(TextField),
       );
       for (var i = 0; i < 6; i++) {

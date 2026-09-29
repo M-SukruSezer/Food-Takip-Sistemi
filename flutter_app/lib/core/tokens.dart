@@ -110,15 +110,14 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const double bpMd = 900;
   static const double bpLg = 1200;
 
-
   static const AppTokens light = AppTokens(
-    primary: Color(0xFF15803D),
-    // Beyaz metin #15803D uzerinde 5.02 veriyor.
+    primary: Color(0xFF0F766E),
+    // Turkuaz ana islem rengi; beyaz metinle okunur kontrast.
     onPrimary: Color(0xFFFFFFFF),
     dangerStrong: Color(0xFFDC2626),
-    primary600: Color(0xFF16A34A),
-    primaryDark: Color(0xFF14532D),
-    primarySoft: Color(0xFFEAFAF0),
+    primary600: Color(0xFF0D9488),
+    primaryDark: Color(0xFF115E59),
+    primarySoft: Color(0xFFE6F8F3),
     danger: Color(0xFFDC2626),
     dangerSoft: Color(0xFFFEF2F2),
     warning: Color(0xFFD97706),
@@ -143,13 +142,13 @@ class AppTokens extends ThemeExtension<AppTokens> {
   );
 
   static const AppTokens dark = AppTokens(
-    primary: Color(0xFF34D399),
-    // #0B1220, #34D399 uzerinde 9.74 veriyor.
+    primary: Color(0xFF5EEAD4),
+    // Koyu temada acik turkuaz uzerine koyu metin.
     onPrimary: Color(0xFF0B1220),
     dangerStrong: Color(0xFFB91C1C),
     primary600: Color(0xFF10B981),
-    primaryDark: Color(0xFF6EE7B7),
-    primarySoft: Color(0x2434D399),
+    primaryDark: Color(0xFF99F6E4),
+    primarySoft: Color(0x245EEAD4),
     danger: Color(0xFFF87171),
     dangerSoft: Color(0x1FF87171),
     warning: Color(0xFFFBBF24),

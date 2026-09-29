@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
+import 'mobile_sheet.dart';
 
 /// Ortak onay penceresi. Oneri listesi ve stok ekrani ayni bicimi kullanir.
 Future<bool?> confirmDialog(
@@ -46,9 +47,11 @@ class FormDialog extends StatefulWidget {
     this.subtitle,
     this.submitColor,
     this.titleWidget,
+    this.mobileSheet = false,
   });
 
   final String title;
+  final bool mobileSheet;
   final String submitLabel;
   final IconData? headerIcon;
   final String? subtitle;
@@ -76,7 +79,12 @@ class _FormDialogState extends State<FormDialog> {
       _busy = true;
       _error = null;
     });
-    final err = await widget.onSubmit();
+    String? err;
+    try {
+      err = await widget.onSubmit();
+    } catch (_) {
+      err = 'İşlem tamamlanamadı. Tekrar deneyin.';
+    }
     if (!mounted) return;
     if (err == null) {
       Navigator.pop(context, true);
@@ -95,9 +103,66 @@ class _FormDialogState extends State<FormDialog> {
     // kapliyordu. Genislik ekrana gore daralir, kenarda bosluk kalir.
     final screen = MediaQuery.sizeOf(context);
     final narrow = screen.width < 600;
+    if (widget.mobileSheet) {
+      return MobileSheet(
+        title: widget.titleWidget ?? Text(widget.title),
+        subtitle: widget.subtitle,
+        icon: widget.headerIcon,
+        busy: _busy,
+        footer: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: t.bg,
+                  foregroundColor: t.ink,
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: _busy ? null : () => Navigator.pop(context, false),
+                child: const Text('Vazgeç'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 3,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: widget.submitColor ?? t.primary,
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: _busy ? null : _submit,
+                icon: const Icon(Icons.check_circle_outline, size: 19),
+                label: Text(
+                  _busy ? 'Kaydediliyor...' : widget.submitLabel,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+        child: AbsorbPointer(
+          absorbing: _busy,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_error!, style: TextStyle(color: t.danger)),
+                ),
+              ...widget.fields(context, () {
+                if (mounted) setState(() {});
+              }),
+            ],
+          ),
+        ),
+      );
+    }
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: widget.titleWidget ??
+      title:
+          widget.titleWidget ??
           (widget.headerIcon != null || widget.subtitle != null
               ? Column(
                   mainAxisSize: MainAxisSize.min,
@@ -361,11 +426,13 @@ class DateTimeField extends StatelessWidget {
   const DateTimeField({
     super.key,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
+    this.fillColor,
   });
 
   final DateTime? value;
-  final ValueChanged<DateTime> onChanged;
+  final Color? fillColor;
+  final ValueChanged<DateTime>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -381,26 +448,41 @@ class DateTimeField extends StatelessWidget {
         alignment: Alignment.centerLeft,
         minimumSize: const Size(double.infinity, AppTokens.tap),
         foregroundColor: t.ink,
+        disabledForegroundColor: t.primaryDark,
+        backgroundColor: fillColor ?? t.card,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        side: BorderSide(
+          color: fillColor != null ? Colors.transparent : t.border,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      onPressed: () async {
-        final base = value ?? DateTime.now();
-        final date = await showDatePicker(
-          context: context,
-          initialDate: base,
-          firstDate: DateTime(base.year - 2),
-          lastDate: DateTime(base.year + 2),
-        );
-        if (date == null) return;
-        if (!context.mounted) return;
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
-        );
-        if (time == null) return;
-        onChanged(
-          DateTime(date.year, date.month, date.day, time.hour, time.minute),
-        );
-      },
+      onPressed: onChanged == null
+          ? null
+          : () async {
+              final base = value ?? DateTime.now();
+              final date = await showDatePicker(
+                context: context,
+                initialDate: base,
+                firstDate: DateTime(base.year - 2),
+                lastDate: DateTime(base.year + 2),
+              );
+              if (date == null) return;
+              if (!context.mounted) return;
+              final time = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
+              );
+              if (time == null) return;
+              onChanged!(
+                DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  time.hour,
+                  time.minute,
+                ),
+              );
+            },
     );
   }
 }

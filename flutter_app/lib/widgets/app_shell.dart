@@ -11,6 +11,12 @@ import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../models/user.dart';
+import '../models/pdks.dart';
+import '../core/api_client.dart';
+import '../core/notify.dart';
+import 'pdks_qr_action.dart';
+import 'qr_action_menu.dart';
 import 'avatar.dart';
 import 'notification_bell.dart';
 import 'scrim.dart';
@@ -23,7 +29,7 @@ const double kSidebarBreakpoint = 900;
 const double kRailDefaultBelow = 1200;
 
 /// Alt cubugun yuksekligi. Menu tabakasi cubugun uzerine oturmali.
-const double kBottomBarHeight = 64;
+const double kBottomBarHeight = 82;
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child});
@@ -36,6 +42,58 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool? _railOverride;
+  bool _qrOpen = false;
+  bool _qrBusy = false;
+  PdksStatus? _qrStatus;
+  String? _qrError;
+
+  Future<void> _toggleQr() async {
+    if (_qrOpen) {
+      setState(() => _qrOpen = false);
+      return;
+    }
+    setState(() {
+      _qrOpen = true;
+      _qrStatus = null;
+      _qrError = null;
+    });
+    try {
+      final status = await repo.pdksStatus(silent: true);
+      if (mounted) setState(() => _qrStatus = status);
+    } catch (e) {
+      if (mounted) setState(() => _qrError = errorMessage(e));
+    }
+  }
+
+  Future<void> _chooseQr(bool isBreak) async {
+    final status = _qrStatus;
+    if (status == null || _qrBusy) return;
+    final action = isBreak
+        ? (status.onBreak ? PdksPunch.breakEnd : PdksPunch.breakStart)
+        : (status.isInside ? PdksPunch.checkOut : PdksPunch.checkIn);
+    final allowed = switch (action) {
+      PdksPunch.checkIn => status.canCheckIn,
+      PdksPunch.checkOut => status.canCheckOut,
+      PdksPunch.breakStart => status.canBreakStart,
+      PdksPunch.breakEnd => status.canBreakEnd,
+    };
+    if (!status.canUseQr || !allowed) {
+      toast(
+        'Bu işlem şu an kullanılamıyor. Devam ekranındaki durumunuzu kontrol edin.',
+        kind: ToastKind.info,
+      );
+      return;
+    }
+    setState(() {
+      _qrOpen = false;
+      _qrBusy = true;
+    });
+    try {
+      await performPdksQr(context, action);
+    } finally {
+      if (mounted) setState(() => _qrBusy = false);
+    }
+  }
 
   /// Yolu bir ekrana baglanamayan sayfalarda (Profilim) hangi ekranda
   /// kaldigimizi hatirlar; kullanici ekran degistirmis gibi olmasin.
@@ -114,80 +172,106 @@ class _AppShellState extends State<AppShell> {
     final section = resolved ?? _lastSection;
     final groups = navGroupsFor(user, section);
 
-    return Scaffold(
-      backgroundColor: t.bg,
-      // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
-      // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
-      // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
-      bottomNavigationBar: wide
-          ? null
-          : _BottomBar(
-              location: location,
-              section: section,
-              sections: sections,
-              groups: groups,
-              recommendationCount: _recommendationCount,
-              onSection: _goSection,
-            ),
-      // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
-      //
-      // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
-      // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
-      // giris/mola dugmelerinin uzerine geliyordu.
-      floatingActionButton: section == AppSection.operations
-          ? ShortcutFab(
-              bottomInset: wide ? 0 : kBottomBarHeight,
-              // Bulunulan yol: modul icinde dugme o modulun islemine doner.
-              location: location,
-            )
-          : null,
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (wide)
-              _SideNav(
-                groups: groups,
-                sections: sections,
-                section: section,
+    return PopScope(
+      canPop: !_qrOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _qrOpen) setState(() => _qrOpen = false);
+      },
+      child: Scaffold(
+        backgroundColor: t.bg,
+        // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
+        // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
+        // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
+        bottomNavigationBar: wide
+            ? null
+            : _BottomBar(
+                qrOpen: _qrOpen,
+                onQr: _qrBusy ? null : _toggleQr,
+                onNavigate: () => setState(() => _qrOpen = false),
                 location: location,
-                rail: _isRail(width),
+                section: section,
+                sections: sections,
+                groups: groups,
+                recommendationCount: _recommendationCount,
                 onSection: _goSection,
-                onToggleRail: () =>
-                    setState(() => _railOverride = !_isRail(width)),
               ),
-            Expanded(
-              child: Column(
-                children: [
-                  _TopBar(
-                    okunmamis: _bildirimler.okunmamis,
-                    // Telefonda hamburger yok: menu alt cubuktan aciliyor.
-                    // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
-                    // arasinda nerede oldugun belli olsun.
-                    sectionLabel: wide
-                        ? null
-                        : sections
-                              .where((s) => s.id == section)
-                              .map((s) => s.label)
-                              .firstOrNull,
-                  ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1440),
-                        child: Padding(
-                          padding: EdgeInsets.all(
-                            width < 641 ? 12 : (width < 900 ? 16 : 18),
+        // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
+        //
+        // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
+        // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
+        // giris/mola dugmelerinin uzerine geliyordu.
+        floatingActionButton: section == AppSection.operations
+            ? ShortcutFab(
+                bottomInset: wide ? 0 : kBottomBarHeight,
+                // Bulunulan yol: modul icinde dugme o modulun islemine doner.
+                location: location,
+              )
+            : null,
+        body: SafeArea(
+          child: Row(
+            children: [
+              if (wide)
+                _SideNav(
+                  groups: groups,
+                  sections: sections,
+                  section: section,
+                  location: location,
+                  rail: _isRail(width),
+                  onSection: _goSection,
+                  onToggleRail: () =>
+                      setState(() => _railOverride = !_isRail(width)),
+                ),
+              Expanded(
+                child: Column(
+                  children: [
+                    _TopBar(
+                      okunmamis: _bildirimler.okunmamis,
+                      // Telefonda hamburger yok: menu alt cubuktan aciliyor.
+                      // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
+                      // arasinda nerede oldugun belli olsun.
+                      sectionLabel: wide
+                          ? null
+                          : sections
+                                .where((s) => s.id == section)
+                                .map((s) => s.label)
+                                .firstOrNull,
+                    ),
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1440),
+                              child: Padding(
+                                padding: EdgeInsets.all(
+                                  width < 641 ? 12 : (width < 900 ? 16 : 18),
+                                ),
+                                child: widget.child,
+                              ),
+                            ),
                           ),
-                          child: widget.child,
-                        ),
+                          if (_qrOpen && !wide)
+                            QrActionMenu(
+                              status: _qrStatus,
+                              error: _qrError,
+                              onClose: () => setState(() => _qrOpen = false),
+                              onShift: () => _chooseQr(false),
+                              onBreak: () => _chooseQr(true),
+                              onRetry: () {
+                                setState(() => _qrOpen = false);
+                                _toggleQr();
+                              },
+                            ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -219,7 +303,9 @@ class SectionSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? t.sidebarBorder.withValues(alpha: 0.45) : const Color(0xFFF1F5F9),
+        color: isDark
+            ? t.sidebarBorder.withValues(alpha: 0.45)
+            : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(AppTokens.radiusSm + 3),
       ),
       child: Row(
@@ -247,7 +333,9 @@ class SectionSwitcher extends StatelessWidget {
                         size: 18,
                         color: active
                             ? t.onPrimary
-                            : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
+                            : (isDark
+                                  ? t.sidebarMuted
+                                  : const Color(0xFF475569)),
                       ),
                       if (!compact) ...[
                         const SizedBox(width: 7),
@@ -264,17 +352,23 @@ class SectionSwitcher extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                     color: active
                                         ? Colors.white
-                                        : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
+                                        : (isDark
+                                              ? t.sidebarMuted
+                                              : const Color(0xFF475569)),
                                   ),
                                 ),
                                 Text(
-                                  s.id == AppSection.pdks ? ' & Kadro' : ' & Vitrin',
+                                  s.id == AppSection.pdks
+                                      ? ' & Kadro'
+                                      : ' & Vitrin',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: active
                                         ? Colors.white
-                                        : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
+                                        : (isDark
+                                              ? t.sidebarMuted
+                                              : const Color(0xFF475569)),
                                   ),
                                 ),
                               ],
@@ -556,6 +650,9 @@ class _TopBar extends StatelessWidget {
     final t = context.tokens;
     final user = session.user;
     final narrow = MediaQuery.sizeOf(context).width < 561;
+    if (sectionLabel != null) {
+      return _MobileTopBar(user: user, okunmamis: okunmamis);
+    }
     return Container(
       constraints: const BoxConstraints(minHeight: 60),
       decoration: BoxDecoration(
@@ -656,6 +753,233 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+/// Telefon basligi; magaza durumu ve temel hesap eylemlerini tek bakista sunar.
+class _MobileTopBar extends StatelessWidget {
+  const _MobileTopBar({required this.user, required this.okunmamis});
+
+  final AppUser? user;
+  final ValueListenable<int> okunmamis;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final storeName = (user?.storeName?.trim().isNotEmpty ?? false)
+        ? user!.storeName!.toUpperCase()
+        : 'MERKEZ ŞUBE';
+    return Container(
+      height: 96,
+      padding: const EdgeInsets.fromLTRB(16, 11, 12, 10),
+      decoration: BoxDecoration(
+        color: t.card,
+        border: Border(bottom: BorderSide(color: t.border)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2CCB9A),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        storeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.primary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .15,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '  · Online',
+                      style: TextStyle(
+                        color: t.muted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.fullName ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.ink,
+                    fontSize: 17,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.verified_user_outlined,
+                      size: 14,
+                      color: t.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        roleLabels[user?.role] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.muted, fontSize: 11.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          _HeaderCircle(
+            tooltip: 'Bildirimler',
+            onTap: () => showNotificationSheet(context),
+            child: ValueListenableBuilder<int>(
+              valueListenable: okunmamis,
+              builder: (context, count, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.notifications_none_rounded,
+                    color: t.muted,
+                    size: 21,
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: -7,
+                      top: -9,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 17,
+                          minHeight: 17,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE11D48),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: t.card, width: 1.5),
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 7),
+          _HeaderCircle(
+            tooltip: 'Çıkış yap',
+            onTap: () => confirmSignOut(context),
+            child: Icon(
+              Icons.power_settings_new_rounded,
+              color: t.muted,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Semantics(
+            button: true,
+            label: 'Profilim',
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => context.go('/profile'),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.primary, width: 1.5),
+                    ),
+                    child: Avatar(user: user, size: 35),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 1,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: t.card, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderCircle extends StatelessWidget {
+  const _HeaderCircle({
+    required this.child,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final Widget child;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: t.bg,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(width: 44, height: 44, child: Center(child: child)),
+        ),
+      ),
+    );
+  }
+}
+
 /// Testlerin alt cubuga tutunmasi icin sabit anahtarlar.
 const bottomBarKey = Key('bottomBar');
 const bottomMenuButtonKey = Key('bottomMenuButton');
@@ -663,6 +987,9 @@ const bottomMenuSheetKey = Key('bottomMenuSheet');
 
 class _BottomBar extends StatefulWidget {
   const _BottomBar({
+    required this.qrOpen,
+    required this.onQr,
+    required this.onNavigate,
     required this.location,
     required this.section,
     required this.sections,
@@ -671,6 +998,9 @@ class _BottomBar extends StatefulWidget {
     required this.onSection,
   });
 
+  final bool qrOpen;
+  final VoidCallback? onQr;
+  final VoidCallback onNavigate;
   final String location;
   final AppSection section;
   final List<NavSection> sections;
@@ -688,6 +1018,7 @@ class _BottomBarState extends State<_BottomBar> {
   bool _menuOpen = false;
 
   Future<void> _openMenu() async {
+    widget.onNavigate();
     setState(() => _menuOpen = true);
     try {
       await showGeneralDialog<void>(
@@ -717,29 +1048,84 @@ class _BottomBarState extends State<_BottomBar> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final items = bottomBarFor(session.user, widget.section);
+    final showQrAction = widget.section == AppSection.pdks;
+    final leadingItems = showQrAction ? items.take(2).toList() : items;
+    final trailingItems = showQrAction
+        ? items.skip(2).toList()
+        : const <NavItem>[];
     return Container(
       key: bottomBarKey,
       decoration: BoxDecoration(
         color: t.card,
-        border: Border(top: BorderSide(color: t.border)),
+        border: Border(top: BorderSide(color: t.border.withValues(alpha: .65))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .07),
+            blurRadius: 18,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+          padding: const EdgeInsets.fromLTRB(6, 7, 6, 7),
           child: Row(
             children: [
-              ...items.map(
+              ...leadingItems.map(
+                (item) => Expanded(
+                  child: item.path == '/recommendations'
+                      ? _RecommendationTab(
+                          count: widget.recommendationCount,
+                          onTap: () {
+                            widget.onNavigate();
+                            context.go(item.path);
+                          },
+                        )
+                      : _BottomTab(
+                          icon: switch (item.path) {
+                            '/dashboard' => Icons.grid_view_rounded,
+                            '/batches' => Icons.view_in_ar_outlined,
+                            _ =>
+                              item.shortLabel == 'Rapor'
+                                  ? Icons.bar_chart_rounded
+                                  : item.icon,
+                          },
+                          label: item.shortLabel,
+                          active: widget.location == item.path,
+                          // Rozet yalnizca oneri listesinde.
+                          badge: item.path == '/recommendations'
+                              ? widget.recommendationCount
+                              : 0,
+                          onTap: () {
+                            widget.onNavigate();
+                            context.go(item.path);
+                          },
+                        ),
+                ),
+              ),
+              if (showQrAction)
+                Expanded(
+                  child: _QrBottomTab(open: widget.qrOpen, onTap: widget.onQr),
+                ),
+              ...trailingItems.map(
                 (item) => Expanded(
                   child: _BottomTab(
-                    icon: item.icon,
+                    icon: switch (item.path) {
+                      '/dashboard' => Icons.grid_view_rounded,
+                      '/batches' => Icons.view_in_ar_outlined,
+                      _ =>
+                        item.shortLabel == 'Rapor'
+                            ? Icons.bar_chart_rounded
+                            : item.icon,
+                    },
                     label: item.shortLabel,
                     active: widget.location == item.path,
-                    // Rozet yalnizca oneri listesinde.
-                    badge: item.path == '/recommendations'
-                        ? widget.recommendationCount
-                        : 0,
-                    onTap: () => context.go(item.path),
+                    badge: 0,
+                    onTap: () {
+                      widget.onNavigate();
+                      context.go(item.path);
+                    },
                   ),
                 ),
               ),
@@ -795,20 +1181,23 @@ class _NavMenuSheet extends StatelessWidget {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
 
     final List<NavGroup> displayGroups;
-    if (section == AppSection.pdks && sections.any((s) => s.id == AppSection.operations)) {
-      final pdksGroups = groups.where((g) => !g.items.any((i) => i.path == '/profile')).toList();
+    if (section == AppSection.pdks &&
+        sections.any((s) => s.id == AppSection.operations)) {
+      final pdksGroups = groups
+          .where((g) => !g.items.any((i) => i.path == '/profile'))
+          .toList();
       final opGroups = user != null
-          ? navGroupsFor(user, AppSection.operations).where((g) => g.title != null).toList()
+          ? navGroupsFor(
+              user,
+              AppSection.operations,
+            ).where((g) => g.title != null).toList()
           : const <NavGroup>[];
       final profileGroup = groups.firstWhere(
         (g) => g.items.any((i) => i.path == '/profile'),
-        orElse: () => user != null ? navGroupsFor(user, section).last : groups.last,
+        orElse: () =>
+            user != null ? navGroupsFor(user, section).last : groups.last,
       );
-      displayGroups = [
-        ...pdksGroups,
-        ...opGroups,
-        profileGroup,
-      ];
+      displayGroups = [...pdksGroups, ...opGroups, profileGroup];
     } else {
       displayGroups = groups;
     }
@@ -823,15 +1212,16 @@ class _NavMenuSheet extends StatelessWidget {
           child: Align(
             alignment: Alignment.bottomCenter,
             child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                ),
-              ),
+              position:
+                  Tween<Offset>(
+                    begin: const Offset(0, 1),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
               child: GestureDetector(
                 onTap: () {},
                 child: Padding(
@@ -847,7 +1237,9 @@ class _NavMenuSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: t.card,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: t.border.withValues(alpha: 0.7)),
+                      border: Border.all(
+                        color: t.border.withValues(alpha: 0.7),
+                      ),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x1A000000),
@@ -915,7 +1307,8 @@ class _NavMenuSheet extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        roleLabels[user?.role] ?? (user?.role ?? ''),
+                                        roleLabels[user?.role] ??
+                                            (user?.role ?? ''),
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: t.muted,
@@ -975,7 +1368,10 @@ class _NavMenuSheet extends StatelessWidget {
                                 },
                               ),
                             ),
-                          Divider(height: 1, color: t.border.withValues(alpha: 0.6)),
+                          Divider(
+                            height: 1,
+                            color: t.border.withValues(alpha: 0.6),
+                          ),
                           Flexible(
                             child: ListView(
                               padding: const EdgeInsets.symmetric(
@@ -984,7 +1380,11 @@ class _NavMenuSheet extends StatelessWidget {
                               ),
                               shrinkWrap: true,
                               children: [
-                                for (var gi = 0; gi < displayGroups.length; gi++) ...[
+                                for (
+                                  var gi = 0;
+                                  gi < displayGroups.length;
+                                  gi++
+                                ) ...[
                                   if (displayGroups[gi].title != null)
                                     Padding(
                                       padding: EdgeInsets.only(
@@ -999,9 +1399,11 @@ class _NavMenuSheet extends StatelessWidget {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              displayGroups[gi].title == 'Operasyon'
+                                              displayGroups[gi].title ==
+                                                      'Operasyon'
                                                   ? 'MAĞAZA & ÜRÜN OPERASYONLARI'
-                                                  : displayGroups[gi].title!.toUpperCase(),
+                                                  : displayGroups[gi].title!
+                                                        .toUpperCase(),
                                               overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 color: Color(0xFF64748B),
@@ -1023,7 +1425,8 @@ class _NavMenuSheet extends StatelessWidget {
                                         ],
                                       ),
                                     )
-                                  else if (gi > 0 && displayGroups[gi].items.isNotEmpty)
+                                  else if (gi > 0 &&
+                                      displayGroups[gi].items.isNotEmpty)
                                     const SizedBox(height: 4),
                                   ...displayGroups[gi].items.map(
                                     (item) => _MenuTile(
@@ -1040,7 +1443,10 @@ class _NavMenuSheet extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Divider(height: 1, color: t.border.withValues(alpha: 0.6)),
+                          Divider(
+                            height: 1,
+                            color: t.border.withValues(alpha: 0.6),
+                          ),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
                             child: Column(
@@ -1067,8 +1473,7 @@ class _NavMenuSheet extends StatelessWidget {
                                         width: 1.2,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       minimumSize: const Size.fromHeight(48),
                                       textStyle: const TextStyle(
@@ -1465,9 +1870,7 @@ class _MenuTile extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: active
-                      ? t.primary
-                      : t.border,
+                  color: active ? t.primary : t.border,
                   size: 20,
                 ),
               ],
@@ -1479,8 +1882,7 @@ class _MenuTile extends StatelessWidget {
   }
 }
 
-/// Tek sekme. Aktif durumda ikon ve etiketin ikisini birden kapsayan yumusak
-/// bir hap cizilir (React'teki .bottom-nav a.active ile ayni gorunum).
+/// Aktif sekmenin ikonu yumusak bir hap icinde, etiketi altinda durur.
 class _BottomTab extends StatelessWidget {
   const _BottomTab({
     super.key,
@@ -1500,24 +1902,25 @@ class _BottomTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final color = active ? t.primary : t.muted;
+    final color = active ? t.primaryDark : t.muted;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         constraints: const BoxConstraints(minHeight: AppTokens.tap),
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-        decoration: BoxDecoration(
-          color: active ? t.primarySoft : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              height: 24,
+            Container(
+              width: 42,
+              height: 30,
+              decoration: BoxDecoration(
+                color: active ? t.primarySoft : null,
+                borderRadius: BorderRadius.circular(18),
+              ),
               child: Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
@@ -1539,8 +1942,72 @@ class _BottomTab extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                 color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// PDKS'nin ana eylemi navigasyondan yukseltilerek tek dokunusla tarayiciyi acar.
+class _QrBottomTab extends StatelessWidget {
+  const _QrBottomTab({required this.onTap, this.open = false});
+
+  final VoidCallback? onTap;
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF115E59),
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(
+                    color: open ? const Color(0xFF99D5CD) : t.card,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: t.primary.withValues(alpha: .24),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  open ? Icons.close_rounded : Icons.qr_code_scanner_rounded,
+                  color: Colors.white,
+                  size: 25,
+                ),
+              ),
+            ),
+            Transform.translate(
+              offset: const Offset(0, -7),
+              child: Text(
+                open ? 'Kapat' : 'QR Okut',
+                maxLines: 1,
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -1576,6 +2043,93 @@ class _NavBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationTab extends StatelessWidget {
+  const _RecommendationTab({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Semantics(
+      button: true,
+      label: 'Öneri/SKT, $count öneri',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF115E59),
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(color: t.card, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: t.primary.withValues(alpha: .14),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.local_fire_department_outlined,
+                      color: Colors.white,
+                      size: 29,
+                    ),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: -3,
+                      right: -3,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE91D48),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: t.card, width: 2),
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Transform.translate(
+              offset: const Offset(0, -7),
+              child: Text(
+                'Öneri/SKT',
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

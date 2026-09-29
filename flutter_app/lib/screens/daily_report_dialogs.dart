@@ -6,6 +6,7 @@ import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/daily_report.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/mobile_sheet.dart';
 
 /// Rapor degerlerini tipine gore bicimler. Payda sifirsa "-" gosterilir.
 String formatReportValue(num? value, String type) {
@@ -36,11 +37,14 @@ Future<bool?> showDailyReportDialog(
   BuildContext context, {
   required ReportFields fields,
   DailyReport? existing,
+  DateTime? initialDate,
 }) async {
   if (fields.entry.isEmpty) return null;
 
   final editing = existing != null;
-  var date = editing ? DateTime.parse(existing.date) : DateTime.now();
+  var date = editing
+      ? DateTime.parse(existing.date)
+      : (initialDate ?? DateTime.now());
   final controllers = {
     for (final f in fields.entry) f.key: TextEditingController(),
   };
@@ -63,6 +67,7 @@ Future<bool?> showDailyReportDialog(
     loadedFor = key;
     try {
       final day = await repo.dailyReportFor(key);
+      if (key != dayKey(date)) return;
       system = day.suggested;
       // Duzenlemede alanlar zaten dolu; ustune yazilmaz.
       if (!editing) {
@@ -78,9 +83,10 @@ Future<bool?> showDailyReportDialog(
     rebuild();
   }
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
+      mobileSheet: true,
       title: editing ? 'Günlük Raporu Düzenle' : 'Günlük Rapor',
       headerIcon: Icons.receipt_long_rounded,
       subtitle: '• Kasa Kapanış & Vardiya Girişi',
@@ -91,7 +97,7 @@ Future<bool?> showDailyReportDialog(
         final t = context.tokens;
         return [
           LabeledField(
-            label: 'Tarih',
+            label: 'Tarih & Vardiya Saati',
             hint: editing
                 ? 'Tarih değiştirilemez. Farklı bir gün için kaydı silip yeniden girin.'
                 : 'Aynı gün için tekrar giriş mevcut kaydı otomatik günceller.',
@@ -104,6 +110,9 @@ Future<bool?> showDailyReportDialog(
                     ),
                   )
                 : DateTimeField(
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? t.bg
+                        : const Color(0xFFEEF3FF),
                     value: date,
                     onChanged: (v) {
                       date = v;
@@ -159,30 +168,33 @@ Future<bool?> showDailyReportDialog(
                         decimal: !f.isInt,
                       ),
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
-                        suffixText: f.type == 'money' ? '₺' : null,
-                        hintText: f.isInt ? 'adet' : null,
+                        suffixText: f.type == 'money'
+                            ? '₺'
+                            : f.isInt
+                            ? 'adet'
+                            : null,
+                        hintText: f.isInt ? '0' : '0,00',
                         isDense: true,
                         filled: true,
-                        fillColor: t.card,
+                        fillColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? t.bg
+                            : const Color(0xFFEEF3FF),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 7,
+                          vertical: 12,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: t.border.withValues(alpha: 0.7),
-                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.transparent),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: t.border.withValues(alpha: 0.7),
-                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.transparent),
                         ),
                       ),
                     ),
@@ -194,26 +206,21 @@ Future<bool?> showDailyReportDialog(
           if (fields.system.isNotEmpty)
             Container(
               margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: t.successSoft,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: t.success),
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        size: 13,
-                        color: t.primary,
-                      ),
+                      Icon(Icons.auto_awesome, size: 13, color: t.primary),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Sistemden gelen değerler',
+                          'SİSTEMDEN GELEN DEĞERLER',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -252,11 +259,9 @@ Future<bool?> showDailyReportDialog(
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: t.card,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: const Color(0xFFE2E8F0),
-                            ),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +282,7 @@ Future<bool?> showDailyReportDialog(
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 11.5,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                   color: t.ink,
                                 ),
@@ -290,7 +295,10 @@ Future<bool?> showDailyReportDialog(
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(6),
@@ -308,9 +316,9 @@ Future<bool?> showDailyReportDialog(
                           child: Text(
                             'FOOD alanları o günün pasta satış ve zayi kayıtlarından hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
                             style: TextStyle(
-                              fontSize: 9.5,
+                              fontSize: 11,
                               color: t.muted,
-                              height: 1.2,
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -329,11 +337,11 @@ Future<bool?> showDailyReportDialog(
           if (raw.isEmpty) return '${f.label} zorunludur';
           final n = num.tryParse(raw);
           if (n == null || n < 0) {
-              return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
-            }
+            return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
+          }
           if (f.isInt && n != n.roundToDouble()) {
-              return '${f.label} tam sayı olmalıdır';
-            }
+            return '${f.label} tam sayı olmalıdır';
+          }
           values[f.key] = f.isInt ? n.toInt() : n;
         }
         try {

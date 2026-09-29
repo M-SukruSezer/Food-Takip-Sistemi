@@ -15,6 +15,7 @@ import '../core/theme_mode.dart';
 import '../core/tokens.dart';
 import '../widgets/avatar.dart';
 import '../widgets/panels.dart';
+import '../widgets/login_branding_editor.dart';
 
 /// Profil: fotograf, kullanici bilgisi, tema secimi ve sifre degistirme.
 class ProfileScreen extends StatefulWidget {
@@ -162,10 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 3),
                     Text(
                       'Kişisel hesap tercihleri ve uygulama ayarları',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: t.muted,
-                      ),
+                      style: TextStyle(fontSize: 12, color: t.muted),
                     ),
                   ],
                 ),
@@ -296,7 +294,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: t.successSoft,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: t.success.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: t.success.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -434,6 +434,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: AppTokens.gap),
 
+        if (user.isSuperAdmin) ...[
+          const LoginBrandingEditor(),
+          const SizedBox(height: AppTokens.gap),
+        ],
         // 3. Profil Fotoğrafı Kartı
         AppCard(
           padding: const EdgeInsets.all(16),
@@ -518,8 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const _HeaderTitleWithIcon(
                 icon: Icons.palette_outlined,
                 title: 'Görünüm & Tema',
-                subtitle:
-                    'Ekran renk modunu özelleştirin.\nSeçiminiz bu cihazda saklanır ve giriş ekranı dahil tüm ekranlarda geçerli olur.',
+                subtitle: 'Ekran renk modunu özelleştirin.\nSeçiminiz bu cihazda saklanır ve giriş ekranı dahil tüm ekranlarda geçerli olur.',
               ),
               const SizedBox(height: 14),
               AnimatedBuilder(
@@ -736,10 +739,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.logout, size: 18),
                   label: const Text(
                     'Çıkış Yap',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -829,23 +829,13 @@ class _ThemeChoiceTile extends StatelessWidget {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: selected
-                ? t.primary
-                : t.bg,
+            color: selected ? t.primary : t.bg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected
-                  ? t.primary
-                  : t.border,
-            ),
+            border: Border.all(color: selected ? t.primary : t.border),
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: selected ? t.onPrimary : t.muted,
-              ),
+              Icon(icon, size: 20, color: selected ? t.onPrimary : t.muted),
               const SizedBox(width: 12),
               Text(
                 title,
@@ -857,11 +847,7 @@ class _ThemeChoiceTile extends StatelessWidget {
               ),
               const Spacer(),
               if (selected)
-                const Icon(
-                  Icons.check_circle,
-                  color: Colors.white,
-                  size: 20,
-                )
+                const Icon(Icons.check_circle, color: Colors.white, size: 20)
               else
                 Container(
                   width: 18,

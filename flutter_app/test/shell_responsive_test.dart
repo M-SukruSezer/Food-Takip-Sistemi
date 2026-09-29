@@ -92,8 +92,8 @@ void main() {
     tester,
   ) async {
     await _pumpShell(tester, const Size(375, 812));
-    final logout = tester.getSize(find.byIcon(Icons.logout).hitTestable());
-    expect(logout.height, greaterThan(0));
+    final logout = tester.getSize(find.byTooltip('Çıkış yap'));
+    expect(logout.height, greaterThanOrEqualTo(AppTokens.tap));
     final userBlock = tester.getSize(find.byType(InkWell).first);
     expect(userBlock.height, greaterThanOrEqualTo(AppTokens.tap));
   });

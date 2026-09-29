@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
+import 'mobile_sheet.dart';
 
 /// Ust cubuktaki bildirim zili ve listesi.
 ///
@@ -65,17 +66,14 @@ class NotificationBell extends StatelessWidget {
 
 /// Bildirim listesini alttan acilan panelde gosterir.
 Future<void> showNotificationSheet(BuildContext context) async {
-  await showModalBottomSheet<void>(
+  await showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
     builder: (_) => const _NotificationSheet(),
   );
 }
 
 class _NotificationSheet extends StatefulWidget {
   const _NotificationSheet();
-
   @override
   State<_NotificationSheet> createState() => _NotificationSheetState();
 }
@@ -83,7 +81,7 @@ class _NotificationSheet extends StatefulWidget {
 class _NotificationSheetState extends State<_NotificationSheet> {
   NotificationList? _veri;
   String? _hata;
-
+  bool _marking = false;
   @override
   void initState() {
     super.initState();
@@ -93,119 +91,258 @@ class _NotificationSheetState extends State<_NotificationSheet> {
   Future<void> _yukle() async {
     try {
       final v = await repo.pdksNotifications(limit: 50);
-      if (mounted) setState(() => _veri = v);
-    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _veri = v;
+          _hata = null;
+        });
+      }
+    } catch (_) {
       if (mounted) setState(() => _hata = 'Bildirimler yüklenemedi');
     }
   }
 
   Future<void> _tumunuOku() async {
-    await repo.pdksMarkAllNotificationsRead();
-    await _yukle();
+    setState(() => _marking = true);
+    try {
+      await repo.pdksMarkAllNotificationsRead();
+      await _yukle();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _hata = 'Bildirimler güncellenemedi. Tekrar deneyin.');
+      }
+    } finally {
+      if (mounted) setState(() => _marking = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final v = _veri;
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.75,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Bildirimler',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: t.ink,
-                      ),
-                    ),
-                  ),
-                  if (v != null && v.unread > 0)
-                    TextButton(
-                      onPressed: _tumunuOku,
-                      child: const Text('Tümünü okundu işaretle'),
-                    ),
-                ],
-              ),
-            ),
-            if (_hata != null)
+    return Material(
+      color: t.card,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        width: 600,
+        height: MediaQuery.sizeOf(context).height * .8,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(_hata!, style: TextStyle(color: t.danger)),
-              )
-            else if (v == null)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (v.items.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Henüz bildiriminiz yok.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: t.muted),
-                ),
-              )
-            else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: v.items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (context, i) {
-                    final n = v.items[i];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        // Okunmamis olan vurgulu: listede hangisinin yeni
-                        // oldugu bir bakista gorunmeli.
-                        color: n.read ? t.card : t.primarySoft,
-                        border: Border.all(
-                          color: n.read ? t.border : t.primary600,
+                padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+                child: Wrap(
+                  alignment: WrapAlignment.start,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Bildirimler',
+                          style: TextStyle(
+                            color: t.ink,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 19,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            n.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: t.ink,
+                        if (v != null && v.unread > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: t.primarySoft,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: t.primary.withValues(alpha: .25),
+                              ),
+                            ),
+                            child: Text(
+                              '${v.unread} Yeni',
+                              style: TextStyle(color: t.primary, fontSize: 12),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            n.body,
-                            style: TextStyle(fontSize: 13, color: t.ink),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            fmtDateTime(n.createdAt),
-                            style: TextStyle(fontSize: 11, color: t.muted),
-                          ),
                         ],
+                      ],
+                    ),
+                    if (v != null && v.unread > 0)
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 44),
+                        ),
+                        onPressed: _marking ? null : _tumunuOku,
+                        icon: const Icon(Icons.check, size: 18),
+                        label: Text(
+                          _marking
+                              ? 'İşaretleniyor...'
+                              : 'Tümünü okundu işaretle',
+                          style: const TextStyle(fontSize: 11),
+                        ),
                       ),
-                    );
-                  },
+                  ],
                 ),
               ),
-            const SizedBox(height: 12),
-          ],
+              Divider(height: 1, color: t.border.withValues(alpha: .5)),
+              if (_hata != null)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text(_hata!, style: TextStyle(color: t.danger)),
+                      TextButton(
+                        onPressed: _yukle,
+                        child: const Text('Tekrar dene'),
+                      ),
+                    ],
+                  ),
+                ),
+              if (v == null && _hata == null)
+                const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (v != null && v.items.isEmpty)
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Henüz bildiriminiz yok.',
+                      style: TextStyle(color: t.muted),
+                    ),
+                  ),
+                )
+              else if (v != null)
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: v.items.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final n = v.items[i];
+                      final actor = RegExp(r' (Paylaşan|Değiştiren): (.+)$')
+                          .firstMatch(n.body);
+                      final body = actor == null
+                          ? n.body
+                          : n.body.substring(0, actor.start);
+                      final icon = n.title.contains('paylaşıldı')
+                          ? Icons.calendar_today_outlined
+                          : n.title.contains('güncellendi')
+                          ? Icons.sync
+                          : Icons.schedule;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: n.read
+                              ? t.card
+                              : t.primarySoft.withValues(alpha: .4),
+                          border: Border.all(
+                            color: n.read ? t.border : const Color(0xFF2AC69B),
+                            width: n.read ? 1 : 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: n.read ? t.bg : const Color(0xFF059669),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                icon,
+                                size: 23,
+                                color: n.read ? t.muted : Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          n.title,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: t.ink,
+                                          ),
+                                        ),
+                                      ),
+                                      if (!n.read)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 6,
+                                            top: 4,
+                                          ),
+                                          child: Icon(
+                                            Icons.circle,
+                                            size: 8,
+                                            color: t.primary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    body,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.45,
+                                      color: n.read ? t.muted : t.ink,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Divider(
+                                    height: 1,
+                                    color: t.border.withValues(alpha: .6),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (actor != null)
+                                    Text(
+                                      actor
+                                          .group(0)!
+                                          .trim()
+                                          .replaceFirst(RegExp(r'\.$'), ''),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: t.ink,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    fmtDateTime(n.createdAt),
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: n.read
+                                          ? FontWeight.w400
+                                          : FontWeight.w700,
+                                      color: n.read ? t.muted : t.primaryDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

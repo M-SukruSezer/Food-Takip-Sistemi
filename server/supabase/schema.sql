@@ -595,3 +595,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user
 -- Okunmamislari saymak icin: kismi indeks, okunmuslar indekse girmiyor.
 CREATE INDEX IF NOT EXISTS idx_notifications_unread
   ON notifications(user_id) WHERE read_at IS NULL;
+
+-- Global login artwork, written through the super-admin-only API.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;

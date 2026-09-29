@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/format.dart';
-import '../core/notify.dart';
-import '../core/device_integrity.dart';
-import '../core/pdks_location.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/pdks.dart';
@@ -14,7 +11,7 @@ import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import 'pdks_dialogs.dart';
-import 'qr_scan_screen.dart';
+import '../widgets/pdks_qr_action.dart';
 
 /// Personel devam takibi ekrani.
 ///
@@ -47,6 +44,15 @@ class _PdksScreenState extends State<PdksScreen> {
   void initState() {
     super.initState();
     _load();
+    pdksChanges.addListener(_refreshAttendance);
+  }
+
+  void _refreshAttendance() => _load(silent: true);
+
+  @override
+  void dispose() {
+    pdksChanges.removeListener(_refreshAttendance);
+    super.dispose();
   }
 
   String get _monthKey =>
@@ -107,65 +113,13 @@ class _PdksScreenState extends State<PdksScreen> {
 
   /// QR ile islem (dort adimdan biri).
   Future<void> _qrPunch(PdksPunch adim) async {
-    final basliklar = {
-      PdksPunch.checkIn: 'QR ile Giriş',
-      PdksPunch.checkOut: 'QR ile Çıkış',
-      PdksPunch.breakStart: 'QR ile Mola Başlangıcı',
-      PdksPunch.breakEnd: 'QR ile Mola Bitişi',
-    };
-    final token = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => QrScanScreen(title: basliklar[adim] ?? 'QR Okut'),
-      ),
-    );
-    if (token == null || !mounted) return;
-
+    if (_busy) return;
     setState(() => _busy = true);
     try {
-      // Konum ZORUNLU: QR "kodu okuttu" der, konum "IS YERINDE okuttu" der.
-      // Cihaz kontrolu konumla PARALEL yurutulur; seri yapilsa bekleme iki
-      // islemin toplami olurdu.
-      final sonuclar = await Future.wait([
-        currentPosition(),
-        readDeviceIntegrity(),
-      ]);
-      final pos = sonuclar[0] as PdksPosition;
-      final integrity = sonuclar[1] as DeviceIntegrity;
-      await repo.pdksPunchQr(
-        adim: adim,
-        token: token,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
-        accuracy: pos.accuracy,
-        // Android'in bu OLCUM icin verdigi sahte konum karari. Sunucu
-        // true ise kaydi REDDEDIYOR.
-        isMocked: pos.isMocked,
-        integrity: integrity,
-      );
-      toastSaved(adim.mesaj);
-      _warnIntegrity(integrity);
-      await _load(silent: true);
-    } on LocationDenied catch (e) {
-      toast(e.message, kind: ToastKind.error);
-    } catch (e) {
-      toast(errorMessage(e), kind: ToastKind.error);
+      await performPdksQr(context, adim);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  /// Engellemeyen uyarilari personele bildirir.
-  ///
-  /// Islem KABUL EDILDI; bu yalnizca "kaydin yaninda su not durdu" bilgisi.
-  /// Sessiz kalmak dogru olmazdi: yonetici ekraninda bayrak gorunurken
-  /// personelin sebebini bilmemesi sonradan tartisma uretir.
-  void _warnIntegrity(DeviceIntegrity integrity) {
-    final w = integrity.warnings;
-    if (w.isEmpty || !mounted) return;
-    toast(
-      'Kayıt alındı, not düşüldü: ${w.join(', ')}',
-      kind: ToastKind.warning,
-    );
   }
 
   Future<void> _newRequest() async {
@@ -390,11 +344,7 @@ class _PunchCard extends StatelessWidget {
                   color: t.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  Icons.location_on,
-                  color: t.primary,
-                  size: 20,
-                ),
+                child: Icon(Icons.location_on, color: t.primary, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -464,11 +414,7 @@ class _PunchCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 16,
-                    color: t.primary,
-                  ),
+                  Icon(Icons.check_circle_outline, size: 16, color: t.primary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -677,8 +623,8 @@ class _TodayCard extends StatelessWidget {
                   child: Text(
                     firstShift.name.isNotEmpty
                         ? (firstShift.name.contains('Vardiya')
-                            ? firstShift.name
-                            : '${firstShift.name} Vardiyası')
+                              ? firstShift.name
+                              : '${firstShift.name} Vardiyası')
                         : 'Açılış Vardiyası',
                     style: const TextStyle(
                       fontSize: 11,
@@ -760,9 +706,7 @@ class _TodayCard extends StatelessWidget {
                         value: status.isInside ? 0.55 : 0.0,
                         minHeight: 6,
                         backgroundColor: t.border,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          t.primary,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(t.primary),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -814,11 +758,7 @@ class _TodayCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.coffee_outlined,
-                        size: 16,
-                        color: t.primary,
-                      ),
+                      Icon(Icons.coffee_outlined, size: 16, color: t.primary),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -901,7 +841,9 @@ class _TodayCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        status.store != null ? 'Mağaza: ${status.store!.name}' : 'Mola takibi aktif',
+                        status.store != null
+                            ? 'Mağaza: ${status.store!.name}'
+                            : 'Mola takibi aktif',
                         style: TextStyle(fontSize: 11, color: t.muted),
                       ),
                       Text(
@@ -1047,10 +989,7 @@ class _BreakSlotRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 4),
-        Text(
-          '· $duration',
-          style: TextStyle(fontSize: 11, color: t.muted),
-        ),
+        Text('· $duration', style: TextStyle(fontSize: 11, color: t.muted)),
         const Spacer(),
         Text(
           status,
@@ -1153,11 +1092,7 @@ class _BalanceCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: t.primary.withValues(alpha: 0.2)),
                 ),
-                child: Icon(
-                  Icons.flight_takeoff,
-                  size: 18,
-                  color: t.primary,
-                ),
+                child: Icon(Icons.flight_takeoff, size: 18, color: t.primary),
               ),
             ],
           ),
@@ -1362,9 +1297,7 @@ class ShiftCalendar extends StatelessWidget {
             border: Border.all(
               color: holiday != null
                   ? t.danger
-                  : (isAssigned
-                      ? t.primary
-                      : (dayOff ? t.border : t.border)),
+                  : (isAssigned ? t.primary : (dayOff ? t.border : t.border)),
               width: holiday != null || isAssigned ? 1.5 : 1,
             ),
             borderRadius: BorderRadius.circular(8),
@@ -1512,11 +1445,7 @@ class _ShiftSwapCard extends StatelessWidget {
               color: t.primary,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              Icons.swap_horiz_rounded,
-              color: t.onPrimary,
-              size: 22,
-            ),
+            child: Icon(Icons.swap_horiz_rounded, color: t.onPrimary, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1534,10 +1463,7 @@ class _ShiftSwapCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Mesai arkadaşınla gün değişimi talebinde bulun',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: t.muted,
-                  ),
+                  style: TextStyle(fontSize: 11, color: t.muted),
                 ),
               ],
             ),
