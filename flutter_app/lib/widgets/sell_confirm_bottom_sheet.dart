@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/format.dart';
 import '../core/tokens.dart';
 import '../models/batch.dart';
@@ -85,7 +86,10 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: successBg,
                             borderRadius: BorderRadius.circular(4),
@@ -118,7 +122,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 onPressed: () => Navigator.pop(context, false),
                 icon: Icon(Icons.close, color: textMuted),
                 style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFFF1F5F9),
+                  backgroundColor: t.bg,
                   shape: const CircleBorder(),
                 ),
               ),
@@ -130,7 +134,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: outline),
               boxShadow: const [
@@ -159,7 +163,10 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     ),
                     if (batch.urgency == 'soon')
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: warningBg,
                           borderRadius: BorderRadius.circular(12),
@@ -205,7 +212,11 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 18, color: textMuted),
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 18,
+                      color: textMuted,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Stok Değişimi:',
@@ -217,9 +228,12 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surface,
                         border: Border.all(color: outline),
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -236,13 +250,22 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(Icons.arrow_forward, size: 16, color: primary),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        size: 16,
+                        color: primary,
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        border: Border.all(color: const Color(0xFF86EFAC)),
+                        color: successBg,
+                        border: Border.all(
+                          color: t.success.withValues(alpha: .45),
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -267,9 +290,9 @@ class _SellConfirmBottomSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2FBFA),
+              color: t.primarySoft,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF9CF2E8)),
+              border: Border.all(color: primary.withValues(alpha: .35)),
             ),
             child: Column(
               children: [
@@ -282,7 +305,11 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                         color: primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 20),
+                      child: Icon(
+                        Icons.account_balance_wallet,
+                        color: onPrimary,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

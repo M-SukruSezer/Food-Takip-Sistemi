@@ -5,6 +5,25 @@ import 'package:foodtakip/widgets/dialogs.dart';
 import 'package:foodtakip/widgets/panels.dart';
 
 void main() {
+  test('Material renk şeması semantik tokenlarla iki temada eşleşir', () {
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      final theme = buildAppTheme(brightness);
+      final t = brightness == Brightness.dark
+          ? AppTokens.dark
+          : AppTokens.light;
+      final scheme = theme.colorScheme;
+
+      expect(scheme.surface, t.card);
+      expect(scheme.onSurface, t.ink);
+      expect(scheme.surfaceContainer, t.bg);
+      expect(scheme.onSurfaceVariant, t.muted);
+      expect(scheme.outline, t.borderStrong);
+      expect(scheme.outlineVariant, t.border);
+      expect(scheme.primaryContainer, t.primarySoft);
+      expect(scheme.errorContainer, t.dangerSoft);
+    }
+  });
+
   test('tema temel bileşenleri aynı tasarım ölçeğine bağlar', () {
     final theme = buildAppTheme(Brightness.light);
 

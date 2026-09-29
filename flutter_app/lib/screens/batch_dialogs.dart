@@ -1338,11 +1338,12 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     };
     final idStr = user?.id != null ? 'CLM-${user!.id}' : 'CLM-0000';
 
+    final t = context.tokens;
     return Container(
       constraints: BoxConstraints(maxHeight: maxH),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
         top: false,
@@ -1356,7 +1357,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 width: 48,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
+                  color: t.borderStrong,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -1395,12 +1396,12 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           'Zayi & İkram Kayıt Formu',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF0B1C30),
+                            color: t.ink,
                           ),
                         ),
                       ],
@@ -1412,22 +1413,18 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     child: Container(
                       width: 34,
                       height: 34,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEFF4FF),
+                      decoration: BoxDecoration(
+                        color: t.bg,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 18,
-                        color: Color(0xFF0B1C30),
-                      ),
+                      child: Icon(Icons.close, size: 18, color: t.ink),
                     ),
                   ),
                 ],
               ),
             ),
 
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            Divider(height: 1, color: t.border),
 
             // Scrollable Content
             Flexible(
@@ -1763,15 +1760,16 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
   }
 
   Widget _buildQuantityStepper(String formattedTotal) {
+    final t = context.tokens;
     final maxQty = widget.batch.remaining > 0 ? widget.batch.remaining : 1;
     final isZayi = _activeType == 'zayi';
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: t.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),

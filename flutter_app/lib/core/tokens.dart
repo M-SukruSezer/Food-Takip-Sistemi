@@ -344,8 +344,30 @@ ThemeData buildAppTheme(Brightness brightness) {
         ).copyWith(
           primary: t.primary,
           onPrimary: t.onPrimary,
+          primaryContainer: t.primarySoft,
+          onPrimaryContainer: t.primaryDark,
+          secondary: t.primary600,
+          onSecondary: t.onPrimary,
+          secondaryContainer: t.successSoft,
+          onSecondaryContainer: t.okText,
           error: t.danger,
+          onError: const Color(0xFFFFFFFF),
+          errorContainer: t.dangerSoft,
+          onErrorContainer: t.danger,
           surface: t.card,
+          onSurface: t.ink,
+          surfaceContainerLowest: t.card,
+          surfaceContainerLow: t.card,
+          surfaceContainer: t.bg,
+          surfaceContainerHigh: t.border,
+          surfaceContainerHighest: t.borderStrong,
+          onSurfaceVariant: t.muted,
+          outline: t.borderStrong,
+          outlineVariant: t.border,
+          shadow: Colors.black,
+          scrim: brightness == Brightness.dark
+              ? const Color(0xB3020617)
+              : const Color(0x73111B2E),
         ),
   );
 
@@ -417,7 +439,9 @@ ThemeData buildAppTheme(Brightness brightness) {
       color: t.card,
       elevation: 1,
       margin: EdgeInsets.zero,
-      shadowColor: Colors.black.withValues(alpha: .08),
+      shadowColor: Colors.black.withValues(
+        alpha: brightness == Brightness.dark ? .28 : .08,
+      ),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: t.border),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -472,7 +496,9 @@ ThemeData buildAppTheme(Brightness brightness) {
         backgroundColor: t.card,
         foregroundColor: t.ink,
         elevation: 1,
-        shadowColor: Colors.black.withValues(alpha: .08),
+        shadowColor: Colors.black.withValues(
+          alpha: brightness == Brightness.dark ? .28 : .08,
+        ),
         minimumSize: const Size(0, AppTokens.tap),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         textStyle: textTheme.labelLarge,

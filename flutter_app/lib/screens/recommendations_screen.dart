@@ -287,10 +287,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     final filtering = _search.trim().isNotEmpty || _selectedCategory != 'Tümü';
 
     final shownExpired = shown.where((b) => b.isExpired).toList();
-    final shownCritical =
-        shown.where((b) => b.urgency == 'critical' && !b.isExpired).toList();
-    final shownUpcoming =
-        shown.where((b) => !b.isExpired && b.urgency != 'critical').toList();
+    final shownCritical = shown
+        .where((b) => b.urgency == 'critical' && !b.isExpired)
+        .toList();
+    final shownUpcoming = shown
+        .where((b) => !b.isExpired && b.urgency != 'critical')
+        .toList();
 
     return RefreshIndicator(
       onRefresh: () => _load(silent: true),
@@ -310,9 +312,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.tokens.card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: context.tokens.border),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.02),
@@ -539,11 +541,7 @@ class _UrgentExpiredBanner extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Lütfen vitrinden kaldırarak zayi fişi oluşturun veya satışı durdurun.',
-            style: TextStyle(
-              color: t.dangerStrong,
-              fontSize: 11,
-              height: 1.2,
-            ),
+            style: TextStyle(color: t.dangerStrong, fontSize: 11, height: 1.2),
           ),
           const SizedBox(height: 8),
           Row(
@@ -561,7 +559,9 @@ class _UrgentExpiredBanner extends StatelessWidget {
                       backgroundColor: t.dangerStrong,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       minimumSize: const Size(0, 30),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -577,15 +577,19 @@ class _UrgentExpiredBanner extends StatelessWidget {
                   foregroundColor: t.dangerStrong,
                   side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 4),
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   minimumSize: const Size(0, 30),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 onPressed: onDismiss,
-                child: const Text('Gizle',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Gizle',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -625,18 +629,14 @@ class _CategoryChipsRow extends StatelessWidget {
               onTap: () => onSelected(cat),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? t.primary
-                      : t.card,
+                  color: isSelected ? t.primary : t.card,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected
-                        ? t.primary
-                        : t.border,
-                  ),
+                  border: Border.all(color: isSelected ? t.primary : t.border),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -645,15 +645,18 @@ class _CategoryChipsRow extends StatelessWidget {
                       cat,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         color: isSelected ? t.onPrimary : t.ink,
                       ),
                     ),
                     const SizedBox(width: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? Colors.white.withValues(alpha: 0.25)
@@ -810,11 +813,12 @@ class _Tier extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: t.card,
+        border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -884,26 +888,10 @@ class _RecommendationCard extends StatelessWidget {
 
   ({String text, Color color, Color bg}) _badge(AppTokens t) =>
       switch (batch.urgency) {
-        'expired' => (
-            text: 'SKT Geçti',
-            color: t.danger,
-            bg: t.dangerSoft
-          ),
-        'critical' => (
-            text: 'SON GÜN',
-            color: t.danger,
-            bg: t.dangerSoft
-          ),
-        'warning' => (
-            text: '2 Gün Kaldı',
-            color: t.info,
-            bg: t.infoSoft
-          ),
-        _ => (
-            text: 'Food Dolabı',
-            color: t.primary,
-            bg: t.primarySoft
-          ),
+        'expired' => (text: 'SKT Geçti', color: t.danger, bg: t.dangerSoft),
+        'critical' => (text: 'SON GÜN', color: t.danger, bg: t.dangerSoft),
+        'warning' => (text: '2 Gün Kaldı', color: t.info, bg: t.infoSoft),
+        _ => (text: 'Food Dolabı', color: t.primary, bg: t.primarySoft),
       };
 
   Widget _buildProductThumbnail(BuildContext context, Batch batch) {
@@ -1041,9 +1029,10 @@ class _RecommendationCard extends StatelessWidget {
                           ),
                         ),
                         if (batch.hasPrice) ...[
-                          Text('•',
-                              style: TextStyle(
-                                  color: t.border, fontSize: 12)),
+                          Text(
+                            '•',
+                            style: TextStyle(color: t.border, fontSize: 12),
+                          ),
                           Text(
                             fmtMoney(batch.productUnitPrice),
                             style: TextStyle(
@@ -1054,15 +1043,13 @@ class _RecommendationCard extends StatelessWidget {
                           ),
                         ],
                         if (showStore && batch.storeName != null) ...[
-                          Text('•',
-                              style: TextStyle(
-                                  color: t.border, fontSize: 12)),
+                          Text(
+                            '•',
+                            style: TextStyle(color: t.border, fontSize: 12),
+                          ),
                           Text(
                             batch.storeName!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: t.muted,
-                            ),
+                            style: TextStyle(fontSize: 12, color: t.muted),
                           ),
                         ],
                       ],
@@ -1076,8 +1063,8 @@ class _RecommendationCard extends StatelessWidget {
                           color: batch.isExpired
                               ? t.danger
                               : (batch.urgency == 'critical'
-                                  ? t.warning
-                                  : t.muted),
+                                    ? t.warning
+                                    : t.muted),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -1085,20 +1072,21 @@ class _RecommendationCard extends StatelessWidget {
                             batch.isExpired
                                 ? 'SKT: ${fmtDateTime(batch.sktEnd)} [Süresi doldu]'
                                 : (batch.urgency == 'critical'
-                                    ? 'SKT: ${fmtDateTime(batch.sktEnd)} [${(batch.remainingHours ?? 0).floor()} sa kaldı]'
-                                    : 'SKT: ${fmtDateTime(batch.sktEnd)} [${batch.daysLeft ?? 0} gün kaldı]'),
+                                      ? 'SKT: ${fmtDateTime(batch.sktEnd)} [${(batch.remainingHours ?? 0).floor()} sa kaldı]'
+                                      : 'SKT: ${fmtDateTime(batch.sktEnd)} [${batch.daysLeft ?? 0} gün kaldı]'),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: batch.urgency == 'critical' || batch.isExpired
+                              fontWeight:
+                                  batch.urgency == 'critical' || batch.isExpired
                                   ? FontWeight.w700
                                   : FontWeight.normal,
                               color: batch.isExpired
                                   ? t.danger
                                   : (batch.urgency == 'critical'
-                                      ? t.warning
-                                      : t.muted),
+                                        ? t.warning
+                                        : t.muted),
                             ),
                           ),
                         ),
@@ -1146,7 +1134,9 @@ class _RecommendationCard extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: t.primary,
                           backgroundColor: t.primarySoft,
-                          side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
+                          side: BorderSide(
+                            color: t.primary.withValues(alpha: 0.3),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -1169,7 +1159,9 @@ class _RecommendationCard extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: t.danger,
                           backgroundColor: t.dangerSoft,
-                          side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
+                          side: BorderSide(
+                            color: t.danger.withValues(alpha: 0.3),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

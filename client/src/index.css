@@ -481,7 +481,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   table.responsive tbody { display: grid; gap: 10px; background: transparent; }
   table.responsive tr {
     display: block;
-    background: #fff;
+    background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 8px 4px;
@@ -656,7 +656,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 
 .modal {
-  background: #fff; width: 100%; max-height: 92vh; overflow-y: auto;
+  background: var(--card); color: var(--ink); width: 100%; max-height: 92vh; overflow-y: auto;
   border-radius: 20px 20px 0 0; padding: 22px;
   animation: modalUp 0.2s ease;
   box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.2);
@@ -1585,7 +1585,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   display: flex;
   gap: 12px;
   align-items: center;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-left: 6px solid var(--warning);
   border-radius: 12px;
@@ -1593,7 +1593,7 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   box-shadow: var(--shadow);
 }
 
-.rec-card.critical { border-left-color: var(--danger); background: #fffafa; }
+.rec-card.critical { border-left-color: var(--danger); background: var(--danger-soft); }
 .rec-card.expired { border-left-color: #7f1d1d; background: var(--danger-light); }
 .rec-card.warning { border-left-color: var(--warning); }
 .rec-card.normal { border-left-color: var(--success); }
