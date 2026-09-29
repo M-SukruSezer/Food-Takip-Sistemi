@@ -175,6 +175,34 @@ void main() {
       expect(find.textContaining('günlerin ortalaması değil'), findsOneWidget);
     });
 
+    testWidgets('dışa aktarma paneli tüm mobil seçim katmanlarını gösterir', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Raporu Dışa Aktar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Excel Tablosu'), findsOneWidget);
+      expect(find.text('Resmî PDF'), findsOneWidget);
+      expect(find.text('Aktif Lokasyon'), findsOneWidget);
+      expect(
+        find.text('İşlem detayları ve kullanıcı IP logları'),
+        findsOneWidget,
+      );
+      expect(find.text('Yönetici imza & resmî kaşe alanı'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('giriş yalnızca iki rolde açık', (tester) async {
       for (final rol in ['store_manager', 'shift_supervisor']) {
         installFakeApi({

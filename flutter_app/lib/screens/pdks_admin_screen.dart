@@ -463,80 +463,17 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
       toastError('Düzeltilebilecek bir devam kaydı yok');
       return;
     }
-    var revised = DateTime.tryParse(p.lastAt!)?.toLocal() ?? DateTime.now();
-    final reason = TextEditingController();
-    final note = TextEditingController();
-    var type = p.isInside ? 'BREAK_END' : 'ENTRY_REVISION';
-    final ok = await showDialog<bool>(
+    final initialTime =
+        DateTime.tryParse(p.lastAt!)?.toLocal() ?? DateTime.now();
+    final result = await showModalBottomSheet<_ManualAdjustmentResult>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text('Manuel PDKS Müdahalesi — ${p.fullName}'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(labelText: 'İşlem türü'),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'BREAK_END',
-                      child: Text('Mola Sonlandırma'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'ENTRY_REVISION',
-                      child: Text('Giriş Saati Revizesi'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'FORGOT_CHECKOUT',
-                      child: Text('Unutulan Gün Sonu'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'LEAVE',
-                      child: Text('İzinli / Raporlu'),
-                    ),
-                  ],
-                  onChanged: (v) => type = v ?? type,
-                ),
-                const SizedBox(height: 10),
-                DateTimeField(
-                  value: revised,
-                  onChanged: (v) => setLocal(() => revised = v),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: reason,
-                  decoration: const InputDecoration(
-                    labelText: 'Müdahale gerekçesi',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: note,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Şube müdürü açıklaması',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Onayla ve Sisteme Yaz'),
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) =>
+          _ManualAdjustmentSheet(person: p, initialTime: initialTime),
     );
-    if (ok != true) return;
-    if (reason.text.trim().length < 5) {
+    if (result == null) return;
+    if (result.reason.length < 5) {
       toastError('Gerekçe en az 5 karakter olmalıdır');
       return;
     }
@@ -544,10 +481,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
       await repo.pdksManualAdjustment(
         userId: p.userId,
         attendanceLogId: p.attendanceLogId!,
-        type: type,
-        revisedAt: revised,
-        reason: reason.text.trim(),
-        managerNote: note.text.trim(),
+        type: result.type,
+        revisedAt: result.revisedAt,
+        reason: result.reason,
+        managerNote: result.note,
       );
       await _loadPresence();
     } catch (e) {
@@ -916,6 +853,293 @@ class _Fig extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ManualAdjustmentResult {
+  const _ManualAdjustmentResult({
+    required this.type,
+    required this.revisedAt,
+    required this.reason,
+    required this.note,
+  });
+  final String type;
+  final DateTime revisedAt;
+  final String reason;
+  final String note;
+}
+
+class _ManualAdjustmentSheet extends StatefulWidget {
+  const _ManualAdjustmentSheet({
+    required this.person,
+    required this.initialTime,
+  });
+  final PresenceRow person;
+  final DateTime initialTime;
+
+  @override
+  State<_ManualAdjustmentSheet> createState() => _ManualAdjustmentSheetState();
+}
+
+class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
+  late DateTime _time = widget.initialTime;
+  late String _type = widget.person.isInside ? 'BREAK_END' : 'ENTRY_REVISION';
+  final _reason = TextEditingController();
+  final _note = TextEditingController();
+
+  static const _types = [
+    (
+      'BREAK_END',
+      'Mola Sonlandırma',
+      'Göreve İade Girişi',
+      Icons.coffee_outlined,
+    ),
+    (
+      'ENTRY_REVISION',
+      'Giriş Saati Revizesi',
+      'Başlangıç Değişimi',
+      Icons.schedule,
+    ),
+    ('FORGOT_CHECKOUT', 'Unutulan Gün Sonu', 'Vardiya Kapatma', Icons.logout),
+    ('LEAVE', 'İzinli / Raporlu', 'Günlük Durum Kaydı', Icons.event_available),
+  ];
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.pop(
+      context,
+      _ManualAdjustmentResult(
+        type: _type,
+        revisedAt: _time,
+        reason: _reason.text.trim(),
+        note: _note.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final p = widget.person;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Manuel PDKS Müdahalesi',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        '#CORR-${p.attendanceLogId}',
+                        style: TextStyle(fontSize: 11, color: t.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton.filledTonal(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF4FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: const Color(0xFFB7F3DF),
+                        child: Text(
+                          p.fullName
+                              .split(' ')
+                              .where((e) => e.isNotEmpty)
+                              .take(2)
+                              .map((e) => e[0])
+                              .join(),
+                          style: TextStyle(
+                            color: t.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              '${p.role} • Sicil: #${p.userId}',
+                              style: TextStyle(fontSize: 12, color: t.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Pill(text: 'Tam Zamanlı', color: Color(0xFF059669)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD9D5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning_rounded, color: Color(0xFFDC2626)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'MOLA AŞIM SİNYALİ • Yönetici teyidi bekleniyor',
+                            style: TextStyle(
+                              color: Color(0xFFB91C1C),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Düzeltme İşlemi Türü',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 1.45,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              children: _types.map((item) {
+                final selected = _type == item.$1;
+                return InkWell(
+                  onTap: () => setState(() => _type = item.$1),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFFE3F1EF)
+                          : const Color(0xFFEFF4FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected ? t.primary : Colors.transparent,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(item.$4, color: t.primary),
+                        const Spacer(),
+                        Text(
+                          item.$2,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          item.$3,
+                          style: TextStyle(fontSize: 11, color: t.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Fiili Göreve Dönüş Saati',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            DateTimeField(
+              value: _time,
+              onChanged: (v) => setState(() => _time = v),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _reason,
+              decoration: const InputDecoration(
+                labelText: 'Müdahale Gerekçesi',
+                hintText: 'En az 5 karakter',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _note,
+              maxLines: 3,
+              maxLength: 250,
+              decoration: const InputDecoration(
+                labelText: 'Şube Müdürü Onay Açıklaması',
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF4FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                '4857 Sayılı İş Kanunu ve KVKK Uyarısı: Bu ekrandan gerçekleştirilen manuel müdahaleler yönetici kimliği ve zaman damgasıyla denetim kayıtlarına yazılır.',
+                style: TextStyle(fontSize: 11, height: 1.45),
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: _submit,
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('Müdahaleyi Onayla ve Sisteme Yaz'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Vazgeç'),
+            ),
+          ],
+        ),
       ),
     );
   }

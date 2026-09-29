@@ -165,6 +165,10 @@ class _AppShellState extends State<AppShell> {
     final wide = width >= kSidebarBreakpoint;
     final user = session.user;
     final location = GoRouterState.of(context).matchedLocation;
+    final pageTitle = navFor(user)
+        .where((item) => item.path == location)
+        .map((item) => item.label)
+        .firstOrNull;
 
     final sections = sectionsFor(user);
     final resolved = sectionOfPath(location);
@@ -231,10 +235,11 @@ class _AppShellState extends State<AppShell> {
                       // arasinda nerede oldugun belli olsun.
                       sectionLabel: wide
                           ? null
-                          : sections
-                                .where((s) => s.id == section)
-                                .map((s) => s.label)
-                                .firstOrNull,
+                          : (pageTitle ??
+                                sections
+                                    .where((s) => s.id == section)
+                                    .map((s) => s.label)
+                                    .firstOrNull),
                     ),
                     Expanded(
                       child: Stack(
@@ -651,7 +656,11 @@ class _TopBar extends StatelessWidget {
     final user = session.user;
     final narrow = MediaQuery.sizeOf(context).width < 561;
     if (sectionLabel != null) {
-      return _MobileTopBar(user: user, okunmamis: okunmamis);
+      return _MobileTopBar(
+        user: user,
+        okunmamis: okunmamis,
+        pageTitle: sectionLabel!,
+      );
     }
     return Container(
       constraints: const BoxConstraints(minHeight: 60),
@@ -755,10 +764,15 @@ class _TopBar extends StatelessWidget {
 
 /// Telefon basligi; magaza durumu ve temel hesap eylemlerini tek bakista sunar.
 class _MobileTopBar extends StatelessWidget {
-  const _MobileTopBar({required this.user, required this.okunmamis});
+  const _MobileTopBar({
+    required this.user,
+    required this.okunmamis,
+    required this.pageTitle,
+  });
 
   final AppUser? user;
   final ValueListenable<int> okunmamis;
+  final String pageTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -767,8 +781,8 @@ class _MobileTopBar extends StatelessWidget {
         ? user!.storeName!.toUpperCase()
         : 'MERKEZ ŞUBE';
     return Container(
-      height: 96,
-      padding: const EdgeInsets.fromLTRB(16, 11, 12, 10),
+      height: 118,
+      padding: const EdgeInsets.fromLTRB(18, 13, 13, 12),
       decoration: BoxDecoration(
         color: t.card,
         border: Border(bottom: BorderSide(color: t.border)),
@@ -821,34 +835,53 @@ class _MobileTopBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 7),
                 Text(
-                  user?.fullName ?? '',
+                  pageTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: t.ink,
-                    fontSize: 17,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -.3,
+                    fontSize: 24,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.7,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 7),
                 Row(
                   children: [
-                    Icon(
-                      Icons.verified_user_outlined,
-                      size: 14,
-                      color: t.primary,
+                    Flexible(
+                      child: Text(
+                        user?.fullName ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.muted,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      decoration: BoxDecoration(
+                        color: t.border,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     Flexible(
                       child: Text(
                         roleLabels[user?.role] ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: t.muted, fontSize: 11.5),
+                        style: TextStyle(
+                          color: t.primary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],

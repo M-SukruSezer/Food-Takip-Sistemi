@@ -187,7 +187,10 @@ void main() {
       tester,
     ) async {
       await phone(tester, at: '/batches');
-      final label = find.text('Ürünler');
+      final label = find.descendant(
+        of: find.byKey(bottomBarKey),
+        matching: find.text('Ürünler'),
+      );
       final pill = find
           .ancestor(
             of: find.byIcon(Icons.view_in_ar_outlined),
