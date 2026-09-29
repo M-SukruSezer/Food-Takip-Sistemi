@@ -250,19 +250,23 @@ class _AppShellState extends State<AppShell> {
                           children: [
                             Align(
                               alignment: Alignment.topCenter,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 1440,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: width < 360
+                                      ? 8
+                                      : (width < 641
+                                            ? 10
+                                            : (width < 900 ? 16 : 18)),
+                                  // Mobil içerik üst bar ile alt menü arasındaki
+                                  // alanı tam kullanır. Dikey dış boşluk yalnızca
+                                  // masaüstü yerleşiminde gerekir.
+                                  vertical: wide ? 18 : 0,
                                 ),
-                                child: Padding(
-                                  padding: EdgeInsets.all(
-                                    width < 360
-                                        ? 8
-                                        : (width < 641
-                                              ? 10
-                                              : (width < 900 ? 16 : 18)),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 1440,
                                   ),
-                                  child: widget.child,
+                                  child: SizedBox.expand(child: widget.child),
                                 ),
                               ),
                             ),
