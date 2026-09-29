@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute, transaction } = require('../db');
 const {
   requireAuth, requireRole, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
+  hashPassword,
 } = require('../auth');
 const { logActivity } = require('../utils');
 const qr = require('../pdks/qr');
@@ -866,6 +867,60 @@ router.put('/profiles/:userId', requireManager, async (req, res) => {
   });
 });
 
+// ---- Denetim izli manuel PDKS mudahalesi ----
+
+router.get('/manual-adjustments', requireManager, async (req, res) => {
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'aa.store_id');
+  const rows = await queryAll(`
+    SELECT aa.*, u.full_name, u.username, a.full_name AS approved_by_name
+    FROM attendance_adjustments aa
+    JOIN users u ON u.id = aa.user_id
+    JOIN users a ON a.id = aa.approved_by
+    WHERE 1=1 ${f.sql}
+    ORDER BY aa.created_at DESC LIMIT 100`, ...f.params);
+  res.json(rows);
+});
+
+router.post('/manual-adjustments', requireManager, async (req, res) => {
+  const body = req.body || {};
+  const userId = Number(body.user_id);
+  const logId = Number(body.attendance_log_id);
+  const type = String(body.adjustment_type || '');
+  const revisedAt = String(body.revised_at || '');
+  const reason = String(body.reason || '').trim();
+  const managerNote = String(body.manager_note || '').trim();
+  const allowed = ['BREAK_END', 'ENTRY_REVISION', 'FORGOT_CHECKOUT', 'LEAVE'];
+  if (!Number.isInteger(userId) || !allowed.includes(type)) {
+    return res.status(400).json({ error: 'Personel ve müdahale türü zorunludur' });
+  }
+  if (!Number.isInteger(logId)) return res.status(400).json({ error: 'Düzeltilecek kayıt seçilmelidir' });
+  if (!Number.isFinite(Date.parse(revisedAt))) return res.status(400).json({ error: 'Geçerli tarih ve saat girin' });
+  if (reason.length < 5) return res.status(400).json({ error: 'Müdahale gerekçesi en az 5 karakter olmalıdır' });
+
+  const user = await queryOne('SELECT id, store_id, full_name FROM users WHERE id = ?', userId);
+  if (!user) return res.status(404).json({ error: 'Personel bulunamadı' });
+  if (!allowsStore(req, user.store_id)) return res.status(403).json({ error: 'Bu personele erişim yetkiniz yok' });
+  const log = await queryOne('SELECT * FROM attendance_logs WHERE id = ? AND user_id = ?', logId, userId);
+  if (!log) return res.status(404).json({ error: 'Devam kaydı bulunamadı' });
+
+  await transaction(async (client) => {
+    await execute('UPDATE attendance_logs SET occurred_at = ?, note = ? WHERE id = ?',
+      revisedAt, `Yönetici düzeltmesi: ${reason}`, log.id, client);
+    await execute(`
+      INSERT INTO attendance_adjustments
+        (attendance_log_id, user_id, store_id, adjustment_type, original_at,
+         revised_at, reason, manager_note, approved_by)
+      VALUES (?,?,?,?,?,?,?,?,?)`,
+      log.id, user.id, user.store_id, type, log.occurred_at, revisedAt,
+      reason, managerNote || null, req.user.id, client);
+  });
+  await logActivity(req.user, 'PDKS_MANUEL_DUZELTME', 'attendance_log', log.id,
+    `${user.full_name}: ${log.occurred_at} → ${revisedAt}; ${reason}`, user.store_id);
+  res.status(201).json({ ok: true });
+});
+
 // ---- Magaza PDKS ayarlari ----
 
 router.get('/settings', requireManager, async (req, res) => {
@@ -874,12 +929,33 @@ router.get('/settings', requireManager, async (req, res) => {
   const f = storeFilter(scope, 'id');
   const rows = await queryAll(`
     SELECT id, name, latitude, longitude, geofence_radius_m, qr_mode, pdks_enabled,
-           (qr_secret IS NOT NULL) AS has_secret
+           (qr_secret IS NOT NULL) AS has_secret,
+           (pdks_pin_hash IS NOT NULL) AS has_pin
     FROM stores WHERE active = 1 ${f.sql} ORDER BY name`, ...f.params);
   // Sir ASLA doner degil; yalnizca tanimli olup olmadigi bildirilir.
   res.json(rows.map((r) => ({
     ...r, pdks_enabled: !!r.pdks_enabled, has_secret: !!r.has_secret,
+    has_pin: !!r.has_pin,
   })));
+});
+
+/// Kamera/QR arizasi halinde kullanilan 6 haneli magaza PIN'ini ayarlar.
+/// Duz metin PIN hicbir zaman saklanmaz veya API'den geri donmez.
+router.put('/settings/:storeId/pin', requireManager, async (req, res) => {
+  const storeId = Number(req.params.storeId);
+  const store = await queryOne('SELECT id, name FROM stores WHERE id = ?', storeId);
+  if (!store) return res.status(404).json({ error: 'Mağaza bulunamadı' });
+  if (!allowsStore(req, storeId)) {
+    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
+  }
+  const pin = String(req.body?.pin || '');
+  if (!/^\d{6}$/.test(pin)) {
+    return res.status(400).json({ error: 'Mağaza PIN’i tam 6 rakam olmalıdır' });
+  }
+  await execute('UPDATE stores SET pdks_pin_hash = ? WHERE id = ?', hashPassword(pin), storeId);
+  await logActivity(req.user, 'PDKS_PIN_GUNCELLE', 'store', storeId,
+    'Mağaza PDKS PIN’i güncellendi', storeId);
+  res.json({ ok: true, has_pin: true });
 });
 
 router.put('/settings/:storeId', requireManager, async (req, res) => {

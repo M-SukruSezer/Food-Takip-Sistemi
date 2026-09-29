@@ -5,7 +5,7 @@ const {
   ALL_PERMISSIONS, DEFAULT_PERMISSIONS, PERMISSION_LABELS,
   permissionsOf, parsePermissions, serializePermissions,
   ROLES, ROLE_LABELS, MANAGER_ROLES, roleLevel, assignableRoles, isMultiStoreRole,
-  storeFilter, resolveStoreScope,
+  storeFilter, resolveStoreScope, allowsStore,
 } = require('../auth');
 
 // Kullanicinin sorumlu oldugu magazalar (cok magazali roller icin).
@@ -89,6 +89,70 @@ async function grantableBy(user) {
   const me = await queryOne('SELECT role, permissions FROM users WHERE id = ?', user.id);
   return permissionsOf(me);
 }
+
+// ---- Rol ve yetki sablonlari ----
+
+router.get('/templates', async (req, res) => {
+  if (!MANAGER_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+  }
+  const scope = resolveStoreScope(req, res);
+  if (!scope.ok) return undefined;
+  const f = storeFilter(scope, 'rt.store_id');
+  const rows = await queryAll(`
+    SELECT rt.id, rt.store_id, rt.name, rt.role, rt.permissions, rt.active,
+           rt.updated_at, s.name AS store_name
+    FROM role_templates rt LEFT JOIN stores s ON s.id = rt.store_id
+    WHERE rt.active = 1 ${f.sql}
+    ORDER BY rt.name`, ...f.params);
+  res.json(rows.map((row) => ({
+    ...row, active: !!row.active, permissions: parsePermissions(row.permissions),
+  })));
+});
+
+router.post('/templates', async (req, res) => {
+  if (!MANAGER_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+  }
+  const name = String(req.body?.name || '').trim();
+  const role = String(req.body?.role || '');
+  const storeId = Number(req.body?.store_id || req.user.store_id);
+  if (!name) return res.status(400).json({ error: 'Şablon adı zorunludur' });
+  if (!assignableRoles(req.user.role).includes(role)) {
+    return res.status(403).json({ error: 'Bu rol için şablon oluşturamazsınız' });
+  }
+  if (!Number.isInteger(storeId) || !allowsStore(req, storeId)) {
+    return res.status(403).json({ error: 'Bu mağazaya şablon ekleyemezsiniz' });
+  }
+  const permissions = parsePermissions(req.body?.permissions);
+  const grantable = await grantableBy(req.user);
+  const forbidden = permissions.filter((key) => !grantable.includes(key));
+  if (forbidden.length) {
+    return res.status(403).json({ error: 'Sahip olmadığınız yetkileri şablona ekleyemezsiniz' });
+  }
+  const r = await execute(`
+    INSERT INTO role_templates (store_id, name, role, permissions, created_by)
+    VALUES (?,?,?,?,?) RETURNING id`,
+    storeId, name, role, serializePermissions(permissions), req.user.id);
+  await logActivity(req.user, 'ROL_SABLONU_OLUSTUR', 'role_template', r.lastInsertRowid,
+    `${name} — ${ROLE_LABELS[role] || role}`, storeId);
+  res.status(201).json({ id: Number(r.lastInsertRowid) });
+});
+
+router.delete('/templates/:id', async (req, res) => {
+  if (!MANAGER_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+  }
+  const row = await queryOne('SELECT * FROM role_templates WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Rol şablonu bulunamadı' });
+  if (!allowsStore(req, row.store_id)) {
+    return res.status(403).json({ error: 'Bu şablona erişim yetkiniz yok' });
+  }
+  await execute('UPDATE role_templates SET active = 0 WHERE id = ?', row.id);
+  await logActivity(req.user, 'ROL_SABLONU_PASIF', 'role_template', row.id,
+    row.name, row.store_id);
+  res.json({ ok: true });
+});
 
 router.post('/', async (req, res) => {
   const { username, password, full_name, role, store_id, active } = req.body || {};

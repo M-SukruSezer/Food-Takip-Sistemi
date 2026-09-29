@@ -27,6 +27,7 @@ class _UsersScreenState extends State<UsersScreen> {
   List<ManagedUser> _items = const [];
   List<StoreOption> _stores = const [];
   String _search = '';
+  String _roleFilter = 'all';
   String? _error;
   bool _loaded = false;
 
@@ -125,13 +126,97 @@ class _UsersScreenState extends State<UsersScreen> {
     await _load(silent: true);
   }
 
+  Future<void> _createTemplate() async {
+    final name = TextEditingController();
+    var role = 'barista';
+    final selected = <String>{'discard', 'ikram'};
+    final storeId =
+        session.user?.storeId ?? (_stores.isEmpty ? null : _stores.first.id);
+    if (storeId == null) {
+      toastError('Önce bir mağaza seçmelisiniz');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Rol ve Yetki Şablonu'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Şablon adı'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  decoration: const InputDecoration(labelText: 'Rol'),
+                  items: assignableRoles(session.user)
+                      .map(
+                        (r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(roleLabels[r] ?? r),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setLocal(() => role = v ?? role),
+                ),
+                const SizedBox(height: 8),
+                for (final p in grantablePermissions(session.user))
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: Text(permissionLabels[p] ?? p),
+                    value: selected.contains(p),
+                    onChanged: (v) => setLocal(
+                      () => v == true ? selected.add(p) : selected.remove(p),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Kaydet'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || name.text.trim().isEmpty) return;
+    await repo.createRoleTemplate(
+      name: name.text.trim(),
+      role: role,
+      storeId: storeId,
+      permissions: selected.toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final visible = filterUsers(_items, _search);
+    final visible = filterUsers(_items, _search)
+        .where(
+          (u) =>
+              _roleFilter == 'all' ||
+              u.role == _roleFilter ||
+              (_roleFilter == 'passive' && !u.active),
+        )
+        .toList();
+    final active = _items.where((u) => u.active).length;
+    final supervisors = _items
+        .where((u) => u.role == 'shift_supervisor')
+        .length;
 
     return CrudScaffold(
-      title: 'Kullanıcılar',
+      title: 'Personel Listesi',
       loaded: _loaded,
       error: _error,
       onRetry: () => _load(),
@@ -141,131 +226,267 @@ class _UsersScreenState extends State<UsersScreen> {
       emptyText: _search.isEmpty
           ? 'Kullanıcı bulunamadı.'
           : 'Aramanıza uyan kullanıcı yok.',
-      banner: _items.length > 6 || _search.isNotEmpty
-          ? AppCard(
-              padding: const EdgeInsets.all(12),
-              child: TextField(
-                onChanged: (v) => setState(() => _search = v),
-                style: const TextStyle(fontSize: 16),
-                // Oneri listesindeki arama kutusuyla ayni gorunum: gomulu
-                // zemin ve marka renginde ikon.
-                decoration: InputDecoration(
-                  hintText: 'Ada, kullanıcı adına veya mağazaya göre ara',
-                  fillColor: t.bg,
-                  prefixIcon: Icon(Icons.search, color: t.primary),
-                ),
-              ),
-            )
-          : null,
-      children: visible.map((user) {
-        final perm = permissionsFor(session.user, user);
-        return AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      banner: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  _Initials(name: user.fullName),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.fullName,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: t.ink,
-                          ),
-                        ),
-                        Text(
-                          '@${user.username}',
-                          style: TextStyle(fontSize: 13, color: t.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Pill(
-                    text: user.active ? 'aktif' : 'pasif',
-                    color: user.active ? t.success : t.danger,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  Pill(text: roleLabels[user.role] ?? user.role, color: t.info),
-                  Pill(
-                    text: user.isMultiStore
-                        ? '${user.storeIds.length} mağaza sorumlusu'
-                        : (user.storeName ??
-                              (user.role == 'super_admin'
-                                  ? 'Tüm mağazalar'
-                                  : 'Mağaza atanmamış')),
-                    color: t.warning,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Ana Yoneticide yetkiler rolden gelir, listelemek gurultu olur.
-              if (user.role != 'super_admin')
-                Text(
-                  user.permissions.isEmpty
-                      ? 'Ek yetki verilmemiş'
-                      : 'Yetkiler: ${user.permissions.map((p) => permissionLabels[p] ?? p).join(', ')}',
-                  style: TextStyle(fontSize: 12, color: t.muted),
+              Expanded(
+                child: _SummaryTile(
+                  label: 'TOPLAM',
+                  value: '${_items.length} Kişi',
+                  note: 'Tam Kadro',
+                  color: t.success,
                 ),
-              if (perm.reason != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  perm.reason!,
-                  style: TextStyle(fontSize: 12, color: t.muted),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SummaryTile(
+                  label: 'GÖREVDE',
+                  value: '$active Kişi',
+                  note: '$supervisors Şef',
+                  color: t.info,
                 ),
-              ],
-              const SizedBox(height: 10),
-              // Islemler telefonda iki satira sarilir; her dugme tam dokunma boyunda.
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: perm.canEdit ? () => _edit(user) : null,
-                    child: const Text('Düzenle'),
-                  ),
-                  OutlinedButton(
-                    onPressed: perm.canResetPassword
-                        ? () => _resetPassword(user)
-                        : null,
-                    child: const Text('Şifre'),
-                  ),
-                  OutlinedButton(
-                    onPressed: perm.canToggleActive
-                        ? () => _toggle(user)
-                        : null,
-                    child: Text(user.active ? 'Pasife Al' : 'Aktifleştir'),
-                  ),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: perm.canDelete ? t.danger : t.muted,
-                      side: BorderSide(
-                        color: perm.canDelete ? t.danger : t.border,
-                      ),
-                    ),
-                    onPressed: perm.canDelete ? () => _delete(user) : null,
-                    child: const Text('Sil'),
-                  ),
-                ],
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SummaryTile(
+                  label: 'YETKİ',
+                  value:
+                      '${_items.where((u) => u.permissions.isNotEmpty).length} Kişi',
+                  note: 'Güncel',
+                  color: t.primary,
+                ),
               ),
             ],
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 12),
+          AppCard(
+            padding: const EdgeInsets.all(10),
+            child: TextField(
+              onChanged: (v) => setState(() => _search = v),
+              style: const TextStyle(fontSize: 16),
+              // Oneri listesindeki arama kutusuyla ayni gorunum: gomulu
+              // zemin ve marka renginde ikon.
+              decoration: InputDecoration(
+                hintText: 'Personel, kullanıcı adı veya unvan ara…',
+                fillColor: t.bg,
+                prefixIcon: Icon(Icons.search, color: t.primary),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final f in const [
+                  ('all', 'Tümü'),
+                  ('barista', 'Barista'),
+                  ('shift_supervisor', 'Supervisor'),
+                  ('passive', 'Pasifler'),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(f.$2),
+                      selected: _roleFilter == f.$1,
+                      onSelected: (_) => setState(() => _roleFilter = f.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      children:
+          visible.map((user) {
+            final perm = permissionsFor(session.user, user);
+            return AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _Initials(name: user.fullName),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.fullName,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: t.ink,
+                              ),
+                            ),
+                            Text(
+                              '@${user.username}',
+                              style: TextStyle(fontSize: 13, color: t.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Pill(
+                        text: user.active ? 'aktif' : 'pasif',
+                        color: user.active ? t.success : t.danger,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Pill(
+                        text: roleLabels[user.role] ?? user.role,
+                        color: t.info,
+                      ),
+                      Pill(
+                        text: user.isMultiStore
+                            ? '${user.storeIds.length} mağaza sorumlusu'
+                            : (user.storeName ??
+                                  (user.role == 'super_admin'
+                                      ? 'Tüm mağazalar'
+                                      : 'Mağaza atanmamış')),
+                        color: t.warning,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Ana Yoneticide yetkiler rolden gelir, listelemek gurultu olur.
+                  if (user.role != 'super_admin')
+                    Text(
+                      user.permissions.isEmpty
+                          ? 'Ek yetki verilmemiş'
+                          : 'Yetkiler: ${user.permissions.map((p) => permissionLabels[p] ?? p).join(', ')}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  if (perm.reason != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      perm.reason!,
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  // Islemler telefonda iki satira sarilir; her dugme tam dokunma boyunda.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: perm.canEdit ? () => _edit(user) : null,
+                        child: const Text('Düzenle'),
+                      ),
+                      OutlinedButton(
+                        onPressed: perm.canResetPassword
+                            ? () => _resetPassword(user)
+                            : null,
+                        child: const Text('Şifre'),
+                      ),
+                      OutlinedButton(
+                        onPressed: perm.canToggleActive
+                            ? () => _toggle(user)
+                            : null,
+                        child: Text(user.active ? 'Pasife Al' : 'Aktifleştir'),
+                      ),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: perm.canDelete ? t.danger : t.muted,
+                          side: BorderSide(
+                            color: perm.canDelete ? t.danger : t.border,
+                          ),
+                        ),
+                        onPressed: perm.canDelete ? () => _delete(user) : null,
+                        child: const Text('Sil'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }).toList()..add(
+            AppCard(
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: t.primary,
+                    foregroundColor: t.onPrimary,
+                    child: const Icon(Icons.admin_panel_settings_outlined),
+                  ),
+                  title: const Text(
+                    'Rol ve Yetki Şablonları',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: const Text(
+                    'Barista, Supervisor ve Şef yetkilerini düzenleyin',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: _createTemplate,
+                ),
+              ),
+            ),
+          ),
     );
   }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    required this.note,
+    required this.color,
+  });
+  final String label, value, note;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: context.tokens.muted,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: context.tokens.ink,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Text(
+            note,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Kullanici ekle/duzenle. Sifre yalnizca yeni kullanicida sorulur; mevcut
@@ -461,8 +682,8 @@ Future<bool?> showUserDialog(
           if (user == null) {
             if (username.text.trim().isEmpty) return 'Kullanıcı adı zorunludur';
             if (password.text.length < 6) {
-                return 'Şifre en az 6 karakter olmalıdır';
-              }
+              return 'Şifre en az 6 karakter olmalıdır';
+            }
             await repo.createUser(
               username: username.text.trim(),
               password: password.text,
@@ -538,8 +759,8 @@ Future<bool?> showPasswordResetDialog(BuildContext context, ManagedUser user) {
       onSubmit: () async {
         if (password.text.length < 6) return 'Şifre en az 6 karakter olmalıdır';
         if (password.text != repeat.text) {
-            return 'Şifreler birbiriyle aynı değil';
-          }
+          return 'Şifreler birbiriyle aynı değil';
+        }
         try {
           await repo.resetUserPassword(user.id, password.text);
           return null;

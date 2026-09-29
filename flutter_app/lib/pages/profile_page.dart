@@ -22,7 +22,9 @@ class ProfilePageApp extends StatelessWidget {
       theme: buildAppTheme(Brightness.light),
       darkTheme: buildAppTheme(Brightness.dark),
       themeMode: ThemeMode.system,
-      home: const ProfilePage(),
+      // Onizleme her kosulda ayni demo veriyi gostermeli. Test/gelistirme
+      // makinesinde kalmis gercek oturum tasarim onizlemesini degistirmesin.
+      home: const ProfilePage(user: ProfileUser.sample),
     );
   }
 }
@@ -57,8 +59,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late final List<bool> _settingValues =
-      List<bool>.from(widget.settings.map((s) => s.initialValue));
+  late final List<bool> _settingValues = List<bool>.from(
+    widget.settings.map((s) => s.initialValue),
+  );
 
   ProfileUser? get _effectiveUser {
     if (widget.user != null) return widget.user;
@@ -150,17 +153,19 @@ class _ProfilePageState extends State<ProfilePage> {
             if (user != null)
               ProfileHeaderCard(
                 user: user,
-                onEdit: widget.onEdit ?? () => _demo('Profil düzenleme (önizleme)'),
+                onEdit:
+                    widget.onEdit ?? () => _demo('Profil düzenleme (önizleme)'),
                 onShare: widget.onShare ?? () => _demo('Bağlantı kopyalandı'),
                 onAvatarTap:
-                    widget.onAvatarTap ?? () => _demo('Fotoğraf seç (önizleme)'),
+                    widget.onAvatarTap ??
+                    () => _demo('Fotoğraf seç (önizleme)'),
               ),
             const SizedBox(height: AppTokens.gap + 8),
             if (user != null)
               ProfileStatsRow(
                 user: user,
-                onStatTap: widget.onStatTap ??
-                    (label) => _demo('$label seçildi'),
+                onStatTap:
+                    widget.onStatTap ?? (label) => _demo('$label seçildi'),
               ),
             const SizedBox(height: 28),
             const ProfileSectionTitle('Ayarlar'),

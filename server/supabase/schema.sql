@@ -104,6 +104,20 @@ CREATE TABLE IF NOT EXISTS discards (
 ALTER TABLE product_types ADD COLUMN IF NOT EXISTS unit_price DOUBLE PRECISION;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS pdks_pin_hash TEXT;
+
+CREATE TABLE IF NOT EXISTS role_templates (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT REFERENCES stores(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  permissions TEXT NOT NULL DEFAULT '[]',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_by BIGINT REFERENCES users(id),
+  updated_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  UNIQUE (store_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_role_templates_store ON role_templates(store_id);
 
 -- Rol kademeleri genisledi: staff -> barista, araya operations_manager,
 -- regional_manager ve shift_supervisor girdi.
@@ -417,6 +431,25 @@ CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance_logs(user_id, 
 CREATE INDEX IF NOT EXISTS idx_attendance_store_time ON attendance_logs(store_id, occurred_at);
 -- "Su an kimler iste" sorgusu: son kaydin turune bakar.
 CREATE INDEX IF NOT EXISTS idx_attendance_user_time ON attendance_logs(user_id, occurred_at DESC);
+
+-- Yonetici tarafindan yapilan her manuel PDKS duzeltmesi ayri bir denetim
+-- kaydi olarak saklanir. Ham devam kaydi degisse bile kim, ne zaman ve hangi
+-- gerekceyle degistirdi bilgisi kaybolmaz.
+CREATE TABLE IF NOT EXISTS attendance_adjustments (
+  id BIGSERIAL PRIMARY KEY,
+  attendance_log_id BIGINT REFERENCES attendance_logs(id) ON DELETE SET NULL,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  store_id BIGINT NOT NULL REFERENCES stores(id),
+  adjustment_type TEXT NOT NULL,
+  original_at TEXT,
+  revised_at TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  manager_note TEXT,
+  approved_by BIGINT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+);
+CREATE INDEX IF NOT EXISTS idx_attendance_adjustments_user
+  ON attendance_adjustments(user_id, created_at);
 -- Ayni personel ayni token'i ikinci kez kullanamaz.
 --
 -- Tekillik KISI BASINA: kioskta donen token 60 sn boyunca ayni oldugu icin

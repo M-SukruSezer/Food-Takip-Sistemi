@@ -458,6 +458,103 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     if (ok == true) await _loadProfiles();
   }
 
+  Future<void> _manualAdjust(PresenceRow p) async {
+    if (p.attendanceLogId == null || p.lastAt == null) {
+      toastError('Düzeltilebilecek bir devam kaydı yok');
+      return;
+    }
+    var revised = DateTime.tryParse(p.lastAt!)?.toLocal() ?? DateTime.now();
+    final reason = TextEditingController();
+    final note = TextEditingController();
+    var type = p.isInside ? 'BREAK_END' : 'ENTRY_REVISION';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: Text('Manuel PDKS Müdahalesi — ${p.fullName}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(labelText: 'İşlem türü'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'BREAK_END',
+                      child: Text('Mola Sonlandırma'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'ENTRY_REVISION',
+                      child: Text('Giriş Saati Revizesi'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'FORGOT_CHECKOUT',
+                      child: Text('Unutulan Gün Sonu'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'LEAVE',
+                      child: Text('İzinli / Raporlu'),
+                    ),
+                  ],
+                  onChanged: (v) => type = v ?? type,
+                ),
+                const SizedBox(height: 10),
+                DateTimeField(
+                  value: revised,
+                  onChanged: (v) => setLocal(() => revised = v),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: reason,
+                  decoration: const InputDecoration(
+                    labelText: 'Müdahale gerekçesi',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: note,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Şube müdürü açıklaması',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Vazgeç'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Onayla ve Sisteme Yaz'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    if (reason.text.trim().length < 5) {
+      toastError('Gerekçe en az 5 karakter olmalıdır');
+      return;
+    }
+    try {
+      await repo.pdksManualAdjustment(
+        userId: p.userId,
+        attendanceLogId: p.attendanceLogId!,
+        type: type,
+        revisedAt: revised,
+        reason: reason.text.trim(),
+        managerNote: note.text.trim(),
+      );
+      await _loadPresence();
+    } catch (e) {
+      if (mounted) toastError(errorMessage(e));
+    }
+  }
+
   List<Widget> _presenceRows(AppTokens t) {
     final rows = [..._presence.inside, ..._presence.outside];
     if (rows.isEmpty) {
@@ -468,7 +565,8 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
             padding: EdgeInsets.all(24),
             child: EmptyState(
               title: 'Personel Bulunamadı',
-              message: 'Şu anda sistemde içeride veya dışarıda personel görünmüyor.',
+              message:
+                  'Şu anda sistemde içeride veya dışarıda personel görünmüyor.',
               icon: Icons.people_outline,
             ),
           ),
@@ -516,6 +614,11 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                 ),
                 if (p.isInside && p.minutesSince != null)
                   Pill(text: fmtDuration(p.minutesSince!), color: t.success),
+                IconButton(
+                  tooltip: 'Manuel müdahale',
+                  onPressed: () => _manualAdjust(p),
+                  icon: const Icon(Icons.edit_calendar_outlined),
+                ),
               ],
             ),
           ),

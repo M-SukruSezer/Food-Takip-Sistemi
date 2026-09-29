@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -23,7 +24,8 @@ class QrScanScreen extends StatefulWidget {
   State<QrScanScreen> createState() => _QrScanScreenState();
 }
 
-class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderStateMixin {
+class _QrScanScreenState extends State<QrScanScreen>
+    with SingleTickerProviderStateMixin {
   final _controller = MobileScannerController(
     // Yalnızca QR: barkod türlerini daraltmak yanlış okumayı azaltır.
     formats: const [BarcodeFormat.qrCode],
@@ -109,7 +111,10 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                         _error = null;
                       }),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(8),
@@ -119,7 +124,9 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _typing ? Icons.qr_code_scanner_rounded : Icons.dialpad_outlined,
+                              _typing
+                                  ? Icons.qr_code_scanner_rounded
+                                  : Icons.dialpad_outlined,
                               size: 14,
                               color: const Color(0xFF334155),
                             ),
@@ -161,7 +168,10 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
           onDetect: (capture) {
             final code = capture.barcodes
                 .map((b) => b.rawValue)
-                .firstWhere((v) => v != null && v.isNotEmpty, orElse: () => null);
+                .firstWhere(
+                  (v) => v != null && v.isNotEmpty,
+                  orElse: () => null,
+                );
             if (code != null) _finish(code);
           },
           errorBuilder: (context, error) {
@@ -179,7 +189,11 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.no_photography_outlined, size: 44, color: Color(0xFF94A3B8)),
+                      const Icon(
+                        Icons.no_photography_outlined,
+                        size: 44,
+                        color: Color(0xFF94A3B8),
+                      ),
                       const SizedBox(height: 14),
                       const Text(
                         'Kamera Açılamadı',
@@ -193,7 +207,11 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                       const Text(
                         'Kamera izni verilmemiş olabilir veya cihaz kamerası kullanılamıyor. Kodu manuel olarak girebilirsiniz.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4),
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
@@ -203,8 +221,13 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                         style: FilledButton.styleFrom(
                           backgroundColor: t.primary,
                           foregroundColor: t.onPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ],
@@ -247,7 +270,10 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
 
                   // Konum doğrulama rozeti (Store Geo-Fence Badge)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xCC0F172A),
                       borderRadius: BorderRadius.circular(999),
@@ -322,19 +348,27 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                           // 4 Köşe Vurgusu (Corner Accents)
                           const _CornerAccent(
                             alignment: Alignment.topLeft,
-                            borderRadius: BorderRadius.only(topLeft: Radius.circular(14)),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(14),
+                            ),
                           ),
                           const _CornerAccent(
                             alignment: Alignment.topRight,
-                            borderRadius: BorderRadius.only(topRight: Radius.circular(14)),
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(14),
+                            ),
                           ),
                           const _CornerAccent(
                             alignment: Alignment.bottomLeft,
-                            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(14)),
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(14),
+                            ),
                           ),
                           const _CornerAccent(
                             alignment: Alignment.bottomRight,
-                            borderRadius: BorderRadius.only(bottomRight: Radius.circular(14)),
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(14),
+                            ),
                           ),
 
                           // Merkez Nişangahı (Crosshair)
@@ -343,7 +377,8 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                             height: 24,
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: const Color(0xFF34D399).withValues(alpha: 0.35),
+                                color: const Color(0xFF34D399)
+                                    .withValues(alpha: 0.35),
                                 width: 1.2,
                               ),
                               shape: BoxShape.circle,
@@ -364,7 +399,8 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                           AnimatedBuilder(
                             animation: _laserAnim,
                             builder: (context, _) {
-                              final topOffset = 16.0 + (_laserAnim.value * (boxSize - 34.0));
+                              final topOffset =
+                                  16.0 + (_laserAnim.value * (boxSize - 34.0));
                               return Positioned(
                                 top: topOffset,
                                 left: 14,
@@ -381,7 +417,8 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF34D399).withValues(alpha: 0.8),
+                                        color: const Color(0xFF34D399)
+                                            .withValues(alpha: 0.8),
                                         blurRadius: 10,
                                         spreadRadius: 1,
                                       ),
@@ -411,7 +448,9 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                             icon: Icon(
                               Icons.bolt_rounded,
                               size: 16,
-                              color: isTorchOn ? const Color(0xFFF59E0B) : const Color(0xFFFBBF24),
+                              color: isTorchOn
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFFFBBF24),
                             ),
                             label: isTorchOn ? 'Flaş Kapat' : 'Flaş Aç',
                             onTap: () => _controller.toggleTorch(),
@@ -435,7 +474,10 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
 
                   // Alt bilgilendirme ve gizlilik metni
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 14,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
@@ -471,24 +513,33 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
   }
 
   Widget _manualEntry(AppTokens t) {
+    final pin = _manual.text;
+    void digit(String value) {
+      if (_manual.text.length >= 6) return;
+      setState(() {
+        _manual.text += value;
+        _error = null;
+      });
+    }
+
     return ColoredBox(
-      color: const Color(0xFF0F172A),
+      color: const Color(0xFFF5F7FC),
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF334155)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.07),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -518,19 +569,19 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Manuel Kod / PIN Girişi',
+                              'Store Manager PIN Onayı',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: Color(0xFF0F172A),
                               ),
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Kiosk ekranındaki kodu veya PIN girin',
+                              'Kamera veya QR arızasında mağaza PIN’ini girin',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF94A3B8),
+                                color: Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -545,16 +596,25 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                       decoration: BoxDecoration(
                         color: t.dangerSoft,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: t.danger.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline, size: 18, color: t.dangerStrong),
+                          Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: t.dangerStrong,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _error!,
-                              style: TextStyle(color: t.dangerStrong, fontSize: 12.5),
+                              style: TextStyle(
+                                color: t.dangerStrong,
+                                fontSize: 12.5,
+                              ),
                             ),
                           ),
                         ],
@@ -562,50 +622,92 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 14),
                   ],
-                  const Text(
-                    'QR Kod Metni',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFCBD5E1),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _manual,
-                    autofocus: true,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFF0F172A),
-                      hintText: 'PDKS1:...',
-                      hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF475569)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF475569)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2DD4BF), width: 1.6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(
+                      6,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 140),
+                        width: 44,
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: index < pin.length
+                              ? t.primarySoft
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: index <= pin.length
+                                ? t.primary
+                                : const Color(0xFFE2E8F0),
+                            width: index == pin.length ? 1.8 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          index < pin.length ? pin[index] : '•',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: index < pin.length
+                                ? t.primary
+                                : const Color(0xFFCBD5E1),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    childAspectRatio: 2.05,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    children: [
+                      for (final value in const [
+                        '1',
+                        '2',
+                        '3',
+                        '4',
+                        '5',
+                        '6',
+                        '7',
+                        '8',
+                        '9',
+                      ])
+                        OutlinedButton(
+                          onPressed: () => digit(value),
+                          child: Text(value),
+                        ),
+                      OutlinedButton(
+                        onPressed: () {},
+                        child: Icon(
+                          Icons.fingerprint_rounded,
+                          color: t.primary,
+                        ),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => digit('0'),
+                        child: const Text('0'),
+                      ),
+                      OutlinedButton(
+                        onPressed: pin.isEmpty
+                            ? null
+                            : () => setState(() {
+                                _manual.text = pin.substring(0, pin.length - 1);
+                                _error = null;
+                              }),
+                        child: const Icon(Icons.backspace_outlined),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   FilledButton(
                     onPressed: () {
                       final v = _manual.text.trim();
-                      if (v.isEmpty) {
-                        setState(() => _error = 'Kod metni zorunludur');
+                      if (!RegExp(r'^\d{6}$').hasMatch(v)) {
+                        setState(() => _error = 'PIN tam 6 rakam olmalıdır');
                         return;
                       }
                       _finish(v);
@@ -614,11 +716,16 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                       backgroundColor: t.primary,
                       foregroundColor: t.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text(
-                      'Onayla',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                      'PIN ile Mesaiyi Onayla',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -684,10 +791,7 @@ class _ControlPillButton extends StatelessWidget {
 
 /// Çerçeve köşelerindeki kalın vurgu braketleri
 class _CornerAccent extends StatelessWidget {
-  const _CornerAccent({
-    required this.alignment,
-    required this.borderRadius,
-  });
+  const _CornerAccent({required this.alignment, required this.borderRadius});
 
   final Alignment alignment;
   final BorderRadius borderRadius;
@@ -709,10 +813,18 @@ class _CornerAccent extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: borderRadius,
           border: Border(
-            top: isTop ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
-            bottom: !isTop ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
-            left: isLeft ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
-            right: !isLeft ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
+            top: isTop
+                ? BorderSide(color: t.primary, width: 3.8)
+                : BorderSide.none,
+            bottom: !isTop
+                ? BorderSide(color: t.primary, width: 3.8)
+                : BorderSide.none,
+            left: isLeft
+                ? BorderSide(color: t.primary, width: 3.8)
+                : BorderSide.none,
+            right: !isLeft
+                ? BorderSide(color: t.primary, width: 3.8)
+                : BorderSide.none,
           ),
         ),
       ),
@@ -728,7 +840,8 @@ class _PulsingDot extends StatefulWidget {
   State<_PulsingDot> createState() => _PulsingDotState();
 }
 
-class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _anim;
 
   @override
@@ -762,9 +875,8 @@ class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderState
                 height: 6.0 + (_anim.value * 4.0),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF34D399).withValues(
-                    alpha: (1.0 - _anim.value).clamp(0.0, 0.6),
-                  ),
+                  color: const Color(0xFF34D399)
+                      .withValues(alpha: (1.0 - _anim.value).clamp(0.0, 0.6)),
                 ),
               );
             },

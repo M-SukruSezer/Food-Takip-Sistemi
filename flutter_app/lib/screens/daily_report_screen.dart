@@ -123,6 +123,162 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
     }
   }
 
+  Future<void> _showExportSheet() async {
+    var pdf = false;
+    var audit = true;
+    var finance = true;
+    var personnel = true;
+    final run = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final t = ctx.tokens;
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                4,
+                20,
+                20 + MediaQuery.viewInsetsOf(ctx).bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: t.primarySoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.drive_folder_upload_outlined,
+                          color: t.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Raporu Dışa Aktar',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              'Resmî rapor dosyasını seçilen kapsamla oluşturun.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    '1. Dosya Formatı Seçimi',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ExportChoice(
+                          selected: !pdf,
+                          icon: Icons.table_view_outlined,
+                          title: 'Excel Tablosu',
+                          subtitle: '.xlsx · Formüllü ham veri',
+                          onTap: () => setLocal(() => pdf = false),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ExportChoice(
+                          selected: pdf,
+                          icon: Icons.picture_as_pdf_outlined,
+                          title: 'Resmî PDF',
+                          subtitle: '.pdf · A4 döküm',
+                          onTap: () => setLocal(() => pdf = true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F4FF),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '2. Rapor Kapsamı & Şube',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _page.items.isEmpty
+                              ? 'Kayıt yok'
+                              : '${fmtDate(_page.from)} — ${fmtDate(_page.to)} · ${_page.items.length} kayıt',
+                          style: TextStyle(
+                            color: t.ink,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    '3. Dahil Edilecek Veri Katmanları',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      'İşlem detayları ve kullanıcı IP logları',
+                    ),
+                    value: audit,
+                    onChanged: (v) => setLocal(() => audit = v ?? true),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Ciro ve finansal tutar sütunları'),
+                    value: finance,
+                    onChanged: (v) => setLocal(() => finance = v ?? true),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Personel vardiya ve mola dökümü'),
+                    value: personnel,
+                    onChanged: (v) => setLocal(() => personnel = v ?? true),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    icon: const Icon(Icons.download_done_rounded),
+                    label: Text(
+                      pdf ? 'PDF Raporunu Oluştur' : 'Excel Raporunu Oluştur',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (run == true) await _export(pdf);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -167,27 +323,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                   style: TextStyle(fontSize: 13, color: t.muted),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _export(false),
-                        icon: const Icon(Icons.table_view_outlined, size: 18),
-                        label: const Text('Excel'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _export(true),
-                        icon: const Icon(
-                          Icons.picture_as_pdf_outlined,
-                          size: 18,
-                        ),
-                        label: const Text('PDF'),
-                      ),
-                    ),
-                  ],
+                FilledButton.icon(
+                  onPressed: _showExportSheet,
+                  icon: const Icon(Icons.drive_folder_upload_outlined),
+                  label: const Text('Raporu Dışa Aktar'),
                 ),
               ],
             ),
@@ -278,6 +417,47 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _ExportChoice extends StatelessWidget {
+  const _ExportChoice({
+    required this.selected,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final bool selected;
+  final IconData icon;
+  final String title, subtitle;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? t.primarySoft : const Color(0xFFF3F6FC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: selected ? t.primary : Colors.transparent),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: selected ? t.primary : t.danger),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 3),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: t.muted)),
+          ],
+        ),
+      ),
     );
   }
 }

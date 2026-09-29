@@ -353,6 +353,34 @@ class Repository {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> roleTemplates({
+    bool silent = false,
+  }) async {
+    final r = await api.dio.get<List<dynamic>>(
+      '/users/templates',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? []).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> createRoleTemplate({
+    required String name,
+    required String role,
+    required int storeId,
+    required List<String> permissions,
+  }) async {
+    await api.dio.post(
+      '/users/templates',
+      data: {
+        'name': name,
+        'role': role,
+        'store_id': storeId,
+        'permissions': permissions,
+      },
+      options: apiOptions(successMessage: 'Rol şablonu kaydedildi'),
+    );
+  }
+
   Future<void> createUser({
     required String username,
     required String password,
@@ -596,11 +624,12 @@ class Repository {
     bool? isMocked,
     DeviceIntegrity? integrity,
   }) async {
+    final isManagerPin = RegExp(r'^\d{6}$').hasMatch(token);
     await api.dio.post(
       '/pdks/${adim.yol}',
       data: {
         'method': 'QR',
-        'qr_token': token,
+        if (isManagerPin) 'manager_pin': token else 'qr_token': token,
         'latitude': latitude,
         'longitude': longitude,
         'accuracy': ?accuracy,
@@ -902,6 +931,28 @@ class Repository {
       options: apiOptions(silent: silent),
     );
     return PresenceSnapshot.fromJson(r.data ?? const {});
+  }
+
+  Future<void> pdksManualAdjustment({
+    required int userId,
+    required int attendanceLogId,
+    required String type,
+    required DateTime revisedAt,
+    required String reason,
+    String? managerNote,
+  }) async {
+    await api.dio.post(
+      '/pdks/manual-adjustments',
+      data: {
+        'user_id': userId,
+        'attendance_log_id': attendanceLogId,
+        'adjustment_type': type,
+        'revised_at': revisedAt.toUtc().toIso8601String(),
+        'reason': reason,
+        'manager_note': ?managerNote,
+      },
+      options: apiOptions(successMessage: 'Müdahale denetim izine kaydedildi'),
+    );
   }
 
   Future<TimesheetReport> pdksTimesheet({
