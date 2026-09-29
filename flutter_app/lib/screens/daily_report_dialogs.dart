@@ -405,8 +405,8 @@ Future<void> showDailyReportDetail(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(fmtDate(report.date)),
-      content: SizedBox(
-        width: 420,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

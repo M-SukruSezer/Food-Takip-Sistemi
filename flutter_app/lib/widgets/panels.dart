@@ -4,24 +4,43 @@ import '../core/tokens.dart';
 
 /// React tarafindaki .card karsiligi.
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.padding});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.onTap,
+    this.elevated = false,
+  });
 
   final Widget child;
   final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap;
+  final bool elevated;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final narrow = MediaQuery.sizeOf(context).width < 641;
-    return Container(
+    final content = Ink(
       width: double.infinity,
-      padding: padding ?? EdgeInsets.all(narrow ? 14 : 18),
+      padding:
+          padding ?? EdgeInsets.all(narrow ? AppSpacing.md : AppSpacing.lg),
       decoration: BoxDecoration(
         color: t.card,
         border: Border.all(color: t.border),
-        borderRadius: BorderRadius.circular(AppTokens.radius),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: elevated
+            ? AppElevation.low(Theme.of(context).brightness)
+            : null,
       ),
       child: child,
+    );
+    if (onTap == null) return content;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: content),
     );
   }
 }
@@ -51,13 +70,9 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final narrow = MediaQuery.sizeOf(context).width < 641;
-    final card = Container(
-      padding: EdgeInsets.all(narrow ? 11 : 16),
-      decoration: BoxDecoration(
-        color: t.card,
-        border: Border.all(color: t.border),
-        borderRadius: BorderRadius.circular(AppTokens.radius),
-      ),
+    final card = AppCard(
+      padding: EdgeInsets.all(narrow ? 11 : AppSpacing.lg),
+      onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,18 +117,7 @@ class StatCard extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return card;
-    // Tiklanabilir kart: dalga efekti kartin yuvarlak kosesine kirpilir.
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppTokens.radius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTokens.radius),
-        child: card,
-      ),
-    );
+    return card;
   }
 }
 
@@ -212,10 +216,7 @@ class EmptyState extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: t.muted),
               textAlign: TextAlign.center,
             ),
-            if (action != null) ...[
-              const SizedBox(height: 16),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),
@@ -251,7 +252,11 @@ class ErrorState extends StatelessWidget {
                 color: t.dangerSoft,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error_outline_rounded, size: 36, color: t.danger),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 36,
+                color: t.danger,
+              ),
             ),
             const SizedBox(height: 16),
             Text(

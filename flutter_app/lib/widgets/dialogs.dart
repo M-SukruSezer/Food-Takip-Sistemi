@@ -160,7 +160,9 @@ class _FormDialogState extends State<FormDialog> {
       );
     }
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
       title:
           widget.titleWidget ??
           (widget.headerIcon != null || widget.subtitle != null
@@ -302,9 +304,9 @@ class _FormDialogState extends State<FormDialog> {
       actions: [
         OutlinedButton(
           style: OutlinedButton.styleFrom(
-            backgroundColor: const Color(0xFFEFF6FF),
-            foregroundColor: const Color(0xFF2563EB),
-            side: const BorderSide(color: Color(0xFFBFDBFE)),
+            backgroundColor: t.bg,
+            foregroundColor: t.ink,
+            side: BorderSide(color: t.borderStrong),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -386,23 +388,39 @@ class LabeledField extends StatelessWidget {
 /// Iki alani yan yana koyar. Sayisal alanlar kisa oldugu icin cep ekraninda
 /// bile rahat sigar ve form yuksekligi yariya iner.
 class FormRow extends StatelessWidget {
-  const FormRow({super.key, required this.left, this.right});
+  const FormRow({
+    super.key,
+    required this.left,
+    this.right,
+    this.stackBelow = AppLayout.compactForm,
+  });
 
   final Widget left;
 
   /// Tek sayida alan kaldiginda bos birakilir; sol alan yarim genislikte durur
   /// ki hizalama bozulmasin.
   final Widget? right;
+  final double stackBelow;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: left),
-        const SizedBox(width: 10),
-        Expanded(child: right ?? const SizedBox.shrink()),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (right != null && constraints.maxWidth < stackBelow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [left, right!],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: left),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: right ?? const SizedBox.shrink()),
+          ],
+        );
+      },
     );
   }
 }
@@ -454,7 +472,9 @@ class DateTimeField extends StatelessWidget {
         side: BorderSide(
           color: fillColor != null ? Colors.transparent : t.border,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
       ),
       onPressed: onChanged == null
           ? null
