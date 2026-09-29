@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/session.dart';
 import '../core/tokens.dart';
 import 'profile_page_models.dart';
 import 'profile_page_widgets.dart';
@@ -59,6 +60,27 @@ class _ProfilePageState extends State<ProfilePage> {
   late final List<bool> _settingValues =
       List<bool>.from(widget.settings.map((s) => s.initialValue));
 
+  ProfileUser get _effectiveUser {
+    final sUser = session.user;
+    if (sUser != null && widget.user == ProfileUser.sample) {
+      final name = sUser.fullName.isNotEmpty ? sUser.fullName : sUser.username;
+      final parts = name.trim().split(RegExp(r'\s+'));
+      final initials = parts.length > 1
+          ? '${parts.first[0]}${parts.last[0]}'.toUpperCase()
+          : (name.isNotEmpty ? name[0].toUpperCase() : 'U');
+      return ProfileUser(
+        name: name,
+        title: sUser.storeName ?? sUser.role,
+        bio: 'Food Takip Sistemi • ${sUser.role}',
+        initials: initials,
+        followers: widget.user.followers,
+        following: widget.user.following,
+        posts: widget.user.posts,
+      );
+    }
+    return widget.user;
+  }
+
   void _demo(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -98,6 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = _effectiveUser;
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -124,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 12),
             ProfileHeaderCard(
-              user: widget.user,
+              user: user,
               onEdit: widget.onEdit ?? () => _demo('Profil düzenleme (önizleme)'),
               onShare: widget.onShare ?? () => _demo('Bağlantı kopyalandı'),
               onAvatarTap:

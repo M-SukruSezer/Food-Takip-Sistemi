@@ -160,3 +160,124 @@ class AppAlert extends StatelessWidget {
     );
   }
 }
+
+/// Standart boş durum bileşeni (ikon, başlık, açıklama, opsiyonel işlem).
+class EmptyState extends StatelessWidget {
+  const EmptyState({
+    super.key,
+    required this.message,
+    this.title,
+    this.icon = Icons.inbox_outlined,
+    this.action,
+  });
+
+  final String message;
+  final String? title;
+  final IconData icon;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: t.card,
+                shape: BoxShape.circle,
+                border: Border.all(color: t.border),
+              ),
+              child: Icon(icon, size: 36, color: t.muted),
+            ),
+            if (title != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                title!,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: t.ink,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(fontSize: 14, color: t.muted),
+              textAlign: TextAlign.center,
+            ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Standart hata durumu bileşeni.
+class ErrorState extends StatelessWidget {
+  const ErrorState({
+    super.key,
+    required this.message,
+    required this.onRetry,
+    this.title = 'Bir Hata Oluştu',
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: t.dangerSoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.error_outline_rounded, size: 36, color: t.danger),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: t.ink,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(fontSize: 14, color: t.muted),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
