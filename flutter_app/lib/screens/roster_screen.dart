@@ -81,16 +81,16 @@ String _formatRole(String role) {
 }
 
 /// Role göre avatar arka plan rengi.
-Color _avatarBg(String role) {
+Color _avatarBg(String role, AppTokens t) {
   switch (role.toLowerCase()) {
     case 'store_manager':
-      return const Color(0xFF0F766E); // Primary teal
+      return t.primary;
     case 'supervisor':
-      return const Color(0xFF316858); // Secondary forest
+      return t.primary600;
     case 'senior_barista':
-      return const Color(0xFF007952); // Tertiary emerald
+      return t.primaryDark;
     default:
-      return const Color(0xFF155041);
+      return t.muted;
   }
 }
 
@@ -107,27 +107,27 @@ const _cokMagazaRolleri = {
   bool koyu,
 ) => switch (k) {
   ShiftCategory.sabah => (
-    zemin: koyu ? const Color(0xFF153E35) : const Color(0xFFB5EFDA),
-    metin: koyu ? const Color(0xFF99D2BE) : const Color(0xFF005C55),
+    zemin: t.infoSoft,
+    metin: t.infoText,
     etiket: 'Sabah',
   ),
   ShiftCategory.gunduz => (
-    zemin: koyu ? const Color(0xFF1E293B) : const Color(0xFFDCE9FF),
-    metin: koyu ? const Color(0xFF93C5FD) : const Color(0xFF0B1C30),
+    zemin: t.successSoft,
+    metin: t.okText,
     etiket: 'Gündüz',
   ),
   ShiftCategory.aksam => (
-    zemin: koyu ? const Color(0xFF3E2D15) : const Color(0xFFFEF3C7),
-    metin: koyu ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+    zemin: t.warningSoft,
+    metin: t.warningText,
     etiket: 'Akşam',
   ),
   ShiftCategory.kapanis => (
-    zemin: const Color(0xFF213145),
-    metin: const Color(0xFFEAF1FF),
+    zemin: t.ink,
+    metin: t.card,
     etiket: 'Kapanış',
   ),
   ShiftCategory.bilinmiyor => (
-    zemin: koyu ? const Color(0xFF1E293B) : const Color(0xFFEFF4FF),
+    zemin: t.bg,
     metin: t.ink,
     etiket: '',
   ),
@@ -427,6 +427,7 @@ class _RosterScreenState extends State<RosterScreen> {
   @override
   Widget build(BuildContext context) {
     final v = _veri;
+    final t = context.tokens;
     final koyu = Theme.of(context).brightness == Brightness.dark;
 
     final weekNum = _isoWeekNumber(_anchor);
@@ -458,8 +459,8 @@ class _RosterScreenState extends State<RosterScreen> {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF005C55),
+                        decoration: BoxDecoration(
+                          color: t.primary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -469,11 +470,11 @@ class _RosterScreenState extends State<RosterScreen> {
                           _haftalik
                               ? '$weekNum. HAFTA MATRİSİ • $dateRangeLabel'
                               : dateRangeLabel.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
-                            color: Color(0xFF005C55),
+                            color: t.primary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -486,19 +487,15 @@ class _RosterScreenState extends State<RosterScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: koyu
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFDCE9FF),
+                    color: t.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    v?.storeName ?? 'Düzce Merkez',
+                    v?.storeName ?? (session.user?.storeName ?? 'Tüm Mağazalar'),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: koyu
-                          ? const Color(0xFF93C5FD)
-                          : const Color(0xFF3E4947),
+                      color: t.primary,
                     ),
                   ),
                 ),
@@ -511,10 +508,9 @@ class _RosterScreenState extends State<RosterScreen> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: koyu
-                  ? const Color(0xFF1E293B)
-                  : const Color(0xFFEFF4FF),
+              color: t.bg,
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.border),
             ),
             child: Row(
               children: [
@@ -531,13 +527,13 @@ class _RosterScreenState extends State<RosterScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: !_haftalik
-                            ? const Color(0xFF0F766E)
+                            ? t.primary
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: !_haftalik
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFF0F766E).withValues(alpha: 0.25),
+                                  color: t.primary.withValues(alpha: 0.25),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -551,8 +547,8 @@ class _RosterScreenState extends State<RosterScreen> {
                             Icons.calendar_view_day_rounded,
                             size: 18,
                             color: !_haftalik
-                                ? Colors.white
-                                : (koyu ? Colors.grey[400] : const Color(0xFF3E4947)),
+                                ? t.onPrimary
+                                : t.muted,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -561,8 +557,8 @@ class _RosterScreenState extends State<RosterScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: !_haftalik
-                                  ? Colors.white
-                                  : (koyu ? Colors.grey[400] : const Color(0xFF3E4947)),
+                                  ? t.onPrimary
+                                  : t.muted,
                             ),
                           ),
                         ],
@@ -583,13 +579,13 @@ class _RosterScreenState extends State<RosterScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         color: _haftalik
-                            ? const Color(0xFF0F766E)
+                            ? t.primary
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: _haftalik
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFF0F766E).withValues(alpha: 0.25),
+                                  color: t.primary.withValues(alpha: 0.25),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -603,8 +599,8 @@ class _RosterScreenState extends State<RosterScreen> {
                             Icons.view_comfy_rounded,
                             size: 18,
                             color: _haftalik
-                                ? Colors.white
-                                : (koyu ? Colors.grey[400] : const Color(0xFF3E4947)),
+                                ? t.onPrimary
+                                : t.muted,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -613,8 +609,8 @@ class _RosterScreenState extends State<RosterScreen> {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: _haftalik
-                                  ? Colors.white
-                                  : (koyu ? Colors.grey[400] : const Color(0xFF3E4947)),
+                                  ? t.onPrimary
+                                  : t.muted,
                             ),
                           ),
                         ],
@@ -1043,7 +1039,7 @@ class _KpiMetricBar extends StatelessWidget {
             child: _KpiCol(
               baslik: 'Değişim/İzin',
               deger: '$dayOffCount',
-              degerRenk: const Color(0xFF0F766E),
+              degerRenk: koyu ? const Color(0xFF34D399) : const Color(0xFF15803D),
               alt: 'Onaylı',
               altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
             ),
@@ -1302,8 +1298,8 @@ class _HaftaTablosu extends StatelessWidget {
                   Container(
                     width: 22,
                     height: 22,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0F766E),
+                    decoration: BoxDecoration(
+                      color: koyu ? const Color(0xFF34D399) : const Color(0xFF15803D),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -1512,23 +1508,23 @@ class _HaftaTablosu extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.engineering_outlined,
                             size: 18,
-                            color: Color(0xFF005C55),
+                            color: t.primary,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
+                              children: [
                                 Text(
                                   'Kadro Gücü',
                                   style: TextStyle(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0B1C30),
+                                    color: t.ink,
                                   ),
                                 ),
                                 Text(
@@ -1536,7 +1532,7 @@ class _HaftaTablosu extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF005C55),
+                                    color: t.primary,
                                   ),
                                 ),
                               ],
@@ -1623,7 +1619,7 @@ class _TarihBasligi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final primaryColor = const Color(0xFF005C55);
+    final primaryColor = t.primary;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
@@ -1637,7 +1633,7 @@ class _TarihBasligi extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: tatil
                   ? t.danger
-                  : (haftaSonu ? primaryColor : const Color(0xFF0B1C30)),
+                  : (haftaSonu ? primaryColor : t.ink),
             ),
           ),
           const SizedBox(height: 1),
@@ -1648,7 +1644,7 @@ class _TarihBasligi extends StatelessWidget {
               fontWeight: haftaSonu ? FontWeight.w600 : FontWeight.w400,
               color: tatil
                   ? t.danger
-                  : (haftaSonu ? primaryColor : const Color(0xFF3E4947)),
+                  : (haftaSonu ? primaryColor : t.muted),
             ),
           ),
         ],
@@ -2044,7 +2040,7 @@ class _BottomActions extends StatelessWidget {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F766E),
+              backgroundColor: Theme.of(context).colorScheme.primary,
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

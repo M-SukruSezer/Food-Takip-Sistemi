@@ -234,7 +234,7 @@ class SectionSwitcher extends StatelessWidget {
                 child: Container(
                   constraints: const BoxConstraints(minHeight: 40),
                   decoration: BoxDecoration(
-                    color: active ? (isDark ? t.primary : const Color(0xFF0F5B53)) : null,
+                    color: active ? t.primary : null,
                     borderRadius: BorderRadius.circular(AppTokens.radiusSm),
                   ),
                   child: Row(
@@ -246,7 +246,7 @@ class SectionSwitcher extends StatelessWidget {
                             : Icons.storefront_outlined,
                         size: 18,
                         color: active
-                            ? Colors.white
+                            ? t.onPrimary
                             : (isDark ? t.sidebarMuted : const Color(0xFF475569)),
                       ),
                       if (!compact) ...[
@@ -926,18 +926,20 @@ class _NavMenuSheet extends StatelessWidget {
                                       const SizedBox(height: 2),
                                       Row(
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.location_on,
                                             size: 13,
-                                            color: Color(0xFF0F766E),
+                                            color: t.primary,
                                           ),
                                           const SizedBox(width: 3),
                                           Flexible(
                                             child: Text(
-                                              'Colombia Coffee Co. · ${user?.storeName ?? 'Şube #104'}',
+                                              user?.storeName != null
+                                                  ? 'Colombia Coffee Co. · ${user!.storeName}'
+                                                  : 'Colombia Coffee Co.',
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: Color(0xFF0F766E),
+                                              style: TextStyle(
+                                                color: t.primary,
                                                 fontSize: 11.5,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -1012,8 +1014,8 @@ class _NavMenuSheet extends StatelessWidget {
                                           const SizedBox(width: 8),
                                           Text(
                                             '${displayGroups[gi].items.length} Aktif Modül',
-                                            style: const TextStyle(
-                                              color: Color(0xFF0F766E),
+                                            style: TextStyle(
+                                              color: t.primary,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -1214,8 +1216,8 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: ' & Satış',
         subtitle: 'Günlük ciro, gider fişleri ve kasa teslimi',
         icon: Icons.account_balance_wallet_outlined,
-        iconBg: Color(0xFFD1FAE5),
-        iconColor: Color(0xFF0F766E),
+        iconBg: Color(0xFFDCFCE7),
+        iconColor: Color(0xFF15803D),
       );
     case '/profile':
       return const _MenuTileData(
@@ -1274,8 +1276,8 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Günlük ve haftalık satış hareketleri',
         icon: Icons.payments_outlined,
-        iconBg: Color(0xFFD1FAE5),
-        iconColor: Color(0xFF0F766E),
+        iconBg: Color(0xFFDCFCE7),
+        iconColor: Color(0xFF15803D),
       );
     case '/logs':
       return const _MenuTileData(
@@ -1464,8 +1466,8 @@ class _MenuTile extends StatelessWidget {
                 Icon(
                   Icons.chevron_right_rounded,
                   color: active
-                      ? const Color(0xFF0F766E)
-                      : const Color(0xFFCBD5E1),
+                      ? t.primary
+                      : t.border,
                   size: 20,
                 ),
               ],

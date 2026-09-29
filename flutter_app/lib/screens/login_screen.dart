@@ -52,13 +52,20 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     // Cift gonderim korumasi: Enter'a arka arkaya basmak ikinci istek atmaz.
     if (_busy) return;
+    // Bos alan dogrulamasi: gereksiz ag istegi atmasin.
+    final user = _username.text.trim();
+    final pass = _password.text;
+    if (user.isEmpty || pass.isEmpty) {
+      setState(() => _error = 'Kullanıcı adı ve şifre boş bırakılamaz.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await session.signIn(_username.text.trim(), _password.text);
-      await setRememberedUsername(_remember ? _username.text.trim() : null);
+      await session.signIn(user, pass);
+      await setRememberedUsername(_remember ? user : null);
     } catch (e) {
       if (mounted) setState(() => _error = errorMessage(e));
     } finally {
@@ -209,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             color: t.border,
                                             width: 1.5,
                                           ),
-                                          activeColor: const Color(0xFF0F766E),
+                                          activeColor: t.primary,
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(5),
@@ -238,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4,
                                 ),
-                                foregroundColor: const Color(0xFF2563EB),
+                                foregroundColor: t.primary,
                               ),
                               onPressed: () => toast(
                                 'Şifre sıfırlama için yöneticinle iletişime geç',

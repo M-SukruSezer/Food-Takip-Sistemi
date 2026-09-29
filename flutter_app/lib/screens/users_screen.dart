@@ -417,26 +417,29 @@ Future<bool?> showUserDialog(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: allPermissions.map((permission) {
                 final allowed = grantable.contains(permission);
-                return CheckboxListTile(
-                  value: selected.contains(permission),
-                  // Veremeyecegi yetki kilitli gelir; sunucu da reddediyor.
-                  onChanged: allowed
-                      ? (v) {
-                          if (v == true) {
-                            selected.add(permission);
-                          } else {
-                            selected.remove(permission);
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 40),
+                  child: CheckboxListTile(
+                    value: selected.contains(permission),
+                    // Veremeyecegi yetki kilitli gelir; sunucu da reddediyor.
+                    onChanged: allowed
+                        ? (v) {
+                            if (v == true) {
+                              selected.add(permission);
+                            } else {
+                              selected.remove(permission);
+                            }
+                            rebuild();
                           }
-                          rebuild();
-                        }
-                      : null,
-                  title: Text(
-                    permissionLabels[permission] ?? permission,
-                    style: const TextStyle(fontSize: 14),
+                        : null,
+                    title: Text(
+                      permissionLabels[permission] ?? permission,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
                   ),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
                 );
               }).toList(),
             ),

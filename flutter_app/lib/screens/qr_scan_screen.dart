@@ -150,7 +150,7 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
   }
 
   Widget _camera(AppTokens t) {
-    final storeName = session.user?.storeName ?? 'Düzce Merkez Colombia Coffee';
+    final storeName = session.user?.storeName ?? 'Mağaza';
 
     return Stack(
       fit: StackFit.expand,
@@ -201,8 +201,8 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                         icon: const Icon(Icons.dialpad_outlined, size: 18),
                         label: const Text('PIN / Kod ile Giriş'),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F766E),
-                          foregroundColor: Colors.white,
+                          backgroundColor: t.primary,
+                          foregroundColor: t.onPrimary,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -300,18 +300,18 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(
-                                color: const Color(0xFF34D399).withValues(alpha: 0.9),
+                                color: t.primary.withValues(alpha: 0.9),
                                 width: 2,
                               ),
-                              color: const Color(0xFF064E3B).withValues(alpha: 0.05),
+                              color: t.primaryDark.withValues(alpha: 0.05),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                                  color: t.primarySoft.withValues(alpha: 0.25),
                                   blurRadius: 24,
                                   spreadRadius: 1,
                                 ),
                                 BoxShadow(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                  color: t.primarySoft.withValues(alpha: 0.12),
                                   blurRadius: 12,
                                   spreadRadius: -2,
                                 ),
@@ -502,14 +502,14 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F766E).withValues(alpha: 0.2),
+                          color: t.primarySoft,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
+                        child: Icon(
                           Icons.dialpad_outlined,
                           size: 22,
-                          color: Color(0xFF2DD4BF),
+                          color: t.primary,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -543,18 +543,18 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF7F1D1D).withValues(alpha: 0.4),
+                        color: t.dangerSoft,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFEF4444)),
+                        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, size: 18, color: Color(0xFFFCA5A5)),
+                          Icon(Icons.error_outline, size: 18, color: t.dangerStrong),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _error!,
-                              style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12.5),
+                              style: TextStyle(color: t.dangerStrong, fontSize: 12.5),
                             ),
                           ),
                         ],
@@ -611,8 +611,8 @@ class _QrScanScreenState extends State<QrScanScreen> with SingleTickerProviderSt
                       _finish(v);
                     },
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F766E),
-                      foregroundColor: Colors.white,
+                      backgroundColor: t.primary,
+                      foregroundColor: t.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -694,6 +694,7 @@ class _CornerAccent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final isTop = alignment.y < 0;
     final isLeft = alignment.x < 0;
 
@@ -708,10 +709,10 @@ class _CornerAccent extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: borderRadius,
           border: Border(
-            top: isTop ? const BorderSide(color: Color(0xFF34D399), width: 3.8) : BorderSide.none,
-            bottom: !isTop ? const BorderSide(color: Color(0xFF34D399), width: 3.8) : BorderSide.none,
-            left: isLeft ? const BorderSide(color: Color(0xFF34D399), width: 3.8) : BorderSide.none,
-            right: !isLeft ? const BorderSide(color: Color(0xFF34D399), width: 3.8) : BorderSide.none,
+            top: isTop ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
+            bottom: !isTop ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
+            left: isLeft ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
+            right: !isLeft ? BorderSide(color: t.primary, width: 3.8) : BorderSide.none,
           ),
         ),
       ),

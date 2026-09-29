@@ -295,9 +295,9 @@ class _StatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final width = MediaQuery.sizeOf(context).width;
-    final columns = width < 641
+    final columns = width < AppTokens.bpSm
         ? 2
-        : (width < 900 ? 3 : (width < 1200 ? 3 : 6));
+        : (width < AppTokens.bpMd ? 3 : (width < AppTokens.bpLg ? 3 : 6));
     // Her kutu ilgili ekrani acar; stok kutulari Urunler/Stok'un dogru
     // sekmesine, satis kutulari bugune filtreli Hareket Raporu'na gider.
     final cards = <Widget>[
@@ -354,7 +354,7 @@ class _StatGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppTokens.gap,
       crossAxisSpacing: AppTokens.gap,
-      childAspectRatio: width < 641 ? 1.55 : 1.45,
+      childAspectRatio: width < AppTokens.bpSm ? 1.55 : 1.45,
       children: cards,
     );
   }
@@ -371,12 +371,12 @@ class _SummaryBlock extends StatelessWidget {
     if (!summary.isMulti) {
       final width = MediaQuery.sizeOf(context).width;
       return GridView.count(
-        crossAxisCount: width < 641 ? 2 : 3,
+        crossAxisCount: width < AppTokens.bpSm ? 2 : 3,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: AppTokens.gap,
         crossAxisSpacing: AppTokens.gap,
-        childAspectRatio: width < 641 ? 1.55 : 1.8,
+        childAspectRatio: width < AppTokens.bpSm ? 1.55 : 1.8,
         children: [
           StatCard(
             label: summary.storeName ?? 'Mağaza',
@@ -602,7 +602,7 @@ class _PerformanceBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (width < 900)
+          if (width < AppTokens.bpMd)
             Column(
               children: [
                 for (var i = 0; i < lists.length; i++) ...[

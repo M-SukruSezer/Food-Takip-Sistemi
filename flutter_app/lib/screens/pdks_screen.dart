@@ -387,12 +387,12 @@ class _PunchCard extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDF8F5),
+                  color: t.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on,
-                  color: Color(0xFF0F5B53),
+                  color: t.primary,
                   size: 20,
                 ),
               ),
@@ -404,7 +404,7 @@ class _PunchCard extends StatelessWidget {
                     Text(
                       store != null && store.name.isNotEmpty
                           ? store.name
-                          : 'Düzce Merkez Colombia Coffee Co.',
+                          : 'Mağaza Belirlenmedi',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -455,28 +455,28 @@ class _PunchCard extends StatelessWidget {
             ],
           ),
           if (inside && status.openSince != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFEDF8F5),
+                color: t.primarySoft,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.check_circle_outline,
                     size: 16,
-                    color: Color(0xFF0F5B53),
+                    color: t.primary,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F5B53),
+                        color: t.primary,
                       ),
                     ),
                   ),
@@ -523,8 +523,8 @@ class _PunchCard extends StatelessWidget {
             height: 52,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0F5B53),
-                foregroundColor: Colors.white,
+                backgroundColor: t.primary,
+                foregroundColor: t.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -548,9 +548,9 @@ class _PunchCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF0FAF8),
-                    foregroundColor: const Color(0xFF0F5B53),
-                    side: const BorderSide(color: Color(0xFFC4EAE3)),
+                    backgroundColor: t.primarySoft,
+                    foregroundColor: t.primary,
+                    side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -570,9 +570,9 @@ class _PunchCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF0FAF8),
-                    foregroundColor: const Color(0xFF0F5B53),
-                    side: const BorderSide(color: Color(0xFFC4EAE3)),
+                    backgroundColor: t.primarySoft,
+                    foregroundColor: t.primary,
+                    side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -701,18 +701,18 @@ class _TodayCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: t.bg,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: t.border),
                 ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.access_time_rounded,
                           size: 16,
-                          color: Color(0xFF0F5B53),
+                          color: t.primary,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -739,9 +739,7 @@ class _TodayCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: status.isInside
-                                ? const Color(0xFFD1FAE5)
-                                : const Color(0xFFE2E8F0),
+                            color: status.isInside ? t.successSoft : t.border,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -749,9 +747,7 @@ class _TodayCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: status.isInside
-                                  ? const Color(0xFF065F46)
-                                  : const Color(0xFF475569),
+                              color: status.isInside ? t.okText : t.muted,
                             ),
                           ),
                         ),
@@ -760,12 +756,12 @@ class _TodayCard extends StatelessWidget {
                     const SizedBox(height: 10),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
-                      child: const LinearProgressIndicator(
-                        value: 0.55,
+                      child: LinearProgressIndicator(
+                        value: status.isInside ? 0.55 : 0.0,
                         minHeight: 6,
-                        backgroundColor: Color(0xFFE2E8F0),
+                        backgroundColor: t.border,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFF0F5B53),
+                          t.primary,
                         ),
                       ),
                     ),
@@ -809,19 +805,19 @@ class _TodayCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: t.bg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: t.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.coffee_outlined,
                         size: 16,
-                        color: Color(0xFF0F5B53),
+                        color: t.primary,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -859,7 +855,7 @@ class _TodayCard extends StatelessWidget {
                         child: _BreakMetricBox(
                           label: 'Kullanılan',
                           value: '$breakUsed dk',
-                          color: const Color(0xFF0F5B53),
+                          color: t.primary,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -867,20 +863,20 @@ class _TodayCard extends StatelessWidget {
                         child: _BreakMetricBox(
                           label: 'Kalan Mola',
                           value: '$breakRemaining dk',
-                          color: const Color(0xFFD97706),
+                          color: t.warningText,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  Divider(height: 1, color: t.border),
                   const SizedBox(height: 8),
-                  const _BreakSlotRow(
+                  _BreakSlotRow(
                     title: '1. Çay Molası',
                     duration: '15 dk',
                     status: 'Tamamlandı',
                     icon: Icons.check_circle,
-                    iconColor: Color(0xFF10B981),
+                    iconColor: t.success,
                   ),
                   const SizedBox(height: 6),
                   _BreakSlotRow(
@@ -888,32 +884,32 @@ class _TodayCard extends StatelessWidget {
                     duration: '30 dk',
                     status: status.onBreak ? 'Kullanılıyor' : 'Kullanıldı',
                     icon: Icons.access_time_rounded,
-                    iconColor: const Color(0xFF0F5B53),
+                    iconColor: t.primary,
                   ),
                   const SizedBox(height: 6),
-                  const _BreakSlotRow(
+                  _BreakSlotRow(
                     title: '2. Çay Molası',
                     duration: '15 dk',
                     status: 'Planlandı',
                     icon: Icons.hourglass_empty_rounded,
-                    iconColor: Color(0xFF94A3B8),
+                    iconColor: t.muted,
                   ),
                   const SizedBox(height: 8),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  Divider(height: 1, color: t.border),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Vardiya Amiri: Melis K. (Kasa 1)',
+                        status.store != null ? 'Mağaza: ${status.store!.name}' : 'Mola takibi aktif',
                         style: TextStyle(fontSize: 11, color: t.muted),
                       ),
-                      const Text(
+                      Text(
                         'Detaylar',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F5B53),
+                          color: t.primary,
                         ),
                       ),
                     ],
@@ -1153,14 +1149,14 @@ class _BalanceCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEDF8F5),
+                  color: t.primarySoft,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFC4EAE3)),
+                  border: Border.all(color: t.primary.withValues(alpha: 0.2)),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.flight_takeoff,
                   size: 18,
-                  color: Color(0xFF0F5B53),
+                  color: t.primary,
                 ),
               ),
             ],
@@ -1172,9 +1168,9 @@ class _BalanceCard extends StatelessWidget {
                 label: 'Kalan izin',
                 value: '${balance.remainingDays} gün',
                 subtext: 'Kullanıma Hazır',
-                valueColor: const Color(0xFF0F5B53),
-                bgColor: const Color(0xFFF0FAF8),
-                borderColor: const Color(0xFFC4EAE3),
+                valueColor: t.primary,
+                bgColor: t.primarySoft,
+                borderColor: t.primary.withValues(alpha: 0.2),
               ),
               const SizedBox(width: 8),
               statBox(
@@ -1182,17 +1178,17 @@ class _BalanceCard extends StatelessWidget {
                 value: '${balance.usedDays} gün',
                 subtext: 'Dönem İçi',
                 valueColor: t.ink,
-                bgColor: const Color(0xFFF8FAFC),
-                borderColor: const Color(0xFFE2E8F0),
+                bgColor: t.bg,
+                borderColor: t.border,
               ),
               const SizedBox(width: 8),
               statBox(
                 label: 'Bekleyen',
                 value: '${balance.pendingDays} gün',
                 subtext: 'Onayda',
-                valueColor: const Color(0xFFD97706),
-                bgColor: const Color(0xFFFFFBEB),
-                borderColor: const Color(0xFFFDE68A),
+                valueColor: t.warningText,
+                bgColor: t.warningSoft,
+                borderColor: t.warning.withValues(alpha: 0.3),
               ),
             ],
           ),
@@ -1362,12 +1358,12 @@ class ShiftCalendar extends StatelessWidget {
                 ? t.dangerSoft
                 : dayOff
                 ? t.bg
-                : (isAssigned ? const Color(0xFFEDF8F5) : t.card),
+                : (isAssigned ? t.primarySoft : t.card),
             border: Border.all(
               color: holiday != null
                   ? t.danger
                   : (isAssigned
-                      ? const Color(0xFF0F5B53)
+                      ? t.primary
                       : (dayOff ? t.border : t.border)),
               width: holiday != null || isAssigned ? 1.5 : 1,
             ),
@@ -1381,7 +1377,7 @@ class ShiftCalendar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isAssigned ? const Color(0xFF0F5B53) : t.ink,
+                  color: isAssigned ? t.primary : t.ink,
                 ),
               ),
               const Spacer(),
@@ -1404,10 +1400,10 @@ class ShiftCalendar extends StatelessWidget {
                     .map(
                       (a) => Text(
                         a.startTime ?? '',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F5B53),
+                          color: t.primary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1453,20 +1449,20 @@ class ShiftCalendar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: t.bg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: t.border),
           ),
           child: Row(
             children: [
-              const Icon(Icons.schedule, size: 16, color: Color(0xFF0F5B53)),
+              Icon(Icons.schedule, size: 16, color: t.primary),
               const SizedBox(width: 8),
               Text(
                 'Bu Hafta Toplam: $weeklyHours Saat',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F5B53),
+                  color: t.primary,
                 ),
               ),
             ],
@@ -1499,12 +1495,13 @@ class _ShiftSwapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDF8F5),
+        color: t.primarySoft,
         borderRadius: BorderRadius.circular(AppTokens.radius),
-        border: Border.all(color: const Color(0xFFC4EAE3)),
+        border: Border.all(color: t.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -1512,17 +1509,17 @@ class _ShiftSwapCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F5B53),
+              color: t.primary,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.swap_horiz_rounded,
-              color: Colors.white,
+              color: t.onPrimary,
               size: 22,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1531,15 +1528,15 @@ class _ShiftSwapCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F5B53),
+                    color: t.primary,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Mesai arkadaşınla gün değişimi talebinde bulun',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF475569),
+                    color: t.muted,
                   ),
                 ),
               ],
@@ -1548,8 +1545,8 @@ class _ShiftSwapCard extends StatelessWidget {
           const SizedBox(width: 8),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0F5B53),
-              foregroundColor: Colors.white,
+              backgroundColor: t.primary,
+              foregroundColor: t.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),

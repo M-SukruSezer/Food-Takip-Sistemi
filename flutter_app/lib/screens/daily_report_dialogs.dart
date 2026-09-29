@@ -85,7 +85,7 @@ Future<bool?> showDailyReportDialog(
       headerIcon: Icons.receipt_long_rounded,
       subtitle: '• Kasa Kapanış & Vardiya Girişi',
       submitLabel: editing ? 'Güncelle' : 'Kaydet',
-      submitColor: const Color(0xFF0F766E),
+      submitColor: context.tokens.primary,
       fields: (context, rebuild) {
         loadDay(rebuild);
         final t = context.tokens;
@@ -132,15 +132,15 @@ Future<bool?> showDailyReportDialog(
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCCFBF1),
+                    color: t.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: Text(
                     '• Birimler senkronize',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F766E),
+                      color: t.primary,
                     ),
                   ),
                 ),
@@ -196,28 +196,28 @@ Future<bool?> showDailyReportDialog(
               margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
+                color: t.successSoft,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFA7F3D0)),
+                border: Border.all(color: t.success),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.auto_awesome,
                         size: 13,
-                        color: Color(0xFF0F766E),
+                        color: t.primary,
                       ),
                       const SizedBox(width: 5),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Sistemden gelen değerler',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F766E),
+                            color: t.primary,
                           ),
                         ),
                       ),
@@ -227,15 +227,15 @@ Future<bool?> showDailyReportDialog(
                           vertical: 1.5,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD1FAE5),
+                          color: t.successSoft,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
+                        child: Text(
                           '• Canlı POS',
                           style: TextStyle(
                             fontSize: 9.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF065F46),
+                            color: t.okText,
                           ),
                         ),
                       ),
@@ -298,10 +298,10 @@ Future<bool?> showDailyReportDialog(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calculate_outlined,
                           size: 13,
-                          color: Color(0xFF0F766E),
+                          color: t.primary,
                         ),
                         const SizedBox(width: 4),
                         Expanded(

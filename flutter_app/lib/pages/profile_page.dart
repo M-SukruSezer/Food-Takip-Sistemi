@@ -34,7 +34,7 @@ class ProfilePageApp extends StatelessWidget {
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
-    this.user = ProfileUser.sample,
+    this.user,
     this.onEdit,
     this.onShare,
     this.onAvatarTap,
@@ -43,7 +43,7 @@ class ProfilePage extends StatefulWidget {
     this.settings = kProfileSettings,
   });
 
-  final ProfileUser user;
+  final ProfileUser? user;
 
   final VoidCallback? onEdit;
   final VoidCallback? onShare;
@@ -60,9 +60,10 @@ class _ProfilePageState extends State<ProfilePage> {
   late final List<bool> _settingValues =
       List<bool>.from(widget.settings.map((s) => s.initialValue));
 
-  ProfileUser get _effectiveUser {
+  ProfileUser? get _effectiveUser {
+    if (widget.user != null) return widget.user;
     final sUser = session.user;
-    if (sUser != null && widget.user == ProfileUser.sample) {
+    if (sUser != null) {
       final name = sUser.fullName.isNotEmpty ? sUser.fullName : sUser.username;
       final parts = name.trim().split(RegExp(r'\s+'));
       final initials = parts.length > 1
@@ -73,12 +74,12 @@ class _ProfilePageState extends State<ProfilePage> {
         title: sUser.storeName ?? sUser.role,
         bio: 'Food Takip Sistemi • ${sUser.role}',
         initials: initials,
-        followers: widget.user.followers,
-        following: widget.user.following,
-        posts: widget.user.posts,
+        followers: 0,
+        following: 0,
+        posts: 0,
       );
     }
-    return widget.user;
+    return null;
   }
 
   void _demo(String message) {
@@ -146,19 +147,21 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
             const SizedBox(height: 12),
-            ProfileHeaderCard(
-              user: user,
-              onEdit: widget.onEdit ?? () => _demo('Profil düzenleme (önizleme)'),
-              onShare: widget.onShare ?? () => _demo('Bağlantı kopyalandı'),
-              onAvatarTap:
-                  widget.onAvatarTap ?? () => _demo('Fotoğraf seç (önizleme)'),
-            ),
+            if (user != null)
+              ProfileHeaderCard(
+                user: user,
+                onEdit: widget.onEdit ?? () => _demo('Profil düzenleme (önizleme)'),
+                onShare: widget.onShare ?? () => _demo('Bağlantı kopyalandı'),
+                onAvatarTap:
+                    widget.onAvatarTap ?? () => _demo('Fotoğraf seç (önizleme)'),
+              ),
             const SizedBox(height: AppTokens.gap + 8),
-            ProfileStatsRow(
-              user: widget.user,
-              onStatTap: widget.onStatTap ??
-                  (label) => _demo('$label seçildi'),
-            ),
+            if (user != null)
+              ProfileStatsRow(
+                user: user,
+                onStatTap: widget.onStatTap ??
+                    (label) => _demo('$label seçildi'),
+              ),
             const SizedBox(height: 28),
             const ProfileSectionTitle('Ayarlar'),
             const SizedBox(height: AppTokens.gap),

@@ -47,6 +47,42 @@ IconData logIcon(String action) {
   return map[action] ?? Icons.receipt_long_outlined;
 }
 
+String _actionLabel(String action) {
+  const map = {
+    'GIRIS': 'Sisteme Giriş',
+    'MAGAZA_OLUSTUR': 'Mağaza Oluşturuldu',
+    'MAGAZA_GUNCELLE': 'Mağaza Güncellendi',
+    'MAGAZA_SIL': 'Mağaza Silindi',
+    'KULLANICI_OLUSTUR': 'Kullanıcı Oluşturuldu',
+    'KULLANICI_GUNCELLE': 'Kullanıcı Güncellendi',
+    'KULLANICI_SIL': 'Kullanıcı Silindi',
+    'SIFRE_SIFIRLA': 'Şifre Sıfırlandı',
+    'SIFRE_DEGISTIR': 'Şifre Değiştirildi',
+    'CESIT_OLUSTUR': 'Çeşit Oluşturuldu',
+    'CESIT_GUNCELLE': 'Çeşit Güncellendi',
+    'CESIT_SIL': 'Çeşit Silindi',
+    'DONUK_EKLE': 'Donuk Depoya Eklendi',
+    'COZULME_BASLA': 'Çözülme Başlatıldı',
+    'FOOD_DOLABI': 'Food Dolabına Alındı',
+    'FOOD_DOLABI_OTOMATIK': 'Otomatik Food Dolabına Alındı',
+    'SATIS': 'Satış Yapıldı',
+    'IMHA': 'İmha Edildi',
+    'STOK_EKLE': 'Stok Eklendi',
+    'PARTI_DUZELT': 'Parti Düzeltildi',
+    'COZULME_DUZELT': 'Çözülme İşlemi Düzeltildi',
+    'SATIS_DUZELT': 'Satış İşlemi Düzeltildi',
+    'SATIS_SIL': 'Satış İşlemi Silindi',
+    'ZAYI_DUZELT': 'Zayi İşlemi Düzeltildi',
+    'ZAYI_SIL': 'Zayi İşlemi Silindi',
+    'PARTI_SIL': 'Parti Silindi',
+    'TRANSFER_ISTEK': 'Aktarım İsteği',
+    'TRANSFER_ONAY': 'Aktarım İsteği Onaylandı',
+    'TRANSFER_RET': 'Aktarım İsteği Reddedildi',
+    'TRANSFER_IPTAL': 'Aktarım İsteği İptal Edildi',
+  };
+  return map[action] ?? action;
+}
+
 /// Hareket kayitlari: son 300 islem, islem koduna gore filtreli.
 class LogsScreen extends StatefulWidget {
   const LogsScreen({super.key});
@@ -145,7 +181,7 @@ class _LogsScreenState extends State<LogsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          log.action,
+                          _actionLabel(log.action),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,

@@ -128,8 +128,9 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     if (ok != true) return;
     try {
       await repo.pdksDecideRequest(r.id, true);
-    } catch (_) {
-      // Bildirim API katmanindan gelir.
+    } catch (err) {
+      if (mounted) toastError(errorMessage(err));
+      return;
     }
     _loadRequests();
     _loadSheet();
@@ -385,10 +386,15 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
   List<Widget> _staffRows(AppTokens t) {
     if (_profiles.isEmpty) {
       return [
-        AppCard(
-          child: Text(
-            'Personel bulunamadı.',
-            style: TextStyle(fontSize: 13, color: t.muted),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: AppCard(
+            padding: EdgeInsets.all(24),
+            child: EmptyState(
+              title: 'Personel Bulunamadı',
+              message: 'Listelenecek personel profili bulunmamaktadır.',
+              icon: Icons.people_outline,
+            ),
           ),
         ),
       ];
@@ -456,10 +462,15 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     final rows = [..._presence.inside, ..._presence.outside];
     if (rows.isEmpty) {
       return [
-        AppCard(
-          child: Text(
-            'Personel bulunamadı.',
-            style: TextStyle(fontSize: 13, color: t.muted),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: AppCard(
+            padding: EdgeInsets.all(24),
+            child: EmptyState(
+              title: 'Personel Bulunamadı',
+              message: 'Şu anda sistemde içeride veya dışarıda personel görünmüyor.',
+              icon: Icons.people_outline,
+            ),
           ),
         ),
       ];
@@ -515,10 +526,15 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
   List<Widget> _requestRows(AppTokens t) {
     if (_requests.isEmpty) {
       return [
-        AppCard(
-          child: Text(
-            'Kayıt bulunamadı.',
-            style: TextStyle(fontSize: 13, color: t.muted),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: AppCard(
+            padding: EdgeInsets.all(24),
+            child: EmptyState(
+              title: 'Kayıt Bulunamadı',
+              message: 'Onay bekleyen veya geçmiş istek kaydı bulunmamaktadır.',
+              icon: Icons.assignment_outlined,
+            ),
           ),
         ),
       ];

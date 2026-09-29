@@ -74,8 +74,6 @@ class _StoresScreenState extends State<StoresScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
-
     return CrudScaffold(
       title: 'Mağazalar',
       loaded: _loaded,
@@ -92,7 +90,6 @@ class _StoresScreenState extends State<StoresScreen> {
               store: store,
               onEdit: () => _edit(store),
               onDelete: store.deletable ? () => _delete(store) : null,
-              inkColor: t.ink,
             ),
           )
           .toList(),
@@ -107,13 +104,11 @@ class AppCardStore extends StatelessWidget {
     required this.store,
     required this.onEdit,
     required this.onDelete,
-    required this.inkColor,
   });
 
   final Store store;
   final VoidCallback onEdit;
   final VoidCallback? onDelete;
-  final Color inkColor;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +126,7 @@ class AppCardStore extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: inkColor,
+                    color: t.ink,
                   ),
                 ),
               ),

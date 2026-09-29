@@ -123,12 +123,12 @@ class _FormDialogState extends State<FormDialog> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD1FAE5),
+                              color: t.primarySoft,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
                               widget.headerIcon,
-                              color: const Color(0xFF0F766E),
+                              color: t.primary,
                               size: 20,
                             ),
                           ),
@@ -151,10 +151,10 @@ class _FormDialogState extends State<FormDialog> {
                                 const SizedBox(height: 2),
                                 Text(
                                   widget.subtitle!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF0F766E),
+                                    color: t.primary,
                                   ),
                                 ),
                               ],
@@ -253,8 +253,8 @@ class _FormDialogState extends State<FormDialog> {
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-            backgroundColor: widget.submitColor ?? const Color(0xFF0F766E),
-            foregroundColor: Colors.white,
+            backgroundColor: widget.submitColor ?? t.primary,
+            foregroundColor: t.onPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),

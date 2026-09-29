@@ -104,6 +104,13 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const double radiusLg = 20;
   static const double gap = 12;
 
+  /// Responsive breakpoints — tum ekranlarda ayni sinirlar kullaniyor.
+  /// sm: telefon/tablet gecisi | md: tablet/masaustu | lg: genis masaustu
+  static const double bpSm = 641;
+  static const double bpMd = 900;
+  static const double bpLg = 1200;
+
+
   static const AppTokens light = AppTokens(
     primary: Color(0xFF15803D),
     // Beyaz metin #15803D uzerinde 5.02 veriyor.

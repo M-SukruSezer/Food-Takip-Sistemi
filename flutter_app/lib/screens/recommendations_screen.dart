@@ -375,11 +375,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             )
           else ...[
             if (shownCritical.isNotEmpty) ...[
-              const _SectionHeader(
+              _SectionHeader(
                 title: 'Bugün SKT Dolanlar',
                 countLabel: 'Öncelikli Satış',
                 icon: Icons.access_time_rounded,
-                color: Color(0xFF0F766E),
+                color: context.tokens.primary,
               ),
               ...shownCritical.map(
                 (b) => Padding(
@@ -427,7 +427,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                 title: "SKT'si Dolanlar",
                 countLabel: '${shownExpired.length} SKU Bekliyor',
                 icon: Icons.error_outline_rounded,
-                color: const Color(0xFFDC2626),
+                color: t.danger,
               ),
               ...shownExpired.map(
                 (b) => Padding(
@@ -470,11 +470,12 @@ class _UrgentExpiredBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        color: t.dangerSoft,
+        border: Border.all(color: t.danger.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -485,8 +486,8 @@ class _UrgentExpiredBanner extends StatelessWidget {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDC2626),
+                decoration: BoxDecoration(
+                  color: t.danger,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -501,21 +502,21 @@ class _UrgentExpiredBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
+                      children: [
                         Text(
                           'ACİL OPERASYONEL',
                           style: TextStyle(
-                            color: Color(0xFFDC2626),
+                            color: t.danger,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                           ),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         Text(
                           'Şimdi',
                           style: TextStyle(
-                            color: Color(0xFF991B1B),
+                            color: t.dangerStrong,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
@@ -524,8 +525,8 @@ class _UrgentExpiredBanner extends StatelessWidget {
                     ),
                     Text(
                       '$expiredCount adet ürünün SKT\'si doldu!',
-                      style: const TextStyle(
-                        color: Color(0xFF7F1D1D),
+                      style: TextStyle(
+                        color: t.dangerStrong,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -536,10 +537,10 @@ class _UrgentExpiredBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Lütfen vitrinden kaldırarak zayi fişi oluşturun veya satışı durdurun.',
             style: TextStyle(
-              color: Color(0xFF991B1B),
+              color: t.dangerStrong,
               fontSize: 11,
               height: 1.2,
             ),
@@ -557,7 +558,7 @@ class _UrgentExpiredBanner extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF991B1B),
+                      backgroundColor: t.dangerStrong,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -573,8 +574,8 @@ class _UrgentExpiredBanner extends StatelessWidget {
               ],
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF991B1B),
-                  side: const BorderSide(color: Color(0xFFFECACA)),
+                  foregroundColor: t.dangerStrong,
+                  side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 4),
                   minimumSize: const Size(0, 30),
@@ -607,6 +608,7 @@ class _CategoryChipsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final categories = ['Tümü', 'Pastalar', 'Atıştırmalık', 'İçecekler'];
 
     return SingleChildScrollView(
@@ -627,13 +629,13 @@ class _CategoryChipsRow extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF0F5B53)
-                      : const Color(0xFFF8FAFC),
+                      ? t.primary
+                      : t.card,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
-                        ? const Color(0xFF0F5B53)
-                        : const Color(0xFFE2E8F0),
+                        ? t.primary
+                        : t.border,
                   ),
                 ),
                 child: Row(
@@ -645,8 +647,7 @@ class _CategoryChipsRow extends StatelessWidget {
                         fontSize: 12,
                         fontWeight:
                             isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color:
-                            isSelected ? Colors.white : const Color(0xFF475569),
+                        color: isSelected ? t.onPrimary : t.ink,
                       ),
                     ),
                     const SizedBox(width: 5),
@@ -762,21 +763,22 @@ class _TierRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final tiles = [
       _Tier(
-        color: const Color(0xFFDC2626),
+        color: t.danger,
         label: 'Son Gün',
         value: critical,
         count: criticalCount,
       ),
       _Tier(
-        color: const Color(0xFF0F766E),
+        color: t.warning,
         label: '2 Gün',
         value: warning,
         count: warningCount,
       ),
       _Tier(
-        color: const Color(0xFF0F5B53),
+        color: t.primary,
         label: '3 Gün',
         value: normal,
         count: normalCount,
@@ -884,31 +886,32 @@ class _RecommendationCard extends StatelessWidget {
       switch (batch.urgency) {
         'expired' => (
             text: 'SKT Geçti',
-            color: const Color(0xFFDC2626),
-            bg: const Color(0xFFFEF2F2)
+            color: t.danger,
+            bg: t.dangerSoft
           ),
         'critical' => (
             text: 'SON GÜN',
-            color: const Color(0xFFDC2626),
-            bg: const Color(0xFFFEF2F2)
+            color: t.danger,
+            bg: t.dangerSoft
           ),
         'warning' => (
             text: '2 Gün Kaldı',
-            color: const Color(0xFF2563EB),
-            bg: const Color(0xFFEFF6FF)
+            color: t.info,
+            bg: t.infoSoft
           ),
         _ => (
             text: 'Food Dolabı',
-            color: const Color(0xFF0F766E),
-            bg: const Color(0xFFF0FAF8)
+            color: t.primary,
+            bg: t.primarySoft
           ),
       };
 
-  Widget _buildProductThumbnail(Batch batch) {
+  Widget _buildProductThumbnail(BuildContext context, Batch batch) {
+    final t = context.tokens;
     final name = batch.productName.toLowerCase();
     IconData icon = Icons.restaurant_rounded;
-    Color bg = const Color(0xFFF1F5F9);
-    Color iconColor = const Color(0xFF0F5B53);
+    Color bg = t.bg;
+    Color iconColor = t.primary;
 
     if (name.contains('pasta') ||
         name.contains('kek') ||
@@ -917,8 +920,8 @@ class _RecommendationCard extends StatelessWidget {
         name.contains('tatlı') ||
         name.contains('tatli')) {
       icon = Icons.cake_outlined;
-      bg = const Color(0xFFFEF3C7);
-      iconColor = const Color(0xFFD97706);
+      bg = t.warningSoft;
+      iconColor = t.warning;
     } else if (name.contains('poğaça') ||
         name.contains('pogaca') ||
         name.contains('börek') ||
@@ -927,8 +930,8 @@ class _RecommendationCard extends StatelessWidget {
         name.contains('cookie') ||
         name.contains('kurabiye')) {
       icon = Icons.bakery_dining_outlined;
-      bg = const Color(0xFFFFF7ED);
-      iconColor = const Color(0xFFEA580C);
+      bg = t.warningSoft;
+      iconColor = t.warningText;
     } else if (name.contains('kahve') ||
         name.contains('çay') ||
         name.contains('cay') ||
@@ -936,15 +939,15 @@ class _RecommendationCard extends StatelessWidget {
         name.contains('içecek') ||
         name.contains('icecek')) {
       icon = Icons.local_cafe_outlined;
-      bg = const Color(0xFFEFF6FF);
-      iconColor = const Color(0xFF2563EB);
+      bg = t.infoSoft;
+      iconColor = t.info;
     } else if (name.contains('salata') ||
         name.contains('sandviç') ||
         name.contains('sandvic') ||
         name.contains('dürüm')) {
       icon = Icons.lunch_dining_outlined;
-      bg = const Color(0xFFF0FDF4);
-      iconColor = const Color(0xFF16A34A);
+      bg = t.successSoft;
+      iconColor = t.success;
     }
 
     return Container(
@@ -953,7 +956,7 @@ class _RecommendationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        border: Border.all(color: t.border),
       ),
       child: Icon(icon, color: iconColor, size: 26),
     );
@@ -966,9 +969,9 @@ class _RecommendationCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: t.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -984,7 +987,7 @@ class _RecommendationCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildProductThumbnail(batch),
+              _buildProductThumbnail(context, batch),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -996,10 +999,10 @@ class _RecommendationCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             batch.productName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
-                              color: Color(0xFF0F172A),
+                              color: t.ink,
                               height: 1.25,
                             ),
                           ),
@@ -1031,34 +1034,34 @@ class _RecommendationCard extends StatelessWidget {
                       children: [
                         Text(
                           '${batch.remaining} adet',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
+                            color: t.muted,
                           ),
                         ),
                         if (batch.hasPrice) ...[
-                          const Text('•',
+                          Text('•',
                               style: TextStyle(
-                                  color: Color(0xFFCBD5E1), fontSize: 12)),
+                                  color: t.border, fontSize: 12)),
                           Text(
                             fmtMoney(batch.productUnitPrice),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F766E),
+                              color: t.primary,
                             ),
                           ),
                         ],
                         if (showStore && batch.storeName != null) ...[
-                          const Text('•',
+                          Text('•',
                               style: TextStyle(
-                                  color: Color(0xFFCBD5E1), fontSize: 12)),
+                                  color: t.border, fontSize: 12)),
                           Text(
                             batch.storeName!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF64748B),
+                              color: t.muted,
                             ),
                           ),
                         ],
@@ -1071,10 +1074,10 @@ class _RecommendationCard extends StatelessWidget {
                           Icons.access_time_rounded,
                           size: 13,
                           color: batch.isExpired
-                              ? const Color(0xFFDC2626)
+                              ? t.danger
                               : (batch.urgency == 'critical'
-                                  ? const Color(0xFFD97706)
-                                  : const Color(0xFF64748B)),
+                                  ? t.warning
+                                  : t.muted),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -1092,10 +1095,10 @@ class _RecommendationCard extends StatelessWidget {
                                   ? FontWeight.w700
                                   : FontWeight.normal,
                               color: batch.isExpired
-                                  ? const Color(0xFFDC2626)
+                                  ? t.danger
                                   : (batch.urgency == 'critical'
-                                      ? const Color(0xFFD97706)
-                                      : const Color(0xFF64748B)),
+                                      ? t.warning
+                                      : t.muted),
                             ),
                           ),
                         ),
@@ -1107,9 +1110,9 @@ class _RecommendationCard extends StatelessWidget {
             ],
           ),
           if (!batch.isExpired || onDiscard != null) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
-              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Divider(height: 1, color: t.border),
             ),
             Row(
               children: [
@@ -1119,8 +1122,8 @@ class _RecommendationCard extends StatelessWidget {
                       height: 44,
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF0F5B53),
-                          foregroundColor: Colors.white,
+                          backgroundColor: t.primary,
+                          foregroundColor: t.onPrimary,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -1141,9 +1144,9 @@ class _RecommendationCard extends StatelessWidget {
                       height: 44,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0F766E),
-                          backgroundColor: const Color(0xFFF0FAF8),
-                          side: const BorderSide(color: Color(0xFF99F6E4)),
+                          foregroundColor: t.primary,
+                          backgroundColor: t.primarySoft,
+                          side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -1164,9 +1167,9 @@ class _RecommendationCard extends StatelessWidget {
                       height: 44,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFDC2626),
-                          backgroundColor: const Color(0xFFFEF2F2),
-                          side: const BorderSide(color: Color(0xFFFECACA)),
+                          foregroundColor: t.danger,
+                          backgroundColor: t.dangerSoft,
+                          side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

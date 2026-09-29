@@ -140,7 +140,7 @@ class AppAlert extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: danger ? t.dangerSoft : t.primarySoft,
+        color: danger ? t.dangerSoft : t.warningSoft,
         border: Border.all(color: color.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(AppTokens.radiusSm),
       ),

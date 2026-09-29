@@ -278,16 +278,16 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                           duration: const Duration(milliseconds: 180),
                                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                           decoration: BoxDecoration(
-                                            color: selected ? const Color(0xFF0F5B53) : Colors.white,
+                                            color: selected ? t.primary : t.card,
                                             border: Border.all(
-                                              color: selected ? const Color(0xFF0F5B53) : const Color(0xFFE2E8F0),
+                                              color: selected ? t.primary : t.border,
                                               width: 1.2,
                                             ),
                                             borderRadius: BorderRadius.circular(999),
                                             boxShadow: selected
                                                 ? [
                                                     BoxShadow(
-                                                      color: const Color(0xFF0F5B53).withValues(alpha: 0.2),
+                                                      color: t.primary.withValues(alpha: 0.2),
                                                       blurRadius: 6,
                                                       offset: const Offset(0, 2),
                                                     )
@@ -299,7 +299,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                             style: TextStyle(
                                               fontSize: 12.5,
                                               fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                                              color: selected ? Colors.white : const Color(0xFF475569),
+                                              color: selected ? t.onPrimary : t.muted,
                                             ),
                                           ),
                                         ),
@@ -327,8 +327,8 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    color: t.card,
+                                    border: Border.all(color: t.border),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   alignment: Alignment.center,
@@ -341,30 +341,63 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                 ),
                               ),
                             )
-                          else
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              sliver: SliverList.separated(
-                                itemCount: _shown.length,
-                                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                                itemBuilder: (context, i) => _BatchCard(
-                                  batch: _shown[i],
-                                  showStore: isSuper,
-                                  canAdjust: session.user?.can('adjust_batches') ?? false,
-                                  canDiscard: session.user?.can('discard') ?? false,
-                                  canDelete: session.user?.isSuperAdmin ?? false,
-                                  onDetail: () => showBatchDetail(context, _shown[i]),
-                                  onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
-                                  onThaw: () => _after(showThawDialog(context, _shown[i])),
-                                  onCompleteThaw: () => _completeThaw(_shown[i]),
-                                  onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
-                                  onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
-                                  onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
-                                  onCorrectThaw: () => _after(showCorrectThawDialog(context, _shown[i])),
-                                  onDelete: () => _deleteBatch(_shown[i]),
+                          else ...[
+                            if (MediaQuery.sizeOf(context).width < 641)
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                sliver: SliverList.separated(
+                                  itemCount: _shown.length,
+                                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                                  itemBuilder: (context, i) => _BatchCard(
+                                    batch: _shown[i],
+                                    showStore: isSuper,
+                                    canAdjust: session.user?.can('adjust_batches') ?? false,
+                                    canDiscard: session.user?.can('discard') ?? false,
+                                    canDelete: session.user?.isSuperAdmin ?? false,
+                                    onDetail: () => showBatchDetail(context, _shown[i]),
+                                    onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
+                                    onThaw: () => _after(showThawDialog(context, _shown[i])),
+                                    onCompleteThaw: () => _completeThaw(_shown[i]),
+                                    onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
+                                    onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
+                                    onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
+                                    onCorrectThaw: () => _after(showCorrectThawDialog(context, _shown[i])),
+                                    onDelete: () => _deleteBatch(_shown[i]),
+                                  ),
+                                ),
+                              )
+                            else
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                sliver: SliverGrid(
+                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 460,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12,
+                                    mainAxisExtent: 195,
+                                  ),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, i) => _BatchCard(
+                                      batch: _shown[i],
+                                      showStore: isSuper,
+                                      canAdjust: session.user?.can('adjust_batches') ?? false,
+                                      canDiscard: session.user?.can('discard') ?? false,
+                                      canDelete: session.user?.isSuperAdmin ?? false,
+                                      onDetail: () => showBatchDetail(context, _shown[i]),
+                                      onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
+                                      onThaw: () => _after(showThawDialog(context, _shown[i])),
+                                      onCompleteThaw: () => _completeThaw(_shown[i]),
+                                      onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
+                                      onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
+                                      onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
+                                      onCorrectThaw: () => _after(showCorrectThawDialog(context, _shown[i])),
+                                      onDelete: () => _deleteBatch(_shown[i]),
+                                    ),
+                                    childCount: _shown.length,
+                                  ),
                                 ),
                               ),
-                            ),
+                          ],
 
                           const SliverToBoxAdapter(child: SizedBox(height: 24)),
                         ],
@@ -385,11 +418,12 @@ class _StatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.sizeOf(context).width < 641;
-    final frozenQty = counts?.frozenQty ?? 1147;
-    final frozenCount = counts?.frozen ?? 47;
-    final thawingQty = counts?.thawingQty ?? (counts?.thawing ?? 14);
-    final cabinetQty = counts?.cabinetQty ?? (counts?.cabinet ?? 72);
-    final criticalQty = (counts?.expiringCount ?? 0) > 0 ? counts!.expiringCount : 4;
+    final t = context.tokens;
+    final frozenQty = counts?.frozenQty ?? (counts?.frozen ?? 0);
+    final frozenCount = counts?.frozen ?? 0;
+    final thawingQty = counts?.thawingQty ?? (counts?.thawing ?? 0);
+    final cabinetQty = counts?.cabinetQty ?? (counts?.cabinet ?? 0);
+    final criticalQty = counts?.expiringCount ?? 0;
 
     return GridView.count(
       crossAxisCount: narrow ? 2 : 4,
@@ -397,13 +431,13 @@ class _StatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
-      childAspectRatio: narrow ? 1.6 : 1.9,
+      childAspectRatio: narrow ? 1.45 : 1.7,
       children: [
         _MetricCard(
           title: 'DONUK DEPO',
           value: '$frozenQty / $frozenCount çeşit',
           footerIcon: Icons.access_time_rounded,
-          footerText: 'Son sayım: 08:30',
+          footerText: 'Anlık depo durumu',
           icon: Icons.ac_unit_rounded,
           iconBg: const Color(0xFFE0F2FE),
           iconColor: const Color(0xFF0284C7),
@@ -413,17 +447,17 @@ class _StatsGrid extends StatelessWidget {
           title: 'ÇÖZÜNMEDE',
           value: '$thawingQty paket aktif',
           footerIcon: Icons.timer_outlined,
-          footerText: 'En erken: 45 dk',
+          footerText: 'Aktif çözülenler',
           icon: Icons.hourglass_bottom_rounded,
-          iconBg: const Color(0xFFCCFBF1),
-          iconColor: const Color(0xFF0F766E),
-          footerColor: const Color(0xFF64748B),
+          iconBg: t.primarySoft,
+          iconColor: t.primary,
+          footerColor: t.muted,
         ),
         _MetricCard(
           title: 'SATIŞA HAZIR',
           value: '$cabinetQty vitrinde',
           footerIcon: Icons.verified_user_outlined,
-          footerText: 'SKT GÜVENİ',
+          footerText: 'Dolap stoğu',
           icon: Icons.storefront_rounded,
           iconBg: const Color(0xFFDCFCE7),
           iconColor: const Color(0xFF16A34A),
@@ -434,11 +468,11 @@ class _StatsGrid extends StatelessWidget {
           title: 'KRİTİK STOK',
           value: '$criticalQty ürün azaldı',
           footerIcon: Icons.error_outline_rounded,
-          footerText: '! Sipariş verilmeli',
+          footerText: criticalQty > 0 ? '! Sipariş verilmeli' : 'Stok güvenli',
           icon: Icons.warning_amber_rounded,
           iconBg: const Color(0xFFFFE4E6),
           iconColor: const Color(0xFFE11D48),
-          footerColor: const Color(0xFFE11D48),
+          footerColor: criticalQty > 0 ? const Color(0xFFE11D48) : const Color(0xFF16A34A),
           boldFooter: true,
         ),
       ],
@@ -471,12 +505,13 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: t.card,
+        borderRadius: BorderRadius.circular(AppTokens.radiusSm + 2),
+        border: Border.all(color: t.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -494,11 +529,11 @@ class _MetricCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
-                  color: Color(0xFF64748B),
+                  color: t.muted,
                 ),
               ),
               Container(
@@ -517,10 +552,10 @@ class _MetricCard extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14.5,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
+              color: t.ink,
               letterSpacing: -0.3,
             ),
           ),
@@ -548,7 +583,7 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-/// 4 Sekme Butonu (2x2 Grid)
+/// 4 Sekme Butonu (2x2 Grid telefonda, 4x1 geniş ekranda)
 class _TabBar extends StatelessWidget {
   const _TabBar({
     required this.tabs,
@@ -563,13 +598,14 @@ class _TabBar extends StatelessWidget {
   final DashboardCounts? counts;
 
   int? _badgeCount(int i) {
-    if (i == 1) return counts?.thawing ?? 14;
-    if (i == 2) return counts?.cabinet ?? 72;
+    if (i == 1) return counts?.thawing;
+    if (i == 2) return counts?.cabinet;
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final narrow = MediaQuery.sizeOf(context).width < 641;
     return GridView.count(
       crossAxisCount: narrow ? 2 : 4,
@@ -589,16 +625,16 @@ class _TabBar extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFF0F5B53) : Colors.white,
+              color: active ? t.primary : t.card,
               border: Border.all(
-                color: active ? const Color(0xFF0F5B53) : const Color(0xFFE2E8F0),
+                color: active ? t.primary : t.border,
                 width: 1.2,
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF0F5B53).withValues(alpha: 0.25),
+                        color: t.primary.withValues(alpha: 0.25),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       )
@@ -611,7 +647,7 @@ class _TabBar extends StatelessWidget {
                 Icon(
                   tabs[i].icon,
                   size: 16,
-                  color: active ? Colors.white : const Color(0xFF64748B),
+                  color: active ? t.onPrimary : t.muted,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -621,7 +657,7 @@ class _TabBar extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                      color: active ? Colors.white : const Color(0xFF334155),
+                      color: active ? t.onPrimary : t.ink,
                     ),
                   ),
                 ),
@@ -630,7 +666,7 @@ class _TabBar extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: active ? const Color(0xFF134E4A) : const Color(0xFFF1F5F9),
+                      color: active ? t.primaryDark : t.primarySoft,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -638,7 +674,7 @@ class _TabBar extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
-                        color: active ? Colors.white : const Color(0xFF475569),
+                        color: active ? t.onPrimary : t.primary,
                       ),
                     ),
                   ),
@@ -660,6 +696,7 @@ class _ProtocolBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     String title;
     String desc;
 
@@ -684,16 +721,16 @@ class _ProtocolBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F9FF),
-        border: Border.all(color: const Color(0xFFBAE6FD)),
+        color: t.infoSoft,
+        border: Border.all(color: t.info.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0284C7)),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(Icons.info_outline_rounded, size: 18, color: t.info),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -702,19 +739,19 @@ class _ProtocolBanner extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0369A1),
+                    color: t.info,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   desc,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     height: 1.35,
-                    color: Color(0xFF0C4A6E),
+                    color: t.ink,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -761,69 +798,73 @@ class _BatchCard extends StatelessWidget {
   final VoidCallback onCorrectThaw;
   final VoidCallback onDelete;
 
-  ({String text, Color bg, Color textColor}) _badgeInfo() {
+  ({String text, Color bg, Color textColor}) _badgeInfo(BuildContext context) {
+    final t = context.tokens;
     if (batch.status == 'food_cabinet') {
       return switch (batch.urgency) {
-        'expired' => (text: 'SKT Geçti', bg: const Color(0xFFFFE4E6), textColor: const Color(0xFFE11D48)),
-        'critical' => (text: 'SON GÜN', bg: const Color(0xFFFFE4E6), textColor: const Color(0xFFE11D48)),
-        'warning' => (text: 'Son 2 Gün', bg: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706)),
-        _ => (text: 'Food Dolabı', bg: const Color(0xFFD1FAE5), textColor: const Color(0xFF059669)),
+        'expired' => (text: 'SKT Geçti', bg: t.dangerSoft, textColor: t.dangerStrong),
+        'critical' => (text: 'SON GÜN', bg: t.dangerSoft, textColor: t.dangerStrong),
+        'warning' => (text: 'Son 2 Gün', bg: t.warningSoft, textColor: t.warningText),
+        _ => (text: 'Food Dolabı', bg: t.successSoft, textColor: t.success),
       };
     }
     return switch (batch.status) {
-      'frozen' => (text: 'Donuk Depo', bg: const Color(0xFFE0F2FE), textColor: const Color(0xFF0284C7)),
-      'thawing' => (text: 'Çözülmede', bg: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706)),
-      'sold' => (text: 'Satıldı', bg: const Color(0xFFD1FAE5), textColor: const Color(0xFF059669)),
-      'discarded' => (text: 'Zayi', bg: const Color(0xFFF1F5F9), textColor: const Color(0xFF64748B)),
-      _ => (text: batch.status, bg: const Color(0xFFF1F5F9), textColor: const Color(0xFF64748B)),
+      'frozen' => (text: 'Donuk Depo', bg: t.infoSoft, textColor: t.info),
+      'thawing' => (text: 'Çözülmede', bg: t.warningSoft, textColor: t.warningText),
+      'sold' => (text: 'Satıldı', bg: t.successSoft, textColor: t.success),
+      'discarded' => (text: 'Zayi', bg: t.border, textColor: t.muted),
+      _ => (text: batch.status, bg: t.border, textColor: t.muted),
     };
   }
 
-  Widget? _primaryWidget(BatchAction? action) => switch (action) {
-        BatchAction.thaw => FilledButton.icon(
-            onPressed: onThaw,
-            icon: const Icon(Icons.ac_unit_rounded, size: 17),
-            label: const Text('Çözülmeye Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0F5B53),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Widget? _primaryWidget(BuildContext context, BatchAction? action) {
+    final t = context.tokens;
+    return switch (action) {
+      BatchAction.thaw => FilledButton.icon(
+          onPressed: onThaw,
+          icon: const Icon(Icons.ac_unit_rounded, size: 17),
+          label: const Text('Çözülmeye Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          style: FilledButton.styleFrom(
+            backgroundColor: t.primary,
+            foregroundColor: t.onPrimary,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      BatchAction.completeThaw => FilledButton.icon(
+          onPressed: onCompleteThaw,
+          icon: const Icon(Icons.kitchen_outlined, size: 17),
+          label: const Text('Food Dolabına Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          style: FilledButton.styleFrom(
+            backgroundColor: t.primary600,
+            foregroundColor: t.onPrimary,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      BatchAction.awaitingApproval => Container(
+          height: 42,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: t.warningSoft,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: t.warning.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            'Onay Bekliyor',
+            style: TextStyle(
+              color: t.warningText,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
             ),
           ),
-        BatchAction.completeThaw => FilledButton.icon(
-            onPressed: onCompleteThaw,
-            icon: const Icon(Icons.kitchen_outlined, size: 17),
-            label: const Text('Food Dolabına Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        BatchAction.awaitingApproval => Container(
-            height: 42,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: const Text(
-              'Onay Bekliyor',
-              style: TextStyle(
-                color: Color(0xFFB45309),
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        _ => null,
-      };
+        ),
+      _ => null,
+    };
+  }
 
   _MenuEntry _entry(BatchAction a) => switch (a) {
         BatchAction.detail => (
@@ -873,20 +914,21 @@ class _BatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge = _badgeInfo();
+    final t = context.tokens;
+    final badge = _badgeInfo(context);
     final actions = batchActionsFor(
       batch,
       canAdjust: canAdjust,
       canDiscard: canDiscard,
       canDelete: canDelete,
     );
-    final primary = _primaryWidget(actions.primary);
+    final primary = _primaryWidget(context, actions.primary);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: t.card,
+        border: Border.all(color: t.border),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -906,11 +948,11 @@ class _BatchCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   batch.productName.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14.5,
                     letterSpacing: 0.2,
-                    color: Color(0xFF0F172A),
+                    color: t.ink,
                   ),
                 ),
               ),
@@ -943,16 +985,16 @@ class _BatchCard extends StatelessWidget {
               Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'Adet: ',
-                      style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      style: TextStyle(fontSize: 12.5, color: t.muted),
                     ),
                     TextSpan(
                       text: '${batch.remaining}/${batch.quantity}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F766E),
+                        color: t.primary,
                       ),
                     ),
                   ],
@@ -961,22 +1003,22 @@ class _BatchCard extends StatelessWidget {
               if (batch.status == 'thawing' && !batch.thawReady)
                 Text(
                   '· Çözünme: ${formatHours(batch.thawRemainingHours)}',
-                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12.5, color: t.muted),
                 ),
               if (batch.sktDays != null)
                 Text(
                   '· Dolap: ${batch.sktDays} gün',
-                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12.5, color: t.muted),
                 ),
               if (batch.sktEnd != null)
                 Text(
                   '· SKT: ${fmtDateTime(batch.sktEnd)} (${formatHours(batch.remainingHours)})',
-                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12.5, color: t.muted),
                 ),
               if (showStore && batch.storeName != null)
                 Text(
                   '· Mağaza: ${batch.storeName}',
-                  style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 12.5, color: t.muted),
                 ),
             ],
           ),
@@ -1011,6 +1053,7 @@ class _ActionMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return PopupMenuButton<int>(
       tooltip: 'Diğer işlemler',
       position: PopupMenuPosition.under,
@@ -1027,7 +1070,7 @@ class _ActionMenu extends StatelessWidget {
                 Icon(
                   items[i].icon,
                   size: 18,
-                  color: items[i].danger ? const Color(0xFFE11D48) : const Color(0xFF334155),
+                  color: items[i].danger ? t.danger : t.muted,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1036,7 +1079,7 @@ class _ActionMenu extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: items[i].danger ? const Color(0xFFE11D48) : const Color(0xFF1E293B),
+                      color: items[i].danger ? t.danger : t.ink,
                     ),
                   ),
                 ),
@@ -1049,11 +1092,11 @@ class _ActionMenu extends StatelessWidget {
         height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          color: t.card,
+          border: Border.all(color: t.border),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF475569)),
+        child: Icon(Icons.more_vert_rounded, size: 20, color: t.muted),
       ),
     );
   }

@@ -163,7 +163,7 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final totals = _report.totals;
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = MediaQuery.sizeOf(context).width < AppTokens.bpSm;
 
     return CrudScaffold(
       title: 'Hareket Raporu',

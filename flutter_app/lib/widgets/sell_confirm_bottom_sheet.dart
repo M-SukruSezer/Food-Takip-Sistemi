@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
+import '../core/tokens.dart';
 import '../models/batch.dart';
 
 Future<bool?> showSellConfirmBottomSheet(BuildContext context, Batch b) {
@@ -17,23 +18,23 @@ class _SellConfirmBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Design colors from DESIGN.md
-    const Color surface = Color(0xFFF8F9FF);
-    const Color primary = Color(0xFF0F766E);
-    const Color onPrimary = Color(0xFFFFFFFF);
-    const Color outline = Color(0xFFE2E8F0);
-    const Color textMain = Color(0xFF0B1C30);
-    const Color textMuted = Color(0xFF64748B);
-    const Color warningBg = Color(0xFFFEF3C7);
-    const Color warningText = Color(0xFF92400E);
-    const Color warningDot = Color(0xFFF59E0B);
-    const Color successBg = Color(0xFFD1FAE5);
-    const Color successText = Color(0xFF065F46);
+    final t = context.tokens;
+    final Color surface = t.card;
+    final Color primary = t.primary;
+    final Color onPrimary = t.onPrimary;
+    final Color outline = t.border;
+    final Color textMain = t.ink;
+    final Color textMuted = t.muted;
+    final Color warningBg = t.warningSoft;
+    final Color warningText = t.warningText;
+    final Color warningDot = t.warning;
+    final Color successBg = t.successSoft;
+    final Color successText = t.success;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 32),
       child: Column(
@@ -64,7 +65,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                   color: successBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.point_of_sale, color: primary, size: 28),
+                child: Icon(Icons.point_of_sale, color: primary, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -76,7 +77,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                         Text(
                           'Satışı Onayla',
                           style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: textMain,
@@ -93,7 +93,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           child: Text(
                             'KASA İŞLEMİ',
                             style: TextStyle(
-                              fontFamily: 'Inter',
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               color: successText,
@@ -117,7 +116,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context, false),
-                icon: const Icon(Icons.close, color: textMuted),
+                icon: Icon(Icons.close, color: textMuted),
                 style: IconButton.styleFrom(
                   backgroundColor: const Color(0xFFF1F5F9),
                   shape: const CircleBorder(),
@@ -171,7 +170,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 color: warningDot,
                                 shape: BoxShape.circle,
                               ),
@@ -202,13 +201,13 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Divider(height: 1, color: outline),
+                Divider(height: 1, color: outline),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.inventory_2_outlined, size: 18, color: textMuted),
+                    Icon(Icons.inventory_2_outlined, size: 18, color: textMuted),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Stok Değişimi:',
                       style: TextStyle(
                         fontFamily: 'Inter',
@@ -235,8 +234,8 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Icon(Icons.arrow_forward, size: 16, color: primary),
                     ),
                     Container(
@@ -327,7 +326,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.verified, size: 16, color: primary),
+                    Icon(Icons.verified, size: 16, color: primary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -354,7 +353,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                   onPressed: () => Navigator.pop(context, false),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: outline, width: 1.5),
+                    side: BorderSide(color: outline, width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

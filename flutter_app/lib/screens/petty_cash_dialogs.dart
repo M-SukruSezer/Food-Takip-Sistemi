@@ -222,9 +222,9 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
 
     final spentRatio = totalLimit > 0 ? (dynamicSpent / totalLimit).clamp(0.0, 1.0) : 0.0;
 
-    final storeName = (session.user?.storeName ?? 'Düzce Merkez Colombia').toUpperCase();
-    final userName = session.user?.fullName ?? 'Muhammed Şükrü Sezer';
-    final roleTitle = roleLabels[session.user?.role] ?? 'Store Manager';
+    final storeName = (session.user?.storeName ?? 'Mağaza').toUpperCase();
+    final userName = session.user?.fullName ?? 'Kullanıcı';
+    final roleTitle = roleLabels[session.user?.role] ?? (session.user?.role ?? 'Personel');
     final userRole = '$roleTitle · Kasa Sorumlusu';
 
     return Center(
@@ -362,31 +362,36 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (_error != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFDAD6),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFBA1A1A).withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline_rounded, color: Color(0xFFBA1A1A), size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF93000A),
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                        Builder(
+                          builder: (context) {
+                            final t = context.tokens;
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: t.dangerSoft,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: t.danger.withValues(alpha: 0.3)),
                               ),
-                            ],
-                          ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline_rounded, color: t.dangerStrong, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _error!,
+                                      style: TextStyle(
+                                        color: t.dangerStrong,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                       ],
 
                       // KART 1: Bakiye & Limit Kartı
@@ -1056,8 +1061,8 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                                             ),
                                             style: FilledButton.styleFrom(
-                                              backgroundColor: const Color(0xFF0F766E),
-                                              foregroundColor: Colors.white,
+                                              backgroundColor: Theme.of(context).colorScheme.primary,
+                                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                               padding: const EdgeInsets.symmetric(vertical: 10),
                                             ),

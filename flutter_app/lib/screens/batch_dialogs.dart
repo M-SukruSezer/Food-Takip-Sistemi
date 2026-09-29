@@ -160,10 +160,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC),
+                          color: isSelected ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF0F766E) : const Color(0xFFE2E8F0),
+                            color: isSelected ? const Color(0xFF15803D) : const Color(0xFFE2E8F0),
                             width: isSelected ? 1.6 : 1,
                           ),
                         ),
@@ -173,14 +173,14 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               width: 34,
                               height: 34,
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF0F766E) : const Color(0xFFCCFBF1),
+                                color: isSelected ? const Color(0xFF15803D) : const Color(0xFFDCFCE7),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
                               child: Icon(
                                 Icons.cake_rounded,
                                 size: 18,
-                                color: isSelected ? Colors.white : const Color(0xFF0F766E),
+                                color: isSelected ? Colors.white : const Color(0xFF15803D),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -193,7 +193,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w700,
-                                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF0F172A),
+                                      color: isSelected ? const Color(0xFF15803D) : const Color(0xFF0F172A),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -201,7 +201,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                     'SKT: Çözünme Sonrası ${t.sktDays} Gün',
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                                      color: isSelected ? const Color(0xFF15803D) : const Color(0xFF64748B),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -211,7 +211,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             if (isSelected)
                               const Icon(
                                 Icons.check_circle_rounded,
-                                color: Color(0xFF0F766E),
+                                color: Color(0xFF15803D),
                                 size: 20,
                               ),
                           ],
@@ -328,17 +328,17 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDFA),
+                            color: const Color(0xFFF0FDF4),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFCCFBF1),
+                              color: const Color(0xFFDCFCE7),
                             ),
                           ),
                           alignment: Alignment.center,
                           child: const Icon(
                             Icons.ac_unit_rounded,
                             size: 20,
-                            color: Color(0xFF0F766E),
+                            color: Color(0xFF15803D),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -370,7 +370,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFCCFBF1),
+                                      color: const Color(0xFFDCFCE7),
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                     child: const Text(
@@ -378,7 +378,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       style: TextStyle(
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF0F766E),
+                                        color: Color(0xFF15803D),
                                         letterSpacing: 0.4,
                                       ),
                                     ),
@@ -473,7 +473,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDFA),
+                                color: const Color(0xFFF0FDF4),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
@@ -481,7 +481,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F766E),
+                                  color: Color(0xFF15803D),
                                 ),
                               ),
                             ),
@@ -504,7 +504,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                   width: 28,
                                   height: 28,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0F766E),
+                                    color: const Color(0xFF15803D),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   alignment: Alignment.center,
@@ -536,7 +536,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                         style: const TextStyle(
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF0F766E),
+                                          color: Color(0xFF15803D),
                                         ),
                                       ),
                                     ],
@@ -663,7 +663,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                               width: 32,
                                               height: 32,
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF0F766E),
+                                                color: const Color(0xFF15803D),
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               alignment: Alignment.center,
@@ -749,7 +749,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                               child: Icon(
                                                 Icons.qr_code_scanner_rounded,
                                                 size: 17,
-                                                color: Color(0xFF0F766E),
+                                                color: Color(0xFF15803D),
                                               ),
                                             ),
                                           ),
@@ -985,10 +985,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                     ),
                                   ),
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F766E),
+                                    backgroundColor: const Color(0xFF15803D),
                                     foregroundColor: Colors.white,
                                     elevation: 2,
-                                    shadowColor: const Color(0xFF0F766E).withValues(alpha: 0.3),
+                                    shadowColor: const Color(0xFF15803D).withValues(alpha: 0.3),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                 ),
@@ -1175,18 +1175,18 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     final dateStr = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year} $timeStr';
 
     final user = session.user;
-    final fullName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Muhammed Şükrü Sezer';
+    final fullName = user?.fullName.isNotEmpty == true ? user!.fullName : (user?.username ?? 'Personel');
     final initials = fullName.split(' ').where((w) => w.isNotEmpty).map((w) => w[0].toUpperCase()).take(2).join();
     final roleName = switch (user?.role) {
       'super_admin' => 'Ana Yönetici',
       'operations_manager' => 'Operasyon Müdürü',
       'regional_manager' => 'Bölge Müdürü',
-      'store_manager' => 'Store Manager',
+      'store_manager' => 'Mağaza Müdürü',
       'shift_supervisor' => 'Vardiya Müdürü',
       'barista' => 'Barista',
-      _ => 'Store Manager',
+      _ => roleLabels[user?.role] ?? 'Personel',
     };
-    final idStr = 'CLM-${user?.id ?? 8492}';
+    final idStr = user?.id != null ? 'CLM-${user!.id}' : 'CLM-0000';
 
     return Container(
       constraints: BoxConstraints(maxHeight: maxH),
@@ -1476,7 +1476,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F766E),
+                  color: Color(0xFF15803D),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1488,11 +1488,11 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F766E),
+                      color: Color(0xFF15803D),
                     ),
                   ),
                   SizedBox(width: 2),
-                  Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF0F766E)),
+                  Icon(Icons.swap_horiz_rounded, size: 14, color: Color(0xFF15803D)),
                 ],
               ),
             ],
@@ -1635,7 +1635,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
-                  color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFF0F766E),
+                  color: isZayi ? const Color(0xFFBA1A1A) : const Color(0xFF15803D),
                 ),
               ),
             ],
@@ -1676,7 +1676,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F766E),
+                      color: Color(0xFF15803D),
                     ),
                   ),
                 ),
@@ -1690,8 +1690,8 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     height: 36,
                     decoration: BoxDecoration(
                       color: _quantity < maxQty
-                          ? const Color(0xFF0F766E)
-                          : const Color(0xFF0F766E).withValues(alpha: 0.4),
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF15803D).withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -1758,7 +1758,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   color: isSelected ? const Color(0xFFD1FAE5) : const Color(0xFFEFF4FF),
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
-                      ? Border.all(color: const Color(0xFF0F766E), width: 1.2)
+                      ? Border.all(color: const Color(0xFF15803D), width: 1.2)
                       : null,
                 ),
                 child: Row(
@@ -1766,7 +1766,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     Icon(
                       r.icon,
                       size: 20,
-                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                      color: isSelected ? const Color(0xFF15803D) : const Color(0xFF64748B),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -1783,7 +1783,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF0F766E) : Colors.transparent,
+                        color: isSelected ? const Color(0xFF15803D) : Colors.transparent,
                         shape: BoxShape.circle,
                         border: isSelected
                             ? null
@@ -1819,7 +1819,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.videocam_rounded, size: 18, color: Color(0xFF0F766E)),
+                  Icon(Icons.videocam_rounded, size: 18, color: Color(0xFF15803D)),
                   SizedBox(width: 6),
                   Text(
                     'Kamera & Kasa Kaydı',
@@ -1842,7 +1842,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F766E),
+                    color: Color(0xFF15803D),
                   ),
                 ),
               ),
@@ -1881,7 +1881,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     Icon(
                       _hasPhoto ? Icons.check_circle : Icons.photo_camera_rounded,
                       size: 22,
-                      color: _hasPhoto ? const Color(0xFF10B981) : const Color(0xFF0F766E),
+                      color: _hasPhoto ? const Color(0xFF10B981) : const Color(0xFF15803D),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -1965,7 +1965,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
         children: [
           CircleAvatar(
             radius: 17,
-            backgroundColor: const Color(0xFF0F766E),
+            backgroundColor: const Color(0xFF15803D),
             child: Text(
               initials,
               style: const TextStyle(
@@ -2003,7 +2003,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 style: TextStyle(
                   fontSize: 9.5,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F766E),
+                  color: Color(0xFF15803D),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -2176,7 +2176,7 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
       headerIcon: Icons.edit_note_rounded,
       subtitle: '• Parti Bilgilerini Güncelle',
       submitLabel: 'Düzeltmeyi Kaydet',
-      submitColor: const Color(0xFF0F766E),
+      submitColor: const Color(0xFF15803D),
       fields: (context, rebuild) {
         final t = context.tokens;
         return [
@@ -2193,7 +2193,7 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
                 const Icon(
                   Icons.history_rounded,
                   size: 16,
-                  color: Color(0xFF0F766E),
+                  color: Color(0xFF15803D),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -2266,7 +2266,7 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
                         minHeight: 36,
                       ),
                       padding: EdgeInsets.zero,
-                      color: const Color(0xFF0F766E),
+                      color: const Color(0xFF15803D),
                     ),
                   ],
                 ),
@@ -2329,7 +2329,7 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
                         minHeight: 36,
                       ),
                       padding: EdgeInsets.zero,
-                      color: const Color(0xFF0F766E),
+                      color: const Color(0xFF15803D),
                     ),
                   ],
                 ),
@@ -2483,7 +2483,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
               Icon(
                 Icons.event_outlined,
                 size: 16,
-                color: const Color(0xFF0F766E),
+                color: const Color(0xFF15803D),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -2508,7 +2508,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFCCFBF1),
+                              color: const Color(0xFFDCFCE7),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -2516,7 +2516,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                               style: const TextStyle(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F766E),
+                                color: Color(0xFF15803D),
                               ),
                             ),
                           ),
@@ -2565,7 +2565,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
               ),
               child: const Icon(
                 Icons.inventory_2_outlined,
-                color: Color(0xFF0F766E),
+                color: Color(0xFF15803D),
                 size: 20,
               ),
             ),
@@ -2588,7 +2588,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F766E),
+                      color: Color(0xFF15803D),
                     ),
                   ),
                 ],
@@ -2641,7 +2641,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         ),
                         child: const Icon(
                           Icons.inventory_2_rounded,
-                          color: Color(0xFF0F766E),
+                          color: Color(0xFF15803D),
                           size: 24,
                         ),
                       ),
@@ -2701,14 +2701,14 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFCCFBF1)),
+                          border: Border.all(color: const Color(0xFFDCFCE7)),
                         ),
                         child: Text(
                           '${detail.sktDays ?? 3} Günlük Raf Ömrü',
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F766E),
+                            color: Color(0xFF15803D),
                           ),
                         ),
                       ),
@@ -2787,7 +2787,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                     const Icon(
                       Icons.shopping_bag_outlined,
                       size: 16,
-                      color: Color(0xFF0F766E),
+                      color: Color(0xFF15803D),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -2805,7 +2805,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFCCFBF1),
+                        color: const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -2813,7 +2813,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F766E),
+                          color: Color(0xFF15803D),
                         ),
                       ),
                     ),
@@ -2897,7 +2897,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F766E),
+                                color: Color(0xFF15803D),
                               ),
                             ),
                           ),
@@ -2914,7 +2914,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
             width: double.infinity,
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
+                backgroundColor: const Color(0xFF15803D),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

@@ -35,3 +35,6 @@ void toast(String message, {ToastKind kind = ToastKind.info}) {
 /// Pencere kapandiktan sonra basari bildirimi. Pencere icindeki cagrilar
 /// noToast oldugu icin bildirimi ekran verir.
 void toastSaved(String message) => toast(message, kind: ToastKind.success);
+
+/// Hata bildirimi: kirmizi arka plan, 4 saniye gorunur.
+void toastError(String message) => toast(message, kind: ToastKind.error);

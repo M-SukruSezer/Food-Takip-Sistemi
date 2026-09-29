@@ -176,9 +176,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD1FAE5),
+                  color: t.successSoft,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                  border: Border.all(color: t.success.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -186,18 +186,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF059669),
+                        color: t.success,
                       ),
                     ),
                     const SizedBox(width: 5),
-                    const Text(
+                    Text(
                       'Senkronize',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF065F46),
+                        color: t.okText,
                       ),
                     ),
                   ],
@@ -247,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
+                            color: t.success,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -274,15 +274,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 3),
                         Text(
                           roleLabels[user.role] ?? user.role,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F5B53),
+                            color: t.primary,
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '@${user.username} · ${user.storeName ?? 'DÜZCE MERKEZ COLOMBİA'}',
+                          '@${user.username}${user.storeName != null ? ' · ${user.storeName}' : ''}',
                           style: TextStyle(fontSize: 11, color: t.muted),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -294,9 +294,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
+                            color: t.successSoft,
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: const Color(0xFFA7F3D0)),
+                            border: Border.all(color: t.success.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -304,18 +304,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Container(
                                 width: 5,
                                 height: 5,
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Color(0xFF059669),
+                                  color: t.success,
                                 ),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Aktif · ${user.canManage ? 'Yönetici' : 'Personel'}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF065F46),
+                                  color: t.success,
                                 ),
                               ),
                             ],
@@ -337,16 +337,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0FAF8),
+                        color: t.primarySoft,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFC4EAE3)),
+                        border: Border.all(color: t.border),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.badge_outlined,
                             size: 20,
-                            color: Color(0xFF0F5B53),
+                            color: t.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -454,9 +454,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 44,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF0FAF8),
-                    foregroundColor: const Color(0xFF0F5B53),
-                    side: const BorderSide(color: Color(0xFFC4EAE3)),
+                    backgroundColor: t.primarySoft,
+                    foregroundColor: t.primary,
+                    side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -630,8 +630,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 48,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F5B53),
-                    foregroundColor: Colors.white,
+                    backgroundColor: t.primary,
+                    foregroundColor: t.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -772,11 +772,11 @@ class _HeaderTitleWithIcon extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFFEDF8F5),
+            color: t.primarySoft,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFC4EAE3)),
+            border: Border.all(color: t.border),
           ),
-          child: Icon(icon, size: 20, color: const Color(0xFF0F5B53)),
+          child: Icon(icon, size: 20, color: t.primary),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -830,13 +830,13 @@ class _ThemeChoiceTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: selected
-                ? const Color(0xFF0F5B53)
-                : const Color(0xFFF8FAFC),
+                ? t.primary
+                : t.bg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
-                  ? const Color(0xFF0F5B53)
-                  : const Color(0xFFE2E8F0),
+                  ? t.primary
+                  : t.border,
             ),
           ),
           child: Row(
@@ -844,7 +844,7 @@ class _ThemeChoiceTile extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: selected ? Colors.white : t.muted,
+                color: selected ? t.onPrimary : t.muted,
               ),
               const SizedBox(width: 12),
               Text(
@@ -1008,8 +1008,8 @@ class _NotificationPrefRow extends StatelessWidget {
             scale: 0.85,
             child: Switch(
               value: value,
-              activeThumbColor: const Color(0xFF0F5B53),
-              activeTrackColor: const Color(0xFFC4EAE3),
+              activeThumbColor: t.primary,
+              activeTrackColor: t.primarySoft,
               onChanged: onChanged,
             ),
           ),
