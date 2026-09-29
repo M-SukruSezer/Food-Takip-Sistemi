@@ -97,6 +97,8 @@ void main() {
     testWidgets('PDKS ekraninda PDKS kisayollari gorunur', (tester) async {
       await phone(tester, at: '/pdks');
       expect(find.text('Devam'), findsWidgets);
+      expect(find.text('Çizelge'), findsWidgets);
+      expect(find.text('QR Okut'), findsOneWidget);
       expect(find.text('Yönetim'), findsWidgets);
       expect(find.text('Menü'), findsWidgets);
       // Operasyon kisayollari bu ekranda cubukta durmaz.

@@ -11,6 +11,8 @@ import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../models/user.dart';
+import '../screens/qr_scan_screen.dart';
 import 'avatar.dart';
 import 'notification_bell.dart';
 import 'scrim.dart';
@@ -23,7 +25,7 @@ const double kSidebarBreakpoint = 900;
 const double kRailDefaultBelow = 1200;
 
 /// Alt cubugun yuksekligi. Menu tabakasi cubugun uzerine oturmali.
-const double kBottomBarHeight = 64;
+const double kBottomBarHeight = 82;
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child});
@@ -556,6 +558,9 @@ class _TopBar extends StatelessWidget {
     final t = context.tokens;
     final user = session.user;
     final narrow = MediaQuery.sizeOf(context).width < 561;
+    if (sectionLabel != null) {
+      return _MobileTopBar(user: user, okunmamis: okunmamis);
+    }
     return Container(
       constraints: const BoxConstraints(minHeight: 60),
       decoration: BoxDecoration(
@@ -656,6 +661,214 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+/// Telefon basligi; magaza durumu ve temel hesap eylemlerini tek bakista sunar.
+class _MobileTopBar extends StatelessWidget {
+  const _MobileTopBar({required this.user, required this.okunmamis});
+
+  final AppUser? user;
+  final ValueListenable<int> okunmamis;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final storeName = (user?.storeName?.trim().isNotEmpty ?? false)
+        ? user!.storeName!.toUpperCase()
+        : 'MERKEZ ŞUBE';
+    return Container(
+      height: 96,
+      padding: const EdgeInsets.fromLTRB(16, 11, 12, 10),
+      decoration: BoxDecoration(
+        color: t.card,
+        border: Border(bottom: BorderSide(color: t.border)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2CCB9A),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        storeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.primary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .15,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '  · Online',
+                      style: TextStyle(
+                        color: t.muted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.fullName ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.ink,
+                    fontSize: 17,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Icon(Icons.verified_user_outlined, size: 14, color: t.primary),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        roleLabels[user?.role] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.muted, fontSize: 11.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          _HeaderCircle(
+            tooltip: 'Bildirimler',
+            onTap: () => showNotificationSheet(context),
+            child: ValueListenableBuilder<int>(
+              valueListenable: okunmamis,
+              builder: (context, count, _) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(Icons.notifications_none_rounded, color: t.muted, size: 21),
+                  if (count > 0)
+                    Positioned(
+                      right: -7,
+                      top: -9,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE11D48),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: t.card, width: 1.5),
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 7),
+          _HeaderCircle(
+            tooltip: 'Çıkış yap',
+            onTap: () => confirmSignOut(context),
+            child: Icon(Icons.power_settings_new_rounded, color: t.muted, size: 21),
+          ),
+          const SizedBox(width: 9),
+          Semantics(
+            button: true,
+            label: 'Profilim',
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => context.go('/profile'),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.primary, width: 1.5),
+                    ),
+                    child: Avatar(user: user, size: 35),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 1,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: t.card, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderCircle extends StatelessWidget {
+  const _HeaderCircle({required this.child, required this.tooltip, required this.onTap});
+
+  final Widget child;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: t.bg,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(width: 40, height: 40, child: Center(child: child)),
+        ),
+      ),
+    );
+  }
+}
+
 /// Testlerin alt cubuga tutunmasi icin sabit anahtarlar.
 const bottomBarKey = Key('bottomBar');
 const bottomMenuButtonKey = Key('bottomMenuButton');
@@ -717,19 +930,29 @@ class _BottomBarState extends State<_BottomBar> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final items = bottomBarFor(session.user, widget.section);
+    final showQrAction = widget.section == AppSection.pdks;
+    final leadingItems = showQrAction ? items.take(2).toList() : items;
+    final trailingItems = showQrAction ? items.skip(2).toList() : const <NavItem>[];
     return Container(
       key: bottomBarKey,
       decoration: BoxDecoration(
         color: t.card,
-        border: Border(top: BorderSide(color: t.border)),
+        border: Border(top: BorderSide(color: t.border.withValues(alpha: .65))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .07),
+            blurRadius: 18,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+          padding: const EdgeInsets.fromLTRB(6, 7, 6, 7),
           child: Row(
             children: [
-              ...items.map(
+              ...leadingItems.map(
                 (item) => Expanded(
                   child: _BottomTab(
                     icon: item.icon,
@@ -739,6 +962,27 @@ class _BottomBarState extends State<_BottomBar> {
                     badge: item.path == '/recommendations'
                         ? widget.recommendationCount
                         : 0,
+                    onTap: () => context.go(item.path),
+                  ),
+                ),
+              ),
+              if (showQrAction)
+                Expanded(
+                  child: _QrBottomTab(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const QrScanScreen(title: 'QR Okut'),
+                      ),
+                    ),
+                  ),
+                ),
+              ...trailingItems.map(
+                (item) => Expanded(
+                  child: _BottomTab(
+                    icon: item.icon,
+                    label: item.shortLabel,
+                    active: widget.location == item.path,
+                    badge: 0,
                     onTap: () => context.go(item.path),
                   ),
                 ),
@@ -1500,17 +1744,17 @@ class _BottomTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final color = active ? t.primary : t.muted;
+    final color = active ? t.primaryDark : t.muted;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         constraints: const BoxConstraints(minHeight: AppTokens.tap),
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         decoration: BoxDecoration(
           color: active ? t.primarySoft : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1539,8 +1783,64 @@ class _BottomTab extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                 color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// PDKS'nin ana eylemi navigasyondan yukseltilerek tek dokunusla tarayiciyi acar.
+class _QrBottomTab extends StatelessWidget {
+  const _QrBottomTab({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: t.primaryDark,
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(color: t.card, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: t.primary.withValues(alpha: .24),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.qr_code_scanner_rounded, color: t.card, size: 25),
+              ),
+            ),
+            Transform.translate(
+              offset: const Offset(0, -7),
+              child: Text(
+                'QR Okut',
+                maxLines: 1,
+                style: TextStyle(
+                  color: t.ink,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
