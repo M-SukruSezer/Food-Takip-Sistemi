@@ -42,10 +42,18 @@ class FormDialog extends StatefulWidget {
     required this.submitLabel,
     required this.fields,
     required this.onSubmit,
+    this.headerIcon,
+    this.subtitle,
+    this.submitColor,
+    this.titleWidget,
   });
 
   final String title;
   final String submitLabel;
+  final IconData? headerIcon;
+  final String? subtitle;
+  final Color? submitColor;
+  final Widget? titleWidget;
 
   /// Alanlari kuran yapici; hata metni ve mesgul durumu dialog tarafindan yonetilir.
   final List<Widget> Function(BuildContext context, VoidCallback rebuild)
@@ -88,17 +96,109 @@ class _FormDialogState extends State<FormDialog> {
     final screen = MediaQuery.sizeOf(context);
     final narrow = screen.width < 600;
     return AlertDialog(
-      title: Text(widget.title, style: TextStyle(fontSize: narrow ? 17 : 20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: widget.titleWidget ??
+          (widget.headerIcon != null || widget.subtitle != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!narrow) ...[
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: t.border,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ],
+                    Row(
+                      children: [
+                        if (widget.headerIcon != null) ...[
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD1FAE5),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              widget.headerIcon,
+                              color: const Color(0xFF0F766E),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.title,
+                                style: TextStyle(
+                                  fontSize: narrow ? 16 : 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.ink,
+                                ),
+                              ),
+                              if (widget.subtitle != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.subtitle!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF0F766E),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(context, false),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: t.card,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: t.border.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: t.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Text(
+                  widget.title,
+                  style: TextStyle(fontSize: narrow ? 17 : 20),
+                )),
       titlePadding: EdgeInsets.fromLTRB(
-        narrow ? 18 : 24,
-        narrow ? 18 : 24,
-        narrow ? 18 : 24,
+        narrow ? 16 : 24,
+        narrow ? 14 : 22,
+        narrow ? 16 : 24,
         0,
       ),
       contentPadding: EdgeInsets.fromLTRB(
-        narrow ? 18 : 24,
-        14,
-        narrow ? 18 : 24,
+        narrow ? 16 : 24,
+        narrow ? 8 : 14,
+        narrow ? 16 : 24,
         0,
       ),
       insetPadding: EdgeInsets.symmetric(
@@ -136,12 +236,35 @@ class _FormDialogState extends State<FormDialog> {
       ),
       actions: [
         OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: const Color(0xFFEFF6FF),
+            foregroundColor: const Color(0xFF2563EB),
+            side: const BorderSide(color: Color(0xFFBFDBFE)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ),
           onPressed: _busy ? null : () => Navigator.pop(context, false),
-          child: const Text('Vazgeç'),
+          child: const Text(
+            'Vazgeç',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.submitColor ?? const Color(0xFF0F766E),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          ),
           onPressed: _busy ? null : _submit,
-          child: Text(_busy ? 'Kaydediliyor...' : widget.submitLabel),
+          child: Text(
+            _busy ? 'Kaydediliyor...' : widget.submitLabel,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );

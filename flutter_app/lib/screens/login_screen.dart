@@ -88,22 +88,44 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const _Art(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: t.card,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 16,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
                           'Hoş geldin!',
                           style: TextStyle(
-                            fontSize: 34,
-                            height: 1.05,
+                            fontSize: 28,
+                            height: 1.1,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
                             color: onPanel,
                           ),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Lütfen hesabınıza giriş yapın',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: t.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         if (_error != null) ...[
                           _ErrorPill(
                             message: _error!,
@@ -115,11 +137,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         _PillField(
                           controller: _username,
                           hint: 'Kullanıcı adı',
-                          icon: Icons.person_outline,
-                          card: t.card,
+                          icon: Icons.alternate_email_rounded,
+                          card: t.bg,
                           ink: t.ink,
                           muted: t.muted,
-                          border: t.border,
+                          border: t.border.withValues(alpha: 0.6),
                           accent: t.primary,
                           ring: t.primary.withValues(alpha: 0.35),
                           autofill: const [AutofillHints.username],
@@ -129,11 +151,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         _PillField(
                           controller: _password,
                           hint: 'Şifre',
-                          icon: Icons.lock_outline,
-                          card: t.card,
+                          icon: Icons.shield_outlined,
+                          card: t.bg,
                           ink: t.ink,
                           muted: t.muted,
-                          border: t.border,
+                          border: t.border.withValues(alpha: 0.6),
                           accent: t.primary,
                           ring: t.primary.withValues(alpha: 0.35),
                           autofill: const [AutofillHints.password],
@@ -167,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: InkWell(
                                 onTap: () =>
                                     setState(() => _remember = !_remember),
+                                borderRadius: BorderRadius.circular(8),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 4,
@@ -183,19 +206,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                             () => _remember = v ?? false,
                                           ),
                                           side: BorderSide(
-                                            color: onPanel,
-                                            width: 2,
+                                            color: t.border,
+                                            width: 1.5,
                                           ),
-                                          checkColor: panel,
-                                          fillColor:
-                                              WidgetStateProperty.resolveWith(
-                                                (states) =>
-                                                    states.contains(
-                                                      WidgetState.selected,
-                                                    )
-                                                    ? onPanel
-                                                    : Colors.transparent,
-                                              ),
+                                          activeColor: const Color(0xFF0F766E),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(5),
+                                          ),
                                         ),
                                       ),
                                       Flexible(
@@ -204,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w500,
                                             color: onPanel,
                                           ),
                                         ),
@@ -220,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4,
                                 ),
-                                foregroundColor: onPanel,
+                                foregroundColor: const Color(0xFF2563EB),
                               ),
                               onPressed: () => toast(
                                 'Şifre sıfırlama için yöneticinle iletişime geç',
@@ -230,17 +248,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  decoration: TextDecoration.underline,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         // Siyah hap dugme: koyu temada ink acik renge dondugu
                         // icin yazi kart rengiyle okunur kalir.
                         SizedBox(
-                          height: 56,
+                          height: 52,
                           child: FilledButton(
                             style: FilledButton.styleFrom(
                               backgroundColor: t.ink,
@@ -251,7 +268,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               disabledForegroundColor: t.card.withValues(
                                 alpha: 0.8,
                               ),
-                              shape: const StadiumBorder(),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               textStyle: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -389,8 +408,11 @@ class _PillFieldState extends State<_PillField> {
       height: 56,
       decoration: BoxDecoration(
         color: widget.card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: widget.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _focus.hasFocus ? widget.accent : widget.border,
+          width: _focus.hasFocus ? 1.5 : 1.0,
+        ),
         boxShadow: _focus.hasFocus
             ? [BoxShadow(color: widget.ring, spreadRadius: 3, blurRadius: 0)]
             : null,

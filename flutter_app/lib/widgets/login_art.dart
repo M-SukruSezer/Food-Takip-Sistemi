@@ -11,12 +11,15 @@ class LoginArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Gorsel kare ve kendi icinde dikey boslugu var; buyutup kirpmak kollari
-    // kesiyordu, bu yuzden oldugu gibi sigdirilir.
     return Image.asset(
-      'assets/login-art.png',
+      'assets/colombia_cafe.png',
       fit: BoxFit.contain,
-      semanticLabel: 'Çak bir beş illüstrasyonu',
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        'assets/login-art.png',
+        fit: BoxFit.contain,
+        semanticLabel: 'Colombia Cafe illüstrasyonu',
+      ),
+      semanticLabel: 'Colombia Cafe illüstrasyonu',
     );
   }
 }

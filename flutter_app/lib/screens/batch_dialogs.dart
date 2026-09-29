@@ -2173,111 +2173,256 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
     context: context,
     builder: (ctx) => FormDialog(
       title: 'Kaydı Düzelt — ${batch.productName}',
+      headerIcon: Icons.edit_note_rounded,
+      subtitle: '• Parti Bilgilerini Güncelle',
       submitLabel: 'Düzeltmeyi Kaydet',
-      fields: (context, rebuild) => [
-        Text(
-          'Yanlış girilen tarih/saat ve adetleri düzeltir. Ürünün durumu değişmez ve '
-          'yapılan düzeltme hareket kayıtlarına yazılır.',
-          style: TextStyle(fontSize: 13, color: context.tokens.muted),
-        ),
-        const SizedBox(height: 12),
-        FormRow(
-          left: LabeledField(
-            label: 'Toplam Adet',
-            child: TextField(
-              controller: quantity,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 16),
+      submitColor: const Color(0xFF0F766E),
+      fields: (context, rebuild) {
+        final t = context.tokens;
+        return [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.history_rounded,
+                  size: 16,
+                  color: Color(0xFF0F766E),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Yanlış girilen tarih/saat ve adetleri düzeltir. Ürünün durumu değişmez ve '
+                    'yapılan düzeltme hareket kayıtlarına yazılır.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: t.muted,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          right: LabeledField(
-            label: 'Kalan Adet',
-            child: TextField(
-              controller: remaining,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 16),
+          const SizedBox(height: 10),
+          FormRow(
+            left: LabeledField(
+              label: 'Toplam Adet',
+              child: Container(
+                decoration: BoxDecoration(
+                  color: t.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: t.border.withValues(alpha: 0.7)),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_rounded, size: 18),
+                      onPressed: () {
+                        final v = int.tryParse(quantity.text.trim()) ?? 1;
+                        if (v > 1) {
+                          quantity.text = (v - 1).toString();
+                          rebuild();
+                        }
+                      },
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      color: t.muted,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: quantity,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      onPressed: () {
+                        final v = int.tryParse(quantity.text.trim()) ?? 0;
+                        quantity.text = (v + 1).toString();
+                        rebuild();
+                      },
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            right: LabeledField(
+              label: 'Kalan Adet',
+              child: Container(
+                decoration: BoxDecoration(
+                  color: t.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: t.border.withValues(alpha: 0.7)),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_rounded, size: 18),
+                      onPressed: () {
+                        final v = int.tryParse(remaining.text.trim()) ?? 0;
+                        if (v > 0) {
+                          remaining.text = (v - 1).toString();
+                          rebuild();
+                        }
+                      },
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      color: t.muted,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: remaining,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      onPressed: () {
+                        final v = int.tryParse(remaining.text.trim()) ?? 0;
+                        final max = int.tryParse(quantity.text.trim()) ?? 999;
+                        if (v < max) {
+                          remaining.text = (v + 1).toString();
+                          rebuild();
+                        }
+                      },
+                      constraints: const BoxConstraints(
+                        minWidth: 36,
+                        minHeight: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(
-            'Kalan adet toplam adetten büyük olamaz.',
-            style: TextStyle(fontSize: 11, color: context.tokens.muted),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 12, color: t.muted),
+                const SizedBox(width: 4),
+                Text(
+                  'Kalan adet toplam adetten büyük olamaz.',
+                  style: TextStyle(fontSize: 11, color: t.muted),
+                ),
+              ],
+            ),
           ),
-        ),
-        LabeledField(
-          label: 'Donuk Depoya Giriş',
-          child: DateTimeField(
-            value: frozenAt,
-            onChanged: (v) {
-              frozenAt = v;
-              rebuild();
-            },
-          ),
-        ),
-        if (thawStart != null)
           LabeledField(
-            label: 'Çözülme Başlangıcı',
+            label: 'Donuk Depoya Giriş',
             child: DateTimeField(
-              value: thawStart,
+              value: frozenAt,
               onChanged: (v) {
-                thawStart = v;
+                frozenAt = v;
                 rebuild();
               },
             ),
           ),
-        if (thawFinish != null)
-          LabeledField(
-            label: 'Çözülme Bitişi',
-            child: DateTimeField(
-              value: thawFinish,
-              onChanged: (v) {
-                thawFinish = v;
-                rebuild();
-              },
+          if (thawStart != null)
+            LabeledField(
+              label: 'Çözülme Başlangıcı',
+              child: DateTimeField(
+                value: thawStart,
+                onChanged: (v) {
+                  thawStart = v;
+                  rebuild();
+                },
+              ),
             ),
-          ),
-        if (cabinetAt != null)
-          LabeledField(
-            label: 'Food Dolabına Giriş',
-            hint: batch.sktDays == null
-                ? null
-                : 'Bu tarih değişince SKT bitişi ${batch.sktDays} güne göre yeniden hesaplanır.',
-            child: DateTimeField(
-              value: cabinetAt,
-              onChanged: (v) {
-                cabinetAt = v;
-                // SKT, dugmeye basildigi an degil dolaba giris anina gore hesaplanir.
-                if (batch.sktDays != null) {
-                  sktEnd = v.add(Duration(days: batch.sktDays!));
-                }
-                rebuild();
-              },
+          if (thawFinish != null)
+            LabeledField(
+              label: 'Çözülme Bitişi',
+              child: DateTimeField(
+                value: thawFinish,
+                onChanged: (v) {
+                  thawFinish = v;
+                  rebuild();
+                },
+              ),
             ),
-          ),
-        if (sktEnd != null)
-          LabeledField(
-            label: 'SKT Bitiş',
-            child: DateTimeField(
-              value: sktEnd,
-              onChanged: (v) {
-                sktEnd = v;
-                rebuild();
-              },
+          if (cabinetAt != null)
+            LabeledField(
+              label: 'Food Dolabına Giriş',
+              hint: batch.sktDays == null
+                  ? null
+                  : 'Bu tarih değişince SKT bitişi ${batch.sktDays} güne göre yeniden hesaplanır.',
+              child: DateTimeField(
+                value: cabinetAt,
+                onChanged: (v) {
+                  cabinetAt = v;
+                  // SKT, dugmeye basildigi an degil dolaba giris anina gore hesaplanir.
+                  if (batch.sktDays != null) {
+                    sktEnd = v.add(Duration(days: batch.sktDays!));
+                  }
+                  rebuild();
+                },
+              ),
             ),
-          ),
-      ],
+          if (sktEnd != null)
+            LabeledField(
+              label: 'SKT Bitiş',
+              hint: '🔒 Otomatik (+3 Gün)',
+              child: DateTimeField(
+                value: sktEnd,
+                onChanged: (v) {
+                  sktEnd = v;
+                  rebuild();
+                },
+              ),
+            ),
+        ];
+      },
       onSubmit: () async {
         final qty = int.tryParse(quantity.text.trim());
         final rem = int.tryParse(remaining.text.trim());
         if (qty == null || qty < 1) return 'Toplam adet en az 1 olmalıdır';
         if (rem == null || rem < 0) {
-            return 'Kalan adet 0 veya daha büyük olmalıdır';
-          }
+          return 'Kalan adet 0 veya daha büyük olmalıdır';
+        }
         if (rem > qty) {
-            return 'Kalan adet toplam adetten büyük olamaz (toplam: $qty)';
-          }
+          return 'Kalan adet toplam adetten büyük olamaz (toplam: $qty)';
+        }
         if (frozenAt == null) return 'Donuk depoya giriş tarihi zorunludur';
 
         String? iso(DateTime? d) => d?.toUtc().toIso8601String();
@@ -2317,93 +2462,443 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
     context: context,
     builder: (ctx) {
       final t = ctx.tokens;
-      Widget row(String label, String value) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
+      final screen = MediaQuery.sizeOf(ctx);
+      final narrow = screen.width < 600;
+
+      Widget timelineItem({
+        required String label,
+        required String value,
+        String? badge,
+      }) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: t.card,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: t.border.withValues(alpha: 0.6)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_outlined,
+                size: 16,
+                color: const Color(0xFF0F766E),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: t.muted,
+                          ),
+                        ),
+                        if (badge != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCCFBF1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              badge,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: EdgeInsets.fromLTRB(
+          narrow ? 16 : 24,
+          narrow ? 16 : 22,
+          narrow ? 16 : 24,
+          0,
+        ),
+        contentPadding: EdgeInsets.fromLTRB(
+          narrow ? 16 : 24,
+          12,
+          narrow ? 16 : 24,
+          0,
+        ),
+        title: Row(
           children: [
-            SizedBox(
-              width: 150,
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 13, color: t.muted),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1FAE5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                color: Color(0xFF0F766E),
+                size: 20,
               ),
             ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: t.ink,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ürün Detayı — ${detail.productName}',
+                    style: TextStyle(
+                      fontSize: narrow ? 16 : 18,
+                      fontWeight: FontWeight.w700,
+                      color: t.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '• Parti #${detail.id} Özeti',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F766E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            InkWell(
+              onTap: () => Navigator.pop(ctx),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: t.card,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: t.border.withValues(alpha: 0.6)),
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: t.muted,
                 ),
               ),
             ),
           ],
         ),
-      );
-
-      return AlertDialog(
-        title: Text('Ürün Detayı — ${detail.productName}'),
         content: SizedBox(
-          width: 460,
+          width: narrow ? screen.width - 64 : 460,
           child: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                row('Durum', statusLabels[detail.status] ?? detail.status),
-                row('Miktar', '${detail.remaining} / ${detail.quantity} adet'),
-                row('Donuk Depoya Giriş', fmtDateTime(detail.enteredFrozenAt)),
+                // Top status summary card
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: const Icon(
+                          Icons.inventory_2_rounded,
+                          color: Color(0xFF0F766E),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  statusLabels[detail.status] ?? detail.status,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.muted,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFD1FAE5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Aktif',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF065F46),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Mevcut Stok: ${detail.remaining} / ${detail.quantity} adet',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: t.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFCCFBF1)),
+                        ),
+                        child: Text(
+                          '${detail.sktDays ?? 3} Günlük Raf Ömrü',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F766E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Timeline / Lifecycle cards
+                timelineItem(
+                  label: 'Donuk Depoya Giriş',
+                  value: fmtDateTime(detail.enteredFrozenAt),
+                ),
                 if (detail.thawingStartedAt != null)
-                  row(
-                    'Çözülme Başlangıcı',
-                    fmtDateTime(detail.thawingStartedAt),
+                  timelineItem(
+                    label: 'Çözülme Başlangıcı',
+                    value: fmtDateTime(detail.thawingStartedAt),
                   ),
                 if (detail.thawingFinishAt != null)
-                  row('Çözülme Bitişi', fmtDateTime(detail.thawingFinishAt)),
+                  timelineItem(
+                    label: 'Çözülme Bitişi',
+                    value: fmtDateTime(detail.thawingFinishAt),
+                  ),
                 if (detail.foodCabinetEnteredAt != null)
-                  row(
-                    'Food Dolabına Giriş',
-                    fmtDateTime(detail.foodCabinetEnteredAt),
+                  timelineItem(
+                    label: 'Food Dolabına Giriş',
+                    value: fmtDateTime(detail.foodCabinetEnteredAt),
+                    badge: 'TETİKLEYİCİ TARİH',
                   ),
                 if (detail.sktEnd != null)
-                  row('SKT Bitiş', fmtDateTime(detail.sktEnd)),
+                  timelineItem(
+                    label: 'SKT Bitiş',
+                    value: fmtDateTime(detail.sktEnd),
+                    badge: 'Otomatik (+3 Gün)',
+                  ),
                 if (detail.notes != null && detail.notes!.isNotEmpty)
-                  row('Not', detail.notes!),
-                const SizedBox(height: 12),
-                Text(
-                  'Satış Geçmişi',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: t.ink),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: t.card,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: t.border.withValues(alpha: 0.6)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.notes_rounded, size: 16, color: t.muted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Not',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                detail.notes!,
+                                style: TextStyle(fontSize: 13, color: t.ink),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                // Satış Geçmişi Section
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 16,
+                      color: Color(0xFF0F766E),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Satış Geçmişi',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCCFBF1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        sales.isEmpty ? 'Kayıt Yok' : '${sales.length} İşlem',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 if (sales.isEmpty)
-                  Text(
-                    'Henüz satış yok',
-                    style: TextStyle(color: t.muted, fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: t.bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: t.border.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      'Henüz satış yok',
+                      style: TextStyle(color: t.muted, fontSize: 13),
+                    ),
                   )
                 else
                   ...sales.map(
-                    (s) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                    (s) => Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.card,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: t.border.withValues(alpha: 0.6),
+                        ),
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
                               fmtDateTime(s.soldAt),
-                              style: TextStyle(fontSize: 13, color: t.ink),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: t.ink,
+                              ),
                             ),
                           ),
-                          Text(
-                            '${s.quantity} adet',
-                            style: TextStyle(fontSize: 13, color: t.muted),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${s.quantity} adet',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            s.unitPrice == null ? '-' : fmtMoney(s.unitPrice),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: t.ink,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(0xFFA7F3D0),
+                              ),
+                            ),
+                            child: Text(
+                              s.unitPrice == null ? '-' : fmtMoney(s.unitPrice),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F766E),
+                              ),
                             ),
                           ),
                         ],
@@ -2415,9 +2910,23 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
           ),
         ),
         actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Kapat'),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                '✓ Kapat',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
         ],
       );
