@@ -83,9 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final t = context.tokens;
 
-    // Zemin ve uzerindeki yazi temayla gelir: acik temada acik gri + koyu
-    // yazi, koyu temada lacivert + acik yazi.
-    final panel = t.bg;
+    // Formun devamindaki bos alan kartla ayni renkte kalir. Acik temada bu
+    // renk saf beyazdir; boylece butonun altinda kirik beyaz bant olusmaz.
+    final panel = t.card;
     final onPanel = t.ink;
 
     return Scaffold(
@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: EdgeInsets.zero,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -314,48 +314,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// Ustteki illustrasyon. Kart yok: gorsel dogrudan sayfa zemini uzerinde
-/// duruyor.
-///
-/// Koyu temada gorselin siyah konturlari lacivert zeminle birlesiyordu; bu
-/// yuzden yalnizca koyu temada arkasina acik bir daire konur. Acik temada
-/// zemin zaten aciktir, daireye gerek yok.
+/// Ustteki illustrasyon ekran genisligini kaplayan, cihaz yuksekligine gore
+/// olceklenen bir kapak gorseli olarak gosterilir.
 class _Art extends StatelessWidget {
   const _Art();
 
-  /// Daire, gorselin kare kutusu kadar; gorsel biraz iceri alinir ki en
-  /// distaki parmak uclari dairenin kenarina dayanmasin.
-  static const double _inset = 0.045;
-
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final media = MediaQuery.of(context);
     final keyboardOpen = media.viewInsets.bottom > 0;
-    final height = keyboardOpen
-        ? 80.0
-        : (media.size.height * .27).clamp(140.0, 240.0);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: SizedBox(
-        height: height,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Container(
-              padding: dark ? EdgeInsets.all(height * _inset) : EdgeInsets.zero,
-              decoration: dark
-                  ? const BoxDecoration(
-                      color: Color(0xFFFFFFFF),
-                      shape: BoxShape.circle,
-                    )
-                  : null,
-              child: const LoginArt(),
-            ),
-          ),
-        ),
-      ),
+    final art = const ColoredBox(
+      color: Colors.white,
+      child: LoginArt(fit: BoxFit.fitWidth),
+    );
+
+    return ClipRect(
+      key: const Key('loginHero'),
+      child: keyboardOpen
+          ? SizedBox(width: double.infinity, height: 80, child: art)
+          : art,
     );
   }
 }

@@ -211,24 +211,21 @@ void main() {
     expect(pill().boxShadow, isNotNull);
   });
 
-  testWidgets('illüstrasyon kart içinde değil, doğrudan zemin üzerinde', (
+  testWidgets('giriş görseli ekranı kaplayan duyarlı kapak olarak çizilir', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(_app(Brightness.light));
     await tester.pumpAndSettle();
 
-    // Gorselin ustunde arka plani olan bir kap kalmamali.
-    final kaplar = find
-        .ancestor(of: find.byType(LoginArt), matching: find.byType(Container))
-        .evaluate()
-        .map((e) => (e.widget as Container).decoration)
-        .whereType<BoxDecoration>()
-        .where((d) => d.color != null);
-    expect(
-      kaplar,
-      isEmpty,
-      reason: 'illüstrasyonun etrafında hâlâ bir kart var',
-    );
+    final hero = tester.getSize(find.byKey(const Key('loginHero')));
+    expect(hero.width, 390);
+    expect(hero.height, 240);
+    expect(tester.widget<LoginArt>(find.byType(LoginArt)).fit, BoxFit.fitWidth);
   });
 
   testWidgets('sayfa zemini temaya göre değişir', (tester) async {
@@ -241,32 +238,18 @@ void main() {
         tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor!,
       );
     }
-    expect(zeminler[0], AppTokens.light.bg);
-    expect(zeminler[1], AppTokens.dark.bg);
+    expect(zeminler[0], AppTokens.light.card);
+    expect(zeminler[1], AppTokens.dark.card);
   });
 
-  testWidgets('koyu temada görselin arkasında açık daire var', (tester) async {
-    BoxDecoration? arkaPlan(WidgetTester t) {
-      final kaplar = find
-          .ancestor(of: find.byType(LoginArt), matching: find.byType(Container))
-          .evaluate()
-          .map((e) => (e.widget as Container).decoration)
-          .whereType<BoxDecoration>()
-          .where((d) => d.color != null);
-      return kaplar.isEmpty ? null : kaplar.first;
-    }
-
-    // Acik temada zemin zaten acik; daireye gerek yok.
-    await tester.pumpWidget(_app(Brightness.light));
-    await tester.pumpAndSettle();
-    expect(arkaPlan(tester), isNull);
-
-    // Koyu temada gorselin siyah konturlari lacivert zeminle birlesiyordu.
+  testWidgets('görsel alanı koyu temada da beyaz kalır', (tester) async {
     await tester.pumpWidget(_app(Brightness.dark));
     await tester.pumpAndSettle();
-    final daire = arkaPlan(tester);
-    expect(daire, isNotNull, reason: 'koyu temada daire yok');
-    expect(daire!.shape, BoxShape.circle);
-    expect(daire.color, const Color(0xFFFFFFFF));
+
+    final backgrounds = find
+        .ancestor(of: find.byType(LoginArt), matching: find.byType(ColoredBox))
+        .evaluate()
+        .map((e) => (e.widget as ColoredBox).color);
+    expect(backgrounds, contains(Colors.white));
   });
 }

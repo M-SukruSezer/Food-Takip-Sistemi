@@ -11,7 +11,9 @@ import 'package:flutter/material.dart';
 /// gosterilir — koyu kartta siyah konturlar kaybolurdu. Kart rengini
 /// [LoginArt] degil cagiran ekran belirler.
 class LoginArt extends StatelessWidget {
-  const LoginArt({super.key});
+  const LoginArt({super.key, this.fit = BoxFit.contain});
+
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,8 @@ class LoginArt extends StatelessWidget {
           try {
             return Image.memory(
               base64Decode(value.split(',').last),
-              fit: BoxFit.contain,
+              width: double.infinity,
+              fit: fit,
               gaplessPlayback: true,
               semanticLabel: 'Giriş görseli',
               errorBuilder: (_, _, _) => _defaultArt(),
@@ -38,10 +41,12 @@ class LoginArt extends StatelessWidget {
 
   Widget _defaultArt() => Image.asset(
     'assets/colombia_cafe.png',
-    fit: BoxFit.contain,
+    width: double.infinity,
+    fit: fit,
     errorBuilder: (context, error, stackTrace) => Image.asset(
       'assets/login-art.png',
-      fit: BoxFit.contain,
+      width: double.infinity,
+      fit: fit,
       semanticLabel: 'Colombia Cafe illüstrasyonu',
     ),
     semanticLabel: 'Colombia Cafe illüstrasyonu',
