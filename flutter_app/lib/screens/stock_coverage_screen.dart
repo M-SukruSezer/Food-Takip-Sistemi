@@ -7,6 +7,7 @@ import '../core/tokens.dart';
 import '../models/manager_overview.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/panels.dart';
+import '../widgets/shell_scope.dart';
 
 /// Stok Yeterliliği: ürün ürün donuk depo stoğu ve satış hızına göre kaç gün
 /// yeteceği analiz ekranı.
@@ -23,7 +24,8 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
   int _window = 14;
   String _query = '';
   String _filter = 'all'; // 'all', 'stok-yok', 'kritik', 'yeterli'
-  String _sortBy = 'risk'; // 'risk', 'cover_asc', 'velocity_desc', 'name_asc', 'qty_desc'
+  String _sortBy =
+      'risk'; // 'risk', 'cover_asc', 'velocity_desc', 'name_asc', 'qty_desc'
   String? _error;
   bool _loaded = false;
 
@@ -60,7 +62,9 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
   void _exportExcel() {
     if (_stock.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dışa aktarılacak stok verisi bulunmuyor.')),
+        const SnackBar(
+          content: Text('Dışa aktarılacak stok verisi bulunmuyor.'),
+        ),
       );
       return;
     }
@@ -71,7 +75,9 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
             Icon(Icons.check_circle, color: Colors.white, size: 20),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Stok yeterliliği listesi Excel formatında hazırlandı.'),
+              child: Text(
+                'Stok yeterliliği listesi Excel formatında hazırlandı.',
+              ),
             ),
           ],
         ),
@@ -97,14 +103,21 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       Icon(Icons.tune, size: 20, color: t.primary),
                       const SizedBox(width: 8),
                       Text(
                         'Sıralama Seçenekleri',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.ink),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: t.ink,
+                        ),
                       ),
                       const Spacer(),
                       IconButton(
@@ -115,8 +128,16 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   ),
                 ),
                 Divider(color: t.border),
-                _sortTile(ctx, 'risk', 'Risk / Kritik Duruma Göre (Varsayılan)'),
-                _sortTile(ctx, 'cover_asc', 'En Az Kalan Gün (Önce Bitecekler)'),
+                _sortTile(
+                  ctx,
+                  'risk',
+                  'Risk / Kritik Duruma Göre (Varsayılan)',
+                ),
+                _sortTile(
+                  ctx,
+                  'cover_asc',
+                  'En Az Kalan Gün (Önce Bitecekler)',
+                ),
                 _sortTile(ctx, 'velocity_desc', 'En Yüksek Satış Hızı'),
                 _sortTile(ctx, 'qty_desc', 'En Fazla Donuk Stok'),
                 _sortTile(ctx, 'name_asc', 'Ürün Adı (A - Z)'),
@@ -140,9 +161,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           color: selected ? t.primary : t.ink,
         ),
       ),
-      trailing: selected
-          ? Icon(Icons.check, color: t.primary, size: 20)
-          : null,
+      trailing: selected ? Icon(Icons.check, color: t.primary, size: 20) : null,
       onTap: () {
         setState(() => _sortBy = key);
         Navigator.pop(ctx);
@@ -229,9 +248,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       itemBuilder: (c, idx) {
                         final t = context.tokens;
                         final item = urgentItems[idx];
-                        final suggested = ((item.dailyVelocity * 7) - item.frozenQty)
-                            .ceil()
-                            .clamp(2, 50);
+                        final suggested =
+                            ((item.dailyVelocity * 7) - item.frozenQty)
+                                .ceil()
+                                .clamp(2, 50);
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -294,7 +314,9 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Sipariş taslağı başarıyla oluşturuldu.'),
+                          content: const Text(
+                            'Sipariş taslağı başarıyla oluşturuldu.',
+                          ),
                           backgroundColor: context.tokens.primary,
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -310,7 +332,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     ),
                     child: const Text(
                       'Siparişi Onayla ve Gönder',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -355,13 +380,17 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
     final q = normalizeSearch(_query);
     final searchFiltered = q.isEmpty
         ? _stock.items
-        : _stock.items.where((i) => normalizeSearch(i.name).contains(q)).toList();
+        : _stock.items
+              .where((i) => normalizeSearch(i.name).contains(q))
+              .toList();
 
     // Category / Risk filter
     final filtered = searchFiltered.where((i) {
       if (_filter == 'stok-yok') return i.risk == 0;
       if (_filter == 'kritik') return i.risk == 1 || i.risk == 2;
-      if (_filter == 'yeterli') return i.risk == 3 || (i.risk != null && i.risk! > 3);
+      if (_filter == 'yeterli') {
+        return i.risk == 3 || (i.risk != null && i.risk! > 3);
+      }
       return true;
     }).toList();
 
@@ -395,8 +424,12 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
 
     // Counts across all items
     final stokYokCount = _stock.items.where((i) => i.risk == 0).length;
-    final kritikCount = _stock.items.where((i) => i.risk == 1 || i.risk == 2).length;
-    final yeterliCount = _stock.items.where((i) => i.risk == 3 || (i.risk != null && i.risk! > 3)).length;
+    final kritikCount = _stock.items
+        .where((i) => i.risk == 1 || i.risk == 2)
+        .length;
+    final yeterliCount = _stock.items
+        .where((i) => i.risk == 3 || (i.risk != null && i.risk! > 3))
+        .length;
 
     // Critical count for alert banner: risk 0 & risk 1
     final criticalAlertCount = _stock.items
@@ -426,9 +459,13 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                 onRefresh: () => _load(silent: true),
                 color: t.primary,
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   children: [
-                    // Header Bar
+                    // Mobil kabuk sayfa adını zaten gösterir. Burada yalnızca
+                    // sayfaya özgü eylemler kalır.
                     _buildHeader(context),
                     const SizedBox(height: 12),
 
@@ -443,7 +480,11 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     const SizedBox(height: 12),
 
                     // Search and Filter Bar
-                    _buildSearchAndFilters(stokYokCount, kritikCount, yeterliCount),
+                    _buildSearchAndFilters(
+                      stokYokCount,
+                      kritikCount,
+                      yeterliCount,
+                    ),
                     const SizedBox(height: 12),
 
                     // Completely Empty State
@@ -473,7 +514,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                           if (isWide) {
                             final cols = constraints.maxWidth >= 1000 ? 3 : 2;
                             final gap = 12.0;
-                            final cardWidth = (constraints.maxWidth - gap * (cols - 1)) / cols - 0.1;
+                            final cardWidth =
+                                (constraints.maxWidth - gap * (cols - 1)) /
+                                    cols -
+                                0.1;
                             return Wrap(
                               spacing: gap,
                               runSpacing: gap,
@@ -489,10 +533,12 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                           }
                           return Column(
                             children: active
-                                .map((item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: _CoverageCard(item: item),
-                                    ))
+                                .map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _CoverageCard(item: item),
+                                  ),
+                                )
                                 .toList(),
                           );
                         },
@@ -531,7 +577,8 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                                 children: idle
                                     .map(
                                       (i) => Pill(
-                                        text: '${i.name} · ${fmtInt(i.frozenQty)} adet',
+                                        text:
+                                            '${i.name} · ${fmtInt(i.frozenQty)} adet',
                                         color: t.muted,
                                       ),
                                     )
@@ -560,6 +607,25 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
 
   Widget _buildHeader(BuildContext context) {
     final t = context.tokens;
+    final mobile = AppShellScope.isMobile(context);
+    if (mobile) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          _HeaderAction(
+            icon: Icons.file_download_outlined,
+            label: 'Excel',
+            onTap: _exportExcel,
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: 'Sırala ve filtrele',
+            onPressed: _showSortDialog,
+            icon: const Icon(Icons.tune, size: 19),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -582,11 +648,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     color: t.bg,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.arrow_back,
-                    size: 20,
-                    color: t.ink,
-                  ),
+                  child: Icon(Icons.arrow_back, size: 20, color: t.ink),
                 ),
               ),
             ),
@@ -609,7 +671,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                 onTap: _exportExcel,
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -643,11 +708,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   width: 32,
                   height: 32,
                   alignment: Alignment.center,
-                  child: Icon(
-                    Icons.tune,
-                    size: 18,
-                    color: t.muted,
-                  ),
+                  child: Icon(Icons.tune, size: 18, color: t.muted),
                 ),
               ),
             ),
@@ -684,11 +745,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               color: t.danger.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.warning_rounded,
-              color: t.dangerStrong,
-              size: 20,
-            ),
+            child: Icon(Icons.warning_rounded, color: t.dangerStrong, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -707,11 +764,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                 const SizedBox(height: 3),
                 Text(
                   'Sipariş verilmesi gerekebilir. Kritik stoklar bugün tükenebilir.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: t.muted,
-                    height: 1.25,
-                  ),
+                  style: TextStyle(fontSize: 12, color: t.muted, height: 1.25),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
@@ -823,10 +876,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                         '$days gün',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                          color: selected
-                              ? t.primary
-                              : t.muted,
+                          fontWeight: selected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: selected ? t.primary : t.muted,
                         ),
                       ),
                     ),
@@ -845,7 +898,11 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
     );
   }
 
-  Widget _buildSearchAndFilters(int stokYokCount, int kritikCount, int yeterliCount) {
+  Widget _buildSearchAndFilters(
+    int stokYokCount,
+    int kritikCount,
+    int yeterliCount,
+  ) {
     final t = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -864,11 +921,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
             decoration: InputDecoration(
               hintText: 'Ürün veya kategori ara...',
               hintStyle: TextStyle(fontSize: 14, color: t.muted),
-              prefixIcon: Icon(
-                Icons.search,
-                size: 20,
-                color: t.muted,
-              ),
+              prefixIcon: Icon(Icons.search, size: 20, color: t.muted),
               suffixIcon: _query.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.close, size: 16),
@@ -879,7 +932,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
         ),
@@ -914,9 +970,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
         decoration: BoxDecoration(
           color: selected ? t.primary : t.bg,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? t.primary : t.border,
-          ),
+          border: Border.all(color: selected ? t.primary : t.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -966,11 +1020,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               color: t.primarySoft,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.inventory_2_outlined,
-              size: 28,
-              color: t.primary,
-            ),
+            child: Icon(Icons.inventory_2_outlined, size: 28, color: t.primary),
           ),
           const SizedBox(height: 12),
           Text(
@@ -1020,9 +1070,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: t.card,
-        border: Border(
-          top: BorderSide(color: t.border, width: 1),
-        ),
+        border: Border(top: BorderSide(color: t.border, width: 1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1090,7 +1138,9 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   ? () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Şu an acil sipariş gerektiren kritik ürün bulunmuyor.'),
+                          content: const Text(
+                            'Şu an acil sipariş gerektiren kritik ürün bulunmuyor.',
+                          ),
                           backgroundColor: t.primary,
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -1108,11 +1158,57 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               icon: const Icon(Icons.assignment_add, size: 20),
               label: Text(
                 'Otomatik Sipariş Taslağı Oluştur (${urgentItems.length} Kalem)',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Material(
+      color: t.primarySoft,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: t.primary),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: t.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1125,7 +1221,9 @@ class _CoverageCard extends StatelessWidget {
 
   static IconData _iconFor(String name) {
     final n = name.toLowerCase();
-    if (n.contains('cookie') || n.contains('kurabiye')) return Icons.cookie_outlined;
+    if (n.contains('cookie') || n.contains('kurabiye')) {
+      return Icons.cookie_outlined;
+    }
     if (n.contains('muffin') ||
         n.contains('kek') ||
         n.contains('pasta') ||
@@ -1144,7 +1242,9 @@ class _CoverageCard extends StatelessWidget {
         n.contains('kahvaltı')) {
       return Icons.breakfast_dining_outlined;
     }
-    if (n.contains('cup') || n.contains('dondurma')) return Icons.icecream_outlined;
+    if (n.contains('cup') || n.contains('dondurma')) {
+      return Icons.icecream_outlined;
+    }
     if (n.contains('kahve') ||
         n.contains('çay') ||
         n.contains('latte') ||
@@ -1199,16 +1299,16 @@ class _CoverageCard extends StatelessWidget {
     final coverText = cover == null
         ? '-'
         : cover < 1
-            ? 'bugün biter'
-            : '${cover.toStringAsFixed(cover < 10 ? 1 : 0)} gün';
+        ? 'bugün biter'
+        : '${cover.toStringAsFixed(cover < 10 ? 1 : 0)} gün';
 
     final coverColor = cover == null
         ? t.ink
         : cover < 1
-            ? t.danger
-            : cover < 7
-                ? t.warning
-                : t.primary;
+        ? t.danger
+        : cover < 7
+        ? t.warning
+        : t.primary;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1231,11 +1331,7 @@ class _CoverageCard extends StatelessWidget {
                   color: t.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  _iconFor(item.name),
-                  size: 20,
-                  color: t.primary,
-                ),
+                child: Icon(_iconFor(item.name), size: 20, color: t.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1254,10 +1350,7 @@ class _CoverageCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${_categoryFor(item.name)} · SKU: ${_skuFor(item)}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: t.muted,
-                      ),
+                      style: TextStyle(fontSize: 11, color: t.muted),
                     ),
                   ],
                 ),
@@ -1318,9 +1411,7 @@ class _CoverageCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: item.frozenQty == 0
-                              ? t.danger
-                              : t.primary,
+                          color: item.frozenQty == 0 ? t.danger : t.primary,
                         ),
                       ),
                     ],

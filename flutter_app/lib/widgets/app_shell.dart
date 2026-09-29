@@ -20,6 +20,7 @@ import 'qr_action_menu.dart';
 import 'avatar.dart';
 import 'notification_bell.dart';
 import 'scrim.dart';
+import 'shell_scope.dart';
 import 'shortcut_fab.dart';
 
 /// Kirilma noktalari React tarafiyla ayni:
@@ -176,106 +177,115 @@ class _AppShellState extends State<AppShell> {
     final section = resolved ?? _lastSection;
     final groups = navGroupsFor(user, section);
 
-    return PopScope(
-      canPop: !_qrOpen,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _qrOpen) setState(() => _qrOpen = false);
-      },
-      child: Scaffold(
-        backgroundColor: t.bg,
-        // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
-        // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
-        // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
-        bottomNavigationBar: wide
-            ? null
-            : _BottomBar(
-                qrOpen: _qrOpen,
-                onQr: _qrBusy ? null : _toggleQr,
-                onNavigate: () => setState(() => _qrOpen = false),
-                location: location,
-                section: section,
-                sections: sections,
-                groups: groups,
-                recommendationCount: _recommendationCount,
-                onSection: _goSection,
-              ),
-        // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
-        //
-        // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
-        // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
-        // giris/mola dugmelerinin uzerine geliyordu.
-        floatingActionButton: section == AppSection.operations
-            ? ShortcutFab(
-                bottomInset: wide ? 0 : kBottomBarHeight,
-                // Bulunulan yol: modul icinde dugme o modulun islemine doner.
-                location: location,
-              )
-            : null,
-        body: SafeArea(
-          child: Row(
-            children: [
-              if (wide)
-                _SideNav(
-                  groups: groups,
-                  sections: sections,
-                  section: section,
+    return AppShellScope(
+      mobile: !wide,
+      child: PopScope(
+        canPop: !_qrOpen,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _qrOpen) setState(() => _qrOpen = false);
+        },
+        child: Scaffold(
+          backgroundColor: t.bg,
+          // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
+          // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
+          // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
+          bottomNavigationBar: wide
+              ? null
+              : _BottomBar(
+                  qrOpen: _qrOpen,
+                  onQr: _qrBusy ? null : _toggleQr,
+                  onNavigate: () => setState(() => _qrOpen = false),
                   location: location,
-                  rail: _isRail(width),
+                  section: section,
+                  sections: sections,
+                  groups: groups,
+                  recommendationCount: _recommendationCount,
                   onSection: _goSection,
-                  onToggleRail: () =>
-                      setState(() => _railOverride = !_isRail(width)),
                 ),
-              Expanded(
-                child: Column(
-                  children: [
-                    _TopBar(
-                      okunmamis: _bildirimler.okunmamis,
-                      // Telefonda hamburger yok: menu alt cubuktan aciliyor.
-                      // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
-                      // arasinda nerede oldugun belli olsun.
-                      sectionLabel: wide
-                          ? null
-                          : (pageTitle ??
-                                sections
-                                    .where((s) => s.id == section)
-                                    .map((s) => s.label)
-                                    .firstOrNull),
-                    ),
-                    Expanded(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 1440),
-                              child: Padding(
-                                padding: EdgeInsets.all(
-                                  width < 641 ? 12 : (width < 900 ? 16 : 18),
+          // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
+          //
+          // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
+          // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
+          // giris/mola dugmelerinin uzerine geliyordu.
+          floatingActionButton: section == AppSection.operations
+              ? ShortcutFab(
+                  bottomInset: wide ? 0 : kBottomBarHeight,
+                  // Bulunulan yol: modul icinde dugme o modulun islemine doner.
+                  location: location,
+                )
+              : null,
+          body: SafeArea(
+            child: Row(
+              children: [
+                if (wide)
+                  _SideNav(
+                    groups: groups,
+                    sections: sections,
+                    section: section,
+                    location: location,
+                    rail: _isRail(width),
+                    onSection: _goSection,
+                    onToggleRail: () =>
+                        setState(() => _railOverride = !_isRail(width)),
+                  ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _TopBar(
+                        okunmamis: _bildirimler.okunmamis,
+                        // Telefonda hamburger yok: menu alt cubuktan aciliyor.
+                        // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
+                        // arasinda nerede oldugun belli olsun.
+                        sectionLabel: wide
+                            ? null
+                            : (pageTitle ??
+                                  sections
+                                      .where((s) => s.id == section)
+                                      .map((s) => s.label)
+                                      .firstOrNull),
+                      ),
+                      Expanded(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Align(
+                              alignment: Alignment.topCenter,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 1440,
                                 ),
-                                child: widget.child,
+                                child: Padding(
+                                  padding: EdgeInsets.all(
+                                    width < 360
+                                        ? 8
+                                        : (width < 641
+                                              ? 10
+                                              : (width < 900 ? 16 : 18)),
+                                  ),
+                                  child: widget.child,
+                                ),
                               ),
                             ),
-                          ),
-                          if (_qrOpen && !wide)
-                            QrActionMenu(
-                              status: _qrStatus,
-                              error: _qrError,
-                              onClose: () => setState(() => _qrOpen = false),
-                              onShift: () => _chooseQr(false),
-                              onBreak: () => _chooseQr(true),
-                              onRetry: () {
-                                setState(() => _qrOpen = false);
-                                _toggleQr();
-                              },
-                            ),
-                        ],
+                            if (_qrOpen && !wide)
+                              QrActionMenu(
+                                status: _qrStatus,
+                                error: _qrError,
+                                onClose: () => setState(() => _qrOpen = false),
+                                onShift: () => _chooseQr(false),
+                                onBreak: () => _chooseQr(true),
+                                onRetry: () {
+                                  setState(() => _qrOpen = false);
+                                  _toggleQr();
+                                },
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -777,12 +787,13 @@ class _MobileTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final compact = MediaQuery.sizeOf(context).width < 380;
     final storeName = (user?.storeName?.trim().isNotEmpty ?? false)
         ? user!.storeName!.toUpperCase()
         : 'MERKEZ ŞUBE';
     return Container(
       height: 118,
-      padding: const EdgeInsets.fromLTRB(18, 13, 13, 12),
+      padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 13, compact ? 8 : 13, 12),
       decoration: BoxDecoration(
         color: t.card,
         border: Border(bottom: BorderSide(color: t.border)),
@@ -825,14 +836,15 @@ class _MobileTopBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Text(
-                      '  · Online',
-                      style: TextStyle(
-                        color: t.muted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
+                    if (!compact)
+                      Text(
+                        '  · Online',
+                        style: TextStyle(
+                          color: t.muted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 7),
@@ -842,7 +854,7 @@ class _MobileTopBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: t.ink,
-                    fontSize: 24,
+                    fontSize: compact ? 20 : 24,
                     height: 1,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -.7,
@@ -858,38 +870,40 @@ class _MobileTopBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: t.muted,
-                          fontSize: 13.5,
+                          fontSize: compact ? 12 : 13.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    Container(
-                      width: 5,
-                      height: 5,
-                      margin: const EdgeInsets.symmetric(horizontal: 6),
-                      decoration: BoxDecoration(
-                        color: t.border,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        roleLabels[user?.role] ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: t.primary,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                    if (!compact)
+                      Container(
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: t.border,
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
+                    if (!compact)
+                      Flexible(
+                        child: Text(
+                          roleLabels[user?.role] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: t.primary,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: compact ? 3 : 6),
           _HeaderCircle(
             tooltip: 'Bildirimler',
             onTap: () => showNotificationSheet(context),
@@ -933,7 +947,7 @@ class _MobileTopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 7),
+          SizedBox(width: compact ? 3 : 7),
           _HeaderCircle(
             tooltip: 'Çıkış yap',
             onTap: () => confirmSignOut(context),
@@ -943,7 +957,7 @@ class _MobileTopBar extends StatelessWidget {
               size: 21,
             ),
           ),
-          const SizedBox(width: 9),
+          SizedBox(width: compact ? 4 : 9),
           Semantics(
             button: true,
             label: 'Profilim',
@@ -959,7 +973,7 @@ class _MobileTopBar extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: t.primary, width: 1.5),
                     ),
-                    child: Avatar(user: user, size: 35),
+                    child: Avatar(user: user, size: compact ? 31 : 35),
                   ),
                   Positioned(
                     right: 0,

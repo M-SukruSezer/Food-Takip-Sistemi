@@ -4,6 +4,8 @@ import 'package:foodtakip/core/session.dart';
 import 'package:foodtakip/core/tokens.dart';
 import 'package:foodtakip/models/user.dart';
 import 'package:foodtakip/widgets/app_shell.dart';
+import 'package:foodtakip/widgets/crud_scaffold.dart';
+import 'package:foodtakip/widgets/shell_scope.dart';
 import 'package:go_router/go_router.dart';
 
 /// Kabugun kirilma noktalarini olcer: React tarafinda tarayicida olctugumuz
@@ -63,6 +65,41 @@ void main() {
     // Cekmece kapali oldugu icin kenar menu agacta olmamali.
     expect(find.text('Saha Takip'), findsNothing);
     expect(find.byIcon(Icons.menu), findsOneWidget);
+  });
+
+  testWidgets('dar telefon (320): üst bar ve alt menü taşmıyor', (
+    tester,
+  ) async {
+    await _pumpShell(tester, const Size(320, 700));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Ana Sayfa'), findsWidgets);
+    expect(find.byKey(bottomBarKey), findsOneWidget);
+  });
+
+  testWidgets('mobil CrudScaffold sayfa başlığını içerikte tekrarlamıyor', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(Brightness.light),
+        home: AppShellScope(
+          mobile: true,
+          child: CrudScaffold(
+            title: 'Devam Yönetimi',
+            loaded: true,
+            error: null,
+            onRetry: () {},
+            onRefresh: () async {},
+            children: const [Text('İçerik')],
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Devam Yönetimi'), findsNothing);
+    expect(find.text('İçerik'), findsOneWidget);
   });
 
   testWidgets('tablet dikey (768): alt cubuk var', (tester) async {

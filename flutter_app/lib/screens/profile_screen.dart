@@ -16,6 +16,7 @@ import '../core/tokens.dart';
 import '../widgets/avatar.dart';
 import '../widgets/panels.dart';
 import '../widgets/login_branding_editor.dart';
+import '../widgets/shell_scope.dart';
 
 /// Profil: fotograf, kullanici bilgisi, tema secimi ve sifre degistirme.
 class ProfileScreen extends StatefulWidget {
@@ -136,74 +137,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final user = session.user;
+    final mobile = AppShellScope.isMobile(context);
     if (user == null) return const SizedBox.shrink();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         // 1. Üst Başlık & Durum
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Profil & Sistem Ayarları',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: t.ink,
-                        letterSpacing: -0.5,
+        if (!mobile)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profil & Sistem Ayarları',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: t.ink,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Kişisel hesap tercihleri ve uygulama ayarları',
-                      style: TextStyle(fontSize: 12, color: t.muted),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: t.successSoft,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: t.success.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: t.success,
+                      const SizedBox(height: 3),
+                      Text(
+                        'Kişisel hesap tercihleri ve uygulama ayarları',
+                        style: TextStyle(fontSize: 12, color: t.muted),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Senkronize',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: t.okText,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.successSoft,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: t.success.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: t.success,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Senkronize',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: t.okText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
 
         // 2. Kullanıcı Profil Kartı
         AppCard(

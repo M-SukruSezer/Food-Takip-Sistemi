@@ -11,6 +11,7 @@ import '../models/dashboard.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import '../widgets/search_field.dart';
+import '../widgets/shell_scope.dart';
 import 'batch_dialogs.dart';
 
 /// Ürünler / Stok ekranı.
@@ -85,11 +86,14 @@ class _BatchesScreenState extends State<BatchesScreen> {
     }
 
     // İstatistik sayılarını güvenli çek; testlerde fakeApi dashboard mocklamamışsa çökmez.
-    repo.dashboard(silent: true).then((d) {
-      if (mounted) {
-        setState(() => _counts = d.counts);
-      }
-    }).catchError((_) {});
+    repo
+        .dashboard(silent: true)
+        .then((d) {
+          if (mounted) {
+            setState(() => _counts = d.counts);
+          }
+        })
+        .catchError((_) {});
   }
 
   bool _matchesCategory(Batch b, String category) {
@@ -97,15 +101,24 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final name = b.productName.toLowerCase();
     switch (category) {
       case 'Kruvasan & Açma':
-        return name.contains('kruvasan') || name.contains('açma') || name.contains('acma');
+        return name.contains('kruvasan') ||
+            name.contains('açma') ||
+            name.contains('acma');
       case 'Cheesecake':
         return name.contains('cheesecake') || name.contains('kek');
       case 'Pasta & Kek':
-        return name.contains('pasta') || name.contains('kek') || name.contains('tart');
+        return name.contains('pasta') ||
+            name.contains('kek') ||
+            name.contains('tart');
       case 'Sandviç':
-        return name.contains('sandviç') || name.contains('sandvic') || name.contains('tost');
+        return name.contains('sandviç') ||
+            name.contains('sandvic') ||
+            name.contains('tost');
       case 'Börek & Poğaça':
-        return name.contains('börek') || name.contains('borek') || name.contains('poğaça') || name.contains('pogaca');
+        return name.contains('börek') ||
+            name.contains('borek') ||
+            name.contains('poğaça') ||
+            name.contains('pogaca');
       default:
         return true;
     }
@@ -114,7 +127,9 @@ class _BatchesScreenState extends State<BatchesScreen> {
   List<Batch> get _shown {
     final searchFiltered = filterBatches(_items, _search);
     if (_selectedCategory == 'Tümü') return searchFiltered;
-    return searchFiltered.where((b) => _matchesCategory(b, _selectedCategory)).toList();
+    return searchFiltered
+        .where((b) => _matchesCategory(b, _selectedCategory))
+        .toList();
   }
 
   Future<void> _after(Future<bool?> action) async {
@@ -164,6 +179,8 @@ class _BatchesScreenState extends State<BatchesScreen> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final isSuper = session.user?.isSuperAdmin ?? false;
+    final mobile = AppShellScope.isMobile(context);
+    final sidePadding = MediaQuery.sizeOf(context).width < 390 ? 4.0 : 8.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -172,237 +189,316 @@ class _BatchesScreenState extends State<BatchesScreen> {
           child: !_loaded
               ? const SizedBox.shrink()
               : _error != null && _items.isEmpty
-                  ? Center(
-                      child: AppCard(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AppAlert(message: _error!),
-                            const SizedBox(height: 12),
-                            FilledButton(
-                              onPressed: () => _load(),
-                              child: const Text('Tekrar Dene'),
-                            ),
-                          ],
+              ? Center(
+                  child: AppCard(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppAlert(message: _error!),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () => _load(),
+                          child: const Text('Tekrar Dene'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _load(silent: true),
+                  child: CustomScrollView(
+                    slivers: [
+                      // 1. Üst Başlık & İstatistik Özet Kartları & Sekmeler
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            sidePadding,
+                            mobile ? 0 : 12,
+                            sidePadding,
+                            8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!mobile) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Ürünler',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.4,
+                                          color: t.ink,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+
+                              // 4 Metrik Gösterge Kartı (2x2 Grid)
+                              _StatsGrid(counts: _counts),
+                              const SizedBox(height: 14),
+
+                              // 4 Sekme Butonu
+                              _TabBar(
+                                tabs: _tabs,
+                                index: _tab,
+                                counts: _counts,
+                                onChanged: (i) {
+                                  setState(() {
+                                    _tab = i;
+                                    _loaded = false;
+                                    _items = const [];
+                                  });
+                                  _load();
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => _load(silent: true),
-                      child: CustomScrollView(
-                        slivers: [
-                          // 1. Üst Başlık & İstatistik Özet Kartları & Sekmeler
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // Başlık satırı
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Ürünler',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.4,
-                                            color: t.ink,
-                                          ),
+
+                      // 2. SABİT Arama Kutusu
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _AramaBasligi(
+                          child: ProductSearchField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() => _search = v),
+                            onClear: () {
+                              _searchController.clear();
+                              setState(() => _search = '');
+                            },
+                            filtering: _search.trim().isNotEmpty,
+                          ),
+                          zemin: t.bg,
+                        ),
+                      ),
+
+                      // 3. Kategori Filtre Çipleri
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            sidePadding,
+                            6,
+                            sidePadding,
+                            10,
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: _categories.map((cat) {
+                                final selected = _selectedCategory == cat;
+                                final count = cat == 'Tümü'
+                                    ? _items.length
+                                    : _items
+                                          .where(
+                                            (b) => _matchesCategory(b, cat),
+                                          )
+                                          .length;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(999),
+                                    onTap: () =>
+                                        setState(() => _selectedCategory = cat),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: selected ? t.primary : t.card,
+                                        border: Border.all(
+                                          color: selected
+                                              ? t.primary
+                                              : t.border,
+                                          width: 1.2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                        boxShadow: selected
+                                            ? [
+                                                BoxShadow(
+                                                  color: t.primary.withValues(
+                                                    alpha: 0.2,
+                                                  ),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        '$cat ($count)',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: selected
+                                              ? FontWeight.w700
+                                              : FontWeight.w600,
+                                          color: selected
+                                              ? t.onPrimary
+                                              : t.muted,
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 14),
-
-                                  // 4 Metrik Gösterge Kartı (2x2 Grid)
-                                  _StatsGrid(counts: _counts),
-                                  const SizedBox(height: 14),
-
-                                  // 4 Sekme Butonu
-                                  _TabBar(
-                                    tabs: _tabs,
-                                    index: _tab,
-                                    counts: _counts,
-                                    onChanged: (i) {
-                                      setState(() {
-                                        _tab = i;
-                                        _loaded = false;
-                                        _items = const [];
-                                      });
-                                      _load();
-                                    },
-                                  ),
-                                ],
-                              ),
+                                );
+                              }).toList(),
                             ),
                           ),
+                        ),
+                      ),
 
-                          // 2. SABİT Arama Kutusu
-                          SliverPersistentHeader(
-                            pinned: true,
-                            delegate: _AramaBasligi(
-                              child: ProductSearchField(
-                                controller: _searchController,
-                                onChanged: (v) => setState(() => _search = v),
-                                onClear: () {
-                                  _searchController.clear();
-                                  setState(() => _search = '');
-                                },
-                                filtering: _search.trim().isNotEmpty,
-                              ),
-                              zemin: t.bg,
-                            ),
+                      // 4. Protokol Bilgi Kutusu
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            sidePadding,
+                            0,
+                            sidePadding,
+                            12,
                           ),
+                          child: _ProtocolBanner(tabIndex: _tab),
+                        ),
+                      ),
 
-                          // 3. Kategori Filtre Çipleri
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(),
-                                child: Row(
-                                  children: _categories.map((cat) {
-                                    final selected = _selectedCategory == cat;
-                                    final count = cat == 'Tümü'
-                                        ? _items.length
-                                        : _items.where((b) => _matchesCategory(b, cat)).length;
-                                    return Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(999),
-                                        onTap: () => setState(() => _selectedCategory = cat),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(milliseconds: 180),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: selected ? t.primary : t.card,
-                                            border: Border.all(
-                                              color: selected ? t.primary : t.border,
-                                              width: 1.2,
-                                            ),
-                                            borderRadius: BorderRadius.circular(999),
-                                            boxShadow: selected
-                                                ? [
-                                                    BoxShadow(
-                                                      color: t.primary.withValues(alpha: 0.2),
-                                                      blurRadius: 6,
-                                                      offset: const Offset(0, 2),
-                                                    )
-                                                  ]
-                                                : null,
-                                          ),
-                                          child: Text(
-                                            '$cat ($count)',
-                                            style: TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                                              color: selected ? t.onPrimary : t.muted,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
+                      // 5. Ürün Kartları Listesi
+                      if (_shown.isEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: sidePadding,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: t.card,
+                                border: Border.all(color: t.border),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _items.isEmpty
+                                    ? 'Bu sekmede kayıt bulunamadı.'
+                                    : '"$_search" ile eşleşen ürün bulunamadı.',
+                                style: TextStyle(
+                                  color: t.muted,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
                           ),
-
-                          // 4. Protokol Bilgi Kutusu
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                              child: _ProtocolBanner(tabIndex: _tab),
+                        )
+                      else ...[
+                        if (MediaQuery.sizeOf(context).width < 641)
+                          SliverPadding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: sidePadding,
                             ),
-                          ),
-
-                          // 5. Ürün Kartları Listesi
-                          if (_shown.isEmpty)
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: t.card,
-                                    border: Border.all(color: t.border),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    _items.isEmpty
-                                        ? 'Bu sekmede kayıt bulunamadı.'
-                                        : '"$_search" ile eşleşen ürün bulunamadı.',
-                                    style: TextStyle(color: t.muted, fontSize: 14, fontWeight: FontWeight.w500),
-                                  ),
+                            sliver: SliverList.separated(
+                              itemCount: _shown.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, i) => _BatchCard(
+                                batch: _shown[i],
+                                showStore: isSuper,
+                                canAdjust:
+                                    session.user?.can('adjust_batches') ??
+                                    false,
+                                canDiscard:
+                                    session.user?.can('discard') ?? false,
+                                canDelete: session.user?.isSuperAdmin ?? false,
+                                onDetail: () =>
+                                    showBatchDetail(context, _shown[i]),
+                                onAdjust: () => _after(
+                                  showAdjustDialog(context, _shown[i]),
                                 ),
+                                onThaw: () =>
+                                    _after(showThawDialog(context, _shown[i])),
+                                onCompleteThaw: () => _completeThaw(_shown[i]),
+                                onAddStock: () => _after(
+                                  showStockAddDialog(context, _shown[i]),
+                                ),
+                                onEarlyRequest: () => _after(
+                                  showEarlyRequestDialog(context, _shown[i]),
+                                ),
+                                onDiscard: () => _after(
+                                  showDiscardDialog(context, _shown[i]),
+                                ),
+                                onCorrectThaw: () => _after(
+                                  showCorrectThawDialog(context, _shown[i]),
+                                ),
+                                onDelete: () => _deleteBatch(_shown[i]),
                               ),
-                            )
-                          else ...[
-                            if (MediaQuery.sizeOf(context).width < 641)
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                sliver: SliverList.separated(
-                                  itemCount: _shown.length,
-                                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                                  itemBuilder: (context, i) => _BatchCard(
-                                    batch: _shown[i],
-                                    showStore: isSuper,
-                                    canAdjust: session.user?.can('adjust_batches') ?? false,
-                                    canDiscard: session.user?.can('discard') ?? false,
-                                    canDelete: session.user?.isSuperAdmin ?? false,
-                                    onDetail: () => showBatchDetail(context, _shown[i]),
-                                    onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
-                                    onThaw: () => _after(showThawDialog(context, _shown[i])),
-                                    onCompleteThaw: () => _completeThaw(_shown[i]),
-                                    onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
-                                    onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
-                                    onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
-                                    onCorrectThaw: () => _after(showCorrectThawDialog(context, _shown[i])),
-                                    onDelete: () => _deleteBatch(_shown[i]),
-                                  ),
-                                ),
-                              )
-                            else
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                sliver: SliverGrid(
-                                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
                                     maxCrossAxisExtent: 460,
                                     mainAxisSpacing: 12,
                                     crossAxisSpacing: 12,
                                     mainAxisExtent: 195,
                                   ),
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, i) => _BatchCard(
-                                      batch: _shown[i],
-                                      showStore: isSuper,
-                                      canAdjust: session.user?.can('adjust_batches') ?? false,
-                                      canDiscard: session.user?.can('discard') ?? false,
-                                      canDelete: session.user?.isSuperAdmin ?? false,
-                                      onDetail: () => showBatchDetail(context, _shown[i]),
-                                      onAdjust: () => _after(showAdjustDialog(context, _shown[i])),
-                                      onThaw: () => _after(showThawDialog(context, _shown[i])),
-                                      onCompleteThaw: () => _completeThaw(_shown[i]),
-                                      onAddStock: () => _after(showStockAddDialog(context, _shown[i])),
-                                      onEarlyRequest: () => _after(showEarlyRequestDialog(context, _shown[i])),
-                                      onDiscard: () => _after(showDiscardDialog(context, _shown[i])),
-                                      onCorrectThaw: () => _after(showCorrectThawDialog(context, _shown[i])),
-                                      onDelete: () => _deleteBatch(_shown[i]),
-                                    ),
-                                    childCount: _shown.length,
+                              delegate: SliverChildBuilderDelegate(
+                                (context, i) => _BatchCard(
+                                  batch: _shown[i],
+                                  showStore: isSuper,
+                                  canAdjust:
+                                      session.user?.can('adjust_batches') ??
+                                      false,
+                                  canDiscard:
+                                      session.user?.can('discard') ?? false,
+                                  canDelete:
+                                      session.user?.isSuperAdmin ?? false,
+                                  onDetail: () =>
+                                      showBatchDetail(context, _shown[i]),
+                                  onAdjust: () => _after(
+                                    showAdjustDialog(context, _shown[i]),
                                   ),
+                                  onThaw: () => _after(
+                                    showThawDialog(context, _shown[i]),
+                                  ),
+                                  onCompleteThaw: () =>
+                                      _completeThaw(_shown[i]),
+                                  onAddStock: () => _after(
+                                    showStockAddDialog(context, _shown[i]),
+                                  ),
+                                  onEarlyRequest: () => _after(
+                                    showEarlyRequestDialog(context, _shown[i]),
+                                  ),
+                                  onDiscard: () => _after(
+                                    showDiscardDialog(context, _shown[i]),
+                                  ),
+                                  onCorrectThaw: () => _after(
+                                    showCorrectThawDialog(context, _shown[i]),
+                                  ),
+                                  onDelete: () => _deleteBatch(_shown[i]),
                                 ),
+                                childCount: _shown.length,
                               ),
-                          ],
+                            ),
+                          ),
+                      ],
 
-                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        ],
-                      ),
-                    ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    ],
+                  ),
+                ),
         ),
       ],
     );
@@ -472,7 +568,9 @@ class _StatsGrid extends StatelessWidget {
           icon: Icons.warning_amber_rounded,
           iconBg: const Color(0xFFFFE4E6),
           iconColor: const Color(0xFFE11D48),
-          footerColor: criticalQty > 0 ? const Color(0xFFE11D48) : const Color(0xFF16A34A),
+          footerColor: criticalQty > 0
+              ? const Color(0xFFE11D48)
+              : const Color(0xFF16A34A),
           boldFooter: true,
         ),
       ],
@@ -637,7 +735,7 @@ class _TabBar extends StatelessWidget {
                         color: t.primary.withValues(alpha: 0.25),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -664,7 +762,10 @@ class _TabBar extends StatelessWidget {
                 if (badge != null && badge > 0) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: active ? t.primaryDark : t.primarySoft,
                       borderRadius: BorderRadius.circular(999),
@@ -715,7 +816,8 @@ class _ProtocolBanner extends StatelessWidget {
         break;
       default:
         title = 'Geçmiş Satış & Zayi Kayıtları';
-        desc = 'Daha önce satılan veya zayi girişi yapılan partilerin arşividir.';
+        desc =
+            'Daha önce satılan veya zayi girişi yapılan partilerin arşividir.';
     }
 
     return Container(
@@ -802,15 +904,31 @@ class _BatchCard extends StatelessWidget {
     final t = context.tokens;
     if (batch.status == 'food_cabinet') {
       return switch (batch.urgency) {
-        'expired' => (text: 'SKT Geçti', bg: t.dangerSoft, textColor: t.dangerStrong),
-        'critical' => (text: 'SON GÜN', bg: t.dangerSoft, textColor: t.dangerStrong),
-        'warning' => (text: 'Son 2 Gün', bg: t.warningSoft, textColor: t.warningText),
+        'expired' => (
+          text: 'SKT Geçti',
+          bg: t.dangerSoft,
+          textColor: t.dangerStrong,
+        ),
+        'critical' => (
+          text: 'SON GÜN',
+          bg: t.dangerSoft,
+          textColor: t.dangerStrong,
+        ),
+        'warning' => (
+          text: 'Son 2 Gün',
+          bg: t.warningSoft,
+          textColor: t.warningText,
+        ),
         _ => (text: 'Food Dolabı', bg: t.successSoft, textColor: t.success),
       };
     }
     return switch (batch.status) {
       'frozen' => (text: 'Donuk Depo', bg: t.infoSoft, textColor: t.info),
-      'thawing' => (text: 'Çözülmede', bg: t.warningSoft, textColor: t.warningText),
+      'thawing' => (
+        text: 'Çözülmede',
+        bg: t.warningSoft,
+        textColor: t.warningText,
+      ),
       'sold' => (text: 'Satıldı', bg: t.successSoft, textColor: t.success),
       'discarded' => (text: 'Zayi', bg: t.border, textColor: t.muted),
       _ => (text: batch.status, bg: t.border, textColor: t.muted),
@@ -821,96 +939,106 @@ class _BatchCard extends StatelessWidget {
     final t = context.tokens;
     return switch (action) {
       BatchAction.thaw => FilledButton.icon(
-          onPressed: onThaw,
-          icon: const Icon(Icons.ac_unit_rounded, size: 17),
-          label: const Text('Çözülmeye Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-          style: FilledButton.styleFrom(
-            backgroundColor: t.primary,
-            foregroundColor: t.onPrimary,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+        onPressed: onThaw,
+        icon: const Icon(Icons.ac_unit_rounded, size: 17),
+        label: const Text(
+          'Çözülmeye Al',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
         ),
-      BatchAction.completeThaw => FilledButton.icon(
-          onPressed: onCompleteThaw,
-          icon: const Icon(Icons.kitchen_outlined, size: 17),
-          label: const Text('Food Dolabına Al', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-          style: FilledButton.styleFrom(
-            backgroundColor: t.primary600,
-            foregroundColor: t.onPrimary,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-      BatchAction.awaitingApproval => Container(
-          height: 42,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: t.warningSoft,
+        style: FilledButton.styleFrom(
+          backgroundColor: t.primary,
+          foregroundColor: t.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: t.warning.withValues(alpha: 0.3)),
-          ),
-          child: Text(
-            'Onay Bekliyor',
-            style: TextStyle(
-              color: t.warningText,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
           ),
         ),
+      ),
+      BatchAction.completeThaw => FilledButton.icon(
+        onPressed: onCompleteThaw,
+        icon: const Icon(Icons.kitchen_outlined, size: 17),
+        label: const Text(
+          'Food Dolabına Al',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+        ),
+        style: FilledButton.styleFrom(
+          backgroundColor: t.primary600,
+          foregroundColor: t.onPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      BatchAction.awaitingApproval => Container(
+        height: 42,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: t.warningSoft,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: t.warning.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          'Onay Bekliyor',
+          style: TextStyle(
+            color: t.warningText,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
+      ),
       _ => null,
     };
   }
 
   _MenuEntry _entry(BatchAction a) => switch (a) {
-        BatchAction.detail => (
-            label: 'Detay',
-            icon: Icons.info_outline_rounded,
-            danger: false,
-            onTap: onDetail,
-          ),
-        BatchAction.adjust => (
-            label: 'Tarih / Adet Düzelt',
-            icon: Icons.edit_outlined,
-            danger: false,
-            onTap: onAdjust,
-          ),
-        BatchAction.addStock => (
-            label: 'Stok Ekle',
-            icon: Icons.add_box_outlined,
-            danger: false,
-            onTap: onAddStock,
-          ),
-        BatchAction.earlyRequest => (
-            label: 'Erken Aktarım İste (${formatHours(batch.thawRemainingHours)})',
-            icon: Icons.hourglass_bottom_rounded,
-            danger: false,
-            onTap: onEarlyRequest,
-          ),
-        BatchAction.discard => (
-            label: 'Zayi Gir',
-            icon: Icons.delete_outline_rounded,
-            danger: true,
-            onTap: onDiscard,
-          ),
-        BatchAction.correctThaw => (
-            label: 'Çözülme Adedini Düzelt',
-            icon: Icons.undo_rounded,
-            danger: false,
-            onTap: onCorrectThaw,
-          ),
-        BatchAction.deleteBatch => (
-            label: 'Kaydı Sil',
-            icon: Icons.delete_forever_outlined,
-            danger: true,
-            onTap: onDelete,
-          ),
-        _ => (label: '-', icon: Icons.help_outline, danger: false, onTap: onDetail),
-      };
+    BatchAction.detail => (
+      label: 'Detay',
+      icon: Icons.info_outline_rounded,
+      danger: false,
+      onTap: onDetail,
+    ),
+    BatchAction.adjust => (
+      label: 'Tarih / Adet Düzelt',
+      icon: Icons.edit_outlined,
+      danger: false,
+      onTap: onAdjust,
+    ),
+    BatchAction.addStock => (
+      label: 'Stok Ekle',
+      icon: Icons.add_box_outlined,
+      danger: false,
+      onTap: onAddStock,
+    ),
+    BatchAction.earlyRequest => (
+      label: 'Erken Aktarım İste (${formatHours(batch.thawRemainingHours)})',
+      icon: Icons.hourglass_bottom_rounded,
+      danger: false,
+      onTap: onEarlyRequest,
+    ),
+    BatchAction.discard => (
+      label: 'Zayi Gir',
+      icon: Icons.delete_outline_rounded,
+      danger: true,
+      onTap: onDiscard,
+    ),
+    BatchAction.correctThaw => (
+      label: 'Çözülme Adedini Düzelt',
+      icon: Icons.undo_rounded,
+      danger: false,
+      onTap: onCorrectThaw,
+    ),
+    BatchAction.deleteBatch => (
+      label: 'Kaydı Sil',
+      icon: Icons.delete_forever_outlined,
+      danger: true,
+      onTap: onDelete,
+    ),
+    _ => (label: '-', icon: Icons.help_outline, danger: false, onTap: onDetail),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -958,7 +1086,10 @@ class _BatchCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: badge.bg,
                   borderRadius: BorderRadius.circular(999),
@@ -1135,5 +1266,6 @@ class _AramaBasligi extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(_AramaBasligi eski) => eski.child != child || eski.zemin != zemin;
+  bool shouldRebuild(_AramaBasligi eski) =>
+      eski.child != child || eski.zemin != zemin;
 }
