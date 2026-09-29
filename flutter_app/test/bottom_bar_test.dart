@@ -237,7 +237,7 @@ void main() {
   });
 
   group('Alt cubuktan acilan menu', () {
-    testWidgets('yan cekmece yok; menu alt cubugun ustunde aciliyor', (
+    testWidgets('yan cekmece yok; menu ekranin altindan aciliyor', (
       tester,
     ) async {
       await phone(tester);
@@ -253,11 +253,12 @@ void main() {
       // Yine cekmece degil.
       expect(find.byType(Drawer), findsNothing);
 
-      // Menu alt cubugun UZERINDE duruyor: tabakanin alt kenari cubugun ust
-      // kenarindan yukarida.
+      // Gercek bottom sheet: tabakanin alt kenari ekran ve alt cubukla ayni
+      // hizada, ortada yuzen bir kart degil.
       final sheetRect = tester.getRect(sheet);
       final barRect = tester.getRect(find.byKey(bottomBarKey));
-      expect(sheetRect.bottom, lessThanOrEqualTo(barRect.top));
+      expect(sheetRect.bottom, barRect.bottom);
+      expect(sheetRect.left, 0);
       await _teardown(tester);
     });
 

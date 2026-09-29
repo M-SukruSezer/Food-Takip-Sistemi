@@ -2584,35 +2584,6 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 }
 .sidebar-collapsed .side-group-rule { display: none; }
 
-/* --- Kisayol dugmesi --- */
-.fab {
-  position: fixed;
-  right: 20px;
-  /* Mobilde alt sekme cubugunun uzerinde durur. */
-  bottom: calc(20px + var(--fab-bottom, 0px));
-  z-index: 70;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(17, 24, 39, 0.28);
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.fab:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(17, 24, 39, 0.34); }
-.fab:active { transform: scale(.96); }
-.fab-close {
-  position: static;
-  background: var(--card);
-  color: var(--ink);
-  border: 1px solid var(--border);
-}
-
 /* Perde: yukleme katmaniyla ayni zemin ve bulanti. Tek tanim olmasi ikisinin
    zamanla ayrismasini engelliyor. */
 .app-scrim {
@@ -2629,72 +2600,6 @@ tr:hover td { background: rgba(148,163,184,0.04); }
   :root:not([data-theme='light']) .app-scrim {
     background: rgba(2, 6, 23, 0.45);
   }
-}
-
-/* Kisayol menusu, acan dugmenin bulundugu koseye hizalanir. */
-.shortcut-scrim { z-index: 80; }
-.shortcut-list {
-  position: absolute;
-  right: 20px;
-  bottom: calc(20px + var(--fab-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-}
-.shortcut-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  /* Ogeler dugmeye en yakindan baslayarak sirayla giriyor. Sure kisa
-     tutuluyor: uzun basamak menuyu gecikmeli acilmis gibi gosteriyordu. */
-  animation: shortcut-in .11s ease-out both;
-  /* Tarayici katmani onceden hazirlasin; perdenin arkasinda blur varken
-     her karede yeni katman ayirmak pahali. */
-  will-change: opacity, transform;
-}
-.shortcut-label {
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--card);
-  color: var(--ink);
-  border: 1px solid var(--border);
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.18);
-}
-.shortcut-ico {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.22);
-}
-.shortcut-item:hover .shortcut-ico { filter: brightness(1.08); }
-
-@keyframes shortcut-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .shortcut-item { animation: none; }
-}
-
-/* Alt sekme cubugu varsayilan olarak var; dugme onun uzerine cikar. Sifirlama
-   .bottom-nav'in gizlendigi kirilma noktasiyla BIREBIR ayni yonu kullaniyor
-   (min-width: 900px), yoksa iki kural zamanla ayrisir. */
-:root { --fab-bottom: 68px; }
-@media (min-width: 900px) {
-  :root { --fab-bottom: 0px; }
 }
 
 /* ---------- PDKS ---------- */
@@ -2844,22 +2749,22 @@ tr:hover td { background: rgba(148,163,184,0.04); }
 
 .nav-menu {
   position: fixed;
-  z-index: 47;
-  left: 8px;
-  right: 8px;
-  /* Alt cubugun UZERINE oturur; cubugun yuksekligi 64 + 8 pay. */
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  max-height: 78vh;
+  z-index: 48;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 90dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
-  animation: navMenuIn 0.14s ease-out;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -18px 50px rgba(15, 23, 42, 0.22);
+  animation: navMenuIn 0.2s cubic-bezier(.2, .8, .2, 1);
 }
 @keyframes navMenuIn {
-  from { transform: translateY(12px); opacity: 0.6; }
+  from { transform: translateY(100%); }
   to { transform: translateY(0); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3181,29 +3086,6 @@ th {
   :root[data-theme='dark'] .sticky-search {
     box-shadow: 0 6px 12px -10px rgba(0, 0, 0, 0.7);
   }
-}
-
-/* ---------- Modul islemine donen yuzen dugme ----------
-   Ana sayfada dugme kisayol menusu aciyor; bir modulun icindeyken o modulun
-   birincil islemine (orn. "Yeni Ürün") donuyor. Etiket yaziliyor: yalnizca
-   simge, hangi isleme gittigini denemeden anlatmiyor. */
-.fab-action {
-  width: auto;
-  padding: 0 18px 0 16px;
-  gap: 8px;
-  border-radius: 28px;
-}
-.fab-label {
-  font-size: 14px;
-  font-weight: 750;
-  white-space: nowrap;
-  letter-spacing: -0.01em;
-}
-/* Cok dar ekranda etiket gizlenir, dugme daireye doner: 320px'te uzun etiket
-   ekranin yarisini kapliyordu. aria-label her durumda duruyor. */
-@media (max-width: 359px) {
-  .fab-action { width: var(--tap); padding: 0; }
-  .fab-label { display: none; }
 }
 
 /* Cakisma sebepleri listesi */

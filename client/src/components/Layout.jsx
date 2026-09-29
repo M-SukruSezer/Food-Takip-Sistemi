@@ -10,7 +10,6 @@ import {
 } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
-import ShortcutFab from './ShortcutFab';
 import NotificationBell from './NotificationBell';
 
 // Uygulama iki ekrana ayrildi. Sira onemli: ILK eleman girişte acilan ekran.
@@ -420,11 +419,6 @@ export default function Layout() {
           onConfirm={() => { setConfirmLogout(false); logout(); navigate('/login'); }}
         />
       )}
-      {/* Yuzen buton yalnizca Operasyon ekraninda. Kisayollarin hepsi
-          operasyon islemi (donuk depoya urun, masraf, gunluk rapor, onaylar);
-          PDKS ekraninda hicbiri o baglama ait degil ve dugme mola/giris
-          dugmelerinin uzerine geliyordu. */}
-      {section === 'operations' && <ShortcutFab role={user.role} />}
     </div>
   );
 }

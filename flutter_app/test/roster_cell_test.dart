@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodtakip/models/pdks.dart';
 import 'package:foodtakip/screens/roster_screen.dart';
-import 'package:foodtakip/widgets/shortcut_fab.dart';
 
 import 'support/fake_api.dart';
 
@@ -294,30 +293,6 @@ void main() {
       // anlamli iddia duzenleme isaretinin HIC olmamasi.
       expect(find.text('-'), findsWidgets);
       expect(find.text('+'), findsNothing);
-    });
-  });
-
-  group('Yuzen dugme modul islemine doner', () {
-    test('eslesen yollar', () {
-      // Ana sayfa: menu davranisi (modul islemi YOK)
-      expect(moduleActionLabelFor('barista', '/dashboard'), isNull);
-      // Moduller: kendi islemleri
-      expect(moduleActionLabelFor('barista', '/batches'), 'Yeni Ürün');
-      expect(
-        moduleActionLabelFor('store_manager', '/petty-cash'),
-        'Masraf Gir',
-      );
-      expect(
-        moduleActionLabelFor('store_manager', '/daily-report'),
-        'Günlük Rapor',
-      );
-    });
-
-    test('rol yetkisi olmayan modulde islem cikmaz', () {
-      // Masraf girisi yalnizca magaza kasasini kullanan rollerde.
-      expect(moduleActionLabelFor('barista', '/petty-cash'), isNull);
-      // Gunluk rapor yalnizca rapor paneli rollerinde.
-      expect(moduleActionLabelFor('barista', '/daily-report'), isNull);
     });
   });
 }

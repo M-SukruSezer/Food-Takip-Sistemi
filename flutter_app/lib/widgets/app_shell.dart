@@ -21,7 +21,6 @@ import 'avatar.dart';
 import 'notification_bell.dart';
 import 'scrim.dart';
 import 'shell_scope.dart';
-import 'shortcut_fab.dart';
 
 /// Kirilma noktalari React tarafiyla ayni:
 ///   < 900   -> alt cubuk + alt cubuktan acilan menu
@@ -202,18 +201,6 @@ class _AppShellState extends State<AppShell> {
                   recommendationCount: _recommendationCount,
                   onSection: _goSection,
                 ),
-          // Kisayol dugmesi: rolunde hic kisayol yoksa cizilmez.
-          //
-          // PDKS bolumunde HIC cizilmiyor: kisayollarin tamami operasyon islemi
-          // (donuk depoya urun, masraf, gunluk rapor, onaylar) ve PDKS ekraninda
-          // giris/mola dugmelerinin uzerine geliyordu.
-          floatingActionButton: section == AppSection.operations
-              ? ShortcutFab(
-                  bottomInset: wide ? 0 : kBottomBarHeight,
-                  // Bulunulan yol: modul icinde dugme o modulun islemine doner.
-                  location: location,
-                )
-              : null,
           body: SafeArea(
             child: Row(
               children: [
@@ -1229,7 +1216,7 @@ class _NavMenuSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final user = session.user;
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
 
     final List<NavGroup> displayGroups;
     if (section == AppSection.pdks &&
@@ -1275,279 +1262,271 @@ class _NavMenuSheet extends StatelessWidget {
                   ),
               child: GestureDetector(
                 onTap: () {},
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    8,
-                    0,
-                    8,
-                    kBottomBarHeight + 8,
-                  ),
-                  child: Container(
-                    key: bottomMenuSheetKey,
-                    constraints: BoxConstraints(maxHeight: maxHeight),
-                    decoration: BoxDecoration(
-                      color: t.card,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: t.border.withValues(alpha: 0.7),
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x1A000000),
-                          blurRadius: 20,
-                          offset: Offset(0, -4),
-                        ),
-                      ],
+                child: Container(
+                  key: bottomMenuSheetKey,
+                  width: double.infinity,
+                  constraints: BoxConstraints(maxHeight: maxHeight),
+                  decoration: BoxDecoration(
+                    color: t.card,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
                     ),
-                    child: SafeArea(
-                      top: false,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 38,
-                              height: 4,
-                              margin: const EdgeInsets.only(top: 10, bottom: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFCBD5E1),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+                    border: Border.all(color: t.border.withValues(alpha: 0.7)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 20,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 38,
+                            height: 4,
+                            margin: const EdgeInsets.only(top: 10, bottom: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 8, 10),
-                            child: Row(
-                              children: [
-                                Stack(
-                                  children: [
-                                    Avatar(user: user, size: 44),
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        width: 11,
-                                        height: 11,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 2,
-                                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 8, 10),
+                          child: Row(
+                            children: [
+                              Stack(
+                                children: [
+                                  Avatar(user: user, size: 44),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      width: 11,
+                                      height: 11,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        user?.fullName.toUpperCase() ?? '',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: t.ink,
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15,
-                                          letterSpacing: -0.2,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        roleLabels[user?.role] ??
-                                            (user?.role ?? ''),
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: t.muted,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.location_on,
-                                            size: 13,
-                                            color: t.primary,
-                                          ),
-                                          const SizedBox(width: 3),
-                                          Flexible(
-                                            child: Text(
-                                              user?.storeName != null
-                                                  ? 'Colombia Coffee Co. · ${user!.storeName}'
-                                                  : 'Colombia Coffee Co.',
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: t.primary,
-                                                fontSize: 11.5,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: 'Kapat',
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close_rounded),
-                                  color: const Color(0xFF94A3B8),
-                                  constraints: const BoxConstraints(
-                                    minWidth: AppTokens.tap,
-                                    minHeight: AppTokens.tap,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (sections.length > 1)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                              child: SectionSwitcher(
-                                sections: sections,
-                                section: section,
-                                onSection: (s) {
-                                  Navigator.pop(context);
-                                  onSection(s);
-                                },
-                              ),
-                            ),
-                          Divider(
-                            height: 1,
-                            color: t.border.withValues(alpha: 0.6),
-                          ),
-                          Flexible(
-                            child: ListView(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              shrinkWrap: true,
-                              children: [
-                                for (
-                                  var gi = 0;
-                                  gi < displayGroups.length;
-                                  gi++
-                                ) ...[
-                                  if (displayGroups[gi].title != null)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        left: 2,
-                                        right: 2,
-                                        top: gi == 0 ? 0 : 16,
-                                        bottom: 10,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              displayGroups[gi].title ==
-                                                      'Operasyon'
-                                                  ? 'MAĞAZA & ÜRÜN OPERASYONLARI'
-                                                  : displayGroups[gi].title!
-                                                        .toUpperCase(),
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: Color(0xFF64748B),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.6,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${displayGroups[gi].items.length} Aktif Modül',
-                                            style: TextStyle(
-                                              color: t.primary,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (gi > 0 &&
-                                      displayGroups[gi].items.isNotEmpty)
-                                    const SizedBox(height: 4),
-                                  ...displayGroups[gi].items.map(
-                                    (item) => _MenuTile(
-                                      item: item,
-                                      active: location == item.path,
-                                      recommendationCount: recommendationCount,
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        context.go(item.path);
-                                      },
                                     ),
                                   ),
                                 ],
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user?.fullName.toUpperCase() ?? '',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: t.ink,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      roleLabels[user?.role] ??
+                                          (user?.role ?? ''),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: t.muted,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on,
+                                          size: 13,
+                                          color: t.primary,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Flexible(
+                                          child: Text(
+                                            user?.storeName != null
+                                                ? 'Colombia Coffee Co. · ${user!.storeName}'
+                                                : 'Colombia Coffee Co.',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: t.primary,
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Kapat',
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close_rounded),
+                                color: const Color(0xFF94A3B8),
+                                constraints: const BoxConstraints(
+                                  minWidth: AppTokens.tap,
+                                  minHeight: AppTokens.tap,
+                                ),
+                              ),
+                            ],
                           ),
-                          Divider(
-                            height: 1,
-                            color: t.border.withValues(alpha: 0.6),
-                          ),
+                        ),
+                        if (sections.length > 1)
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                            child: SectionSwitcher(
+                              sections: sections,
+                              section: section,
+                              onSection: (s) {
+                                Navigator.pop(context);
+                                onSection(s);
+                              },
+                            ),
+                          ),
+                        Divider(
+                          height: 1,
+                          color: t.border.withValues(alpha: 0.6),
+                        ),
+                        Flexible(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            shrinkWrap: true,
+                            children: [
+                              for (
+                                var gi = 0;
+                                gi < displayGroups.length;
+                                gi++
+                              ) ...[
+                                if (displayGroups[gi].title != null)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      left: 2,
+                                      right: 2,
+                                      top: gi == 0 ? 0 : 16,
+                                      bottom: 10,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            displayGroups[gi].title ==
+                                                    'Operasyon'
+                                                ? 'MAĞAZA & ÜRÜN OPERASYONLARI'
+                                                : displayGroups[gi].title!
+                                                      .toUpperCase(),
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.6,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${displayGroups[gi].items.length} Aktif Modül',
+                                          style: TextStyle(
+                                            color: t.primary,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else if (gi > 0 &&
+                                    displayGroups[gi].items.isNotEmpty)
+                                  const SizedBox(height: 4),
+                                ...displayGroups[gi].items.map(
+                                  (item) => _MenuTile(
+                                    item: item,
+                                    active: location == item.path,
+                                    recommendationCount: recommendationCount,
+                                    onTap: () {
                                       Navigator.pop(context);
-                                      confirmSignOut(context);
+                                      context.go(item.path);
                                     },
-                                    icon: const Icon(
-                                      Icons.logout_rounded,
-                                      size: 19,
-                                      color: Color(0xFFDC2626),
-                                    ),
-                                    label: const Text('Çıkış yap'),
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFFFF5F5),
-                                      foregroundColor: const Color(0xFFDC2626),
-                                      side: const BorderSide(
-                                        color: Color(0xFFFCA5A5),
-                                        width: 1.2,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      minimumSize: const Size.fromHeight(48),
-                                      textStyle: const TextStyle(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'v2.4.1 (Build 1084)',
-                                  style: TextStyle(
-                                    color: Color(0xFF94A3B8),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        Divider(
+                          height: 1,
+                          color: t.border.withValues(alpha: 0.6),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    confirmSignOut(context);
+                                  },
+                                  icon: const Icon(
+                                    Icons.logout_rounded,
+                                    size: 19,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                  label: const Text('Çıkış yap'),
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFFF5F5),
+                                    foregroundColor: const Color(0xFFDC2626),
+                                    side: const BorderSide(
+                                      color: Color(0xFFFCA5A5),
+                                      width: 1.2,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    minimumSize: const Size.fromHeight(48),
+                                    textStyle: const TextStyle(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'v2.4.1 (Build 1084)',
+                                style: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
