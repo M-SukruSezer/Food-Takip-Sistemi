@@ -372,10 +372,7 @@ class _UsersScreenState extends State<UsersScreen> {
                     ),
                   ],
                   const SizedBox(height: 10),
-                  // Islemler telefonda iki satira sarilir; her dugme tam dokunma boyunda.
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  CardActions(
                     children: [
                       OutlinedButton(
                         onPressed: perm.canEdit ? () => _edit(user) : null,

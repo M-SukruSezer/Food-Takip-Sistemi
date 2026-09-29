@@ -86,30 +86,44 @@ class CrudScaffold extends StatelessWidget {
         children: [
           if (displayHeader || displayHeaderActions)
             AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  if (displayHeader)
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: t.ink,
+              padding: displayHeader
+                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                  : EdgeInsets.zero,
+              child: displayHeader
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
+                          ),
+                        ),
+                        if (onAdd != null)
+                          FilledButton.icon(
+                            onPressed: onAdd,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: Text(addLabel ?? 'Yeni'),
+                          ),
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: onAdd,
+                        icon: const Icon(Icons.add, size: 20),
+                        label: Text(addLabel ?? 'Yeni'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    )
-                  else
-                    const Spacer(),
-                  if (onAdd != null)
-                    FilledButton.icon(
-                      onPressed: onAdd,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(addLabel ?? 'Yeni'),
                     ),
-                ],
-              ),
             ),
           if (banner != null) ...[
             if (displayHeader) const SizedBox(height: AppTokens.gap),
