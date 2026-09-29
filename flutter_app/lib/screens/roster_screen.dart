@@ -1428,7 +1428,7 @@ class _HaftaTablosu extends StatelessWidget {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: _avatarBg(veri.people[i].role),
+                                color: _avatarBg(veri.people[i].role, t),
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
@@ -2186,7 +2186,7 @@ class _GunListesi extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: _avatarBg(p.role),
+                        color: _avatarBg(p.role, t),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
