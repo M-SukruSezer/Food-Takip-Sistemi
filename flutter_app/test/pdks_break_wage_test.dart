@@ -154,9 +154,7 @@ void main() {
   }
 
   group('Mola adimlari', () {
-    testWidgets('disarida: yalnizca giris acik, mola dugmeleri kapali', (
-      tester,
-    ) async {
+    testWidgets('disarida: durum karti mesai disini gosterir', (tester) async {
       tall(tester);
       installFakeApi(_pdksYollari(_durum(state: 'DISARIDA', checkIn: true)));
       signInAs('barista', storeId: 1);
@@ -164,15 +162,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('İş yerinde değilsiniz'), findsOneWidget);
-      expect(_acikMi(tester, 'QR ile İşe Başla'), isTrue);
-      // Ana dugme TEK: etiketi duruma gore degisiyor, disarida "İşi Bitir" hic
-      // cizilmiyor.
+      expect(find.text('QR ile İşe Başla'), findsNothing);
       expect(find.text('QR ile İşi Bitir'), findsNothing);
-      expect(_acikMi(tester, 'QR ile Molaya Çık'), isFalse);
-      expect(_acikMi(tester, 'QR ile Moladan Dön'), isFalse);
     });
 
-    testWidgets('iceride: cikis ve molaya cikma acik', (tester) async {
+    testWidgets('iceride: aktif vardiya ozeti gosterilir', (tester) async {
       tall(tester);
       installFakeApi(
         _pdksYollari(
@@ -185,12 +179,10 @@ void main() {
 
       expect(find.text('İş yerindesiniz'), findsOneWidget);
       expect(find.text('QR ile İşe Başla'), findsNothing);
-      expect(_acikMi(tester, 'QR ile İşi Bitir'), isTrue);
-      expect(_acikMi(tester, 'QR ile Molaya Çık'), isTrue);
-      expect(_acikMi(tester, 'QR ile Moladan Dön'), isFalse);
+      expect(find.text('Bugünün Çizelgesi'), findsOneWidget);
     });
 
-    testWidgets('molada: cikis KAPALI, yalnizca moladan donus acik', (
+    testWidgets('molada: durum ve kullanilan mola suresi gosterilir', (
       tester,
     ) async {
       tall(tester);
@@ -209,11 +201,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Moladasınız'), findsOneWidget);
-      // Molada cikis yapilamaz: sunucu da engelliyor, dugme de kapali.
-      expect(_acikMi(tester, 'QR ile İşi Bitir'), isFalse);
-      expect(_acikMi(tester, 'QR ile Molaya Çık'), isFalse);
-      expect(_acikMi(tester, 'QR ile Moladan Dön'), isTrue);
-      expect(find.text('Bugün toplam mola: 20 dk'), findsOneWidget);
+      expect(find.text('QR ile Moladan Dön'), findsNothing);
     });
 
     testWidgets('mesai sarti uyarisi yonlendirmede gosterilir', (tester) async {
@@ -419,17 +407,4 @@ void main() {
       expect(find.text('PDF'), findsNothing);
     });
   });
-}
-
-/// Dugme etkin mi. onPressed null ise kapali.
-///
-/// bySubtype gerekiyor: ButtonStyleButton soyut ve find.byType tam tur
-/// esleimesi yapiyor, FilledButton/OutlinedButton'i yakalamiyordu.
-bool _acikMi(WidgetTester tester, String etiket) {
-  final f = find.ancestor(
-    of: find.text(etiket),
-    matching: find.bySubtype<ButtonStyleButton>(),
-  );
-  expect(f, findsWidgets, reason: '"$etiket" dugmesi bulunamadi');
-  return tester.widgetList<ButtonStyleButton>(f).first.onPressed != null;
 }

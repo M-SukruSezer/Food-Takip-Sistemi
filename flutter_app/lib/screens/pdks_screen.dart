@@ -38,7 +38,6 @@ class _PdksScreenState extends State<PdksScreen> {
   DateTime _month = DateTime.now();
   String? _error;
   bool _loaded = false;
-  bool _busy = false;
 
   @override
   void initState() {
@@ -111,17 +110,6 @@ class _PdksScreenState extends State<PdksScreen> {
         .onError((Object _, StackTrace _) {});
   }
 
-  /// QR ile islem (dort adimdan biri).
-  Future<void> _qrPunch(PdksPunch adim) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      await performPdksQr(context, adim);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   Future<void> _newRequest() async {
     final ok = await showRequestDialog(context, balance: _balance);
     if (ok == true) await _load(silent: true);
@@ -150,6 +138,7 @@ class _PdksScreenState extends State<PdksScreen> {
 
     return CrudScaffold(
       title: 'Devam Takibi',
+      showHeader: false,
       loaded: _loaded,
       error: _error,
       onRetry: () => _load(),
@@ -178,7 +167,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ),
             const SizedBox(height: AppTokens.gap),
           ],
-          _PunchCard(status: _status, busy: _busy, onQr: _qrPunch),
+          _PunchCard(status: _status),
           const SizedBox(height: AppTokens.gap),
           _TodayCard(status: _status),
           if (_balance != null) ...[
@@ -207,7 +196,7 @@ class _PdksScreenState extends State<PdksScreen> {
                   FilledButton.icon(
                     onPressed: _newRequest,
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Yeni'),
+                    label: const Text('Yeni İzin'),
                   ),
                 ],
               ),
@@ -307,270 +296,144 @@ String fmtMonth(String key) {
 }
 
 class _PunchCard extends StatelessWidget {
-  const _PunchCard({
-    required this.status,
-    required this.busy,
-    required this.onQr,
-  });
+  const _PunchCard({required this.status});
 
   final PdksStatus status;
-  final bool busy;
-  final Future<void> Function(PdksPunch adim) onQr;
+
+  String _longDate(String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+    const months = [
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
+    ];
+    const days = [
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}, ${days[date.weekday - 1]}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final inside = status.isInside;
-    final molada = status.onBreak;
     final store = status.store;
-    final qr = status.canUseQr && !busy;
-    // Sonraki gecerli adim SUNUCUDAN geliyor; kurali burada tekrar yazmak
-    // iki tarafin ayrismasi demekti.
-    final anaAdim = status.canCheckOut ? PdksPunch.checkOut : PdksPunch.checkIn;
-    final anaAcik = qr && (status.canCheckIn || status.canCheckOut);
+    final inside = status.isInside;
+    final onBreak = status.onBreak;
 
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Konum ve durum satırı
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: t.primarySoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.location_on, color: t.primary, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      store != null && store.name.isNotEmpty
-                          ? store.name
-                          : 'Mağaza Belirlenmedi',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: t.ink,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${status.workDate}${store != null ? ' · ${store.name}' : ''}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Pill(
-                    text: molada
-                        ? 'Moladasınız'
-                        : inside
-                        ? 'İş yerindesiniz'
-                        : 'İş yerinde değilsiniz',
-                    color: molada
-                        ? t.warning
-                        : inside
-                        ? t.success
-                        : t.muted,
-                  ),
-                  if (store?.hasLocation == true) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.gps_fixed, size: 11, color: t.muted),
-                        const SizedBox(width: 3),
-                        Text(
-                          'GPS: (${store?.geofenceRadiusM ?? 100}m)',
-                          style: TextStyle(fontSize: 11, color: t.muted),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-          if (inside && status.openSince != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: t.primarySoft,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline, size: 16, color: t.primary),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: t.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (molada && status.breakSince != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.coffee_outlined, size: 16, color: t.warningText),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${fmtDateTime(status.breakSince)} itibarıyla molada',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: t.warningText,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (status.breakMinutesToday > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Bugün toplam mola: ${status.breakMinutesToday} dk',
-              style: TextStyle(fontSize: 12, color: t.muted),
-            ),
-          ],
-          const SizedBox(height: 14),
-          // Ana islem: iceride degilse giris, iceridyse cikis.
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: t.primary,
-                foregroundColor: t.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              onPressed: anaAcik ? () => onQr(anaAdim) : null,
-              icon: const Icon(Icons.qr_code_scanner, size: 22),
-              label: Text(
-                inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Mola adimlari — bunlar da QR istiyor.
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: t.primarySoft,
-                    foregroundColor: t.primary,
-                    side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: qr && status.canBreakStart
-                      ? () => onQr(PdksPunch.breakStart)
-                      : null,
-                  icon: const Icon(Icons.free_breakfast_outlined, size: 18),
-                  label: const Text(
-                    'QR ile Molaya Çık',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: t.primarySoft,
-                    foregroundColor: t.primary,
-                    side: BorderSide(color: t.primary.withValues(alpha: 0.3)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: qr && status.canBreakEnd
-                      ? () => onQr(PdksPunch.breakEnd)
-                      : null,
-                  icon: const Icon(Icons.play_arrow_outlined, size: 18),
-                  label: const Text(
-                    'QR ile Moladan Dön',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (store != null &&
-              store.pdksEnabled &&
-              (!store.hasQr || !store.hasLocation)) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Bu mağazada ${!store.hasQr ? 'QR kod' : 'mağaza konumu'} '
-              'tanımlı değil. Giriş/çıkış yapılamaz, yöneticinizle görüşün.',
-              style: TextStyle(fontSize: 12, color: t.warning),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
+          Icon(Icons.location_on_outlined, color: t.primary, size: 23),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 16, color: t.muted),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
-                    'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
-                    '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
-                    'iş yeri yarıçapıyla karşılaştırılır. '
-                    'Arka planda konum izlenmez.',
-                    style: TextStyle(fontSize: 11, color: t.muted, height: 1.4),
+                Text(
+                  store != null && store.name.isNotEmpty
+                      ? store.name
+                      : 'Mağaza Belirlenmedi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: t.ink,
                   ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  _longDate(status.workDate),
+                  style: TextStyle(fontSize: 14, color: t.muted),
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: onBreak
+                      ? t.warningSoft
+                      : inside
+                      ? const Color(0xFFB7F3DF)
+                      : t.bg,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: onBreak
+                            ? t.warning
+                            : inside
+                            ? t.success
+                            : t.muted,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      onBreak
+                          ? 'Moladasınız'
+                          : inside
+                          ? 'İş yerindesiniz'
+                          : 'İş yerinde değilsiniz',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: inside ? t.okText : t.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (store?.hasLocation == true) ...[
+                const SizedBox(height: 11),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.gps_fixed, size: 15, color: t.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'GPS: (${store!.geofenceRadiusM}m)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: t.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -601,9 +464,9 @@ class _TodayCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Bugün',
+                  'Bugünün Çizelgesi',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -613,11 +476,11 @@ class _TodayCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 4,
+                    vertical: 7,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFFDBEAFE)),
                   ),
                   child: Text(
@@ -627,7 +490,7 @@ class _TodayCard extends StatelessWidget {
                               : '${firstShift.name} Vardiyası')
                         : 'Açılış Vardiyası',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF2563EB),
                     ),
@@ -653,14 +516,16 @@ class _TodayCard extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Icon(
                           Icons.access_time_rounded,
                           size: 16,
                           color: t.primary,
                         ),
-                        const SizedBox(width: 6),
                         Text(
                           '${firstShift.startTime} – ${firstShift.endTime}',
                           style: TextStyle(
@@ -669,7 +534,6 @@ class _TodayCard extends StatelessWidget {
                             color: t.ink,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Text(
                           '(8 Saat Mesai)',
                           style: TextStyle(
@@ -678,7 +542,6 @@ class _TodayCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -840,12 +703,17 @@ class _TodayCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        status.store != null
-                            ? 'Mağaza: ${status.store!.name}'
-                            : 'Mola takibi aktif',
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                      Expanded(
+                        child: Text(
+                          status.store != null
+                              ? 'Mağaza: ${status.store!.name}'
+                              : 'Mola takibi aktif',
+                          style: TextStyle(fontSize: 11, color: t.muted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         'Detaylar',
                         style: TextStyle(
@@ -980,17 +848,18 @@ class _BreakSlotRow extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: iconColor),
         const SizedBox(width: 6),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: t.ink,
+        Expanded(
+          child: Text(
+            '$title  $duration',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: t.ink,
+            ),
           ),
         ),
-        const SizedBox(width: 4),
-        Text('· $duration', style: TextStyle(fontSize: 11, color: t.muted)),
-        const Spacer(),
+        const SizedBox(width: 8),
         Text(
           status,
           style: TextStyle(
@@ -1101,7 +970,7 @@ class _BalanceCard extends StatelessWidget {
             children: [
               statBox(
                 label: 'Kalan izin',
-                value: '${balance.remainingDays} gün',
+                value: '${balance.remainingDays} Gün',
                 subtext: 'Kullanıma Hazır',
                 valueColor: t.primary,
                 bgColor: t.primarySoft,
@@ -1110,7 +979,7 @@ class _BalanceCard extends StatelessWidget {
               const SizedBox(width: 8),
               statBox(
                 label: 'Kullanılan',
-                value: '${balance.usedDays} gün',
+                value: '${balance.usedDays} Gün',
                 subtext: 'Dönem İçi',
                 valueColor: t.ink,
                 bgColor: t.bg,
@@ -1119,8 +988,8 @@ class _BalanceCard extends StatelessWidget {
               const SizedBox(width: 8),
               statBox(
                 label: 'Bekleyen',
-                value: '${balance.pendingDays} gün',
-                subtext: 'Onayda',
+                value: '${balance.pendingDays} Talep',
+                subtext: '${balance.pendingDays} Gün Onayda',
                 valueColor: t.warningText,
                 bgColor: t.warningSoft,
                 borderColor: t.warning.withValues(alpha: 0.3),
@@ -1165,7 +1034,7 @@ class _RequestRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: const Color(0xFFEFF4FF),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
@@ -1230,7 +1099,7 @@ class _RequestRow extends StatelessWidget {
                 ),
                 onPressed: onCancel,
                 child: const Text(
-                  'Geri Al',
+                  'İptal',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1284,18 +1153,24 @@ class ShiftCalendar extends StatelessWidget {
       final dayOff = list.any((a) => a.isDayOff);
       final holiday = byHoliday[date];
       final isAssigned = list.isNotEmpty && !dayOff;
+      final now = DateTime.now();
+      final isToday = now.year == year && now.month == month && now.day == d;
 
       cells.add(
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: holiday != null
+            color: isToday
+                ? t.primary
+                : holiday != null
                 ? t.dangerSoft
                 : dayOff
                 ? t.bg
                 : (isAssigned ? t.primarySoft : t.card),
             border: Border.all(
-              color: holiday != null
+              color: isToday
+                  ? t.primary
+                  : holiday != null
                   ? t.danger
                   : (isAssigned ? t.primary : (dayOff ? t.border : t.border)),
               width: holiday != null || isAssigned ? 1.5 : 1,
@@ -1310,7 +1185,11 @@ class ShiftCalendar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isAssigned ? t.primary : t.ink,
+                  color: isToday
+                      ? t.onPrimary
+                      : isAssigned
+                      ? t.primary
+                      : t.ink,
                 ),
               ),
               const Spacer(),
@@ -1336,7 +1215,7 @@ class ShiftCalendar extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: t.primary,
+                          color: isToday ? t.onPrimary : t.primary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1390,11 +1269,22 @@ class ShiftCalendar extends StatelessWidget {
             children: [
               Icon(Icons.schedule, size: 16, color: t.primary),
               const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bu Hafta Toplam:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
-                'Bu Hafta Toplam: $weeklyHours Saat',
+                '$weeklyHours Saat',
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
                   color: t.primary,
                 ),
               ),
@@ -1432,7 +1322,7 @@ class _ShiftSwapCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: t.primarySoft,
+        color: t.card,
         borderRadius: BorderRadius.circular(AppTokens.radius),
         border: Border.all(color: t.primary.withValues(alpha: 0.2)),
       ),
@@ -1442,10 +1332,10 @@ class _ShiftSwapCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: t.primary,
+              color: const Color(0xFFB7F3DF),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.swap_horiz_rounded, color: t.onPrimary, size: 22),
+            child: Icon(Icons.swap_horiz_rounded, color: t.primary, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1457,7 +1347,7 @@ class _ShiftSwapCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: t.primary,
+                    color: t.ink,
                   ),
                 ),
                 const SizedBox(height: 2),

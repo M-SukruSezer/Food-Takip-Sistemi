@@ -29,6 +29,7 @@ class CrudScaffold extends StatelessWidget {
     this.banner,
     this.emptyText,
     this.grid = false,
+    this.showHeader = true,
   });
 
   final String title;
@@ -44,6 +45,7 @@ class CrudScaffold extends StatelessWidget {
 
   /// Kart izgarasi (Cesitler, Magazalar) ya da tek kolon liste (Kullanicilar).
   final bool grid;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -74,31 +76,32 @@ class CrudScaffold extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          AppCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: t.ink,
+          if (showHeader)
+            AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
                     ),
                   ),
-                ),
-                if (onAdd != null)
-                  FilledButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(addLabel ?? 'Yeni'),
-                  ),
-              ],
+                  if (onAdd != null)
+                    FilledButton.icon(
+                      onPressed: onAdd,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(addLabel ?? 'Yeni'),
+                    ),
+                ],
+              ),
             ),
-          ),
           if (banner != null) ...[
-            const SizedBox(height: AppTokens.gap),
+            if (showHeader) const SizedBox(height: AppTokens.gap),
             banner!,
           ],
           const SizedBox(height: AppTokens.gap),
