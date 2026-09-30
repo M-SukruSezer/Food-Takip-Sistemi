@@ -34,4 +34,5 @@ Future<Uint8List?> pickImageBytes({bool fromCamera = false}) async {
 }
 
 /// Masaustunde kamera yok; arayuz "Fotoğraf Çek" dugmesini gizler.
-bool cameraAvailable() => !usesFileSelector(defaultTargetPlatform, isWeb: kIsWeb);
+bool cameraAvailable() =>
+    !usesFileSelector(defaultTargetPlatform, isWeb: kIsWeb);

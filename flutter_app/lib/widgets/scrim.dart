@@ -17,8 +17,8 @@ class AppScrim extends StatelessWidget {
   /// Perdenin zemin rengi. Koyu temada daha koyu ve daha az seffaf.
   static Color color(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? const Color(0x73020617)
-          : const Color(0x59111827);
+      ? const Color(0x73020617)
+      : const Color(0x59111827);
 
   @override
   Widget build(BuildContext context) {

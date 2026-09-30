@@ -48,43 +48,46 @@ class AppUser {
   final List<int> storeIds;
 
   bool get isSuperAdmin => role == 'super_admin';
+
   /// Kullanici yonetimi yapabilen kademeler.
   bool get canManage => const [
-        'super_admin',
-        'operations_manager',
-        'regional_manager',
-        'store_manager',
-      ].contains(role);
+    'super_admin',
+    'operations_manager',
+    'regional_manager',
+    'store_manager',
+  ].contains(role);
 
   /// Birden fazla magazadan sorumlu roller; magaza listesi [storeIds]'te.
-  bool get isMultiStore => const ['operations_manager', 'regional_manager'].contains(role);
+  bool get isMultiStore =>
+      const ['operations_manager', 'regional_manager'].contains(role);
 
   /// Arayuz yetkisiz dugmeleri gizler; son sozu sunucu soyler.
-  bool can(String permission) => isSuperAdmin || permissions.contains(permission);
+  bool can(String permission) =>
+      isSuperAdmin || permissions.contains(permission);
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-        id: (json['id'] as num).toInt(),
-        username: json['username'] as String? ?? '',
-        fullName: json['full_name'] as String? ?? '',
-        role: json['role'] as String? ?? 'barista',
-        storeId: (json['store_id'] as num?)?.toInt(),
-        storeName: json['store_name'] as String?,
-        avatar: json['avatar'] as String?,
-        permissions: parsePermissions(json['permissions']),
-        storeIds: (json['store_ids'] as List<dynamic>? ?? const [])
-            .map((e) => (e as num).toInt())
-            .toList(),
-      );
+    id: (json['id'] as num).toInt(),
+    username: json['username'] as String? ?? '',
+    fullName: json['full_name'] as String? ?? '',
+    role: json['role'] as String? ?? 'barista',
+    storeId: (json['store_id'] as num?)?.toInt(),
+    storeName: json['store_name'] as String?,
+    avatar: json['avatar'] as String?,
+    permissions: parsePermissions(json['permissions']),
+    storeIds: (json['store_ids'] as List<dynamic>? ?? const [])
+        .map((e) => (e as num).toInt())
+        .toList(),
+  );
 
   AppUser copyWith({String? avatar, bool clearAvatar = false}) => AppUser(
-        id: id,
-        username: username,
-        fullName: fullName,
-        role: role,
-        storeId: storeId,
-        storeName: storeName,
-        avatar: clearAvatar ? null : (avatar ?? this.avatar),
-        permissions: permissions,
-        storeIds: storeIds,
-      );
+    id: id,
+    username: username,
+    fullName: fullName,
+    role: role,
+    storeId: storeId,
+    storeName: storeName,
+    avatar: clearAvatar ? null : (avatar ?? this.avatar),
+    permissions: permissions,
+    storeIds: storeIds,
+  );
 }

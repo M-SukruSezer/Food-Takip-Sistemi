@@ -307,7 +307,11 @@ class _StoreTimesheet extends StatelessWidget {
               child: Center(
                 child: Column(
                   children: [
-                    SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                     SizedBox(height: 16),
                     Text('Puantaj hesaplanıyor...'),
                   ],

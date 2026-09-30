@@ -25,7 +25,9 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
       fields: (context, rebuild) {
         final t = context.tokens;
         final entered = int.tryParse(quantity.text.trim());
-        final delta = entered == null || entered < 1 ? null : m.quantity - entered;
+        final delta = entered == null || entered < 1
+            ? null
+            : m.quantity - entered;
         return [
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -62,8 +64,11 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
               ),
               child: Row(
                 children: [
-                  Icon(delta > 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                      size: 18, color: t.primary),
+                  Icon(
+                    delta > 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                    size: 18,
+                    color: t.primary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

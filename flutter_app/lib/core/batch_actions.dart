@@ -78,8 +78,10 @@ List<Batch> filterBatches(List<Batch> items, String search) {
   final q = normalizeSearch(search.trim());
   if (q.isEmpty) return items;
   return items
-      .where((b) =>
-          normalizeSearch(b.productName).contains(q) ||
-          normalizeSearch(b.storeName).contains(q))
+      .where(
+        (b) =>
+            normalizeSearch(b.productName).contains(q) ||
+            normalizeSearch(b.storeName).contains(q),
+      )
       .toList();
 }

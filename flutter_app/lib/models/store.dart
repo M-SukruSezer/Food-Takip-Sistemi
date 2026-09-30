@@ -33,14 +33,14 @@ class Store {
   bool get deletable => userCount == 0 && activeBatchCount == 0;
 
   factory Store.fromJson(Map<String, dynamic> j) => Store(
-        id: _int(j['id']),
-        name: j['name'] as String? ?? '',
-        active: _int(j['active']) == 1,
-        address: j['address'] as String?,
-        phone: j['phone'] as String?,
-        userCount: _int(j['user_count']),
-        activeBatchCount: _int(j['active_batch_count']),
-      );
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    active: _int(j['active']) == 1,
+    address: j['address'] as String?,
+    phone: j['phone'] as String?,
+    userCount: _int(j['user_count']),
+    activeBatchCount: _int(j['active_batch_count']),
+  );
 }
 
 class ManagedUser {
@@ -72,19 +72,20 @@ class ManagedUser {
   /// magazalar; digerlerinde bos.
   final List<int> storeIds;
 
-  bool get isMultiStore => const ['operations_manager', 'regional_manager'].contains(role);
+  bool get isMultiStore =>
+      const ['operations_manager', 'regional_manager'].contains(role);
 
   factory ManagedUser.fromJson(Map<String, dynamic> j) => ManagedUser(
-        id: _int(j['id']),
-        username: j['username'] as String? ?? '',
-        fullName: j['full_name'] as String? ?? '',
-        role: j['role'] as String? ?? 'barista',
-        active: _int(j['active']) == 1,
-        storeId: j['store_id'] == null ? null : _int(j['store_id']),
-        storeName: j['store_name'] as String?,
-        permissions: parsePermissions(j['permissions']),
-        storeIds: (j['store_ids'] as List<dynamic>? ?? const [])
-            .map((e) => _int(e))
-            .toList(),
-      );
+    id: _int(j['id']),
+    username: j['username'] as String? ?? '',
+    fullName: j['full_name'] as String? ?? '',
+    role: j['role'] as String? ?? 'barista',
+    active: _int(j['active']) == 1,
+    storeId: j['store_id'] == null ? null : _int(j['store_id']),
+    storeName: j['store_name'] as String?,
+    permissions: parsePermissions(j['permissions']),
+    storeIds: (j['store_ids'] as List<dynamic>? ?? const [])
+        .map((e) => _int(e))
+        .toList(),
+  );
 }

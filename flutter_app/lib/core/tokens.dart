@@ -331,44 +331,98 @@ extension AppTokensContext on BuildContext {
       Theme.of(this).extension<AppTokens>() ?? AppTokens.light;
 }
 
+/// Tema üretim algoritmasının sözleşmesi.
+///
+/// Yeni bir tema varyantı eklenirken [buildAppTheme] içine yeni koşullar
+/// yazmak yerine bu strateji genişletilir. Böylece palet, Material renk
+/// rolleri ve yüzey davranışları tek bir nesnenin sorumluluğunda kalır.
+sealed class AppThemeStrategy {
+  const AppThemeStrategy();
+
+  Brightness get brightness;
+  AppTokens get tokens;
+  Color get scrim;
+  double get shadowAlpha;
+
+  ColorScheme buildColorScheme() {
+    final t = tokens;
+    return ColorScheme.fromSeed(
+      seedColor: t.primary,
+      brightness: brightness,
+    ).copyWith(
+      primary: t.primary,
+      onPrimary: t.onPrimary,
+      primaryContainer: t.primarySoft,
+      onPrimaryContainer: t.primaryDark,
+      secondary: t.primary600,
+      onSecondary: t.onPrimary,
+      secondaryContainer: t.successSoft,
+      onSecondaryContainer: t.okText,
+      error: t.danger,
+      onError: const Color(0xFFFFFFFF),
+      errorContainer: t.dangerSoft,
+      onErrorContainer: t.danger,
+      surface: t.card,
+      onSurface: t.ink,
+      surfaceContainerLowest: t.card,
+      surfaceContainerLow: t.card,
+      surfaceContainer: t.bg,
+      surfaceContainerHigh: t.border,
+      surfaceContainerHighest: t.borderStrong,
+      onSurfaceVariant: t.muted,
+      outline: t.borderStrong,
+      outlineVariant: t.border,
+      shadow: Colors.black,
+      scrim: scrim,
+    );
+  }
+
+  static AppThemeStrategy resolve(Brightness brightness) =>
+      brightness == Brightness.dark
+      ? const DarkThemeStrategy()
+      : const LightThemeStrategy();
+}
+
+final class LightThemeStrategy extends AppThemeStrategy {
+  const LightThemeStrategy();
+
+  @override
+  Brightness get brightness => Brightness.light;
+
+  @override
+  AppTokens get tokens => AppTokens.light;
+
+  @override
+  Color get scrim => const Color(0x73111B2E);
+
+  @override
+  double get shadowAlpha => .08;
+}
+
+final class DarkThemeStrategy extends AppThemeStrategy {
+  const DarkThemeStrategy();
+
+  @override
+  Brightness get brightness => Brightness.dark;
+
+  @override
+  AppTokens get tokens => AppTokens.dark;
+
+  @override
+  Color get scrim => const Color(0xB3020617);
+
+  @override
+  double get shadowAlpha => .28;
+}
+
 ThemeData buildAppTheme(Brightness brightness) {
-  final t = brightness == Brightness.dark ? AppTokens.dark : AppTokens.light;
+  final strategy = AppThemeStrategy.resolve(brightness);
+  final t = strategy.tokens;
   final base = ThemeData(
-    brightness: brightness,
+    brightness: strategy.brightness,
     useMaterial3: true,
     scaffoldBackgroundColor: t.bg,
-    colorScheme:
-        ColorScheme.fromSeed(
-          seedColor: t.primary,
-          brightness: brightness,
-        ).copyWith(
-          primary: t.primary,
-          onPrimary: t.onPrimary,
-          primaryContainer: t.primarySoft,
-          onPrimaryContainer: t.primaryDark,
-          secondary: t.primary600,
-          onSecondary: t.onPrimary,
-          secondaryContainer: t.successSoft,
-          onSecondaryContainer: t.okText,
-          error: t.danger,
-          onError: const Color(0xFFFFFFFF),
-          errorContainer: t.dangerSoft,
-          onErrorContainer: t.danger,
-          surface: t.card,
-          onSurface: t.ink,
-          surfaceContainerLowest: t.card,
-          surfaceContainerLow: t.card,
-          surfaceContainer: t.bg,
-          surfaceContainerHigh: t.border,
-          surfaceContainerHighest: t.borderStrong,
-          onSurfaceVariant: t.muted,
-          outline: t.borderStrong,
-          outlineVariant: t.border,
-          shadow: Colors.black,
-          scrim: brightness == Brightness.dark
-              ? const Color(0xB3020617)
-              : const Color(0x73111B2E),
-        ),
+    colorScheme: strategy.buildColorScheme(),
   );
 
   final textTheme = base.textTheme
@@ -439,9 +493,7 @@ ThemeData buildAppTheme(Brightness brightness) {
       color: t.card,
       elevation: 1,
       margin: EdgeInsets.zero,
-      shadowColor: Colors.black.withValues(
-        alpha: brightness == Brightness.dark ? .28 : .08,
-      ),
+      shadowColor: Colors.black.withValues(alpha: strategy.shadowAlpha),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: t.border),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -496,9 +548,7 @@ ThemeData buildAppTheme(Brightness brightness) {
         backgroundColor: t.card,
         foregroundColor: t.ink,
         elevation: 1,
-        shadowColor: Colors.black.withValues(
-          alpha: brightness == Brightness.dark ? .28 : .08,
-        ),
+        shadowColor: Colors.black.withValues(alpha: strategy.shadowAlpha),
         minimumSize: const Size(0, AppTokens.tap),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         textStyle: textTheme.labelLarge,

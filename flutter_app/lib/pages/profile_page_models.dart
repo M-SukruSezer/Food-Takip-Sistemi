@@ -28,7 +28,8 @@ class ProfileUser {
   static const ProfileUser sample = ProfileUser(
     name: 'Elif Yılmaz',
     title: 'Kıdemli Ürün Tasarımcısı',
-    bio: 'Tasarım sistemleri ve mobil deneyimler üzerine çalışıyorum. '
+    bio:
+        'Tasarım sistemleri ve mobil deneyimler üzerine çalışıyorum. '
         'Kahve, tipografi ve minimal arayüzler tutkulum.',
     initials: 'EY',
     followers: 12840,

@@ -5,6 +5,19 @@ import 'package:foodtakip/widgets/dialogs.dart';
 import 'package:foodtakip/widgets/panels.dart';
 
 void main() {
+  test('tema seçimi Strategy Pattern üzerinden doğru nesneyi üretir', () {
+    final light = AppThemeStrategy.resolve(Brightness.light);
+    final dark = AppThemeStrategy.resolve(Brightness.dark);
+
+    expect(light, isA<LightThemeStrategy>());
+    expect(light.tokens, AppTokens.light);
+    expect(light.brightness, Brightness.light);
+    expect(dark, isA<DarkThemeStrategy>());
+    expect(dark.tokens, AppTokens.dark);
+    expect(dark.brightness, Brightness.dark);
+    expect(light.shadowAlpha, lessThan(dark.shadowAlpha));
+  });
+
   test('Material renk şeması semantik tokenlarla iki temada eşleşir', () {
     for (final brightness in [Brightness.light, Brightness.dark]) {
       final theme = buildAppTheme(brightness);

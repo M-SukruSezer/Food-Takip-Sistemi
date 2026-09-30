@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'busy.dart';
 import 'notify.dart';
+import 'token_store.dart';
 
 /// Derleme sirasinda --dart-define=API_URL=... ile degistirilebilir.
 const apiBaseUrl = String.fromEnvironment(
@@ -10,24 +10,25 @@ const apiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://food-takip-sistemi.vercel.app/api',
 );
 
-const _tokenKey = 'token';
-
 /// Istek bazinda ayarlar (Options.extra):
 ///   silent: true          -> katman ve bildirim yok (arka plan yenilemeleri)
 ///   noToast: true         -> katman var, bildirim yok (hatayi kendi gosteren ekranlar)
 ///   successMessage: '...' -> basari bildiriminde genel metin yerine bu kullanilir
 ///   busyMessage: '...'    -> yukleme katmaninda genel metin yerine bu yazar
 class ApiClient {
-  ApiClient() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: apiBaseUrl,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 30),
-        // Sunucu hata gövdesini kendimiz okuyabilmek icin durum kodunu birakiyoruz.
-        validateStatus: (status) => status != null && status < 400,
-      ),
-    );
+  ApiClient({Dio? dio, TokenStore? tokenStore})
+    : _tokenStore = tokenStore ?? const SharedPreferencesTokenStore() {
+    _dio =
+        dio ??
+        Dio(
+          BaseOptions(
+            baseUrl: apiBaseUrl,
+            connectTimeout: const Duration(seconds: 20),
+            receiveTimeout: const Duration(seconds: 30),
+            // Sunucu hata gövdesini kendimiz okuyabilmek icin durum kodunu birakiyoruz.
+            validateStatus: (status) => status != null && status < 400,
+          ),
+        );
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: _onRequest,
@@ -38,6 +39,7 @@ class ApiClient {
   }
 
   late final Dio _dio;
+  final TokenStore _tokenStore;
   String? _token;
 
   /// 401 alindiginda oturumu dusurmek icin uygulama tarafindan atanir.
@@ -52,17 +54,15 @@ class ApiClient {
   String? get token => _token;
 
   Future<void> loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_tokenKey);
+    _token = await _tokenStore.read();
   }
 
   Future<void> setToken(String? value) async {
     _token = value;
-    final prefs = await SharedPreferences.getInstance();
     if (value == null) {
-      await prefs.remove(_tokenKey);
+      await _tokenStore.clear();
     } else {
-      await prefs.setString(_tokenKey, value);
+      await _tokenStore.write(value);
     }
   }
 

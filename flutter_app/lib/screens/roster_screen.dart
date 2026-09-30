@@ -121,16 +121,8 @@ const _cokMagazaRolleri = {
     metin: t.warningText,
     etiket: 'Akşam',
   ),
-  ShiftCategory.kapanis => (
-    zemin: t.ink,
-    metin: t.card,
-    etiket: 'Kapanış',
-  ),
-  ShiftCategory.bilinmiyor => (
-    zemin: t.bg,
-    metin: t.ink,
-    etiket: '',
-  ),
+  ShiftCategory.kapanis => (zemin: t.ink, metin: t.card, etiket: 'Kapanış'),
+  ShiftCategory.bilinmiyor => (zemin: t.bg, metin: t.ink, etiket: ''),
 };
 
 class RosterScreen extends StatefulWidget {
@@ -485,13 +477,17 @@ class _RosterScreenState extends State<RosterScreen> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: t.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    v?.storeName ?? (session.user?.storeName ?? 'Tüm Mağazalar'),
+                    v?.storeName ??
+                        (session.user?.storeName ?? 'Tüm Mağazalar'),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -526,9 +522,7 @@ class _RosterScreenState extends State<RosterScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: !_haftalik
-                            ? t.primary
-                            : Colors.transparent,
+                        color: !_haftalik ? t.primary : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: !_haftalik
                             ? [
@@ -546,9 +540,7 @@ class _RosterScreenState extends State<RosterScreen> {
                           Icon(
                             Icons.calendar_view_day_rounded,
                             size: 18,
-                            color: !_haftalik
-                                ? t.onPrimary
-                                : t.muted,
+                            color: !_haftalik ? t.onPrimary : t.muted,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -556,9 +548,7 @@ class _RosterScreenState extends State<RosterScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: !_haftalik
-                                  ? t.onPrimary
-                                  : t.muted,
+                              color: !_haftalik ? t.onPrimary : t.muted,
                             ),
                           ),
                         ],
@@ -578,9 +568,7 @@ class _RosterScreenState extends State<RosterScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: _haftalik
-                            ? t.primary
-                            : Colors.transparent,
+                        color: _haftalik ? t.primary : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: _haftalik
                             ? [
@@ -598,9 +586,7 @@ class _RosterScreenState extends State<RosterScreen> {
                           Icon(
                             Icons.view_comfy_rounded,
                             size: 18,
-                            color: _haftalik
-                                ? t.onPrimary
-                                : t.muted,
+                            color: _haftalik ? t.onPrimary : t.muted,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -608,9 +594,7 @@ class _RosterScreenState extends State<RosterScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: _haftalik
-                                  ? t.onPrimary
-                                  : t.muted,
+                              color: _haftalik ? t.onPrimary : t.muted,
                             ),
                           ),
                         ],
@@ -637,7 +621,10 @@ class _RosterScreenState extends State<RosterScreen> {
                 child: Text(
                   dateRangeLabel,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
               ),
               IconButton(
@@ -656,12 +643,17 @@ class _RosterScreenState extends State<RosterScreen> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: koyu ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -674,13 +666,19 @@ class _RosterScreenState extends State<RosterScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.groups_rounded, size: 16, color: Color(0xFF005C55)),
+                      const Icon(
+                        Icons.groups_rounded,
+                        size: 16,
+                        color: Color(0xFF005C55),
+                      ),
                       const SizedBox(width: 6),
                       RichText(
                         text: TextSpan(
                           style: TextStyle(
                             fontSize: 11,
-                            color: koyu ? Colors.white : const Color(0xFF0B1C30),
+                            color: koyu
+                                ? Colors.white
+                                : const Color(0xFF0B1C30),
                           ),
                           children: [
                             const TextSpan(text: 'Kadro: '),
@@ -688,7 +686,9 @@ class _RosterScreenState extends State<RosterScreen> {
                               text: v != null
                                   ? '${v.people.where((p) => p.plannedMinutes > 0).length}/${v.people.length} Aktif'
                                   : '5/5 Aktif',
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
@@ -697,7 +697,9 @@ class _RosterScreenState extends State<RosterScreen> {
                       Icon(
                         Icons.tune_rounded,
                         size: 14,
-                        color: koyu ? Colors.grey[400] : const Color(0xFF3E4947),
+                        color: koyu
+                            ? Colors.grey[400]
+                            : const Color(0xFF3E4947),
                       ),
                     ],
                   ),
@@ -707,12 +709,17 @@ class _RosterScreenState extends State<RosterScreen> {
                   onTap: _pdf,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: koyu ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -728,7 +735,9 @@ class _RosterScreenState extends State<RosterScreen> {
                         Icon(
                           Icons.download_rounded,
                           size: 16,
-                          color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                          color: koyu
+                              ? Colors.grey[300]
+                              : const Color(0xFF3E4947),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -736,7 +745,9 @@ class _RosterScreenState extends State<RosterScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                            color: koyu
+                                ? Colors.grey[300]
+                                : const Color(0xFF3E4947),
                           ),
                         ),
                       ],
@@ -748,12 +759,17 @@ class _RosterScreenState extends State<RosterScreen> {
                   onTap: (_paylasiyor || _bekleyen.isNotEmpty) ? null : _paylas,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: koyu ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -769,7 +785,9 @@ class _RosterScreenState extends State<RosterScreen> {
                         Icon(
                           Icons.campaign_rounded,
                           size: 16,
-                          color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                          color: koyu
+                              ? Colors.grey[300]
+                              : const Color(0xFF3E4947),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -777,7 +795,9 @@ class _RosterScreenState extends State<RosterScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                            color: koyu
+                                ? Colors.grey[300]
+                                : const Color(0xFF3E4947),
                           ),
                         ),
                       ],
@@ -792,7 +812,9 @@ class _RosterScreenState extends State<RosterScreen> {
                       color: koyu ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -801,9 +823,21 @@ class _RosterScreenState extends State<RosterScreen> {
                         isDense: true,
                         icon: const Icon(Icons.arrow_drop_down, size: 18),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Tüm Mağazalar', style: TextStyle(fontSize: 11))),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text(
+                              'Tüm Mağazalar',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
                           for (final m in _magazalar)
-                            DropdownMenuItem(value: m.id, child: Text(m.name, style: const TextStyle(fontSize: 11))),
+                            DropdownMenuItem(
+                              value: m.id,
+                              child: Text(
+                                m.name,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
                         ],
                         onChanged: (id) {
                           setState(() => _storeId = id);
@@ -819,8 +853,7 @@ class _RosterScreenState extends State<RosterScreen> {
           const SizedBox(height: 10),
 
           // 4. Quick KPI Metric Bar: Toplam, Ortalama, Açık Vardiya, Değişim/İzin
-          if (v != null)
-            _KpiMetricBar(veri: v),
+          if (v != null) _KpiMetricBar(veri: v),
           const SizedBox(height: 10),
 
           // 5. Vardiya Göstergeleri (Legend)
@@ -968,7 +1001,9 @@ class _KpiMetricBar extends StatelessWidget {
     final totalHours = (veri.totalPlannedMinutes / 60).toStringAsFixed(0);
     final avgHours = veri.people.isEmpty
         ? '0.0'
-        : (veri.totalPlannedMinutes / veri.people.length / 60).toStringAsFixed(1);
+        : (veri.totalPlannedMinutes / veri.people.length / 60).toStringAsFixed(
+            1,
+          );
 
     var unassignedCount = 0;
     var dayOffCount = 0;
@@ -1039,7 +1074,9 @@ class _KpiMetricBar extends StatelessWidget {
             child: _KpiCol(
               baslik: 'Değişim/İzin',
               deger: '$dayOffCount',
-              degerRenk: koyu ? const Color(0xFF34D399) : const Color(0xFF15803D),
+              degerRenk: koyu
+                  ? const Color(0xFF34D399)
+                  : const Color(0xFF15803D),
               alt: 'Onaylı',
               altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
             ),
@@ -1050,10 +1087,10 @@ class _KpiMetricBar extends StatelessWidget {
   }
 
   Widget _divider(bool koyu) => Container(
-        width: 1,
-        height: 32,
-        color: koyu ? Colors.grey[800] : const Color(0xFFE2E8F0),
-      );
+    width: 1,
+    height: 32,
+    color: koyu ? Colors.grey[800] : const Color(0xFFE2E8F0),
+  );
 }
 
 class _KpiCol extends StatelessWidget {
@@ -1139,7 +1176,11 @@ class _VardiyaGostergeleri extends StatelessWidget {
               ),
               Row(
                 children: [
-                  Icon(Icons.swipe_outlined, size: 12, color: Color(0xFF005C55)),
+                  Icon(
+                    Icons.swipe_outlined,
+                    size: 12,
+                    color: Color(0xFF005C55),
+                  ),
                   SizedBox(width: 2),
                   Text(
                     'Sağa kaydırarak inceleyin',
@@ -1267,9 +1308,7 @@ class _HaftaTablosu extends StatelessWidget {
     final koyu = Theme.of(context).brightness == Brightness.dark;
 
     // Gün kolonları + Planlı toplam kolonu
-    final colWidths = <int, TableColumnWidth>{
-      0: const FixedColumnWidth(165),
-    };
+    final colWidths = <int, TableColumnWidth>{0: const FixedColumnWidth(165)};
     for (var i = 1; i <= veri.dates.length; i++) {
       colWidths[i] = const FixedColumnWidth(78);
     }
@@ -1299,7 +1338,9 @@ class _HaftaTablosu extends StatelessWidget {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: koyu ? const Color(0xFF34D399) : const Color(0xFF15803D),
+                      color: koyu
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF15803D),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -1325,7 +1366,11 @@ class _HaftaTablosu extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 2),
-                  Icon(Icons.push_pin_outlined, size: 14, color: Color(0xFF005C55)),
+                  Icon(
+                    Icons.push_pin_outlined,
+                    size: 14,
+                    color: Color(0xFF005C55),
+                  ),
                 ],
               ),
             ],
@@ -1366,7 +1411,10 @@ class _HaftaTablosu extends StatelessWidget {
                   ),
                   children: [
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 8,
+                      ),
                       child: Text(
                         'Personel & Rol',
                         style: TextStyle(
@@ -1381,7 +1429,8 @@ class _HaftaTablosu extends StatelessWidget {
                         gunAdi: _gunAdi(d),
                         tarih: '${d.substring(8)}.${d.substring(5, 7)}',
                         tatil: veri.holidays[d] != null,
-                        haftaSonu: d == veri.dates.last ||
+                        haftaSonu:
+                            d == veri.dates.last ||
                             (veri.dates.length >= 2 &&
                                 d == veri.dates[veri.dates.length - 2]),
                       ),
@@ -1407,11 +1456,13 @@ class _HaftaTablosu extends StatelessWidget {
                       color: i.isEven
                           ? Colors.transparent
                           : (koyu
-                              ? const Color(0xFF0F172A).withValues(alpha: 0.3)
-                              : const Color(0xFFF8FAFC)),
+                                ? const Color(0xFF0F172A).withValues(alpha: 0.3)
+                                : const Color(0xFFF8FAFC)),
                       border: Border(
                         bottom: BorderSide(
-                          color: koyu ? Colors.grey[800]! : const Color(0xFFE2E8F0),
+                          color: koyu
+                              ? Colors.grey[800]!
+                              : const Color(0xFFE2E8F0),
                           width: 0.5,
                         ),
                       ),
@@ -1476,8 +1527,11 @@ class _HaftaTablosu extends StatelessWidget {
                         _Hucre(
                           hucreler: veri.people[i].gun(d),
                           tatil: veri.holidays[d],
-                          bekleyen: bekleyen[
-                              PendingCell.keyOf(veri.people[i].userId, d)],
+                          bekleyen:
+                              bekleyen[PendingCell.keyOf(
+                                veri.people[i].userId,
+                                d,
+                              )],
                           onTap: onHucre == null
                               ? null
                               : () => onHucre!(veri.people[i], d),
@@ -1485,7 +1539,9 @@ class _HaftaTablosu extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         child: Text(
-                          fmtDuration(_planliSure(veri.people[i], veri.dates, bekleyen)),
+                          fmtDuration(
+                            _planliSure(veri.people[i], veri.dates, bekleyen),
+                          ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 11.5,
@@ -1505,7 +1561,10 @@ class _HaftaTablosu extends StatelessWidget {
                   ),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
                       child: Row(
                         children: [
                           Icon(
@@ -1543,11 +1602,19 @@ class _HaftaTablosu extends StatelessWidget {
                     ),
                     for (final d in veri.dates)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 3,
+                        ),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                            color: koyu
+                                ? const Color(0xFF1E293B)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Column(
@@ -1567,8 +1634,8 @@ class _HaftaTablosu extends StatelessWidget {
                                 veri.gunToplam(d).working >= 4
                                     ? 'Yeterli'
                                     : (veri.gunToplam(d).working >= 3
-                                        ? 'Min. Kadro'
-                                        : 'Dengeli'),
+                                          ? 'Min. Kadro'
+                                          : 'Dengeli'),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 9,
@@ -1631,9 +1698,7 @@ class _TarihBasligi extends StatelessWidget {
             style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: tatil
-                  ? t.danger
-                  : (haftaSonu ? primaryColor : t.ink),
+              color: tatil ? t.danger : (haftaSonu ? primaryColor : t.ink),
             ),
           ),
           const SizedBox(height: 1),
@@ -1642,9 +1707,7 @@ class _TarihBasligi extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: haftaSonu ? FontWeight.w600 : FontWeight.w400,
-              color: tatil
-                  ? t.danger
-                  : (haftaSonu ? primaryColor : t.muted),
+              color: tatil ? t.danger : (haftaSonu ? primaryColor : t.muted),
             ),
           ),
         ],
@@ -1654,12 +1717,7 @@ class _TarihBasligi extends StatelessWidget {
 }
 
 class _Hucre extends StatelessWidget {
-  const _Hucre({
-    required this.hucreler,
-    this.tatil,
-    this.bekleyen,
-    this.onTap,
-  });
+  const _Hucre({required this.hucreler, this.tatil, this.bekleyen, this.onTap});
 
   final List<RosterCell> hucreler;
   final PublicHoliday? tatil;
@@ -1675,25 +1733,25 @@ class _Hucre extends StatelessWidget {
     final gosterilen = bekleyen == null
         ? hucreler
         : bekleyen!.isDayOff
-            ? const [RosterCell(isDayOff: true)]
-            : bekleyen!.shift == null
-                ? const <RosterCell>[]
-                : [
-                    RosterCell(
-                      shiftId: bekleyen!.shift!.id,
-                      shiftName: bekleyen!.shift!.name,
-                      startTime: bekleyen!.shift!.startTime,
-                      endTime: bekleyen!.shift!.endTime,
-                      breakDurationMinutes: bekleyen!.shift!.breakMinutes,
-                      minutes: bekleyen!.shift!.netMinutes,
-                      spanMinutes: bekleyen!.shift!.spanMinutes,
-                      crossesMidnight:
-                          bekleyen!.shift!.endTime.compareTo(
-                                bekleyen!.shift!.startTime,
-                              ) <=
-                              0,
-                    ),
-                  ];
+        ? const [RosterCell(isDayOff: true)]
+        : bekleyen!.shift == null
+        ? const <RosterCell>[]
+        : [
+            RosterCell(
+              shiftId: bekleyen!.shift!.id,
+              shiftName: bekleyen!.shift!.name,
+              startTime: bekleyen!.shift!.startTime,
+              endTime: bekleyen!.shift!.endTime,
+              breakDurationMinutes: bekleyen!.shift!.breakMinutes,
+              minutes: bekleyen!.shift!.netMinutes,
+              spanMinutes: bekleyen!.shift!.spanMinutes,
+              crossesMidnight:
+                  bekleyen!.shift!.endTime.compareTo(
+                    bekleyen!.shift!.startTime,
+                  ) <=
+                  0,
+            ),
+          ];
     final uyarilar = gosterilen.expand((c) => c.warnings).toList();
 
     Widget govde;
@@ -1745,7 +1803,9 @@ class _Hucre extends StatelessWidget {
       govde = Container(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         decoration: BoxDecoration(
-          color: koyu ? const Color(0xFF3B1E1E) : const Color(0xFFFFDAD6).withValues(alpha: 0.7),
+          color: koyu
+              ? const Color(0xFF3B1E1E)
+              : const Color(0xFFFFDAD6).withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1820,11 +1880,11 @@ class _Hucre extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             )
           : uyarilar.isEmpty
-              ? null
-              : BoxDecoration(
-                  border: Border.all(color: t.danger, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+          ? null
+          : BoxDecoration(
+              border: Border.all(color: t.danger, width: 2),
+              borderRadius: BorderRadius.circular(8),
+            ),
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: icerik,
     );
@@ -1876,9 +1936,7 @@ class _VardiyaEtiketi extends StatelessWidget {
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
-              color: hucre.crossesMidnight
-                  ? const Color(0xFFEAF1FF)
-                  : st.metin,
+              color: hucre.crossesMidnight ? const Color(0xFFEAF1FF) : st.metin,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -2023,7 +2081,9 @@ class _BottomActions extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: (paylasiyor || bekleyenVar) ? null : onPaylas,
             icon: Icon(
-              paylasiyor ? Icons.hourglass_top : Icons.chat_bubble_outline_rounded,
+              paylasiyor
+                  ? Icons.hourglass_top
+                  : Icons.chat_bubble_outline_rounded,
               size: 20,
               color: Colors.white,
             ),
@@ -2031,8 +2091,8 @@ class _BottomActions extends StatelessWidget {
               paylasiyor
                   ? 'Paylaşılıyor...'
                   : bekleyenVar
-                      ? 'Önce değişiklikleri kaydedin'
-                      : 'Whatsapp ile paylaş',
+                  ? 'Önce değişiklikleri kaydedin'
+                  : 'Whatsapp ile paylaş',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -2072,9 +2132,13 @@ class _BottomActions extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: koyu ? const Color(0xFF1E293B) : Colors.white,
+                    backgroundColor: koyu
+                        ? const Color(0xFF1E293B)
+                        : Colors.white,
                     side: BorderSide(
-                      color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -2103,9 +2167,13 @@ class _BottomActions extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: koyu ? const Color(0xFF1E293B) : Colors.white,
+                    backgroundColor: koyu
+                        ? const Color(0xFF1E293B)
+                        : Colors.white,
                     side: BorderSide(
-                      color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

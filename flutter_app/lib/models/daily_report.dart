@@ -30,11 +30,11 @@ class ReportField {
   bool get isInt => type == 'int';
 
   factory ReportField.fromJson(Map<String, dynamic> j) => ReportField(
-        key: j['key'] as String,
-        label: j['label'] as String,
-        type: j['type'] as String? ?? 'number',
-        formula: j['formula'] as String?,
-      );
+    key: j['key'] as String,
+    label: j['label'] as String,
+    type: j['type'] as String? ?? 'number',
+    formula: j['formula'] as String?,
+  );
 }
 
 class ReportFields {
@@ -58,10 +58,10 @@ class ReportFields {
       .toList();
 
   factory ReportFields.fromJson(Map<String, dynamic> j) => ReportFields(
-        entry: _list(j['entry']),
-        system: _list(j['system']),
-        derived: _list(j['derived']),
-      );
+    entry: _list(j['entry']),
+    system: _list(j['system']),
+    derived: _list(j['derived']),
+  );
 
   static const empty = ReportFields(entry: [], system: [], derived: []);
 }
@@ -85,23 +85,23 @@ class ReportMetrics {
   final num? appPct;
 
   num? operator [](String key) => switch (key) {
-        'at' => at,
-        'ipt' => ipt,
-        'food_markout_pct' => foodMarkoutPct,
-        'food_uph' => foodUph,
-        'modifiers_pct' => modifiersPct,
-        'app_pct' => appPct,
-        _ => null,
-      };
+    'at' => at,
+    'ipt' => ipt,
+    'food_markout_pct' => foodMarkoutPct,
+    'food_uph' => foodUph,
+    'modifiers_pct' => modifiersPct,
+    'app_pct' => appPct,
+    _ => null,
+  };
 
   factory ReportMetrics.fromJson(Map<String, dynamic> j) => ReportMetrics(
-        at: _numOrNull(j['at']),
-        ipt: _numOrNull(j['ipt']),
-        foodMarkoutPct: _numOrNull(j['food_markout_pct']),
-        foodUph: _numOrNull(j['food_uph']),
-        modifiersPct: _numOrNull(j['modifiers_pct']),
-        appPct: _numOrNull(j['app_pct']),
-      );
+    at: _numOrNull(j['at']),
+    ipt: _numOrNull(j['ipt']),
+    foodMarkoutPct: _numOrNull(j['food_markout_pct']),
+    foodUph: _numOrNull(j['food_uph']),
+    modifiersPct: _numOrNull(j['modifiers_pct']),
+    appPct: _numOrNull(j['app_pct']),
+  );
 
   static const empty = ReportMetrics();
 }
@@ -129,21 +129,28 @@ class DailyReport {
   final String? createdByName;
 
   static const _keys = [
-    'net_sales', 'adt', 'product_qty', 'food_usd', 'food_usd_try',
-    'food_mo_try', 'sold_beverage_qty', 'modifiers', 'app_amount',
+    'net_sales',
+    'adt',
+    'product_qty',
+    'food_usd',
+    'food_usd_try',
+    'food_mo_try',
+    'sold_beverage_qty',
+    'modifiers',
+    'app_amount',
   ];
 
   factory DailyReport.fromJson(Map<String, dynamic> j) => DailyReport(
-        id: _int(j['id']),
-        storeId: _int(j['store_id']),
-        date: j['report_date'] as String? ?? '',
-        values: {for (final k in _keys) k: _num(j[k])},
-        metrics: j['metrics'] == null
-            ? ReportMetrics.empty
-            : ReportMetrics.fromJson(j['metrics'] as Map<String, dynamic>),
-        storeName: j['store_name'] as String?,
-        createdByName: j['created_by_name'] as String?,
-      );
+    id: _int(j['id']),
+    storeId: _int(j['store_id']),
+    date: j['report_date'] as String? ?? '',
+    values: {for (final k in _keys) k: _num(j[k])},
+    metrics: j['metrics'] == null
+        ? ReportMetrics.empty
+        : ReportMetrics.fromJson(j['metrics'] as Map<String, dynamic>),
+    storeName: j['store_name'] as String?,
+    createdByName: j['created_by_name'] as String?,
+  );
 }
 
 /// Donem ozeti: ham toplamlar + TOPLAMLARDAN yeniden hesaplanan oranlar.
@@ -158,16 +165,22 @@ class ReportSummaryTotals {
   final Map<String, num> totals;
   final ReportMetrics metrics;
 
-  factory ReportSummaryTotals.fromJson(Map<String, dynamic> j) => ReportSummaryTotals(
+  factory ReportSummaryTotals.fromJson(Map<String, dynamic> j) =>
+      ReportSummaryTotals(
         days: _int(j['days']),
-        totals: ((j['totals'] as Map<String, dynamic>?) ?? {})
-            .map((k, v) => MapEntry(k, _num(v))),
+        totals: ((j['totals'] as Map<String, dynamic>?) ?? {}).map(
+          (k, v) => MapEntry(k, _num(v)),
+        ),
         metrics: j['metrics'] == null
             ? ReportMetrics.empty
             : ReportMetrics.fromJson(j['metrics'] as Map<String, dynamic>),
       );
 
-  static const empty = ReportSummaryTotals(days: 0, totals: {}, metrics: ReportMetrics.empty);
+  static const empty = ReportSummaryTotals(
+    days: 0,
+    totals: {},
+    metrics: ReportMetrics.empty,
+  );
 }
 
 class DailyReportPage {
@@ -186,19 +199,23 @@ class DailyReportPage {
   final ReportSummaryTotals summary;
 
   factory DailyReportPage.fromJson(Map<String, dynamic> j) => DailyReportPage(
-        from: j['from'] as String? ?? '',
-        to: j['to'] as String? ?? '',
-        period: j['period'] as String? ?? 'week',
-        items: ((j['items'] as List<dynamic>?) ?? [])
-            .map((e) => DailyReport.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        summary: j['summary'] == null
-            ? ReportSummaryTotals.empty
-            : ReportSummaryTotals.fromJson(j['summary'] as Map<String, dynamic>),
-      );
+    from: j['from'] as String? ?? '',
+    to: j['to'] as String? ?? '',
+    period: j['period'] as String? ?? 'week',
+    items: ((j['items'] as List<dynamic>?) ?? [])
+        .map((e) => DailyReport.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    summary: j['summary'] == null
+        ? ReportSummaryTotals.empty
+        : ReportSummaryTotals.fromJson(j['summary'] as Map<String, dynamic>),
+  );
 
   static const empty = DailyReportPage(
-    from: '', to: '', period: 'week', items: [], summary: ReportSummaryTotals.empty,
+    from: '',
+    to: '',
+    period: 'week',
+    items: [],
+    summary: ReportSummaryTotals.empty,
   );
 }
 
@@ -218,11 +235,11 @@ class SystemFoodValues {
   final int discardedQty;
 
   num? operator [](String key) => switch (key) {
-        'food_usd' => foodUsd,
-        'food_usd_try' => foodUsdTry,
-        'food_mo_try' => foodMoTry,
-        _ => null,
-      };
+    'food_usd' => foodUsd,
+    'food_usd_try' => foodUsdTry,
+    'food_mo_try' => foodMoTry,
+    _ => null,
+  };
 
   /// Sistemden gelen alanlar; arayuz bunlari okunur gosterir.
   static const keys = ['food_usd', 'food_usd_try', 'food_mo_try'];
@@ -230,14 +247,18 @@ class SystemFoodValues {
   bool get isEmpty => foodUsd == 0 && foodUsdTry == 0 && foodMoTry == 0;
 
   factory SystemFoodValues.fromJson(Map<String, dynamic> j) => SystemFoodValues(
-        foodUsd: _num(j['food_usd']),
-        foodUsdTry: _num(j['food_usd_try']),
-        foodMoTry: _num(j['food_mo_try']),
-        discardedQty: _int(j['discarded_qty']),
-      );
+    foodUsd: _num(j['food_usd']),
+    foodUsdTry: _num(j['food_usd_try']),
+    foodMoTry: _num(j['food_mo_try']),
+    discardedQty: _int(j['discarded_qty']),
+  );
 
-  static const empty =
-      SystemFoodValues(foodUsd: 0, foodUsdTry: 0, foodMoTry: 0, discardedQty: 0);
+  static const empty = SystemFoodValues(
+    foodUsd: 0,
+    foodUsdTry: 0,
+    foodMoTry: 0,
+    discardedQty: 0,
+  );
 }
 
 /// /daily-reports/day/:date yaniti: varsa kayit + sistemin hesapladigi degerler.
@@ -248,11 +269,11 @@ class DailyReportDay {
   final SystemFoodValues suggested;
 
   factory DailyReportDay.fromJson(Map<String, dynamic> j) => DailyReportDay(
-        report: j['report'] == null
-            ? null
-            : DailyReport.fromJson(j['report'] as Map<String, dynamic>),
-        suggested: j['suggested'] == null
-            ? SystemFoodValues.empty
-            : SystemFoodValues.fromJson(j['suggested'] as Map<String, dynamic>),
-      );
+    report: j['report'] == null
+        ? null
+        : DailyReport.fromJson(j['report'] as Map<String, dynamic>),
+    suggested: j['suggested'] == null
+        ? SystemFoodValues.empty
+        : SystemFoodValues.fromJson(j['suggested'] as Map<String, dynamic>),
+  );
 }

@@ -56,28 +56,33 @@ class Batch {
   bool get isExpired => urgency == 'expired';
 
   factory Batch.fromJson(Map<String, dynamic> j) => Batch(
-        id: _int(j['id']),
-        productName: j['product_name'] as String? ?? '',
-        quantity: _int(j['quantity']),
-        remaining: _int(j['remaining']),
-        status: j['status'] as String? ?? '',
-        storeName: j['store_name'] as String?,
-        sktEnd: j['skt_end'] as String?,
-        urgency: j['urgency'] as String?,
-        remainingHours: j['remaining_hours'] == null ? null : _num(j['remaining_hours']),
-        daysLeft: j['days_left'] == null ? null : _int(j['days_left']),
-        thawRemainingHours:
-            j['thaw_remaining_hours'] == null ? null : _num(j['thaw_remaining_hours']),
-        thawReady: j['thaw_ready'] == true,
-        productUnitPrice:
-            j['product_unit_price'] == null ? null : _num(j['product_unit_price']),
-        sktDays: j['skt_days'] == null ? null : _int(j['skt_days']),
-        pendingApprovalId:
-            j['pending_approval_id'] == null ? null : _int(j['pending_approval_id']),
-        enteredFrozenAt: j['entered_frozen_at'] as String?,
-        thawingStartedAt: j['thawing_started_at'] as String?,
-        thawingFinishAt: j['thawing_finish_at'] as String?,
-        foodCabinetEnteredAt: j['food_cabinet_entered_at'] as String?,
-        notes: j['notes'] as String?,
-      );
+    id: _int(j['id']),
+    productName: j['product_name'] as String? ?? '',
+    quantity: _int(j['quantity']),
+    remaining: _int(j['remaining']),
+    status: j['status'] as String? ?? '',
+    storeName: j['store_name'] as String?,
+    sktEnd: j['skt_end'] as String?,
+    urgency: j['urgency'] as String?,
+    remainingHours: j['remaining_hours'] == null
+        ? null
+        : _num(j['remaining_hours']),
+    daysLeft: j['days_left'] == null ? null : _int(j['days_left']),
+    thawRemainingHours: j['thaw_remaining_hours'] == null
+        ? null
+        : _num(j['thaw_remaining_hours']),
+    thawReady: j['thaw_ready'] == true,
+    productUnitPrice: j['product_unit_price'] == null
+        ? null
+        : _num(j['product_unit_price']),
+    sktDays: j['skt_days'] == null ? null : _int(j['skt_days']),
+    pendingApprovalId: j['pending_approval_id'] == null
+        ? null
+        : _int(j['pending_approval_id']),
+    enteredFrozenAt: j['entered_frozen_at'] as String?,
+    thawingStartedAt: j['thawing_started_at'] as String?,
+    thawingFinishAt: j['thawing_finish_at'] as String?,
+    foodCabinetEnteredAt: j['food_cabinet_entered_at'] as String?,
+    notes: j['notes'] as String?,
+  );
 }

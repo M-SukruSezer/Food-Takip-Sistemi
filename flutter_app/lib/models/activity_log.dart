@@ -16,11 +16,11 @@ class ActivityLog {
   final String? storeName;
 
   factory ActivityLog.fromJson(Map<String, dynamic> j) => ActivityLog(
-        id: (j['id'] as num).toInt(),
-        action: j['action'] as String? ?? '',
-        createdAt: j['created_at'] as String? ?? '',
-        details: j['details'] as String?,
-        username: j['username'] as String?,
-        storeName: j['store_name'] as String?,
-      );
+    id: (j['id'] as num).toInt(),
+    action: j['action'] as String? ?? '',
+    createdAt: j['created_at'] as String? ?? '',
+    details: j['details'] as String?,
+    username: j['username'] as String?,
+    storeName: j['store_name'] as String?,
+  );
 }

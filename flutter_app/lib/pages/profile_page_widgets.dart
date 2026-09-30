@@ -86,9 +86,7 @@ class ProfileAvatar extends StatelessWidget {
               padding: const EdgeInsets.all(3.5),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [t.primary, t.success],
-                ),
+                gradient: LinearGradient(colors: [t.primary, t.success]),
               ),
               child: CircleAvatar(
                 radius: radius,
@@ -170,11 +168,7 @@ class ProfileHeaderCard extends StatelessWidget {
             Text(
               user.bio,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.45,
-                color: t.muted,
-              ),
+              style: TextStyle(fontSize: 13, height: 1.45, color: t.muted),
             ),
             const SizedBox(height: 20),
             _HeaderActions(onEdit: onEdit, onShare: onShare),
@@ -311,12 +305,7 @@ class ProfileSettingsCard extends StatelessWidget {
         children: [
           for (var i = 0; i < settings.length; i++) ...[
             if (i > 0)
-              Divider(
-                height: 1,
-                indent: 70,
-                endIndent: 16,
-                color: t.border,
-              ),
+              Divider(height: 1, indent: 70, endIndent: 16, color: t.border),
             _ProfileSettingTile(
               setting: settings[i],
               value: values[i],

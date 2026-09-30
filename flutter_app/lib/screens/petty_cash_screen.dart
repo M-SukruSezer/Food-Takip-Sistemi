@@ -250,8 +250,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         color: e.isPending
                             ? t.warning
                             : e.isRejected
-                                ? t.danger
-                                : t.success,
+                            ? t.danger
+                            : t.success,
                       ),
                       if (e.hasReceipt)
                         Pill(text: 'fişli', color: t.success)
@@ -280,7 +280,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         onPressed: e.hasReceipt ? () => _showReceipt(e) : null,
                         child: const Text('Fişi Gör'),
                       ),
-                      if (e.isPending && (_page.status?.canApprove ?? false)) ...[
+                      if (e.isPending &&
+                          (_page.status?.canApprove ?? false)) ...[
                         FilledButton(
                           onPressed: () => _approve(e),
                           child: const Text('Onayla'),

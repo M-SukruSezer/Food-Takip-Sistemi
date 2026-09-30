@@ -31,15 +31,15 @@ class ProductType {
   bool get isGlobal => storeId == null;
 
   factory ProductType.fromJson(Map<String, dynamic> j) => ProductType(
-        id: _int(j['id']),
-        name: j['name'] as String? ?? '',
-        sktDays: _int(j['skt_days']),
-        active: _int(j['active']) == 1,
-        storeId: j['store_id'] == null ? null : _int(j['store_id']),
-        storeName: j['store_name'] as String?,
-        unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
-        description: j['description'] as String?,
-      );
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    sktDays: _int(j['skt_days']),
+    active: _int(j['active']) == 1,
+    storeId: j['store_id'] == null ? null : _int(j['store_id']),
+    storeName: j['store_name'] as String?,
+    unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
+    description: j['description'] as String?,
+  );
 }
 
 class SaleRecord {
@@ -75,14 +75,14 @@ class SaleRecord {
   num get total => (unitPrice ?? 0) * quantity;
 
   factory SaleRecord.fromJson(Map<String, dynamic> j) => SaleRecord(
-        id: _int(j['id']),
-        quantity: _int(j['quantity']),
-        soldAt: j['sold_at'] as String? ?? '',
-        unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
-        soldByName: j['sold_by_name'] as String?,
-        productName: j['product_name'] as String?,
-        storeName: j['store_name'] as String?,
-        batchCode: j['batch_code'] as String?,
-        kind: j['kind'] as String? ?? 'sale',
-      );
+    id: _int(j['id']),
+    quantity: _int(j['quantity']),
+    soldAt: j['sold_at'] as String? ?? '',
+    unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
+    soldByName: j['sold_by_name'] as String?,
+    productName: j['product_name'] as String?,
+    storeName: j['store_name'] as String?,
+    batchCode: j['batch_code'] as String?,
+    kind: j['kind'] as String? ?? 'sale',
+  );
 }

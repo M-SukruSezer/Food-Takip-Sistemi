@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
+import 'auth_repository.dart';
 import 'api_client.dart';
-import 'opts.dart';
 import 'push.dart';
 
 /// React tarafindaki AuthProvider'in karsiligi: token + kullanici durumu.
 class Session extends ChangeNotifier {
+  Session({AuthRepository? authRepository})
+    : _authRepository = authRepository ?? RemoteAuthRepository(api);
+
+  final AuthRepository _authRepository;
   AppUser? _user;
   bool _loading = true;
 
@@ -16,21 +20,16 @@ class Session extends ChangeNotifier {
 
   /// Uygulama acilisinda kayitli token ile oturumu geri yukler.
   Future<void> restore() async {
-    await api.loadToken();
-    if (api.token == null) {
+    if (!await _authRepository.hasSession()) {
       _loading = false;
       notifyListeners();
       return;
     }
     try {
       // Hata satir ici gosterilmedigi icin bildirim bastirilir.
-      final r = await api.dio.get<Map<String, dynamic>>(
-        '/auth/me',
-        options: apiOptions(noToast: true),
-      );
-      _user = AppUser.fromJson(r.data!);
+      _user = await _authRepository.restoreUser();
     } catch (_) {
-      await api.setToken(null);
+      await _authRepository.clearSession();
       _user = null;
     } finally {
       _loading = false;
@@ -39,15 +38,7 @@ class Session extends ChangeNotifier {
   }
 
   Future<void> signIn(String username, String password) async {
-    final r = await api.dio.post<Map<String, dynamic>>(
-      '/auth/login',
-      data: {'username': username, 'password': password},
-      // Giris hatasi formun icinde gosterilir; ayrica bildirim verilmez.
-      options: apiOptions(noToast: true, busyMessage: 'Giriş yapılıyor...'),
-    );
-    final data = r.data!;
-    await api.setToken(data['token'] as String);
-    _user = AppUser.fromJson(data['user'] as Map<String, dynamic>);
+    _user = await _authRepository.signIn(username, password);
     notifyListeners();
   }
 
@@ -56,7 +47,7 @@ class Session extends ChangeNotifier {
     // istegi 401 alirdi ve cihaz onceki kullanicinin bildirimlerini almaya
     // devam ederdi.
     await unregisterDeviceToken();
-    await api.setToken(null);
+    await _authRepository.clearSession();
     _user = null;
     notifyListeners();
   }

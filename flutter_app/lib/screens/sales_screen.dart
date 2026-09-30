@@ -309,7 +309,11 @@ class _SalesScreenState extends State<SalesScreen> {
                           tooltip: 'Kaydı sil',
                           visualDensity: VisualDensity.compact,
                           onPressed: () => _remove(m),
-                          icon: Icon(Icons.delete_outline, size: 19, color: t.danger),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            size: 19,
+                            color: t.danger,
+                          ),
                         ),
                       ],
                     ],
