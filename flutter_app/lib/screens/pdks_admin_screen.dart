@@ -970,7 +970,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF4FF),
+                color: context.tokens.bg,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
@@ -1018,7 +1018,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFD9D5),
+                      color: context.tokens.dangerSoft,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Row(
@@ -1063,8 +1063,8 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: selected
-                          ? const Color(0xFFE3F1EF)
-                          : const Color(0xFFEFF4FF),
+                          ? context.tokens.primarySoft
+                          : context.tokens.bg,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selected ? t.primary : Colors.transparent,
@@ -1119,7 +1119,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF4FF),
+                color: context.tokens.bg,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(

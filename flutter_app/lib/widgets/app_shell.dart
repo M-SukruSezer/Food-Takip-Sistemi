@@ -1497,10 +1497,10 @@ class _NavMenuSheet extends StatelessWidget {
                                   ),
                                   label: const Text('Çıkış yap'),
                                   style: OutlinedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFFFF5F5),
-                                    foregroundColor: const Color(0xFFDC2626),
-                                    side: const BorderSide(
-                                      color: Color(0xFFFCA5A5),
+                                    backgroundColor: t.dangerSoft,
+                                    foregroundColor: t.danger,
+                                    side: BorderSide(
+                                      color: t.danger.withValues(alpha: .45),
                                       width: 1.2,
                                     ),
                                     shape: RoundedRectangleBorder(
@@ -1774,6 +1774,16 @@ class _MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final d = _menuTileDataFor(item, recommendationCount);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final criticalBadge = d.badgeText?.contains('Kritik') ?? false;
+    final iconBg = dark ? t.primarySoft : d.iconBg;
+    final iconColor = dark ? t.primary : d.iconColor;
+    final badgeBg = dark
+        ? (criticalBadge ? t.dangerSoft : t.successSoft)
+        : d.badgeBg;
+    final badgeColor = dark
+        ? (criticalBadge ? t.danger : t.okText)
+        : d.badgeColor;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1786,11 +1796,11 @@ class _MenuTile extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 64),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: active ? const Color(0xFFF6FDF9) : t.card,
+              color: active ? t.successSoft : t.card,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: active
-                    ? const Color(0xFF86EFAC)
+                    ? t.success.withValues(alpha: .55)
                     : t.border.withValues(alpha: 0.8),
                 width: active ? 1.4 : 1,
               ),
@@ -1808,10 +1818,10 @@ class _MenuTile extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: d.iconBg,
+                    color: iconBg,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(d.icon, color: d.iconColor, size: 21),
+                  child: Icon(d.icon, color: iconColor, size: 21),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1867,13 +1877,13 @@ class _MenuTile extends StatelessWidget {
                                 vertical: 2.5,
                               ),
                               decoration: BoxDecoration(
-                                color: d.badgeBg,
+                                color: badgeBg,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 d.badgeText!,
                                 style: TextStyle(
-                                  color: d.badgeColor,
+                                  color: badgeColor,
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.1,

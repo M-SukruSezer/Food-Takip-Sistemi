@@ -253,7 +253,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF0F4FF),
+                        color: context.tokens.bg,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
@@ -329,7 +329,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF4FF),
+                        color: context.tokens.bg,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Row(
@@ -583,7 +583,7 @@ class _ExportLayer extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5EDFF),
+                  color: context.tokens.primarySoft,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: t.primary, size: 20),
@@ -660,7 +660,7 @@ class _ExportChoice extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: selected ? t.primarySoft : const Color(0xFFF3F6FC),
+          color: selected ? t.primarySoft : t.bg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: selected ? t.primary : Colors.transparent),
         ),

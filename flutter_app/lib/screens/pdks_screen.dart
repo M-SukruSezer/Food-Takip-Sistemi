@@ -479,9 +479,11 @@ class _TodayCard extends StatelessWidget {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: context.tokens.infoSoft,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFDBEAFE)),
+                    border: Border.all(
+                      color: context.tokens.info.withValues(alpha: .35),
+                    ),
                   ),
                   child: Text(
                     firstShift.name.isNotEmpty
@@ -798,9 +800,9 @@ class _BreakMetricBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: context.tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1034,9 +1036,9 @@ class _RequestRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: context.tokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

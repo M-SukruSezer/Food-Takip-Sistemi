@@ -113,9 +113,9 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.65,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: context.tokens.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -145,7 +145,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              Divider(height: 1, color: context.tokens.border),
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
@@ -172,13 +172,13 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFF0FDF4)
-                              : const Color(0xFFF8FAFC),
+                              ? context.tokens.successSoft
+                              : context.tokens.bg,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF15803D)
-                                : const Color(0xFFE2E8F0),
+                                : context.tokens.border,
                             width: isSelected ? 1.6 : 1,
                           ),
                         ),
@@ -190,7 +190,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? const Color(0xFF15803D)
-                                    : const Color(0xFFDCFCE7),
+                                    : context.tokens.successSoft,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
@@ -224,7 +224,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       fontSize: 11.5,
                                       color: isSelected
                                           ? const Color(0xFF15803D)
-                                          : const Color(0xFF64748B),
+                                          : context.tokens.muted,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -313,7 +313,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
           child: Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.tokens.card,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
@@ -351,9 +351,11 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
+                            color: context.tokens.successSoft,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFDCFCE7)),
+                            border: Border.all(
+                              color: context.tokens.successSoft,
+                            ),
                           ),
                           alignment: Alignment.center,
                           child: const Icon(
@@ -394,7 +396,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFDCFCE7),
+                                      color: context.tokens.successSoft,
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                     child: const Text(
@@ -410,12 +412,12 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 ],
                               ),
                               const SizedBox(height: 2),
-                              const Text(
+                              Text(
                                 'Donuk depoya yeni parti ürün girişi yapın',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF64748B),
+                                  color: context.tokens.muted,
                                 ),
                               ),
                             ],
@@ -429,15 +431,15 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             child: Container(
                               width: 28,
                               height: 28,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF1F5F9),
+                              decoration: BoxDecoration(
+                                color: context.tokens.bg,
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(
+                              child: Icon(
                                 Icons.close_rounded,
                                 size: 16,
-                                color: Color(0xFF64748B),
+                                color: context.tokens.muted,
                               ),
                             ),
                           ),
@@ -446,7 +448,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                     ),
                   ),
 
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  Divider(height: 1, color: context.tokens.border),
 
                   // Form Gövdesi
                   Padding(
@@ -458,7 +460,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
+                              color: context.tokens.dangerSoft,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: const Color(0xFFEF4444)
@@ -493,12 +495,12 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Ürün Çeşidi',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF334155),
+                                color: context.tokens.ink,
                               ),
                             ),
                             Container(
@@ -507,7 +509,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0FDF4),
+                                color: context.tokens.successSoft,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
@@ -531,11 +533,9 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               vertical: 9,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: context.tokens.bg,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: const Color(0xFFE2E8F0),
-                              ),
+                              border: Border.all(color: context.tokens.border),
                             ),
                             child: Row(
                               children: [
@@ -617,12 +617,12 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Adet / Kutu',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF334155),
+                                      color: context.tokens.ink,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -632,10 +632,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
+                                      color: context.tokens.bg,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
+                                        color: context.tokens.border,
                                       ),
                                     ),
                                     child: Row(
@@ -659,13 +659,11 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                               width: 32,
                                               height: 32,
                                               decoration: BoxDecoration(
-                                                color: Colors.white,
+                                                color: context.tokens.card,
                                                 borderRadius:
                                                     BorderRadius.circular(8),
                                                 border: Border.all(
-                                                  color: const Color(
-                                                    0xFFE2E8F0,
-                                                  ),
+                                                  color: context.tokens.border,
                                                 ),
                                               ),
                                               alignment: Alignment.center,
@@ -752,13 +750,13 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
+                                    children: [
                                       Text(
                                         'Parti Kodu',
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF334155),
+                                          color: context.tokens.ink,
                                         ),
                                       ),
                                       Text(
@@ -777,10 +775,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       horizontal: 10,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
+                                      color: context.tokens.bg,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
+                                        color: context.tokens.border,
                                       ),
                                     ),
                                     alignment: Alignment.center,
@@ -841,9 +839,9 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: context.tokens.bg,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: context.tokens.border),
                           ),
                           child: Row(
                             children: [
@@ -901,23 +899,21 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
 
                         if (isSuper && widget.stores.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'Mağaza (Ana Yönetici)',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
+                              color: context.tokens.ink,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: context.tokens.bg,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFE2E8F0),
-                              ),
+                              border: Border.all(color: context.tokens.border),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<int?>(
@@ -956,7 +952,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         // 4. Alan: Not (Opsiyonel)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
+                          children: [
                             Text.rich(
                               TextSpan(
                                 children: [
@@ -965,7 +961,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF334155),
+                                      color: context.tokens.ink,
                                     ),
                                   ),
                                   TextSpan(
@@ -994,9 +990,9 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: context.tokens.bg,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: context.tokens.border),
                           ),
                           child: TextField(
                             controller: _notesController,
@@ -1041,11 +1037,11 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                       ? null
                                       : () => Navigator.of(context).pop(false),
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
+                                    side: BorderSide(
+                                      color: context.tokens.border,
                                     ),
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF334155),
+                                    backgroundColor: context.tokens.card,
+                                    foregroundColor: context.tokens.ink,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -1484,7 +1480,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1523,7 +1519,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       size: 18,
                       color: isZayi
                           ? const Color(0xFFBA1A1A)
-                          : const Color(0xFF64748B),
+                          : context.tokens.muted,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -1533,7 +1529,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                         fontWeight: FontWeight.bold,
                         color: isZayi
                             ? const Color(0xFFBA1A1A)
-                            : const Color(0xFF64748B),
+                            : context.tokens.muted,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1587,7 +1583,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       size: 18,
                       color: !isZayi
                           ? const Color(0xFF007952)
-                          : const Color(0xFF64748B),
+                          : context.tokens.muted,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -1597,7 +1593,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                         fontWeight: FontWeight.bold,
                         color: !isZayi
                             ? const Color(0xFF007952)
-                            : const Color(0xFF64748B),
+                            : context.tokens.muted,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1631,7 +1627,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -1673,10 +1669,10 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           const SizedBox(height: 6),
           Text(
             widget.batch.productName,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF0B1C30),
+              color: context.tokens.ink,
             ),
           ),
           const SizedBox(height: 4),
@@ -1684,36 +1680,36 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             children: [
               Text(
                 'Birim: ',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: context.tokens.muted),
               ),
               Text(
                 fmtMoney(unitPrice),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0B1C30),
+                  color: context.tokens.ink,
                 ),
               ),
               const SizedBox(width: 6),
               Container(
                 width: 3,
                 height: 3,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF64748B),
+                decoration: BoxDecoration(
+                  color: context.tokens.muted,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 'Mevcut: ',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 12, color: context.tokens.muted),
               ),
               Text(
                 '${widget.batch.remaining} Adet',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0B1C30),
+                  color: context.tokens.ink,
                 ),
               ),
             ],
@@ -1723,8 +1719,8 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: widget.batch.isExpired
-                  ? const Color(0xFFFEE2E2)
-                  : const Color(0xFFFEF3C7),
+                  ? context.tokens.dangerSoft
+                  : context.tokens.warningSoft,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Row(
@@ -1784,22 +1780,22 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'ÇIKIŞ MİKTARI',
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: context.tokens.muted,
                   letterSpacing: 0.4,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 '$_quantity Adet',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0B1C30),
+                  color: context.tokens.ink,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -1819,7 +1815,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF4FF),
+              color: context.tokens.bg,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1843,7 +1839,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       Icons.remove_rounded,
                       size: 20,
                       color: _quantity > 1
-                          ? const Color(0xFF0B1C30)
+                          ? context.tokens.ink
                           : const Color(0xFFBDC9C6),
                     ),
                   ),
@@ -1903,10 +1899,10 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               children: [
                 Text(
                   isZayi ? 'Zayi / İptal Nedeni' : 'İkram Nedeni',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0B1C30),
+                    color: context.tokens.ink,
                   ),
                 ),
                 const Text(
@@ -1919,9 +1915,9 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 ),
               ],
             ),
-            const Text(
+            Text(
               'Zorunlu Seçim',
-              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 11, color: context.tokens.muted),
             ),
           ],
         ),
@@ -1939,8 +1935,8 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFFD1FAE5)
-                      : const Color(0xFFEFF4FF),
+                      ? context.tokens.successSoft
+                      : context.tokens.bg,
                   borderRadius: BorderRadius.circular(12),
                   border: isSelected
                       ? Border.all(color: const Color(0xFF15803D), width: 1.2)
@@ -1953,7 +1949,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       size: 20,
                       color: isSelected
                           ? const Color(0xFF15803D)
-                          : const Color(0xFF64748B),
+                          : context.tokens.muted,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -1966,7 +1962,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                               : FontWeight.w500,
                           color: isSelected
                               ? const Color(0xFF065F46)
-                              : const Color(0xFF0B1C30),
+                              : context.tokens.ink,
                         ),
                       ),
                     ),
@@ -2008,7 +2004,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -2018,7 +2014,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
+                children: [
                   Icon(
                     Icons.videocam_rounded,
                     size: 18,
@@ -2030,7 +2026,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0B1C30),
+                      color: context.tokens.ink,
                     ),
                   ),
                 ],
@@ -2038,7 +2034,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDCE9FF),
+                  color: context.tokens.infoSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -2054,7 +2050,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           ),
           const SizedBox(height: 8),
           Material(
-            color: Colors.white,
+            color: context.tokens.card,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: () {
@@ -2082,7 +2078,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   border: Border.all(
                     color: _hasPhoto
                         ? const Color(0xFF10B981)
-                        : const Color(0xFFE2E8F0),
+                        : context.tokens.border,
                   ),
                 ),
                 child: Row(
@@ -2110,16 +2106,16 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                               fontWeight: FontWeight.bold,
                               color: _hasPhoto
                                   ? const Color(0xFF065F46)
-                                  : const Color(0xFF0B1C30),
+                                  : context.tokens.ink,
                             ),
                           ),
                           Text(
                             _hasPhoto
                                 ? '1 görsel iliştirildi (kaldırmak için dokunun)'
                                 : 'Tutanak veya ürün görseli (opsiyonel)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF64748B),
+                              color: context.tokens.muted,
                             ),
                           ),
                         ],
@@ -2139,28 +2135,28 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Operasyonel Açıklama & Not',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF0B1C30),
+            color: context.tokens.ink,
           ),
         ),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.tokens.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: context.tokens.border),
           ),
           child: TextField(
             controller: _notes,
             maxLines: 2,
-            style: const TextStyle(fontSize: 13.5, color: Color(0xFF0B1C30)),
-            decoration: const InputDecoration(
+            style: TextStyle(fontSize: 13.5, color: context.tokens.ink),
+            decoration: InputDecoration(
               hintText: 'Örn: Dolap sıcaklık dalgalanması sebebiyle krema formu bozulmuştur.',
-              hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
+              hintStyle: TextStyle(fontSize: 12.5, color: context.tokens.muted),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(12),
             ),
@@ -2180,7 +2176,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -2204,18 +2200,15 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               children: [
                 Text(
                   fullName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0B1C30),
+                    color: context.tokens.ink,
                   ),
                 ),
                 Text(
                   '$roleName · ID: $idStr',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: Color(0xFF64748B),
-                  ),
+                  style: TextStyle(fontSize: 10.5, color: context.tokens.muted),
                 ),
               ],
             ),
@@ -2235,10 +2228,10 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               const SizedBox(height: 2),
               Text(
                 dateStr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0B1C30),
+                  color: context.tokens.ink,
                 ),
               ),
             ],
@@ -2289,12 +2282,12 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
         const SizedBox(height: 6),
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text(
+          child: Text(
             'Vazgeç',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
+              color: context.tokens.muted,
             ),
           ),
         ),

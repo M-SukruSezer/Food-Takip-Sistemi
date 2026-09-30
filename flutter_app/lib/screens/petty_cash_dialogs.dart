@@ -26,7 +26,7 @@ Future<bool?> showExpenseDialog(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: const Color(0xFFF8F9FF),
+    backgroundColor: context.tokens.bg,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -40,7 +40,8 @@ class PettyCashExpenseFormSheet extends StatefulWidget {
   final PettyCashStatus? status;
 
   @override
-  State<PettyCashExpenseFormSheet> createState() => _PettyCashExpenseFormSheetState();
+  State<PettyCashExpenseFormSheet> createState() =>
+      _PettyCashExpenseFormSheetState();
 }
 
 class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
@@ -91,11 +92,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
     ),
   ];
 
-  static const _docTypes = [
-    'Yazar Kasa Fişi',
-    'E-Fatura',
-    'Gider Pusulası',
-  ];
+  static const _docTypes = ['Yazar Kasa Fişi', 'E-Fatura', 'Gider Pusulası'];
 
   @override
   void dispose() {
@@ -106,7 +103,8 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
   }
 
   void _addPreset(int val) {
-    final current = num.tryParse(_amountController.text.trim().replaceAll(',', '.')) ?? 0;
+    final current =
+        num.tryParse(_amountController.text.trim().replaceAll(',', '.')) ?? 0;
     final next = current + val;
     if (next % 1 == 0) {
       _amountController.text = next.toInt().toString();
@@ -160,7 +158,8 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
     if (name == null || name.trim().isEmpty) return 'MŞ';
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.length == 1) return parts[0].substring(0, 1).toUpperCase();
-    return (parts[0].substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+    return (parts[0].substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 
   Future<void> _submit() async {
@@ -175,8 +174,13 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
       setState(() => _error = 'Açıklama zorunludur');
       return;
     }
-    if (widget.status != null && widget.status!.hasLimit && val > widget.status!.remaining) {
-      setState(() => _error = 'Haftalık limit aşılıyor. Kalan: ${fmtMoney(widget.status!.remaining)}');
+    if (widget.status != null &&
+        widget.status!.hasLimit &&
+        val > widget.status!.remaining) {
+      setState(
+        () => _error =
+            'Haftalık limit aşılıyor. Kalan: ${fmtMoney(widget.status!.remaining)}',
+      );
       return;
     }
 
@@ -189,7 +193,9 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
       final cat = _selectedCategory;
       final docNo = _docNoController.text.trim();
       final userDesc = _descController.text.trim();
-      final docPart = docNo.isNotEmpty ? '($_selectedDocType: $docNo)' : '($_selectedDocType)';
+      final docPart = docNo.isNotEmpty
+          ? '($_selectedDocType: $docNo)'
+          : '($_selectedDocType)';
       final fullDescription = '[$cat] $docPart $userDesc'.trim();
 
       await repo.addPettyCash(
@@ -212,26 +218,34 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
   @override
   Widget build(BuildContext context) {
     final status = widget.status;
-    final totalLimit = status != null && status.hasLimit ? status.weeklyLimit : 10000;
+    final totalLimit = status != null && status.hasLimit
+        ? status.weeklyLimit
+        : 10000;
     final spentThisWeek = status?.spentThisWeek ?? 0;
-    final baseRemaining = status != null && status.hasLimit ? status.remaining : 10000;
+    final baseRemaining = status != null && status.hasLimit
+        ? status.remaining
+        : 10000;
 
-    final enteredAmount = num.tryParse(_amountController.text.trim().replaceAll(',', '.')) ?? 0;
+    final enteredAmount =
+        num.tryParse(_amountController.text.trim().replaceAll(',', '.')) ?? 0;
     final dynamicSpent = spentThisWeek + enteredAmount;
     final dynamicRemaining = math.max(0, baseRemaining - enteredAmount);
 
-    final spentRatio = totalLimit > 0 ? (dynamicSpent / totalLimit).clamp(0.0, 1.0) : 0.0;
+    final spentRatio = totalLimit > 0
+        ? (dynamicSpent / totalLimit).clamp(0.0, 1.0)
+        : 0.0;
 
     final storeName = (session.user?.storeName ?? 'Mağaza').toUpperCase();
     final userName = session.user?.fullName ?? 'Kullanıcı';
-    final roleTitle = roleLabels[session.user?.role] ?? (session.user?.role ?? 'Personel');
+    final roleTitle =
+        roleLabels[session.user?.role] ?? (session.user?.role ?? 'Personel');
     final userRole = '$roleTitle · Kasa Sorumlusu';
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: Scaffold(
-          backgroundColor: const Color(0xFFF8F9FF),
+          backgroundColor: context.tokens.bg,
           body: Column(
             children: [
               // Gizli test uyumluluk satırı (form_density_test.dart için)
@@ -267,13 +281,13 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5EEFF),
+                          color: context.tokens.primarySoft,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back_rounded,
                           size: 20,
-                          color: Color(0xFF0B1C30),
+                          color: context.tokens.ink,
                         ),
                       ),
                     ),
@@ -308,20 +322,23 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               ),
                             ],
                           ),
-                          const Text(
+                          Text(
                             'Masraf Girişi',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.3,
-                              color: Color(0xFF0B1C30),
+                              color: context.tokens.ink,
                             ),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFB5EFDA),
                         borderRadius: BorderRadius.circular(999),
@@ -370,11 +387,17 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               decoration: BoxDecoration(
                                 color: t.dangerSoft,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: t.danger.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: t.danger.withValues(alpha: 0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.error_outline_rounded, color: t.dangerStrong, size: 20),
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    color: t.dangerStrong,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -389,7 +412,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 ],
                               ),
                             );
-                          }
+                          },
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -403,14 +426,15 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Haftalık Kasa Limiti',
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF64748B),
+                                          color: context.tokens.muted,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -419,10 +443,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         alignment: Alignment.centerLeft,
                                         child: Text(
                                           fmtMoney(totalLimit),
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 17,
                                             fontWeight: FontWeight.w800,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                             letterSpacing: -0.3,
                                           ),
                                         ),
@@ -435,12 +459,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Mevcut Bakiye',
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF64748B),
+                                          color: context.tokens.muted,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -468,17 +492,21 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               borderRadius: BorderRadius.circular(999),
                               child: Container(
                                 height: 10,
-                                color: const Color(0xFFE5EEFF),
+                                color: context.tokens.primarySoft,
                                 child: Row(
                                   children: [
                                     if (spentRatio > 0)
                                       Flexible(
                                         flex: (spentRatio * 100).round(),
-                                        child: Container(color: const Color(0xFFBA1A1A)),
+                                        child: Container(
+                                          color: const Color(0xFFBA1A1A),
+                                        ),
                                       ),
                                     Flexible(
                                       flex: ((1.0 - spentRatio) * 100).round(),
-                                      child: Container(color: const Color(0xFF007952)),
+                                      child: Container(
+                                        color: const Color(0xFF007952),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -503,16 +531,19 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         child: Text.rich(
                                           TextSpan(
                                             children: [
-                                              const TextSpan(
+                                              TextSpan(
                                                 text: 'Bu Hafta: ',
-                                                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: context.tokens.muted,
+                                                ),
                                               ),
                                               TextSpan(
                                                 text: fmtMoney(dynamicSpent),
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF0B1C30),
+                                                  color: context.tokens.ink,
                                                 ),
                                               ),
                                             ],
@@ -526,7 +557,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 const SizedBox(width: 6),
                                 Text(
                                   'Hafta: ${_weekRange()}',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: context.tokens.muted,
+                                  ),
                                 ),
                               ],
                             ),
@@ -544,8 +578,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Row(
-                                    children: const [
-                                      Icon(Icons.payments_outlined, size: 19, color: Color(0xFF005C55)),
+                                    children: [
+                                      Icon(
+                                        Icons.payments_outlined,
+                                        size: 19,
+                                        color: Color(0xFF005C55),
+                                      ),
                                       SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
@@ -554,7 +592,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                           ),
                                         ),
                                       ),
@@ -574,9 +612,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                             ),
                             const SizedBox(height: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEFF4FF),
+                                color: context.tokens.bg,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
@@ -584,7 +625,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   Expanded(
                                     child: TextField(
                                       controller: _amountController,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
                                       textAlign: TextAlign.center,
                                       onChanged: (_) => setState(() {}),
                                       style: const TextStyle(
@@ -622,25 +666,31 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [50, 100, 250, 500].map((preset) {
                                 return Expanded(
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(10),
                                       onTap: () => _addPreset(preset),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFE5EEFF),
-                                          borderRadius: BorderRadius.circular(10),
+                                          color: context.tokens.primarySoft,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         alignment: Alignment.center,
                                         child: FittedBox(
                                           fit: BoxFit.scaleDown,
                                           child: Text(
                                             '+$preset TL',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w700,
-                                              color: Color(0xFF0B1C30),
+                                              color: context.tokens.ink,
                                             ),
                                           ),
                                         ),
@@ -664,8 +714,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Row(
-                                    children: const [
-                                      Icon(Icons.category_outlined, size: 19, color: Color(0xFF005C55)),
+                                    children: [
+                                      Icon(
+                                        Icons.category_outlined,
+                                        size: 19,
+                                        color: Color(0xFF005C55),
+                                      ),
                                       SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
@@ -674,7 +728,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                           ),
                                         ),
                                       ),
@@ -686,10 +740,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   child: Text(
                                     _selectedCategory,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF64748B),
+                                      color: context.tokens.muted,
                                     ),
                                   ),
                                 ),
@@ -707,12 +761,19 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 final active = _selectedCategory == cat.title;
                                 return InkWell(
                                   borderRadius: BorderRadius.circular(12),
-                                  onTap: () => setState(() => _selectedCategory = cat.title),
+                                  onTap: () => setState(
+                                    () => _selectedCategory = cat.title,
+                                  ),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 160),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: active ? const Color(0xFF005C55) : const Color(0xFFE5EEFF),
+                                      color: active
+                                          ? const Color(0xFF005C55)
+                                          : context.tokens.primarySoft,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Row(
@@ -722,22 +783,30 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           height: 32,
                                           decoration: BoxDecoration(
                                             color: active
-                                                ? Colors.white.withValues(alpha: 0.15)
+                                                ? Colors.white.withValues(
+                                                    alpha: 0.15,
+                                                  )
                                                 : const Color(0xFF9CF2E8),
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           alignment: Alignment.center,
                                           child: Icon(
                                             cat.icon,
                                             size: 17,
-                                            color: active ? Colors.white : const Color(0xFF00201D),
+                                            color: active
+                                                ? Colors.white
+                                                : const Color(0xFF00201D),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Text(
                                                 cat.title,
@@ -746,7 +815,9 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w700,
-                                                  color: active ? Colors.white : const Color(0xFF0B1C30),
+                                                  color: active
+                                                      ? Colors.white
+                                                      : context.tokens.ink,
                                                 ),
                                               ),
                                               Text(
@@ -757,8 +828,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.w500,
                                                   color: active
-                                                      ? Colors.white.withValues(alpha: 0.8)
-                                                      : const Color(0xFF64748B),
+                                                      ? Colors.white.withValues(
+                                                          alpha: 0.8,
+                                                        )
+                                                      : context.tokens.muted,
                                                 ),
                                               ),
                                             ],
@@ -784,8 +857,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Row(
-                                    children: const [
-                                      Icon(Icons.description_outlined, size: 19, color: Color(0xFF005C55)),
+                                    children: [
+                                      Icon(
+                                        Icons.description_outlined,
+                                        size: 19,
+                                        color: Color(0xFF005C55),
+                                      ),
                                       SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
@@ -794,7 +871,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                           ),
                                         ),
                                       ),
@@ -817,7 +894,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEFF4FF),
+                                color: context.tokens.bg,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -826,19 +903,30 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   return Expanded(
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(8),
-                                      onTap: () => setState(() => _selectedDocType = type),
+                                      onTap: () => setState(
+                                        () => _selectedDocType = type,
+                                      ),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 6,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: active ? Colors.white : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: active
+                                              ? Colors.white
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           boxShadow: active
                                               ? [
                                                   BoxShadow(
-                                                    color: Colors.black.withValues(alpha: 0.05),
+                                                    color: Colors.black
+                                                        .withValues(
+                                                          alpha: 0.05,
+                                                        ),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 1),
-                                                  )
+                                                  ),
                                                 ]
                                               : null,
                                         ),
@@ -849,8 +937,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 11.5,
-                                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                                            color: active ? const Color(0xFF005C55) : const Color(0xFF64748B),
+                                            fontWeight: active
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                            color: active
+                                                ? const Color(0xFF005C55)
+                                                : context.tokens.muted,
                                           ),
                                         ),
                                       ),
@@ -864,29 +956,43 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Fiş / Belge No',
-                                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.tokens.muted,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Container(
                                         height: 44,
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFEFF4FF),
-                                          borderRadius: BorderRadius.circular(10),
+                                          color: context.tokens.bg,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         alignment: Alignment.centerLeft,
                                         child: TextField(
                                           controller: _docNoController,
-                                          style: const TextStyle(fontSize: 13.5, color: Color(0xFF0B1C30)),
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            color: context.tokens.ink,
+                                          ),
                                           decoration: const InputDecoration(
                                             border: InputBorder.none,
                                             isDense: true,
                                             hintText: 'Örn: 0194',
-                                            hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                                            hintStyle: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 13,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -896,11 +1002,15 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'İşlem Tarihi',
-                                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.tokens.muted,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       InkWell(
@@ -909,8 +1019,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           final picked = await showDatePicker(
                                             context: context,
                                             initialDate: _spentAt,
-                                            firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                                            lastDate: DateTime.now().add(const Duration(days: 1)),
+                                            firstDate: DateTime.now().subtract(
+                                              const Duration(days: 30),
+                                            ),
+                                            lastDate: DateTime.now().add(
+                                              const Duration(days: 1),
+                                            ),
                                           );
                                           if (picked != null) {
                                             setState(() => _spentAt = picked);
@@ -918,30 +1032,40 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         },
                                         child: Container(
                                           height: 44,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFEFF4FF),
-                                            borderRadius: BorderRadius.circular(10),
+                                            color: context.tokens.bg,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               Text(
-                                                _spentAt.day == DateTime.now().day &&
-                                                        _spentAt.month == DateTime.now().month &&
-                                                        _spentAt.year == DateTime.now().year
+                                                _spentAt.day ==
+                                                            DateTime.now()
+                                                                .day &&
+                                                        _spentAt.month ==
+                                                            DateTime.now()
+                                                                .month &&
+                                                        _spentAt.year ==
+                                                            DateTime.now().year
                                                     ? 'Bugün'
                                                     : '${_spentAt.day.toString().padLeft(2, '0')}.${_spentAt.month.toString().padLeft(2, '0')}.${_spentAt.year}',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF0B1C30),
+                                                  color: context.tokens.ink,
                                                 ),
                                               ),
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_today_outlined,
                                                 size: 16,
-                                                color: Color(0xFF64748B),
+                                                color: context.tokens.muted,
                                               ),
                                             ],
                                           ),
@@ -966,8 +1090,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               children: [
                                 Expanded(
                                   child: Row(
-                                    children: const [
-                                      Icon(Icons.photo_camera_outlined, size: 19, color: Color(0xFF005C55)),
+                                    children: [
+                                      Icon(
+                                        Icons.photo_camera_outlined,
+                                        size: 19,
+                                        color: Color(0xFF005C55),
+                                      ),
                                       SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
@@ -976,7 +1104,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                           ),
                                         ),
                                       ),
@@ -987,7 +1115,11 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Icon(Icons.verified_outlined, size: 14, color: Color(0xFFBA1A1A)),
+                                    Icon(
+                                      Icons.verified_outlined,
+                                      size: 14,
+                                      color: Color(0xFFBA1A1A),
+                                    ),
                                     SizedBox(width: 3),
                                     Text(
                                       'Mali Denetim',
@@ -1005,7 +1137,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                             if (_imageError != null) ...[
                               Text(
                                 _imageError!,
-                                style: const TextStyle(color: Color(0xFFBA1A1A), fontSize: 12),
+                                style: const TextStyle(
+                                  color: Color(0xFFBA1A1A),
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(height: 6),
                             ],
@@ -1013,7 +1148,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF4FF),
+                                  color: context.tokens.bg,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Column(
@@ -1033,20 +1168,20 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    const Text(
+                                    Text(
                                       'Mali onay için fiş görseli gereklidir',
                                       style: TextStyle(
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF0B1C30),
+                                        color: context.tokens.ink,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    const Text(
+                                    Text(
                                       'Belgenin net ve okunur olduğundan emin olun',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Color(0xFF64748B),
+                                        color: context.tokens.muted,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
@@ -1054,34 +1189,66 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       children: [
                                         Expanded(
                                           child: FilledButton.icon(
-                                            onPressed: () => _pickPhoto(fromCamera: true),
-                                            icon: const Icon(Icons.photo_camera_rounded, size: 16),
+                                            onPressed: () =>
+                                                _pickPhoto(fromCamera: true),
+                                            icon: const Icon(
+                                              Icons.photo_camera_rounded,
+                                              size: 16,
+                                            ),
                                             label: const Text(
                                               'Kamera ile Çek',
-                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                             style: FilledButton.styleFrom(
-                                              backgroundColor: Theme.of(context).colorScheme.primary,
-                                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimary,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 10,
+                                                  ),
                                             ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: FilledButton.icon(
-                                            onPressed: () => _pickPhoto(fromCamera: false),
-                                            icon: const Icon(Icons.image_outlined, size: 16),
+                                            onPressed: () =>
+                                                _pickPhoto(fromCamera: false),
+                                            icon: const Icon(
+                                              Icons.image_outlined,
+                                              size: 16,
+                                            ),
                                             label: const Text(
                                               'Galeriden Seç',
-                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                             style: FilledButton.styleFrom(
-                                              backgroundColor: const Color(0xFFE5EEFF),
-                                              foregroundColor: const Color(0xFF0B1C30),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              backgroundColor:
+                                                  context.tokens.primarySoft,
+                                              foregroundColor:
+                                                  context.tokens.ink,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 10,
+                                                  ),
                                             ),
                                           ),
                                         ),
@@ -1094,7 +1261,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE5EEFF),
+                                  color: context.tokens.primarySoft,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -1111,14 +1278,15 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'fis_${_spentAt.day}${_spentAt.month}${_spentAt.year}.jpg',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w700,
-                                              color: Color(0xFF0B1C30),
+                                              color: context.tokens.ink,
                                             ),
                                           ),
                                           Text(
@@ -1137,7 +1305,10 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         _receipt = null;
                                         _preview = null;
                                       }),
-                                      icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFBA1A1A)),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Color(0xFFBA1A1A),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1154,36 +1325,45 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Row(
-                              children: const [
-                                Icon(Icons.notes_rounded, size: 19, color: Color(0xFF005C55)),
+                              children: [
+                                Icon(
+                                  Icons.notes_rounded,
+                                  size: 19,
+                                  color: Color(0xFF005C55),
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Açıklama & Sorumlu',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0B1C30),
+                                    color: context.tokens.ink,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEFF4FF),
+                                color: context.tokens.bg,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: TextField(
                                 controller: _descController,
                                 minLines: 2,
                                 maxLines: 4,
-                                style: const TextStyle(fontSize: 13.5, color: Color(0xFF0B1C30)),
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: context.tokens.ink,
+                                ),
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
-                                  hintText:
-                                      'Harcama nedeni ve satın alınan ürün detayı (örn: Marketten 4 koli acil barista sütü alındı)...',
+                                  hintText: 'Harcama nedeni ve satın alınan ürün detayı (örn: Marketten 4 koli acil barista sütü alındı)...',
                                   hintStyle: TextStyle(
                                     color: Color(0xFF94A3B8),
                                     fontSize: 12.5,
@@ -1194,9 +1374,12 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                             ),
                             const SizedBox(height: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEFF4FF),
+                                color: context.tokens.bg,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
@@ -1216,27 +1399,32 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           userName,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12.5,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF0B1C30),
+                                            color: context.tokens.ink,
                                           ),
                                         ),
                                         Text(
                                           userRole,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 10.5,
-                                            color: Color(0xFF64748B),
+                                            color: context.tokens.muted,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF64748B)),
+                                  Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 16,
+                                    color: context.tokens.muted,
+                                  ),
                                 ],
                               ),
                             ),
@@ -1252,8 +1440,8 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: const Color(0xFFE2E8F0))),
+                  color: context.tokens.card,
+                  border: Border(top: BorderSide(color: context.tokens.border)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),
@@ -1266,17 +1454,24 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE5EEFF),
+                        color: context.tokens.primarySoft,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Row(
-                              children: const [
-                                Icon(Icons.account_balance_wallet_outlined, size: 17, color: Color(0xFF005C55)),
+                              children: [
+                                Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  size: 17,
+                                  color: Color(0xFF005C55),
+                                ),
                                 SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
@@ -1285,7 +1480,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF64748B),
+                                      color: context.tokens.muted,
                                     ),
                                   ),
                                 ),
@@ -1314,9 +1509,11 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                             child: OutlinedButton(
                               onPressed: () => Navigator.of(context).pop(false),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                backgroundColor: const Color(0xFFEFF4FF),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: BorderSide(color: context.tokens.border),
+                                backgroundColor: context.tokens.bg,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: const Text(
                                 'Vazgeç',
@@ -1340,11 +1537,19 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
                                     )
-                                  : const Icon(Icons.check_circle_rounded, size: 18),
+                                  : const Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 18,
+                                    ),
                               label: Text(
-                                _saving ? 'Kaydediliyor...' : 'Masrafı Kaydet ve Düş',
+                                _saving
+                                    ? 'Kaydediliyor...'
+                                    : 'Masrafı Kaydet ve Düş',
                                 style: const TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
@@ -1353,7 +1558,9 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               style: FilledButton.styleFrom(
                                 backgroundColor: const Color(0xFF005C55),
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                             ),
@@ -1382,9 +1589,9 @@ class _CardBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: context.tokens.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1486,7 +1693,8 @@ Future<bool?> showPettyCashRejectDialog(
           ),
           LabeledField(
             label: 'Ret Gerekçesi',
-            hint: 'Masrafı giren kişi bu gerekçeyi görecek. '
+            hint:
+                'Masrafı giren kişi bu gerekçeyi görecek. '
                 'Tutar haftalık limite geri eklenir.',
             child: TextField(
               controller: note,

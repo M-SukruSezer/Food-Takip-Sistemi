@@ -232,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: user.avatar != null
                               ? Avatar(user: user, size: 68)
                               : Container(
-                                  color: const Color(0xFFE2E8F0),
+                                  color: t.border,
                                   child: Icon(
                                     Icons.person,
                                     size: 40,
@@ -389,9 +389,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: t.infoSoft,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFDBEAFE)),
+                        border: Border.all(
+                          color: t.info.withValues(alpha: .35),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -487,9 +489,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 44,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFEF2F2),
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFFECACA)),
+                      backgroundColor: t.dangerSoft,
+                      foregroundColor: t.danger,
+                      side: BorderSide(color: t.danger.withValues(alpha: .35)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -605,9 +607,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: t.infoSoft,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFDBEAFE)),
+                  border: Border.all(color: t.info.withValues(alpha: .35)),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -904,9 +906,9 @@ class _CustomPasswordField extends StatelessWidget {
         Container(
           height: 46,
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: context.tokens.bg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: context.tokens.border),
           ),
           child: Row(
             children: [
@@ -964,9 +966,9 @@ class _NotificationPrefRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: context.tokens.border),
       ),
       child: Row(
         children: [

@@ -660,7 +660,7 @@ class _CategoryChipsRow extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? Colors.white.withValues(alpha: 0.25)
-                            : const Color(0xFFE2E8F0),
+                            : t.border,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -668,9 +668,7 @@ class _CategoryChipsRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF64748B),
+                          color: isSelected ? t.onPrimary : t.muted,
                         ),
                       ),
                     ),

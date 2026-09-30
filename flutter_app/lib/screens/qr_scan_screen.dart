@@ -65,15 +65,13 @@ class _QrScanScreenState extends State<QrScanScreen>
     final t = context.tokens;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FBFC),
+      backgroundColor: t.bg,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
-            ),
+          decoration: BoxDecoration(
+            color: t.card,
+            border: Border(bottom: BorderSide(color: t.border, width: 1)),
           ),
           child: SafeArea(
             bottom: false,
@@ -86,12 +84,12 @@ class _QrScanScreenState extends State<QrScanScreen>
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(width: 11),
-                  const Text(
+                  Text(
                     'QR ile Giriş',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: t.ink,
                       letterSpacing: -0.35,
                     ),
                   ),
@@ -102,14 +100,16 @@ class _QrScanScreenState extends State<QrScanScreen>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE9FBF6),
+                      color: t.primarySoft,
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: const Color(0xFF9DE8D7)),
+                      border: Border.all(
+                        color: t.primary.withValues(alpha: .4),
+                      ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'PDKS',
                       style: TextStyle(
-                        color: Color(0xFF00796B),
+                        color: t.primaryDark,
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                       ),
@@ -148,37 +148,33 @@ class _QrScanScreenState extends State<QrScanScreen>
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 13),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4FFFC),
+              color: t.primarySoft,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF78E4D0)),
+              border: Border.all(color: t.primary.withValues(alpha: .5)),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 15,
-                  color: Color(0xFF007D70),
-                ),
+                Icon(Icons.location_on_outlined, size: 15, color: t.primary),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     storeName,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
+                      color: t.ink,
                     ),
                   ),
                 ),
                 const _PulsingDot(),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'CANLI (8m)',
                   style: TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF006F63),
+                    color: t.primaryDark,
                     letterSpacing: .3,
                   ),
                 ),
@@ -188,7 +184,9 @@ class _QrScanScreenState extends State<QrScanScreen>
         ),
         Expanded(
           child: CustomPaint(
-            painter: const _GridBackgroundPainter(),
+            painter: _GridBackgroundPainter(
+              color: t.border.withValues(alpha: .56),
+            ),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final boxSize = math.min(290.0, constraints.maxWidth - 94.0);
@@ -207,7 +205,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: t.card,
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
                                   color: const Color(0xFF8ACFC7),
@@ -237,23 +235,23 @@ class _QrScanScreenState extends State<QrScanScreen>
                                     if (code != null) _finish(code);
                                   },
                                   errorBuilder: (context, error) => Container(
-                                    color: const Color(0xFFF8FBFC),
+                                    color: t.bg,
                                     alignment: Alignment.center,
                                     padding: const EdgeInsets.all(24),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.no_photography_outlined,
-                                          color: Color(0xFF64748B),
+                                          color: t.muted,
                                           size: 34,
                                         ),
                                         const SizedBox(height: 10),
-                                        const Text(
+                                        Text(
                                           'Kamera kullanılamıyor',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF334155),
+                                            color: t.ink,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -391,7 +389,7 @@ class _QrScanScreenState extends State<QrScanScreen>
     }
 
     return ColoredBox(
-      color: const Color(0xFFF5F7FC),
+      color: t.bg,
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -400,9 +398,9 @@ class _QrScanScreenState extends State<QrScanScreen>
             child: Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: t.card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: t.border),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF0F172A).withValues(alpha: 0.07),
@@ -432,7 +430,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -441,16 +439,13 @@ class _QrScanScreenState extends State<QrScanScreen>
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
+                                color: t.ink,
                               ),
                             ),
                             SizedBox(height: 2),
                             Text(
                               'Kamera veya QR arızasında mağaza PIN’ini girin',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF64748B),
-                              ),
+                              style: TextStyle(fontSize: 12, color: t.muted),
                             ),
                           ],
                         ),
@@ -500,14 +495,10 @@ class _QrScanScreenState extends State<QrScanScreen>
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: index < pin.length
-                              ? t.primarySoft
-                              : const Color(0xFFF8FAFC),
+                          color: index < pin.length ? t.primarySoft : t.bg,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: index <= pin.length
-                                ? t.primary
-                                : const Color(0xFFE2E8F0),
+                            color: index <= pin.length ? t.primary : t.border,
                             width: index == pin.length ? 1.8 : 1,
                           ),
                         ),
@@ -516,9 +507,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
-                            color: index < pin.length
-                                ? t.primary
-                                : const Color(0xFFCBD5E1),
+                            color: index < pin.length ? t.primary : t.muted,
                           ),
                         ),
                       ),
@@ -613,19 +602,22 @@ class _HeaderCircleButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFFF3F7FA),
-    shape: const CircleBorder(),
-    child: InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-      child: SizedBox(
-        width: 38,
-        height: 38,
-        child: Icon(icon, size: 21, color: const Color(0xFF334155)),
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Material(
+      color: t.bg,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Icon(icon, size: 21, color: t.ink),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _HeaderPillButton extends StatelessWidget {
@@ -640,76 +632,78 @@ class _HeaderPillButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: const Color(0xFFF3F7FA),
-    borderRadius: BorderRadius.circular(18),
-    child: InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Material(
+      color: t.bg,
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 13),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE1E8EF)),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: const Color(0xFF007D70)),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          decoration: BoxDecoration(
+            border: Border.all(color: t.border),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 14, color: t.primary),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: t.ink,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _InstructionPill extends StatelessWidget {
   const _InstructionPill();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x1A64748B),
-          blurRadius: 10,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.center_focus_strong_rounded,
-          size: 16,
-          color: Color(0xFF008C7D),
-        ),
-        SizedBox(width: 8),
-        Text(
-          'QR kodu çerçeveye hizalayın',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF27364A),
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A64748B),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.center_focus_strong_rounded, size: 16, color: t.primary),
+          SizedBox(width: 8),
+          Text(
+            'QR kodu çerçeveye hizalayın',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _CameraControls extends StatelessWidget {
@@ -719,49 +713,52 @@ class _CameraControls extends StatelessWidget {
   final VoidCallback onPin;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 42,
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x1F475569),
-          blurRadius: 12,
-          offset: Offset(0, 5),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ValueListenableBuilder<MobileScannerState>(
-          valueListenable: controller,
-          builder: (context, state, _) => _MiniControl(
-            icon: Icons.flashlight_on_outlined,
-            iconColor: const Color(0xFFF59E0B),
-            label: 'Flaş',
-            onTap: controller.toggleTorch,
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: t.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F475569),
+            blurRadius: 12,
+            offset: Offset(0, 5),
           ),
-        ),
-        const _ControlDivider(),
-        _MiniControl(
-          icon: Icons.cameraswitch_outlined,
-          label: 'Çevir',
-          onTap: controller.switchCamera,
-        ),
-        const _ControlDivider(),
-        _MiniControl(
-          icon: Icons.pin_outlined,
-          iconColor: const Color(0xFF008C7D),
-          label: 'PIN',
-          onTap: onPin,
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ValueListenableBuilder<MobileScannerState>(
+            valueListenable: controller,
+            builder: (context, state, _) => _MiniControl(
+              icon: Icons.flashlight_on_outlined,
+              iconColor: const Color(0xFFF59E0B),
+              label: 'Flaş',
+              onTap: controller.toggleTorch,
+            ),
+          ),
+          const _ControlDivider(),
+          _MiniControl(
+            icon: Icons.cameraswitch_outlined,
+            label: 'Çevir',
+            onTap: controller.switchCamera,
+          ),
+          const _ControlDivider(),
+          _MiniControl(
+            icon: Icons.pin_outlined,
+            iconColor: const Color(0xFF008C7D),
+            label: 'PIN',
+            onTap: onPin,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ControlDivider extends StatelessWidget {
@@ -771,7 +768,7 @@ class _ControlDivider extends StatelessWidget {
     width: 1,
     height: 16,
     margin: const EdgeInsets.symmetric(horizontal: 11),
-    color: const Color(0xFFE2E8F0),
+    color: context.tokens.border,
   );
 }
 
@@ -799,10 +796,10 @@ class _MiniControl extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
+              color: context.tokens.ink,
             ),
           ),
         ],
@@ -815,111 +812,105 @@ class _PrivacyCard extends StatelessWidget {
   const _PrivacyCard();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .96),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: const Color(0xFFDDE6EC)),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x1464748B),
-          blurRadius: 12,
-          offset: Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.verified_user_outlined,
-              size: 17,
-              color: Color(0xFF008C7D),
-            ),
-            const SizedBox(width: 7),
-            const Expanded(
-              child: Text(
-                'KVKK & Veri Güvenliği',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E293B),
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: t.card.withValues(alpha: .96),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: t.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1464748B),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.verified_user_outlined, size: 17, color: t.primary),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  'KVKK & Veri Güvenliği',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: t.ink,
+                  ),
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1FFFB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF7BE2D0)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    size: 13,
-                    color: Color(0xFF008C7D),
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Yenilenme: 24s',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF00796B),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: t.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: t.primary.withValues(alpha: .45)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.timer_outlined, size: 13, color: t.primary),
+                    SizedBox(width: 4),
+                    Text(
+                      'Yenilenme: 24s',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: t.primaryDark,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 7),
-        const Text(
-          'Görüntü yerel işlenir, sunucuya kaydedilmez. Konum doğrulandı (Hassasiyet: 8m).',
-          style: TextStyle(
-            fontSize: 10.5,
-            height: 1.4,
-            color: Color(0xFF53647B),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 7),
+          Text(
+            'Görüntü yerel işlenir, sunucuya kaydedilmez. Konum doğrulandı (Hassasiyet: 8m).',
+            style: TextStyle(fontSize: 10.5, height: 1.4, color: t.muted),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _QrBottomBar extends StatelessWidget {
   const _QrBottomBar();
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Container(
-      height: 76,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5EDF2))),
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 76,
+        decoration: BoxDecoration(
+          color: t.card,
+          border: Border(top: BorderSide(color: t.border)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _BottomItem(icon: Icons.schedule_rounded, label: 'Devam'),
+            _BottomItem(icon: Icons.calendar_month_outlined, label: 'Çizelge'),
+            _BottomItem(
+              icon: Icons.qr_code_scanner_rounded,
+              label: 'QR Okut',
+              active: true,
+            ),
+            _BottomItem(icon: Icons.checklist_rounded, label: 'Yönetim'),
+            _BottomItem(icon: Icons.menu_rounded, label: 'Menü'),
+          ],
+        ),
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomItem(icon: Icons.schedule_rounded, label: 'Devam'),
-          _BottomItem(icon: Icons.calendar_month_outlined, label: 'Çizelge'),
-          _BottomItem(
-            icon: Icons.qr_code_scanner_rounded,
-            label: 'QR Okut',
-            active: true,
-          ),
-          _BottomItem(icon: Icons.checklist_rounded, label: 'Yönetim'),
-          _BottomItem(icon: Icons.menu_rounded, label: 'Menü'),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _BottomItem extends StatelessWidget {
@@ -980,13 +971,15 @@ class _BottomItem extends StatelessWidget {
 }
 
 class _GridBackgroundPainter extends CustomPainter {
-  const _GridBackgroundPainter();
+  const _GridBackgroundPainter({required this.color});
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     const step = 24.0;
     final paint = Paint()
-      ..color = const Color(0xFFDDECEF).withValues(alpha: .56)
+      ..color = color
       ..strokeWidth = .7;
     for (double x = 0; x <= size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
@@ -1007,7 +1000,8 @@ class _GridBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridBackgroundPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// Çerçeve köşelerindeki kalın vurgu braketleri

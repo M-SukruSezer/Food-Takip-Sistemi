@@ -112,7 +112,7 @@ Future<bool?> showDailyReportDialog(
                 : DateTimeField(
                     fillColor: Theme.of(context).brightness == Brightness.dark
                         ? t.bg
-                        : const Color(0xFFEEF3FF),
+                        : t.bg,
                     value: date,
                     onChanged: (v) {
                       date = v;
@@ -183,7 +183,7 @@ Future<bool?> showDailyReportDialog(
                         fillColor:
                             Theme.of(context).brightness == Brightness.dark
                             ? t.bg
-                            : const Color(0xFFEEF3FF),
+                            : t.bg,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 12,
@@ -261,7 +261,7 @@ Future<bool?> showDailyReportDialog(
                           decoration: BoxDecoration(
                             color: t.card,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: t.border),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +300,7 @@ Future<bool?> showDailyReportDialog(
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: t.card.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
