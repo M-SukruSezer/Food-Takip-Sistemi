@@ -165,7 +165,7 @@ export default function DailyReport() {
           <button type="button" className={`chip ${period === 'month' ? 'chip-on' : ''}`} onClick={() => setPeriod('month')}>Aylık</button>
         </div>
         {page && (
-          <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
             {fmtDate(page.from)} – {fmtDate(page.to)} · {summary.days} gün
           </p>
         )}
@@ -182,7 +182,7 @@ export default function DailyReport() {
       {summary && summary.days > 0 && (
         <div className="surface-panel">
           <h3 style={{ margin: '0 0 4px' }}>Dönem Özeti</h3>
-          <p className="muted" style={{ fontSize: 12, margin: '0 0 12px' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '0 0 12px' }}>
             Oranlar günlerin ortalaması değil, toplam veriden hesaplanır.
           </p>
           <div className="report-grid">
@@ -370,7 +370,7 @@ function EntryModal({ fields, existing, onClose, onDone }) {
             disabled={editing}
             required
           />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             {editing
               ? 'Tarih değiştirilemez. Farklı bir gün için kaydı silip yeniden girin.'
               : 'Aynı gün için tekrar giriş mevcut kaydı günceller.'}
@@ -398,7 +398,7 @@ function EntryModal({ fields, existing, onClose, onDone }) {
             ))}
           </div>
         )}
-        <p className="muted" style={{ fontSize: 12 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
           FOOD alanları o günün pasta satış ve zayi kayıtlarından hesaplanır, elle
           girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen
           değerlerden otomatik hesaplanır.

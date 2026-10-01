@@ -186,7 +186,7 @@ const ADIM = {
               </p>
             )}
             {durum.break_minutes_today > 0 && (
-              <p className="muted" style={{ fontSize: 12, margin: '2px 0 0' }}>
+              <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '2px 0 0' }}>
                 Bugün toplam mola: {durum.break_minutes_today} dk
               </p>
             )}
@@ -238,7 +238,7 @@ const ADIM = {
             Giriş/çıkış yapılamaz, yöneticinizle görüşün.
           </div>
         )}
-        <p className="muted" style={{ fontSize: 12, margin: '8px 0 0', display: 'flex', gap: 6 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0', display: 'flex', gap: 6 }}>
           <ScanLine size={14} />
           Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak yapılır.
           Kodu okuttuğunuz anda konumunuz alınır ve
@@ -249,9 +249,9 @@ const ADIM = {
 
       {/* --- Bugunun vardiyasi ve kayitlari --- */}
       <section className="surface-panel">
-        <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Bugün</h3>
+        <h3 style={{ margin: '0 0 8px', fontSize: 'var(--fs-base)' }}>Bugün</h3>
         {durum.shifts.length === 0 ? (
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>Bugün için vardiya atanmamış.</p>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>Bugün için vardiya atanmamış.</p>
         ) : (
           <div className="chip-row" style={{ marginBottom: 10 }}>
             {durum.shifts.map((s, i) => (
@@ -264,7 +264,7 @@ const ADIM = {
           </div>
         )}
         {durum.logs.length === 0 ? (
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>Bugün kayıt yok.</p>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>Bugün kayıt yok.</p>
         ) : (
           <ul className="pdks-log-list">
             {durum.logs.map((l) => (
@@ -307,13 +307,13 @@ const ADIM = {
             </div>
           </div>
           {bakiye.hourly_leave.used_hours > 0 && (
-            <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+            <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0' }}>
               Bu ay {bakiye.hourly_leave.used_hours} saat saatlik izin kullanıldı
               (yıllık izin gününden düşülmez).
             </p>
           )}
           {bakiye.notes.map((n, i) => (
-            <p className="muted" key={i} style={{ fontSize: 11, margin: '4px 0 0' }}>{n}</p>
+            <p className="muted" key={i} style={{ fontSize: 'var(--fs-caption)', margin: '4px 0 0' }}>{n}</p>
           ))}
         </section>
       )}
@@ -344,9 +344,9 @@ const ADIM = {
                         : r.type === 'SAATLIK_IZIN'
                         ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
                         : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
-                      <div className="muted" style={{ fontSize: 12 }}>{r.reason}</div>
+                      <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{r.reason}</div>
                       {r.type === 'VARDIYA_TAKAS' && r.status === 'PENDING' && (
-                        <div className="muted" style={{ fontSize: 12 }}>
+                        <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                           {r.target_confirmed_at ? 'Karşı taraf onayladı · yönetici onayı bekleniyor'
                             : 'Karşı taraf onayı bekleniyor'}
                         </div>
@@ -355,7 +355,7 @@ const ADIM = {
                     <td data-label="Durum">
                       <span className={`badge ${DURUM_SINIF[r.status]}`}>{DURUM_ETIKET[r.status]}</span>
                     </td>
-                    <td data-label="Karar" className="muted" style={{ fontSize: 12 }}>
+                    <td data-label="Karar" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                       {r.manager_name || '-'}
                       {r.decision_note && <div>{r.decision_note}</div>}
                     </td>
@@ -467,12 +467,12 @@ function Takvim({ ay, atamalar, tatiller = [] }) {
       </div>
       <div className="cal-grid">{hucreler}</div>
       {atamalar.length === 0 && (
-        <p className="muted" style={{ fontSize: 13, margin: '10px 0 0' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '10px 0 0' }}>
           Bu ay için vardiya atanmamış.
         </p>
       )}
       {tatiller.length > 0 && (
-        <p className="muted" style={{ fontSize: 11, margin: '8px 0 0' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-caption)', margin: '8px 0 0' }}>
           Kırmızı çerçeveli günler resmi tatil; yıllık izin hakkınızdan düşülmez.
         </p>
       )}
@@ -569,7 +569,7 @@ function TalepModal({ bakiye, onClose, onDone }) {
                 ))}
               </select>
               {vardiyalarim.length === 0 && (
-                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
                   Önümüzdeki 60 gün içinde size ait vardiya bulunamadı.
                 </p>
               )}
@@ -583,13 +583,13 @@ function TalepModal({ bakiye, onClose, onDone }) {
                     <option key={m.id} value={m.id}>{m.full_name}</option>
                   ))}
                 </select>
-                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
                   Seçilen personelin mobil onayı olmadan yönetici bu talebi onaylayamaz.
                 </p>
               </div>
             )}
             {tur === 'VARDIYA_DEVIR' && (
-              <p className="muted" style={{ fontSize: 12 }}>
+              <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                 Yönetici, uygun bir personeli talebe atayarak onaylayacaktır.
               </p>
             )}
@@ -607,7 +607,7 @@ function TalepModal({ bakiye, onClose, onDone }) {
               <input type="date" value={bitis} onChange={(e) => setBitis(e.target.value)} required />
             </div>
             {bakiye && (
-              <p className="muted" style={{ fontSize: 12 }}>
+              <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                 Kalan hakkınız {bakiye.leave.remaining_days} gün. Hafta tatili günleri
                 düşülmez, resmi tatiller hesaba katılmaz.
               </p>
@@ -625,7 +625,7 @@ function TalepModal({ bakiye, onClose, onDone }) {
               <label>Bitiş</label>
               <input type="datetime-local" value={saatBit} onChange={(e) => setSaatBit(e.target.value)} required />
             </div>
-            <p className="muted" style={{ fontSize: 12 }}>
+            <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
               Aynı gün içinde ve en fazla 12 saat olabilir.
             </p>
           </>

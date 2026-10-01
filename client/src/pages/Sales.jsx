@@ -241,7 +241,7 @@ export default function Sales() {
                   <tr key={`${m.kind}-${m.id}`}>
                     <td data-label="Ürün">
                       <strong>{m.product_name}</strong>
-                      {m.reason && <div className="muted" style={{ fontSize: 12 }}>{m.reason}</div>}
+                      {m.reason && <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{m.reason}</div>}
                     </td>
                     <td data-label="Tür"><span className={`badge ${kind.badge}`}>{kind.label}</span></td>
                     <td data-label="Adet">{m.quantity}</td>
@@ -249,12 +249,12 @@ export default function Sales() {
                       {m.unit_price === null || m.unit_price === undefined ? '-' : fmtMoney(m.unit_price)}
                       {/* Zayide tutar anlik goruntu degil, cesidin guncel fiyati. */}
                       {m.price_is_current && m.unit_price !== null && (
-                        <div className="muted" style={{ fontSize: 11 }}>güncel fiyat</div>
+                        <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>güncel fiyat</div>
                       )}
                     </td>
                     <td data-label="Tutar">{m.total === null || m.total === undefined ? '-' : fmtMoney(m.total)}</td>
                     <td data-label="Kullanıcı">{m.user_name || '-'}</td>
-                    <td data-label="Tarih" className="muted" style={{ fontSize: 13 }}>{fmtDateTime(m.at)}</td>
+                    <td data-label="Tarih" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDateTime(m.at)}</td>
                     <td data-label="İşlem">
                       {/* Geriye donuk adet duzeltmesi; sunucu ayni yetkiyi ariyor. */}
                       {canAdjust && (
@@ -333,7 +333,7 @@ function CorrectModal({ movement: m, onClose, onDone }) {
     <Modal title={`${label} Adedini Düzelt`} onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           {m.product_name} — {fmtDateTime(m.at)}<br />
           Kayıtlı adet: {m.quantity}
         </p>
@@ -357,7 +357,7 @@ function CorrectModal({ movement: m, onClose, onDone }) {
             </p>
           </div>
         )}
-        <p className="muted" style={{ fontSize: 12 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
           Rapor panelindeki FOOD rakamları bu kayıtlardan hesaplandığı için düzeltme
           o günün raporuna da yansır.
         </p>

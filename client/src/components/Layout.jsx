@@ -283,7 +283,7 @@ export default function Layout() {
               <Avatar user={user} size={36} />
               <div className="user-name" style={{ margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name}</div>
             </div>
-            <div className="muted" style={{ color: '#9ca3af' }}>{ROLE_LABELS[user.role]} {user.store_name ? `• ${user.store_name}` : ''}</div>
+            <div className="muted" style={{ color: 'var(--sidebar-muted)' }}>{ROLE_LABELS[user.role]} {user.store_name ? `• ${user.store_name}` : ''}</div>
           </div>
           <button
             className="btn btn-sm side-logout"

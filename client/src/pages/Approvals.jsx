@@ -121,7 +121,7 @@ export default function Approvals() {
           )}
         </div>
 
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           Çözünme süresi (8 saat) dolmadan food dolabına alınmak istenen ürünler burada onaylanır. Onaylanan ürünün SKT süresi onay anından itibaren başlar.
         </p>
       </div>
@@ -142,13 +142,13 @@ export default function Approvals() {
               <tbody>
                 {items.map((a) => (
                   <tr key={a.id}>
-                    <td data-label="Ürün"><strong>{a.product_name}</strong><div className="muted" style={{ fontSize: 12 }}>{a.remaining} adet</div></td>
+                    <td data-label="Ürün"><strong>{a.product_name}</strong><div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{a.remaining} adet</div></td>
                     <td data-label="İsteyen">{a.requested_by_name || '-'}</td>
                     <td data-label="Neden" style={{ maxWidth: 220 }}>{a.reason}</td>
                     <td data-label="Çözülmeye Kalan">{a.thaw_remaining_hours !== null ? formatHours(a.thaw_remaining_hours) : '-'}</td>
                     {user.role === 'super_admin' && <td data-label="Mağaza">{a.store_name}</td>}
                     <td data-label="Durum"><span className={`badge ${STATUS_KIND[a.status]}`}>{STATUS_LABEL[a.status]}</span></td>
-                    <td data-label="İstek Zamanı" className="muted" style={{ fontSize: 13 }}>{fmtDateTime(a.requested_at)}</td>
+                    <td data-label="İstek Zamanı" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDateTime(a.requested_at)}</td>
                     <td data-label="İşlem">
                       {a.status === 'pending' ? (
                         <div className="actions">
@@ -156,7 +156,7 @@ export default function Approvals() {
                           <button className="btn btn-sm btn-outline-danger" onClick={() => setRejectItem(a)}>Reddet</button>
                         </div>
                       ) : (
-                        <span className="muted" style={{ fontSize: 12 }}>
+                        <span className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                           {a.decided_by_name || ''}{a.decision_note ? ` — ${a.decision_note}` : ''}
                         </span>
                       )}
@@ -250,7 +250,7 @@ function CashApprovals({ items, showStore, onApprove, onReject }) {
   return (
     <>
       <div className="surface-panel">
-        <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>
           Vardiya müdürünün girdiği masraflar burada onaylanır. Onaylanmayan masraf
           da haftalık limitten düşer — para kasadan çıkmıştır. Reddedilen masraf
           limite geri eklenir.
@@ -274,7 +274,7 @@ function CashApprovals({ items, showStore, onApprove, onReject }) {
                   <td data-label="Açıklama" style={{ maxWidth: 240 }}>{e.description}</td>
                   <td data-label="Giren">{e.created_by_name || '-'}</td>
                   {showStore && <td data-label="Mağaza">{e.store_name}</td>}
-                  <td data-label="Tarih" className="muted" style={{ fontSize: 13 }}>
+                  <td data-label="Tarih" className="muted" style={{ fontSize: 'var(--fs-body)' }}>
                     {fmtDateTime(e.spent_at)}
                   </td>
                   <td data-label="Fiş">
@@ -323,13 +323,13 @@ function CashRejectModal({ item, onClose, onDone }) {
     <Modal title={`Masrafı Reddet — ${fmtMoney(item.amount)}`} onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           {item.description} — {item.created_by_name}
         </p>
         <div className="field">
           <label>Ret Gerekçesi</label>
           <input value={note} onChange={(e) => setNote(e.target.value)} autoFocus required />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Masrafı giren kişi bu gerekçeyi görecek. Tutar haftalık limite geri eklenir.
           </p>
         </div>

@@ -81,7 +81,7 @@ export default function QrScanner({ onResult, onClose }) {
             <canvas ref={canvasRef} style={{ display: 'none' }} />
             <div className="qr-frame" />
           </div>
-          <p className="muted" style={{ fontSize: 13, margin: '8px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '8px 0 0' }}>
             {tarama ? 'QR kodu çerçeveye alın' : 'Kamera açılıyor...'}
           </p>
         </>
@@ -97,7 +97,7 @@ export default function QrScanner({ onResult, onClose }) {
             placeholder="PDKS1:..."
             autoFocus
           />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Kiosk ekranındaki kodun altında yazan metni girin.
           </p>
         </div>
@@ -119,7 +119,7 @@ export default function QrScanner({ onResult, onClose }) {
         )}
       </div>
       {!manual && !err && (
-        <p className="muted" style={{ fontSize: 12, margin: 0, display: 'flex', gap: 6 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: 0, display: 'flex', gap: 6 }}>
           <Camera size={14} /> Kamera görüntüsü cihazdan çıkmıyor, sunucuya gönderilmiyor.
         </p>
       )}

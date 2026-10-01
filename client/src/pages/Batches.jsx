@@ -149,12 +149,12 @@ export default function Batches() {
               )}
               {shown.map((b) => (
                 <tr key={b.id}>
-                  <td data-label="Ürün"><span><strong>{b.product_name}</strong>{b.notes ? <div className="muted" style={{ fontSize: 12 }}>{b.notes}</div> : null}</span></td>
+                  <td data-label="Ürün"><span><strong>{b.product_name}</strong>{b.notes ? <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{b.notes}</div> : null}</span></td>
                   <td data-label="Durum"><StatusBadge status={b.status} urgency={b.urgency} /></td>
                   <td data-label="Adet">{b.remaining}/{b.quantity}</td>
                   {user.role === 'super_admin' && <td data-label="Mağaza">{b.store_name}</td>}
-                  <td data-label="SKT" style={{ fontSize: 13 }}>
-                    {b.skt_end ? <span>{fmtDateTime(b.skt_end)}<div className="muted" style={{ fontSize: 12 }}>{formatHours(b.remaining_hours)}</div></span> : '-'}
+                  <td data-label="SKT" style={{ fontSize: 'var(--fs-body)' }}>
+                    {b.skt_end ? <span>{fmtDateTime(b.skt_end)}<div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{formatHours(b.remaining_hours)}</div></span> : '-'}
                   </td>
                   <td data-label="İşlemler">
                     <div className="actions stock-actions">
@@ -595,7 +595,7 @@ function AdjustModal({ batch, onClose, onDone }) {
     <Modal title={`Kaydı Düzelt — ${batch.product_name}`} onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', marginTop: 0 }}>
           Yanlış girilen tarih/saat ve adetleri düzeltir. Ürünün durumu değişmez ve
           yapılan düzeltme hareket kayıtlarına yazılır.
         </p>
@@ -678,14 +678,14 @@ function CorrectThawModal({ batch, onClose, onDone }) {
     <Modal title="Çözülme Adedini Düzelt" onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           {batch.product_name} — şu anda {batch.remaining} adet çözülmede.
         </p>
         <div className="field">
           <label>Doğru Adet</label>
           <input value={quantity} onChange={(e) => setQuantity(e.target.value)}
             inputMode="numeric" required />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             0 yazarsanız ürün tamamen donuk depoya döner.
           </p>
         </div>

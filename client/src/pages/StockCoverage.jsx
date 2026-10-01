@@ -63,7 +63,7 @@ export default function StockCoverage() {
       )}
 
       <div className="surface-panel">
-        <h3 style={{ margin: '0 0 8px', fontSize: 14 }}>Satış hızı penceresi</h3>
+        <h3 style={{ margin: '0 0 8px', fontSize: 'var(--fs-body-lg)' }}>Satış hızı penceresi</h3>
         <div className="chip-row" style={{ marginBottom: 10 }}>
           {[7, 14, 30].map((d) => (
             <button
@@ -76,7 +76,7 @@ export default function StockCoverage() {
             </button>
           ))}
         </div>
-        <p className="muted" style={{ fontSize: 12, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '0 0 12px' }}>
           Son {stock ? stock.window_days : windowDays} günün satış adedinden günlük hız
           bulunur, donuk depodaki adet buna bölünür.
         </p>
@@ -157,10 +157,10 @@ export default function StockCoverage() {
 
       {idle.length > 0 && (
         <div className="surface-panel">
-          <h3 style={{ margin: '0 0 4px', fontSize: 14 }}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 'var(--fs-body-lg)' }}>
             Satış hareketi olmayan {idle.length} çeşit
           </h3>
-          <p className="muted" style={{ fontSize: 12, margin: '0 0 10px' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '0 0 10px' }}>
             Satış hızı sıfır olduğu için yeterlilik hesaplanamaz.
           </p>
           <div className="chip-row">

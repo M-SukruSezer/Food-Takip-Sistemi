@@ -260,7 +260,7 @@ export default function Dashboard() {
                     </table>
                   </div>
                 </div>
-                <p className="muted" style={{ fontSize: 13 }}>Merkezi rapor: Ana yönetici tüm mağazaları buradan karşılaştırabilir.</p>
+                <p className="muted" style={{ fontSize: 'var(--fs-body)' }}>Merkezi rapor: Ana yönetici tüm mağazaları buradan karşılaştırabilir.</p>
               </>
             ) : (
               <div className="grid stats kpi-grid">
@@ -360,7 +360,7 @@ export default function Dashboard() {
                   <RankList title="En Çok Zayi" icon={Trash2} tone="waste" rows={perf.wasted} empty="Bu dönemde zayi yok" />
                 </div>
 
-                <p className="muted" style={{ fontSize: 12, margin: '12px 0 0' }}>
+                <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '12px 0 0' }}>
                   Dönemde {perf.kinds} çeşitten toplam {perf.soldTotal} adet satıldı, {perf.wastedTotal} adet zayi verildi.
                   {perf.kinds > 0 && perf.kinds <= 5
                     ? ' Satılan çeşit sayısı 5 veya altında olduğu için en çok ve en az satan listeleri aynı ürünleri içerir.'

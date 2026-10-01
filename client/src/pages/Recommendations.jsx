@@ -95,7 +95,7 @@ export default function Recommendations() {
           )}
         </div>
         {filtering && (
-          <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0' }}>
             Arama etkin: {items.length} üründen {shown.length} tanesi gösteriliyor. Kademe sayıları da bu sonuca göre.
           </p>
         )}
@@ -146,7 +146,7 @@ export default function Recommendations() {
         </div>
       )}
 
-      <p className="muted" style={{ fontSize: 13 }}>
+      <p className="muted" style={{ fontSize: 'var(--fs-body)' }}>
         Liste anlıktır: satış veya ikram işaretlendiğinde stok azalır, tükenen ürünler listeden
         otomatik düşer. İkram ciroya eklenmez, ayrı raporlanır.
       </p>

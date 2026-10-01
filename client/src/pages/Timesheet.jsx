@@ -34,8 +34,8 @@ export default function Timesheet() {
     return (
       <div className="page-shell">
         <div className="surface-panel">
-          <h2 style={{ margin: 0, fontSize: 18 }}>Puantaj</h2>
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <h2 style={{ margin: 0, fontSize: 'var(--fs-title-lg)' }}>Puantaj</h2>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Puantajını görmek istediğiniz mağazayı seçin.
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function Timesheet() {
             <ArrowLeft size={16} /> Mağazalar
           </button>
         )}
-        <h2 style={{ margin: 0, fontSize: 17 }}>{secili.name} — Puantaj</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--fs-title-lg)' }}>{secili.name} — Puantaj</h2>
       </div>
       <Puantaj storeId={secili.id} />
     </div>

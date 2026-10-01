@@ -62,7 +62,7 @@ export default function Users() {
                       ? `${(u.store_ids || []).length} mağaza sorumlusu`
                       : (u.store_name || (u.role === 'super_admin' ? '—' : '-'))}
                   </td>
-                  <td data-label="Yetkiler" className="muted" style={{ fontSize: 12 }}>
+                  <td data-label="Yetkiler" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                     {u.role === 'super_admin'
                       ? 'Tümü (rol gereği)'
                       : ((u.permissions && u.permissions.length > 0)
@@ -70,7 +70,7 @@ export default function Users() {
                           : 'Ek yetki yok')}
                   </td>
                   <td data-label="Durum">{u.active ? <span className="badge sold">Aktif</span> : <span className="badge discarded">Pasif</span>}</td>
-                  <td data-label="Kayıt" className="muted" style={{ fontSize: 13 }}>{fmtDate(u.created_at)}</td>
+                  <td data-label="Kayıt" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDate(u.created_at)}</td>
                   <td data-label="İşlemler">
                     <div className="actions">
                       <button className="btn btn-sm btn-secondary" onClick={() => setEdit(u)}>Düzenle</button>
@@ -223,7 +223,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
         <div className="field">
           <label>Telefon</label>
           <input type="tel" placeholder="05xx xxx xx xx" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             WhatsApp ile ekibe gönderim için kullanılır.
           </p>
         </div>
@@ -250,7 +250,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
                 </label>
               ))}
             </div>
-            <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+            <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '6px 0 0' }}>
               Seçilen mağazaların verilerini görebilir.
             </p>
           </div>
@@ -282,7 +282,7 @@ function UserModal({ isSuper, user, stores, onClose, onDone }) {
                 );
               })}
             </div>
-            <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+            <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '6px 0 0' }}>
               {grantable.length < ALL_PERMISSIONS.length
                 ? 'Yalnızca kendi sahip olduğunuz yetkileri verebilirsiniz.'
                 : 'İşaretlenmeyen yetkiyle bu kullanıcı o işlemi yapamaz.'}

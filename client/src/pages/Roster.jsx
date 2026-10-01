@@ -372,7 +372,7 @@ export default function Roster() {
               </li>
             ))}
           </ul>
-          <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+          <p style={{ margin: '6px 0 0', fontSize: 'var(--fs-body)' }}>
             Yine de kaydederseniz çakışan atamalar hareket kayıtlarına
             {' '}<strong>çakışmaya rağmen atandı</strong> olarak yazılır.
           </p>
@@ -523,7 +523,7 @@ function WhatsAppModal({ veri, onClose }) {
 
   return (
     <Modal title="WhatsApp ile Ekibe Gönder" onClose={onClose}>
-      <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+      <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
         {fmtDate(veri.from)} – {fmtDate(veri.to)} haftasının çizelgesi. Gerçek WhatsApp
         API bağlantısı olmadığı için gönderim otomatik değildir: her personel için
         WhatsApp açılır, mesajı siz gönderirsiniz.
@@ -537,7 +537,7 @@ function WhatsAppModal({ veri, onClose }) {
           </button>
         </div>
         <textarea rows={8} value={mesaj} onChange={(e) => setMesaj(e.target.value)} style={{ marginTop: 6 }} />
-        <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>{mesaj.length} karakter</p>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>{mesaj.length} karakter</p>
       </div>
 
       <div className="field">
@@ -552,7 +552,7 @@ function WhatsAppModal({ veri, onClose }) {
               }}>
                 <span>
                   <strong>{p.user.full_name}</strong>{' '}
-                  <span className="muted" style={{ fontSize: 12 }}>{p.user.phone}</span>
+                  <span className="muted" style={{ fontSize: 'var(--fs-label)' }}>{p.user.phone}</span>
                 </span>
                 <a
                   className={`btn btn-sm ${gonderildi[p.user.id] ? 'btn-secondary' : 'btn-primary'}`}
@@ -568,7 +568,7 @@ function WhatsAppModal({ veri, onClose }) {
           </div>
         )}
         {telefonsuz.length > 0 && (
-          <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0' }}>
             Telefonu kayıtlı olmayan {telefonsuz.length} kişi: {telefonsuz.map((p) => p.user.full_name).join(', ')}
           </p>
         )}
@@ -652,7 +652,7 @@ function HucreModal({ kisi, gun, mevcut, bekleyen, vardiyalar, onClose, onSec })
             </span>
           </label>
         </div>
-        <p className="muted" style={{ gridColumn: '1 / -1', fontSize: 12, margin: 0 }}>
+        <p className="muted" style={{ gridColumn: '1 / -1', fontSize: 'var(--fs-label)', margin: 0 }}>
           Seçim tabloya işlenir; kalıcı olması için tablonun altındaki
           {' '}<strong>Kaydet</strong> düğmesine basın.
         </p>
@@ -791,7 +791,7 @@ function HaftaTablosu({ veri, bekleyen = {}, onHucre }) {
           </table>
         </div>
       </div>
-      <p className="muted" style={{ fontSize: 12 }}>
+      <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
         <strong>OFF</strong> hafta tatili · <strong>RT</strong> resmi tatil ·
         {' '}<strong>Kapanış</strong> vardiyası ertesi güne sarkar
         <br />

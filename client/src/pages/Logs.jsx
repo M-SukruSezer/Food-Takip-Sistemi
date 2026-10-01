@@ -119,7 +119,7 @@ export default function Logs() {
                 const Icon = icon(l.action);
                 return (
                   <tr key={l.id}>
-                    <td data-label="Tarih" className="muted" style={{ fontSize: 13 }}>{fmtDateTime(l.created_at)}</td>
+                    <td data-label="Tarih" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDateTime(l.created_at)}</td>
                     <td data-label="İşlem">
                       <span className="log-line">
                         <span className={`icon-chip ${tone(l.action)}`} style={{ width: 26, height: 26 }}><Icon size={13} /></span>

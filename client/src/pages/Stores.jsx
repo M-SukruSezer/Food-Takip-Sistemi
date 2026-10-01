@@ -28,12 +28,12 @@ export default function Stores() {
         {stores.map((s) => (
           <div className="card" key={s.id} style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <strong style={{ fontSize: 16 }}>{s.name}</strong>
+              <strong style={{ fontSize: 'var(--fs-title)' }}>{s.name}</strong>
               {s.active ? <span className="badge sold">Aktif</span> : <span className="badge discarded">Pasif</span>}
             </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>{s.address || 'Adres yok'}</div>
-            <div className="muted" style={{ fontSize: 13 }}>{s.phone || ''}</div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: 13 }}>
+            <div className="muted" style={{ fontSize: 'var(--fs-body)', marginTop: 4 }}>{s.address || 'Adres yok'}</div>
+            <div className="muted" style={{ fontSize: 'var(--fs-body)' }}>{s.phone || ''}</div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: 'var(--fs-body)' }}>
               <span><strong>{s.user_count}</strong> kullanıcı</span>
               <span><strong>{s.active_batch_count}</strong> aktif ürün</span>
             </div>

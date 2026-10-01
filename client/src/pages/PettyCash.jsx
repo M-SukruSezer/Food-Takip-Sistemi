@@ -128,12 +128,12 @@ export default function PettyCash() {
           </p>
           {/* Bekleyen masraf da limitten dusuyor: para kasadan cikti. */}
           {status.pending_this_week > 0 && (
-            <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+            <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
               {fmtMoney(status.pending_this_week)} onay bekliyor ({status.pending_count} kayıt)
               {status.can_approve && ' — Onaylar ekranından karar verebilirsiniz.'}
             </p>
           )}
-          <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: 0 }}>
             Hafta başlangıcı: {fmtDate(status.week_start)}
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function PettyCash() {
                     </span>
                     {/* Ret gerekcesi masrafi girene gosterilir. */}
                     {e.status === 'rejected' && e.decision_note && (
-                      <div className="muted" style={{ fontSize: 11 }}>{e.decision_note}</div>
+                      <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>{e.decision_note}</div>
                     )}
                   </td>
                   <td data-label="Fiş">
@@ -180,7 +180,7 @@ export default function PettyCash() {
                       : <span className="muted">yok</span>}
                   </td>
                   <td data-label="Giren">{e.created_by_name || '-'}</td>
-                  <td data-label="Tarih" className="muted" style={{ fontSize: 13 }}>{fmtDateTime(e.spent_at)}</td>
+                  <td data-label="Tarih" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDateTime(e.spent_at)}</td>
                   <td data-label="İşlem">
                     <button className="btn btn-sm btn-outline-danger" onClick={() => setDel(e)}>Sil</button>
                   </td>
@@ -283,7 +283,7 @@ function ExpenseModal({ status, onClose, onDone }) {
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
         {status && status.weekly_limit > 0 && (
-          <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', marginTop: 0 }}>
             Bu hafta kalan: <strong>{fmtMoney(status.remaining)}</strong>
           </p>
         )}
@@ -317,7 +317,7 @@ function ExpenseModal({ status, onClose, onDone }) {
           {/* capture: telefon tarayicisinda dogrudan kamerayi acar */}
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={pick} style={{ display: 'none' }} />
           <input ref={galleryRef} type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
-          <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '6px 0 0' }}>
             Görsel otomatik olarak küçültülüp sıkıştırılarak saklanır.
           </p>
         </div>
@@ -375,7 +375,7 @@ function LimitsModal({ onClose, onDone }) {
     <Modal title="Haftalık Petty Cash Limitleri" onClose={onClose}>
       <form onSubmit={submit}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', marginTop: 0 }}>
           Her mağazanın haftalık harcama tavanı. Hafta pazartesi başlar.
         </p>
         {limits.map((l) => (

@@ -130,7 +130,7 @@ function AnlikDurum() {
             </span>
           : <span className="muted">kayıt yok</span>}
       </td>
-      <td data-label="Zaman" className="muted" style={{ fontSize: 13 }}>
+      <td data-label="Zaman" className="muted" style={{ fontSize: 'var(--fs-body)' }}>
         {k.last_at ? fmtDateTime(k.last_at) : '-'}
       </td>
       <td data-label="Süre">
@@ -211,7 +211,7 @@ function Talepler({ onChange }) {
                 onClick={() => setDurum(v)}>{l}</button>
             ))}
         </div>
-        <p className="muted" style={{ fontSize: 13, margin: '10px 0 0' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '10px 0 0' }}>
           Onaylanan izin günlerine vardiya atanmaz ve o günler puantajda izin
           olarak sayılır. Reddedilen talebin tutarı/günü personelin hakkına geri döner.
         </p>
@@ -242,7 +242,7 @@ function Talepler({ onChange }) {
                         ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
                         : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
                       {isShift && r.status === 'PENDING' && (
-                        <div className="muted" style={{ fontSize: 11 }}>
+                        <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>
                           {r.type === 'VARDIYA_TAKAS'
                             ? (bekliyorOnay ? 'Karşı taraf onayı bekleniyor' : 'Karşı taraf onayladı')
                             : (r.target_name ? 'Personel atandı' : 'Yedek personel atanmadı')}
@@ -258,7 +258,7 @@ function Talepler({ onChange }) {
                           : r.status === 'REJECTED' ? 'Reddedildi' : 'İptal'}
                       </span>
                       {r.decision_note && (
-                        <div className="muted" style={{ fontSize: 11 }}>{r.decision_note}</div>
+                        <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>{r.decision_note}</div>
                       )}
                     </td>
                     <td data-label="İşlem">
@@ -316,7 +316,7 @@ function AtaModal({ talep, onClose, onDone }) {
         onDone(Number(secim));
       }}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           {talep.full_name} · {fmtDate(talep.shift_date)} vardiyası
         </p>
         <div className="field">
@@ -325,7 +325,7 @@ function AtaModal({ talep, onClose, onDone }) {
             <option value="">Seçin…</option>
             {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
           </select>
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Vardiya onayla birlikte bu personele devredilir ve çizelgeye yansır.
           </p>
         </div>
@@ -349,13 +349,13 @@ function RetModal({ talep, onClose, onDone }) {
         onDone(note.trim());
       }}>
         {err && <div className="alert error">{err}</div>}
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
           {talep.full_name} · {TALEP_ETIKET[talep.type]}
         </p>
         <div className="field">
           <label>Ret Gerekçesi</label>
           <input value={note} onChange={(e) => setNote(e.target.value)} autoFocus required />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Personel bu gerekçeyi görecek.
           </p>
         </div>
@@ -408,7 +408,7 @@ export function Puantaj({ storeId }) {
           </button>
         </div>
         {veri && veri.notes.map((n, i) => (
-          <p className="muted" key={i} style={{ fontSize: 12, margin: '4px 0 0' }}>{n}</p>
+          <p className="muted" key={i} style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>{n}</p>
         ))}
       </div>
 
@@ -509,7 +509,7 @@ function GunGun({ item }) {
   return (
     <div className="card table-card">
       <div className="surface-panel" style={{ border: 0, marginBottom: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 15 }}>{item.user.full_name} — gün gün</h3>
+        <h3 style={{ margin: 0, fontSize: 'var(--fs-base)' }}>{item.user.full_name} — gün gün</h3>
       </div>
       <div className="table-wrap">
         <table className="responsive">
@@ -521,7 +521,7 @@ function GunGun({ item }) {
             {item.days.map((d) => (
               <tr key={d.work_date}>
                 <td data-label="Gün"><strong>{fmtDate(d.work_date)}</strong></td>
-                <td data-label="Vardiya" className="muted" style={{ fontSize: 12 }}>
+                <td data-label="Vardiya" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                   {d.is_day_off ? 'Hafta tatili' : (d.shift_names.join(', ') || '-')}
                 </td>
                 <td data-label="Durum">
@@ -573,7 +573,7 @@ function UcretHucreleri({ wage }) {
       <td data-label="Maaş">
         {maas === null ? <span className="muted">—</span> : fmtMoney(maas)}
         {wage.overtime_pay > 0 && (
-          <span className="muted" style={{ display: 'block', fontSize: 11 }}>
+          <span className="muted" style={{ display: 'block', fontSize: 'var(--fs-caption)' }}>
             mesai {fmtMoney(wage.overtime_pay)}
           </span>
         )}
@@ -581,7 +581,7 @@ function UcretHucreleri({ wage }) {
       <td data-label="Yemek">
         {wage.meal_pay === null ? <span className="muted">—</span> : fmtMoney(wage.meal_pay)}
         {wage.meal_pay !== null && (
-          <span className="muted" style={{ display: 'block', fontSize: 11 }}>
+          <span className="muted" style={{ display: 'block', fontSize: 'var(--fs-caption)' }}>
             {wage.worked_days} gün
           </span>
         )}
@@ -702,7 +702,7 @@ function Personel() {
   return (
     <>
       <div className="surface-panel">
-        <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: 0 }}>
           Saat ücreti girilmişse hak ediş ondan hesaplanır; girilmemişse aylık
           maaştan türetilir (aylık ÷ 225 saat). Yemek ücreti günlük tutar ×
           fiilen çalışılan gün sayısıdır.
@@ -825,7 +825,7 @@ function PersonelModal({ kisi, onClose, onDone }) {
           <input type="number" min="0" step="0.01" placeholder="tanımsız"
             value={yemek} onChange={(e) => setYemek(e.target.value)} />
         </label>
-        <p className="muted" style={{ fontSize: 12, gridColumn: '1 / -1', margin: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', gridColumn: '1 / -1', margin: 0 }}>
           Alanı boş bırakmak tanımı kaldırır. Sıfır yazmak &quot;tanımlı ama
           ödenmiyor&quot; demektir. Tutarlar brüt hak ediş hesabında kullanılır;
           SGK ve vergi kesintileri hesaplanmaz.
@@ -889,7 +889,7 @@ function Vardiyalar({ isSuper }) {
                   <td data-label="Saat">
                     {s.start_time}–{s.end_time}
                     {s.end_time <= s.start_time && (
-                      <div className="muted" style={{ fontSize: 11 }}>kapanış vardiyası</div>
+                      <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>kapanış vardiyası</div>
                     )}
                   </td>
                   <td data-label="Mola">{s.break_duration_minutes} dk</td>
@@ -964,7 +964,7 @@ function VardiyaModal({ vardiya, isSuper, onClose, onDone }) {
       <label>{l}</label>
       <input value={v[k]} inputMode="numeric"
         onChange={(e) => alan(k, e.target.value === '' ? '' : Number(e.target.value))} />
-      {ipucu && <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>{ipucu}</p>}
+      {ipucu && <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>{ipucu}</p>}
     </div>
   );
 
@@ -983,7 +983,7 @@ function VardiyaModal({ vardiya, isSuper, onClose, onDone }) {
         <div className="field">
           <label>Bitiş</label>
           <input type="time" value={v.end_time} onChange={(e) => alan('end_time', e.target.value)} required />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Bitiş başlangıçtan küçük veya eşitse vardiya gece yarısını geçer (örn. 16:00–00:30).
           </p>
         </div>
@@ -1045,7 +1045,7 @@ function Ayarlar({ isSuper }) {
   return (
     <>
       <div className="surface-panel">
-        <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>
           Giriş, çıkış ve mola işlemleri QR kod okutularak yapılır. QR tek başına
           yeterli değildir: kodun <strong>iş yerinde</strong> okutulduğu mağaza
           konumuna göre doğrulanır, bu yüzden konum tanımlı olmalıdır. QR sırrı
@@ -1077,7 +1077,7 @@ function Ayarlar({ isSuper }) {
                   </td>
                   <td data-label="Konum">
                     {s.latitude !== null && s.longitude !== null
-                      ? <span className="muted" style={{ fontSize: 12 }}>
+                      ? <span className="muted" style={{ fontSize: 'var(--fs-label)' }}>
                           {Number(s.latitude).toFixed(5)}, {Number(s.longitude).toFixed(5)}
                         </span>
                       : <span className="badge critical">tanımsız</span>}
@@ -1174,7 +1174,7 @@ function AyarModal({ magaza, onClose, onDone }) {
         <div className="field">
           <label>Geofence yarıçapı (m)</label>
           <input value={yaricap} onChange={(e) => setYaricap(e.target.value)} inputMode="numeric" />
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             20–5000 m. Şehir içi GPS sapması 20–50 m olabildiği için 100 m önerilir.
           </p>
         </div>
@@ -1184,7 +1184,7 @@ function AyarModal({ magaza, onClose, onDone }) {
             <option value="rotating">Süreli kod (ekranda 60 sn'de bir yenilenir) — önerilen</option>
             <option value="static">Sabit kod (bir kez basılır, değişmez)</option>
           </select>
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             <strong>Süreli kod:</strong> kodu bir ekranda gösterirsiniz, 60 saniyede bir
             yenilenir. Fotoğraflanan kod süresi dolunca işe yaramaz.
           </p>
@@ -1294,12 +1294,12 @@ function Tatiller({ isSuper }) {
             </button>
           </div>
         </div>
-        <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>
           Resmi tatiller yıllık izin hakkından düşülmez ve puantajda planlı süre
           sıfır sayılır (o gün çalışma tamamen fazla mesai olur). Arife gibi yarım
           tatiller 0,5 gün sayılır.
         </p>
-        <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '6px 0 0' }}>
           <strong>Dini bayramlar</strong> her yıl kaydığı için otomatik eklenmiyor;
           Ramazan ve Kurban Bayramı tarihlerini elle girmeniz gerekiyor.
         </p>
@@ -1390,7 +1390,7 @@ function TatilModal({ isSuper, onClose, onDone }) {
             <input type="checkbox" checked={yarim} onChange={(e) => setYarim(e.target.checked)} />
             {' '}Yarım gün (arife)
           </label>
-          <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
             Yarım tatil izin hesabında 0,5 gün sayılır ve o gün planlı sürenin
             yarısı beklenir.
           </p>
@@ -1475,15 +1475,15 @@ function KvkkPanel() {
           <strong className="text-ok">{durum.already_purged}</strong>
         </div>
       </div>
-      <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>
+      <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '10px 0 0' }}>
         {durum.note}
       </p>
       {durum.oldest_with_coordinates && (
-        <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
           Koordinat tutan en eski kayıt: {fmtDateTime(durum.oldest_with_coordinates)}
         </p>
       )}
-      <p className="muted" style={{ fontSize: 11, margin: '4px 0 0' }}>
+      <p className="muted" style={{ fontSize: 'var(--fs-caption)', margin: '4px 0 0' }}>
         Temizlik sunucu her soğuk başlatmada kendiliğinden çalışır; buradan elle
         de tetikleyebilirsiniz. Süre <code>PDKS_COORD_RETENTION_DAYS</code> ile
         değiştirilir.

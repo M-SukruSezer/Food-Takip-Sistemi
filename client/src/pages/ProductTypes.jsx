@@ -82,7 +82,7 @@ export default function ProductTypes() {
 
       {!canManage && (
         <div className="surface-panel">
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>
             Pasta çeşitleri ve SKT süreleri Ana Yönetici tarafından tanımlanır. Ürün eklerken bu listeden seçim yapabilirsin.
           </p>
         </div>
@@ -93,9 +93,9 @@ export default function ProductTypes() {
           <div className="card" key={t.id} style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <strong style={{ fontSize: 16 }}>{t.name}</strong>
+                <strong style={{ fontSize: 'var(--fs-title)' }}>{t.name}</strong>
                 {!t.active && <span className="pill r" style={{ marginLeft: 6 }}>pasif</span>}
-                <div className="muted" style={{ fontSize: 13 }}>{t.description || 'Açıklama yok'}</div>
+                <div className="muted" style={{ fontSize: 'var(--fs-body)' }}>{t.description || 'Açıklama yok'}</div>
               </div>
             </div>
             <div>

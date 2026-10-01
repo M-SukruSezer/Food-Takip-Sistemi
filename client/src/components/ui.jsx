@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, ShoppingCart, Gift, Package, Banknote, ShieldCheck } from 'lucide-react';
+import { MoreVertical, ShoppingCart, Gift, Package, Banknote, ShieldCheck, X } from 'lucide-react';
 import { fmtMoney, hasPrice } from '../format';
 import { subscribeBusy } from '../busy';
 
@@ -27,12 +27,105 @@ export function toast(msg) {
   if (pushFn) pushFn(msg);
 }
 
-export function Modal({ title, onClose, children }) {
+// Açık pencerelerin yığını: Escape yalnızca en üstteki pencereyi kapatır
+// (ör. form üstünde açılan onay penceresi).
+const modalStack = [];
+
+/**
+ * Standart pencere — Flutter'daki StandardDialog'un web karşılığı.
+ * Telefonda (≤640px) alttan panel, geniş ekranda ortalanmış diyalog.
+ * Başlık + 44px kapat düğmesi, kaydırılan gövde, gövdenin sonundaki
+ * .form-actions sabit alt bar olur. Escape ve tutamacı aşağı çekmek kapatır;
+ * busy iken kapatma kilitlenir. Açıkken sayfa kaydırması durur, odak
+ * pencereye taşınır ve kapanınca geri döner.
+ */
+export function Modal({ title, onClose, children, busy = false, wide = false }) {
+  const ref = useRef(null);
+  const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2)}`).current;
+  const drag = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = busy ? null : onClose;
+
+  useEffect(() => {
+    const token = {};
+    modalStack.push(token);
+    const prevFocus = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const first = ref.current?.querySelector(
+      'input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled)'
+    );
+    (first || ref.current)?.focus({ preventScroll: true });
+    const onKey = (e) => {
+      if (e.key === 'Escape' && modalStack[modalStack.length - 1] === token) {
+        e.stopPropagation();
+        closeRef.current?.();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      modalStack.splice(modalStack.indexOf(token), 1);
+      if (modalStack.length === 0) document.body.style.overflow = prevOverflow;
+      if (prevFocus && typeof prevFocus.focus === 'function') prevFocus.focus({ preventScroll: true });
+    };
+  }, []);
+
+  // Tutamaç/başlık aşağı sürüklenirse panel kapanır (yalnızca dokunmatik
+  // panelde anlamlı; masaüstünde başlık sürüklenmez).
+  const onPointerDown = (e) => {
+    if (e.pointerType === 'mouse' || e.target.closest('button')) return;
+    drag.current = { y: e.clientY, dy: 0 };
+  };
+  const onPointerMove = (e) => {
+    if (!drag.current) return;
+    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
+    ref.current.style.transform = `translateY(${drag.current.dy}px)`;
+  };
+  const onPointerUp = () => {
+    if (!drag.current) return;
+    const { dy } = drag.current;
+    drag.current = null;
+    ref.current.style.transform = '';
+    if (dy > 90) closeRef.current?.();
+  };
+
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>{title}</h3>
-        {children}
+    <div
+      className="modal-backdrop"
+      // mousedown: metin seçerken pencere dışına taşan sürükleme kapatmasın.
+      onMouseDown={(e) => { if (e.target === e.currentTarget) closeRef.current?.(); }}
+    >
+      <div
+        ref={ref}
+        className={`modal${wide ? ' modal-wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-busy={busy || undefined}
+        tabIndex={-1}
+      >
+        <div
+          className="modal-head"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <span className="modal-handle" aria-hidden="true" />
+          <h3 id={titleId}>{title}</h3>
+          <button
+            type="button"
+            className="modal-close"
+            aria-label="Kapat"
+            title="Kapat"
+            disabled={busy}
+            onClick={() => closeRef.current?.()}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
       </div>
     </div>,
     document.body
@@ -75,7 +168,7 @@ export function SellConfirmModal({ batch: b, kind, onCancel, onConfirm }) {
           <span className="icon-chip primary"><Banknote size={18} /></span>
           <div>
             <strong>Kasa İşlemi</strong>
-            <p className="muted" style={{ margin: 0, fontSize: 12 }}>Stok düşümü ve ciro güncelleme</p>
+            <p className="muted" style={{ margin: 0, fontSize: 'var(--fs-label)' }}>Stok düşümü ve ciro güncelleme</p>
           </div>
         </div>
 
@@ -95,7 +188,7 @@ export function SellConfirmModal({ batch: b, kind, onCancel, onConfirm }) {
             <span className={`icon-chip ${isSale ? 'success' : 'accent'}`}>{isSale ? <Banknote size={18} /> : <Gift size={18} />}</span>
             <div>
               <strong>{isSale ? 'Ciroya Eklenecek Tutar' : 'İkram Değeri'}</strong>
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              <p className="muted" style={{ margin: 0, fontSize: 'var(--fs-label)' }}>
                 {priced ? `Birim Fiyat: ${fmtMoney(b.product_unit_price)}` : 'Bu çeşit için fiyat tanımlı değil'}
               </p>
             </div>
