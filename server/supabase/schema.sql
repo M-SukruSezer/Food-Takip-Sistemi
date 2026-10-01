@@ -128,12 +128,10 @@ CREATE INDEX IF NOT EXISTS idx_role_templates_store ON role_templates(store_id);
 -- eklenir. Ters sirada ADD CONSTRAINT hala 'staff' olan satirlara takiliyor.
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 UPDATE users SET role = 'barista' WHERE role = 'staff';
-ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'hr', 'store_manager', 'shift_supervisor', 'barista'));
-
--- Mağaza hesabı (store): mağazadaki ortak cihazın hesabı. Yalnızca operasyon
--- alanını kullanır; PDKS personel listelerine girmez. Kısıt yeniden kurulur
--- (yalnızca genişletir, mevcut satırları etkilemez).
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- Bu dosya her soğuk başlangıçta baştan çalışır: kısıt TEK adımda ve güncel
+-- rol listesiyle kurulmalı. Eski listeyle kurup sonra genişletmek, yeni rolde
+-- kayıt varken başlatmayı düşürüyordu (23514).
+-- store: mağazadaki ortak cihazın hesabı; yalnızca operasyon alanını kullanır.
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'hr', 'store_manager', 'shift_supervisor', 'store', 'barista'));
 
 -- Operations/regional manager birden fazla magazadan sorumlu olabilir; tek

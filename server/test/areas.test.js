@@ -97,3 +97,23 @@ test('PDKS personel filtresi mağaza hesabını dışlar', () => {
   assert.equal(auth.personnelOnly(), "AND u.role NOT IN ('store')");
   assert.equal(auth.personnelOnly(''), "AND role NOT IN ('store')");
 });
+
+// schema.sql her soğuk başlangıçta baştan çalışır. Rol kısıtının herhangi bir
+// adımı güncel rol listesinden eksik kalırsa, o roldeki ilk kayıt açıldığı
+// anda başlatma 23514 ile düşer ve API "Sistem başlatılıyor" (503) döner.
+test('schema.sql içindeki her rol kısıtı tüm rolleri içerir', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'schema.sql'), 'utf8');
+  // CREATE TABLE içindeki ilk kısıt yalnızca boş veritabanında bir kez
+  // çalışır ve hemen ardından yeniden kurulur; her açılışta çalışan adım
+  // ADD CONSTRAINT olduğu için o denetlenir.
+  const checks = [...sql.matchAll(/ADD CONSTRAINT users_role_check CHECK \(role IN \(([^)]*)\)\)/g)];
+  assert.ok(checks.length >= 1, 'rol kısıtı bulunamadı');
+  for (const m of checks) {
+    const roles = m[1].match(/'([^']+)'/g).map((r) => r.slice(1, -1));
+    for (const role of auth.ROLES) {
+      assert.ok(roles.includes(role), `"${role}" rolü şu kısıtta eksik: ${m[0].slice(0, 80)}…`);
+    }
+  }
+});
