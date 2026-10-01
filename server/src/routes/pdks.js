@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth, requireRole, allowsStore } = require('../auth');
+const { requireAuth, requireRole, allowsStore, verifyPassword } = require('../auth');
 const { logActivity } = require('../utils');
 const dev = require('../pdks/device');
 const geo = require('../pdks/geo');
@@ -19,7 +19,7 @@ const KIOSK_ROLES = ['super_admin', 'store_manager', 'shift_supervisor'];
 async function getStore(storeId) {
   return queryOne(
     `SELECT id, name, latitude, longitude, geofence_radius_m, qr_secret, qr_mode,
-            pdks_enabled, active
+            pdks_pin_hash, pdks_enabled, active
      FROM stores WHERE id = ?`,
     storeId
   );
@@ -133,10 +133,23 @@ async function buildEntry({ req, store, body, atIso }) {
     qr_token_hash: null,
   };
 
-  // 1. etken: QR token.
-  const v = qr.verifyToken(body.qr_token, store, new Date(atIso).getTime());
-  if (!v.ok) return { error: v.reason };
-  entry.qr_token_hash = v.tokenHash;
+  // 1. etken: QR token ya da magazaya ozel yonetici PIN'i. PIN yalnizca
+  // kamera arizasi gibi durumlar icin alternatif kimlik dogrulamasidir;
+  // konum ve cihaz butunlugu kontrollerini gevsetmez.
+  let mode;
+  if (body.manager_pin !== undefined) {
+    const pin = String(body.manager_pin || '');
+    if (!/^\d{6}$/.test(pin)) return { error: 'Mağaza PIN’i 6 haneli olmalıdır' };
+    if (!store.pdks_pin_hash || !verifyPassword(pin, store.pdks_pin_hash)) {
+      return { error: 'Mağaza PIN’i hatalı' };
+    }
+    mode = 'manager_pin';
+  } else {
+    const v = qr.verifyToken(body.qr_token, store, new Date(atIso).getTime());
+    if (!v.ok) return { error: v.reason };
+    entry.qr_token_hash = v.tokenHash;
+    mode = v.mode;
+  }
 
   // 2. etken: konum. HER KIPTE zorunlu — donen kodda da, sabit kodda da.
   // Amac "kodu okuttu" degil "kodu IS YERINDE okuttu" oldugu icin kipe gore
@@ -156,7 +169,7 @@ async function buildEntry({ req, store, body, atIso }) {
   entry.distance_m = loc.distance;
   entry.is_valid_location = 1;
 
-  return { entry, mode: v.mode };
+  return { entry, mode };
 }
 
 /// Giris/cikis kaydini yazar.

@@ -13,6 +13,7 @@ import '../models/daily_report.dart';
 import '../models/dashboard.dart';
 import '../models/manager_overview.dart';
 import '../widgets/mini_bar_chart.dart';
+import '../widgets/crud_scaffold.dart' show Pill;
 import '../widgets/panels.dart';
 import '../widgets/rank_list.dart';
 import 'manager_overview_block.dart';
@@ -154,6 +155,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
+          _StorePresenceCard(
+            storeName:
+                _summary?.storeName ?? session.user?.storeName ?? 'Mağaza',
+          ),
+          const SizedBox(height: AppTokens.gap),
           // Ciro Forecast ve Petty Cash en ustte: magaza muduru ve vardiya
           // muduru gune bu iki rakamla basliyor.
           if (_showOverview && _overview != null) ...[
@@ -187,7 +193,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: AppTokens.gap),
           ],
+          Text(
+            'GÜNLÜK PERFORMANS GÖSTERGELERİ',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: t.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
           _StatGrid(counts: c, soldToday: data.soldToday),
+          const SizedBox(height: AppTokens.gap),
+          Text(
+            'HIZLI İŞLEMLER',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: t.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 1.55,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            children: [
+              _QuickAction(
+                title: 'QR PDKS / Devam',
+                subtitle: 'Kamera ile hızlı okut',
+                icon: Icons.qr_code_scanner_rounded,
+                primary: true,
+                onTap: () => context.go('/pdks'),
+              ),
+              _QuickAction(
+                title: 'Donuk → Çözünme',
+                subtitle: 'Dolap transfer kaydı',
+                icon: Icons.ac_unit_rounded,
+                onTap: () => context.go('/batches'),
+              ),
+              _QuickAction(
+                title: 'Hızlı Satış Onayı',
+                subtitle: 'Adisyon ve ikram',
+                icon: Icons.point_of_sale_rounded,
+                onTap: () => context.go('/recommendations'),
+              ),
+              _QuickAction(
+                title: 'Kasa Raporu / Masraf',
+                subtitle: 'Gün sonu ve fiş girişi',
+                icon: Icons.receipt_long_rounded,
+                onTap: () => context.go('/daily-report'),
+              ),
+            ],
+          ),
           const SizedBox(height: AppTokens.gap),
           if (_summary != null) ...[
             _SummaryBlock(summary: _summary!),
@@ -233,6 +293,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPeriodChanged: (v) => setState(() => _monthly = v),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _StorePresenceCard extends StatelessWidget {
+  const _StorePresenceCard({required this.storeName});
+  final String storeName;
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return AppCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: t.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.storefront_outlined, color: t.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  storeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontWeight: FontWeight.w800, color: t.ink),
+                ),
+              ),
+              Pill(text: 'Açık', color: t.success),
+            ],
+          ),
+          const Divider(height: 24),
+          Row(
+            children: [
+              Icon(Icons.near_me_outlined, size: 16, color: t.primary),
+              const SizedBox(width: 7),
+              Text(
+                'İş yerindesiniz',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: t.primary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Canlı operasyon',
+                style: TextStyle(fontSize: 12, color: t.muted),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+    this.primary = false,
+  });
+  final String title, subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool primary;
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final fg = primary ? Colors.white : t.ink;
+    return Material(
+      color: primary ? t.primary : t.card,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: primary ? Colors.white : t.primary),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: fg,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: primary ? Colors.white70 : t.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -295,9 +471,9 @@ class _StatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final width = MediaQuery.sizeOf(context).width;
-    final columns = width < 641
+    final columns = width < AppTokens.bpSm
         ? 2
-        : (width < 900 ? 3 : (width < 1200 ? 3 : 6));
+        : (width < AppTokens.bpMd ? 3 : (width < AppTokens.bpLg ? 3 : 6));
     // Her kutu ilgili ekrani acar; stok kutulari Urunler/Stok'un dogru
     // sekmesine, satis kutulari bugune filtreli Hareket Raporu'na gider.
     final cards = <Widget>[
@@ -354,7 +530,7 @@ class _StatGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppTokens.gap,
       crossAxisSpacing: AppTokens.gap,
-      childAspectRatio: width < 641 ? 1.55 : 1.45,
+      childAspectRatio: width < AppTokens.bpSm ? 1.55 : 1.45,
       children: cards,
     );
   }
@@ -371,12 +547,12 @@ class _SummaryBlock extends StatelessWidget {
     if (!summary.isMulti) {
       final width = MediaQuery.sizeOf(context).width;
       return GridView.count(
-        crossAxisCount: width < 641 ? 2 : 3,
+        crossAxisCount: width < AppTokens.bpSm ? 2 : 3,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: AppTokens.gap,
         crossAxisSpacing: AppTokens.gap,
-        childAspectRatio: width < 641 ? 1.55 : 1.8,
+        childAspectRatio: width < AppTokens.bpSm ? 1.55 : 1.8,
         children: [
           StatCard(
             label: summary.storeName ?? 'Mağaza',
@@ -602,7 +778,7 @@ class _PerformanceBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (width < 900)
+          if (width < AppTokens.bpMd)
             Column(
               children: [
                 for (var i = 0; i < lists.length; i++) ...[

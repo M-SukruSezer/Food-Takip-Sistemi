@@ -46,18 +46,19 @@ class TransferApproval {
   String get statusLabel => approvalStatusLabels[status] ?? status;
 
   factory TransferApproval.fromJson(Map<String, dynamic> j) => TransferApproval(
-        id: _int(j['id']),
-        batchId: _int(j['batch_id']),
-        status: j['status'] as String? ?? 'pending',
-        reason: j['reason'] as String? ?? '',
-        requestedAt: j['requested_at'] as String? ?? '',
-        remaining: _int(j['remaining']),
-        productName: j['product_name'] as String?,
-        requestedByName: j['requested_by_name'] as String?,
-        decidedByName: j['decided_by_name'] as String?,
-        decisionNote: j['decision_note'] as String?,
-        storeName: j['store_name'] as String?,
-        thawRemainingHours:
-            j['thaw_remaining_hours'] == null ? null : _int(j['thaw_remaining_hours']),
-      );
+    id: _int(j['id']),
+    batchId: _int(j['batch_id']),
+    status: j['status'] as String? ?? 'pending',
+    reason: j['reason'] as String? ?? '',
+    requestedAt: j['requested_at'] as String? ?? '',
+    remaining: _int(j['remaining']),
+    productName: j['product_name'] as String?,
+    requestedByName: j['requested_by_name'] as String?,
+    decidedByName: j['decided_by_name'] as String?,
+    decisionNote: j['decision_note'] as String?,
+    storeName: j['store_name'] as String?,
+    thawRemainingHours: j['thaw_remaining_hours'] == null
+        ? null
+        : _int(j['thaw_remaining_hours']),
+  );
 }

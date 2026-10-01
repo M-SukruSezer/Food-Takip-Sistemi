@@ -17,10 +17,14 @@ import '../models/user.dart';
 
 /// API cagrilarini tipli hale getirir; ekranlar ham JSON ile ugrasmaz.
 class Repository {
+  Repository({ApiClient? client}) : _client = client ?? api;
+
+  final ApiClient _client;
+
   String _q(int? storeId) => storeId == null ? '' : '?storeId=$storeId';
 
   Future<DashboardData> dashboard({int? storeId, bool silent = false}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/dashboard${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -31,7 +35,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/reports/summary${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -39,7 +43,7 @@ class Repository {
   }
 
   Future<List<SalesPoint>> sales7({int? storeId, bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/reports/sales7${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -52,7 +56,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/reports/status${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -65,7 +69,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/reports/products${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -73,7 +77,7 @@ class Repository {
   }
 
   Future<int> pendingApprovalCount({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/approvals?status=pending',
       options: apiOptions(silent: silent),
     );
@@ -84,7 +88,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/recommendations${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -95,7 +99,7 @@ class Repository {
 
   /// Satis her zaman tam bir adet dusurur.
   Future<void> sellOne(Batch batch) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/${batch.id}/sell',
       data: {'quantity': 1},
       options: apiOptions(
@@ -107,7 +111,7 @@ class Repository {
   /// Ikram ayni uc noktayi kullanir; sunucu kind = 'ikram' kaydini ciroya ve
   /// satis adedine saymaz, stoktan yine duser.
   Future<void> ikramOne(Batch batch) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/${batch.id}/sell',
       data: {'quantity': 1, 'kind': 'ikram'},
       options: apiOptions(
@@ -120,7 +124,7 @@ class Repository {
     Batch batch, {
     String reason = 'SKT süresi doldu',
   }) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/${batch.id}/discard',
       data: {'reason': reason},
       options: apiOptions(successMessage: 'Zayi kaydedildi'),
@@ -136,7 +140,7 @@ class Repository {
   }) async {
     final params = <String>['status=$status'];
     if (storeId != null) params.add('storeId=$storeId');
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/batches?${params.join('&')}',
       options: apiOptions(silent: silent),
     );
@@ -146,7 +150,7 @@ class Repository {
   }
 
   Future<(Batch, List<SaleRecord>)> batchDetail(int id) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/batches/$id',
       options: apiOptions(),
     );
@@ -161,7 +165,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/product-types${_q(storeId)}',
       options: apiOptions(silent: silent),
     );
@@ -177,7 +181,7 @@ class Repository {
     String? batchCode,
     String? notes,
   }) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches',
       data: {
         'product_type_id': productTypeId,
@@ -192,7 +196,7 @@ class Repository {
   }
 
   Future<Map<String, dynamic>> thaw(int batchId, int quantity) async {
-    final r = await api.dio.post<Map<String, dynamic>>(
+    final r = await _client.dio.post<Map<String, dynamic>>(
       '/batches/$batchId/thaw',
       data: {'quantity': quantity},
       options: apiOptions(noToast: true),
@@ -201,7 +205,7 @@ class Repository {
   }
 
   Future<void> completeThaw(Batch batch) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/${batch.id}/complete-thaw',
       options: apiOptions(
         successMessage: '${batch.productName} food dolabına aktarıldı',
@@ -214,7 +218,7 @@ class Repository {
     required int quantity,
     String? reason,
   }) async {
-    final r = await api.dio.post<Map<String, dynamic>>(
+    final r = await _client.dio.post<Map<String, dynamic>>(
       '/batches/$batchId/discard',
       data: {'quantity': quantity, 'reason': ?reason},
       options: apiOptions(noToast: true),
@@ -223,7 +227,7 @@ class Repository {
   }
 
   Future<void> addStock(int batchId, int quantity) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/$batchId/add-stock',
       data: {'quantity': quantity},
       options: apiOptions(noToast: true),
@@ -231,7 +235,7 @@ class Repository {
   }
 
   Future<void> requestEarlyTransfer(int batchId, String reason) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/$batchId/request-early-transfer',
       data: {'reason': reason},
       options: apiOptions(noToast: true),
@@ -242,7 +246,7 @@ class Repository {
     int batchId,
     Map<String, dynamic> payload,
   ) async {
-    final r = await api.dio.put<Map<String, dynamic>>(
+    final r = await _client.dio.put<Map<String, dynamic>>(
       '/batches/$batchId/adjust',
       data: payload,
       options: apiOptions(noToast: true),
@@ -273,13 +277,13 @@ class Repository {
       if (includeStore) 'store_id': storeId,
     };
     if (id == null) {
-      await api.dio.post(
+      await _client.dio.post(
         '/product-types',
         data: data,
         options: apiOptions(noToast: true),
       );
     } else {
-      await api.dio.put(
+      await _client.dio.put(
         '/product-types/$id',
         data: data,
         options: apiOptions(noToast: true),
@@ -288,7 +292,7 @@ class Repository {
   }
 
   Future<void> deleteProductType(ProductType type) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/product-types/${type.id}',
       options: apiOptions(successMessage: 'Çeşit silindi'),
     );
@@ -297,7 +301,7 @@ class Repository {
   // ---- Magazalar ----
 
   Future<List<Store>> storeList({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/stores',
       options: apiOptions(silent: silent),
     );
@@ -320,13 +324,13 @@ class Repository {
       if (id != null) 'active': active,
     };
     if (id == null) {
-      await api.dio.post(
+      await _client.dio.post(
         '/stores',
         data: data,
         options: apiOptions(noToast: true),
       );
     } else {
-      await api.dio.put(
+      await _client.dio.put(
         '/stores/$id',
         data: data,
         options: apiOptions(noToast: true),
@@ -335,7 +339,7 @@ class Repository {
   }
 
   Future<void> deleteStore(Store store) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/stores/${store.id}',
       options: apiOptions(successMessage: 'Mağaza silindi'),
     );
@@ -344,13 +348,41 @@ class Repository {
   // ---- Kullanicilar ----
 
   Future<List<ManagedUser>> userList({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/users',
       options: apiOptions(silent: silent),
     );
     return (r.data ?? [])
         .map((e) => ManagedUser.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> roleTemplates({
+    bool silent = false,
+  }) async {
+    final r = await _client.dio.get<List<dynamic>>(
+      '/users/templates',
+      options: apiOptions(silent: silent),
+    );
+    return (r.data ?? []).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> createRoleTemplate({
+    required String name,
+    required String role,
+    required int storeId,
+    required List<String> permissions,
+  }) async {
+    await _client.dio.post(
+      '/users/templates',
+      data: {
+        'name': name,
+        'role': role,
+        'store_id': storeId,
+        'permissions': permissions,
+      },
+      options: apiOptions(successMessage: 'Rol şablonu kaydedildi'),
+    );
   }
 
   Future<void> createUser({
@@ -363,7 +395,7 @@ class Repository {
     List<String>? permissions,
     List<int>? storeIds,
   }) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/users',
       data: {
         'username': username,
@@ -390,7 +422,7 @@ class Repository {
     List<String>? permissions,
     List<int>? storeIds,
   }) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/users/$id',
       data: {
         'full_name': fullName,
@@ -405,7 +437,7 @@ class Repository {
   }
 
   Future<void> toggleUserActive(ManagedUser user) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/users/${user.id}',
       data: {'active': !user.active},
       options: apiOptions(
@@ -417,7 +449,7 @@ class Repository {
   }
 
   Future<void> resetUserPassword(int id, String password) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/users/$id/password',
       data: {'password': password},
       options: apiOptions(noToast: true),
@@ -425,7 +457,7 @@ class Repository {
   }
 
   Future<void> deleteUser(ManagedUser user) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/users/${user.id}',
       options: apiOptions(successMessage: 'Kullanıcı silindi'),
     );
@@ -434,7 +466,7 @@ class Repository {
   // ---- Gunluk operasyon raporu ----
 
   Future<ReportFields> reportFields({bool silent = true}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/daily-reports/fields',
       options: apiOptions(silent: silent),
     );
@@ -448,7 +480,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/daily-reports',
       queryParameters: {
         'period': period,
@@ -464,7 +496,7 @@ class Repository {
   /// Gunun kaydi (varsa) + sistemin satis/zayi kayitlarindan hesapladigi
   /// food rakamlari.
   Future<DailyReportDay> dailyReportFor(String date, {int? storeId}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/daily-reports/day/$date',
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(silent: true),
@@ -474,7 +506,7 @@ class Repository {
 
   /// Ayni gun icin tekrar gonderim mevcut kaydi gunceller.
   Future<void> saveDailyReport(String date, Map<String, num> values) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/daily-reports',
       data: {'report_date': date, ...values},
       options: apiOptions(noToast: true, busyMessage: 'Rapor kaydediliyor...'),
@@ -487,7 +519,7 @@ class Repository {
     DailyReport report,
     Map<String, num> values,
   ) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/daily-reports/${report.id}',
       data: values,
       options: apiOptions(noToast: true, busyMessage: 'Rapor güncelleniyor...'),
@@ -495,7 +527,7 @@ class Repository {
   }
 
   Future<void> deleteDailyReport(DailyReport report) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/daily-reports/${report.id}',
       options: apiOptions(successMessage: 'Rapor silindi'),
     );
@@ -508,7 +540,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/manager-overview',
       queryParameters: {
         'days': ?days?.toString(),
@@ -521,7 +553,7 @@ class Repository {
 
   /// Cozulmeye alinan adedi duzeltir; fark donuk depoya doner.
   Future<void> correctThawQuantity(Batch batch, int quantity) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/batches/${batch.id}/correct-thaw-quantity',
       data: {'quantity': quantity},
       options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
@@ -530,7 +562,7 @@ class Repository {
 
   /// Partiyi ve bagli satis/zayi kayitlarini siler. Yalnizca ana yonetici.
   Future<void> deleteBatch(Batch batch) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/batches/${batch.id}',
       options: apiOptions(successMessage: 'Kayıt silindi'),
     );
@@ -538,7 +570,7 @@ class Repository {
 
   /// Satis veya ikram adedini duzeltir; fark stoga doner ya da stoktan duser.
   Future<void> updateSaleQuantity(int saleId, int quantity) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/sales/$saleId',
       data: {'quantity': quantity},
       options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
@@ -546,7 +578,7 @@ class Repository {
   }
 
   Future<void> deleteSale(int saleId) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/sales/$saleId',
       options: apiOptions(successMessage: 'Kayıt silindi, adet stoka döndü'),
     );
@@ -554,7 +586,7 @@ class Repository {
 
   /// Zayi adedini ve sebebini duzeltir.
   Future<void> updateDiscard(int discardId, int quantity, String reason) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/discards/$discardId',
       data: {'quantity': quantity, 'reason': reason},
       options: apiOptions(noToast: true, busyMessage: 'Adet düzeltiliyor...'),
@@ -562,7 +594,7 @@ class Repository {
   }
 
   Future<void> deleteDiscard(int discardId) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/discards/$discardId',
       options: apiOptions(successMessage: 'Kayıt silindi, adet stoka döndü'),
     );
@@ -571,7 +603,7 @@ class Repository {
   // ---- PDKS (Personel Devam Kontrol Sistemi) ----
 
   Future<PdksStatus> pdksStatus({bool silent = false}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/me',
       options: apiOptions(silent: silent),
     );
@@ -596,11 +628,12 @@ class Repository {
     bool? isMocked,
     DeviceIntegrity? integrity,
   }) async {
-    await api.dio.post(
+    final isManagerPin = RegExp(r'^\d{6}$').hasMatch(token);
+    await _client.dio.post(
       '/pdks/${adim.yol}',
       data: {
         'method': 'QR',
-        'qr_token': token,
+        if (isManagerPin) 'manager_pin': token else 'qr_token': token,
         'latitude': latitude,
         'longitude': longitude,
         'accuracy': ?accuracy,
@@ -613,7 +646,7 @@ class Repository {
 
   /// Bu cihazin FCM jetonunu kaydeder (kullaniciya baglanir).
   Future<void> pdksRegisterDevice(String token) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/devices',
       data: {'token': token, 'platform': 'android'},
       options: apiOptions(silent: true),
@@ -622,7 +655,7 @@ class Repository {
 
   /// Jetonu siler. Cikista cagriliyor.
   Future<void> pdksUnregisterDevice(String token) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/devices/remove',
       data: {'token': token},
       options: apiOptions(silent: true),
@@ -632,7 +665,7 @@ class Repository {
   /// Kendi bildirimlerim. Sunucu yalnizca istegi yapan kisinin kayitlarini
   /// donduruyor; baskasinin bildirimi istenemiyor.
   Future<NotificationList> pdksNotifications({int limit = 30}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/notifications',
       queryParameters: {'limit': limit.toString()},
       options: apiOptions(silent: true),
@@ -648,7 +681,7 @@ class Repository {
 
   /// Bildirimi okundu isaretler.
   Future<void> pdksMarkNotificationRead(int id) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/notifications/$id/read',
       options: apiOptions(silent: true),
     );
@@ -656,7 +689,7 @@ class Repository {
 
   /// Tum bildirimleri okundu isaretler.
   Future<void> pdksMarkAllNotificationsRead() async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/notifications/read-all',
       options: apiOptions(successMessage: 'Tümü okundu işaretlendi'),
     );
@@ -670,7 +703,7 @@ class Repository {
     required String from,
     required String to,
   }) async {
-    final r = await api.dio.post<Map<String, dynamic>>(
+    final r = await _client.dio.post<Map<String, dynamic>>(
       '/pdks/roster/publish',
       data: {'from': from, 'to': to},
       options: apiOptions(noToast: true, busyMessage: 'Paylaşılıyor...'),
@@ -685,7 +718,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/roster',
       queryParameters: {
         'from': from,
@@ -699,7 +732,7 @@ class Repository {
 
   /// Atanabilir vardiya tanimlari.
   Future<List<ShiftDef>> pdksShifts({bool silent = true}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/pdks/shifts',
       options: apiOptions(silent: silent),
     );
@@ -719,7 +752,7 @@ class Repository {
     int? shiftId,
     bool isDayOff = false,
   }) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/pdks/assignments/cell',
       data: {
         'user_id': userId,
@@ -742,7 +775,7 @@ class Repository {
     required List<Map<String, Object?>> changes,
     bool force = false,
   }) async {
-    final r = await api.dio.put<Map<String, dynamic>>(
+    final r = await _client.dio.put<Map<String, dynamic>>(
       '/pdks/assignments/cells',
       data: {'force': force, 'changes': changes},
       options: apiOptions(noToast: true),
@@ -752,7 +785,7 @@ class Repository {
 
   /// Personel ucret ve profil tanimlari (yonetici).
   Future<List<PdksProfile>> pdksProfiles({bool silent = true}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/pdks/profiles',
       options: apiOptions(silent: silent),
     );
@@ -797,7 +830,7 @@ class Repository {
     }
     if (degistirilen.contains('hourly_rate')) govde['hourly_rate'] = hourlyRate;
     if (degistirilen.contains('meal_daily')) govde['meal_daily'] = mealDaily;
-    await api.dio.put(
+    await _client.dio.put(
       '/pdks/profiles/$userId',
       data: govde,
       options: apiOptions(successMessage: 'Kaydedildi'),
@@ -806,7 +839,7 @@ class Repository {
 
   /// Kioskta gosterilecek magaza kodu.
   Future<QrToken> pdksKioskQr({int? storeId}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/qr/current',
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(noToast: true),
@@ -815,7 +848,7 @@ class Repository {
   }
 
   Future<PdksBalance> pdksBalance({int? userId, bool silent = true}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/requests/balances',
       queryParameters: {'userId': ?userId?.toString()},
       options: apiOptions(silent: silent),
@@ -827,7 +860,7 @@ class Repository {
     String? status,
     bool silent = true,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/pdks/requests',
       queryParameters: {'status': ?status},
       options: apiOptions(silent: silent),
@@ -838,7 +871,7 @@ class Repository {
   }
 
   Future<void> pdksCreateRequest(Map<String, Object?> body) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/requests',
       data: body,
       options: apiOptions(noToast: true, busyMessage: 'Talep gönderiliyor...'),
@@ -846,7 +879,7 @@ class Repository {
   }
 
   Future<void> pdksDecideRequest(int id, bool approve, {String? note}) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/requests/$id/${approve ? 'approve' : 'reject'}',
       data: note == null ? null : {'note': note},
       options: apiOptions(
@@ -858,7 +891,7 @@ class Repository {
   }
 
   Future<void> pdksCancelRequest(int id) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/pdks/requests/$id/cancel',
       options: apiOptions(successMessage: 'Talep geri alındı'),
     );
@@ -870,7 +903,7 @@ class Repository {
     int? userId,
     bool silent = true,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/pdks/assignments',
       queryParameters: {'from': from, 'to': to, 'userId': ?userId?.toString()},
       options: apiOptions(silent: silent),
@@ -886,7 +919,7 @@ class Repository {
     required String to,
     bool silent = true,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/pdks/holidays',
       queryParameters: {'from': from, 'to': to},
       options: apiOptions(silent: silent),
@@ -897,11 +930,33 @@ class Repository {
   }
 
   Future<PresenceSnapshot> pdksNow({bool silent = true}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/now',
       options: apiOptions(silent: silent),
     );
     return PresenceSnapshot.fromJson(r.data ?? const {});
+  }
+
+  Future<void> pdksManualAdjustment({
+    required int userId,
+    required int attendanceLogId,
+    required String type,
+    required DateTime revisedAt,
+    required String reason,
+    String? managerNote,
+  }) async {
+    await _client.dio.post(
+      '/pdks/manual-adjustments',
+      data: {
+        'user_id': userId,
+        'attendance_log_id': attendanceLogId,
+        'adjustment_type': type,
+        'revised_at': revisedAt.toUtc().toIso8601String(),
+        'reason': reason,
+        'manager_note': ?managerNote,
+      },
+      options: apiOptions(successMessage: 'Müdahale denetim izine kaydedildi'),
+    );
   }
 
   Future<TimesheetReport> pdksTimesheet({
@@ -911,7 +966,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/pdks/timesheet',
       queryParameters: {
         'from': from,
@@ -928,7 +983,7 @@ class Repository {
 
   /// Onay bekleyen masraflar. Magaza muduru ve ana yonetici.
   Future<List<PettyCashExpense>> pendingPettyCash({bool silent = true}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/petty-cash/pending',
       options: apiOptions(silent: silent),
     );
@@ -939,7 +994,7 @@ class Repository {
 
   /// Masrafi onaylar. Ret icin [rejectPettyCash] kullanilir.
   Future<void> approvePettyCash(PettyCashExpense e) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/petty-cash/${e.id}/approve',
       options: apiOptions(successMessage: 'Masraf onaylandı'),
     );
@@ -947,7 +1002,7 @@ class Repository {
 
   /// Masrafi reddeder. Gerekce zorunlu; sunucu da bos gerekceyi reddediyor.
   Future<void> rejectPettyCash(PettyCashExpense e, String note) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/petty-cash/${e.id}/reject',
       data: {'note': note},
       options: apiOptions(noToast: true, busyMessage: 'Reddediliyor...'),
@@ -955,7 +1010,7 @@ class Repository {
   }
 
   Future<PettyCashPage> pettyCash({int? storeId, bool silent = false}) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/petty-cash',
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(silent: silent),
@@ -965,7 +1020,7 @@ class Repository {
 
   /// Fis gorseli listede tasinmaz, tek tek cekilir.
   Future<String?> pettyCashReceipt(int id) async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/petty-cash/$id/receipt',
       options: apiOptions(busyMessage: 'Fiş açılıyor...'),
     );
@@ -978,7 +1033,7 @@ class Repository {
     String? receipt,
     DateTime? spentAt,
   }) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/petty-cash',
       data: {
         'amount': amount,
@@ -992,14 +1047,14 @@ class Repository {
   }
 
   Future<void> deletePettyCash(PettyCashExpense expense) async {
-    await api.dio.delete(
+    await _client.dio.delete(
       '/petty-cash/${expense.id}',
       options: apiOptions(successMessage: 'Masraf silindi'),
     );
   }
 
   Future<List<PettyCashLimit>> pettyCashLimits({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/petty-cash/limits',
       options: apiOptions(silent: silent),
     );
@@ -1009,7 +1064,7 @@ class Repository {
   }
 
   Future<void> setPettyCashLimit(int storeId, num weeklyAmount) async {
-    await api.dio.put(
+    await _client.dio.put(
       '/petty-cash/limits/$storeId',
       data: {'weekly_amount': weeklyAmount},
       options: apiOptions(noToast: true),
@@ -1019,7 +1074,7 @@ class Repository {
   // ---- Profil ----
 
   Future<void> changeOwnPassword(String current, String next) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/auth/password',
       data: {'current': current, 'next': next},
       // Hata form icinde gosterilir.
@@ -1030,7 +1085,7 @@ class Repository {
   /// Profil fotosu kaydeder ya da (avatar null ise) kaldirir; sunucunun
   /// sakladigi son degeri doner.
   Future<String?> saveAvatar(String? avatar) async {
-    final r = await api.dio.post<Map<String, dynamic>>(
+    final r = await _client.dio.post<Map<String, dynamic>>(
       '/auth/avatar',
       data: {'avatar': avatar},
       options: apiOptions(
@@ -1043,7 +1098,7 @@ class Repository {
   }
 
   Future<AppUser> me() async {
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/auth/me',
       options: apiOptions(silent: true),
     );
@@ -1057,7 +1112,7 @@ class Repository {
     int? storeId,
     bool silent = false,
   }) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/approvals',
       queryParameters: {'status': ?status, 'storeId': ?storeId?.toString()},
       options: apiOptions(silent: silent),
@@ -1068,7 +1123,7 @@ class Repository {
   }
 
   Future<void> approveTransfer(TransferApproval item) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/approvals/${item.id}/approve',
       options: apiOptions(
         successMessage:
@@ -1078,7 +1133,7 @@ class Repository {
   }
 
   Future<void> rejectTransfer(TransferApproval item, String? note) async {
-    await api.dio.post(
+    await _client.dio.post(
       '/approvals/${item.id}/reject',
       data: {'note': ?note},
       // Hata pencerede satir ici gosterilir.
@@ -1100,7 +1155,7 @@ class Repository {
   }) async {
     String day(DateTime d) =>
         '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    final r = await api.dio.get<Map<String, dynamic>>(
+    final r = await _client.dio.get<Map<String, dynamic>>(
       '/reports/movements',
       queryParameters: {
         'from': ?(from == null ? null : day(from)),
@@ -1117,7 +1172,7 @@ class Repository {
   // ---- Satis gecmisi ve hareket kayitlari ----
 
   Future<List<SaleRecord>> sales({int? storeId, bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/sales',
       queryParameters: {'storeId': ?storeId?.toString()},
       options: apiOptions(silent: silent),
@@ -1128,7 +1183,7 @@ class Repository {
   }
 
   Future<List<ActivityLog>> logs({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/logs',
       options: apiOptions(silent: silent),
     );
@@ -1138,7 +1193,7 @@ class Repository {
   }
 
   Future<List<StoreOption>> stores({bool silent = false}) async {
-    final r = await api.dio.get<List<dynamic>>(
+    final r = await _client.dio.get<List<dynamic>>(
       '/stores',
       options: apiOptions(silent: silent),
     );

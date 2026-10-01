@@ -52,26 +52,26 @@ class PettyCashExpense {
   bool get isRejected => status == 'rejected';
 
   String get statusLabel => switch (status) {
-        'pending' => 'Onay bekliyor',
-        'rejected' => 'Reddedildi',
-        _ => 'Onaylandı',
-      };
+    'pending' => 'Onay bekliyor',
+    'rejected' => 'Reddedildi',
+    _ => 'Onaylandı',
+  };
 
   factory PettyCashExpense.fromJson(Map<String, dynamic> j) => PettyCashExpense(
-        id: _int(j['id']),
-        storeId: _int(j['store_id']),
-        amount: _num(j['amount']),
-        description: j['description'] as String? ?? '',
-        spentAt: j['spent_at'] as String? ?? '',
-        hasReceipt: j['has_receipt'] == true,
-        status: j['status'] as String? ?? 'approved',
-        createdByName: j['created_by_name'] as String?,
-        createdByRole: j['created_by_role'] as String?,
-        storeName: j['store_name'] as String?,
-        decidedByName: j['decided_by_name'] as String?,
-        decidedAt: j['decided_at'] as String?,
-        decisionNote: j['decision_note'] as String?,
-      );
+    id: _int(j['id']),
+    storeId: _int(j['store_id']),
+    amount: _num(j['amount']),
+    description: j['description'] as String? ?? '',
+    spentAt: j['spent_at'] as String? ?? '',
+    hasReceipt: j['has_receipt'] == true,
+    status: j['status'] as String? ?? 'approved',
+    createdByName: j['created_by_name'] as String?,
+    createdByRole: j['created_by_role'] as String?,
+    storeName: j['store_name'] as String?,
+    decidedByName: j['decided_by_name'] as String?,
+    decidedAt: j['decided_at'] as String?,
+    decisionNote: j['decision_note'] as String?,
+  );
 }
 
 /// Haftalik limit durumu. Yalnizca tek magazaya daraltilmis listede dolu gelir.
@@ -102,18 +102,20 @@ class PettyCashStatus {
   final bool canApprove;
 
   bool get hasLimit => weeklyLimit > 0;
-  double get usedRatio => weeklyLimit <= 0 ? 0 : (spentThisWeek / weeklyLimit).clamp(0, 1).toDouble();
+  double get usedRatio => weeklyLimit <= 0
+      ? 0
+      : (spentThisWeek / weeklyLimit).clamp(0, 1).toDouble();
 
   factory PettyCashStatus.fromJson(Map<String, dynamic> j) => PettyCashStatus(
-        storeId: _int(j['store_id']),
-        weeklyLimit: _num(j['weekly_limit']),
-        spentThisWeek: _num(j['spent_this_week']),
-        remaining: _num(j['remaining']),
-        weekStart: j['week_start'] as String? ?? '',
-        pendingThisWeek: _num(j['pending_this_week']),
-        pendingCount: _int(j['pending_count']),
-        canApprove: j['can_approve'] == true,
-      );
+    storeId: _int(j['store_id']),
+    weeklyLimit: _num(j['weekly_limit']),
+    spentThisWeek: _num(j['spent_this_week']),
+    remaining: _num(j['remaining']),
+    weekStart: j['week_start'] as String? ?? '',
+    pendingThisWeek: _num(j['pending_this_week']),
+    pendingCount: _int(j['pending_count']),
+    canApprove: j['can_approve'] == true,
+  );
 }
 
 class PettyCashPage {
@@ -123,13 +125,13 @@ class PettyCashPage {
   final PettyCashStatus? status;
 
   factory PettyCashPage.fromJson(Map<String, dynamic> j) => PettyCashPage(
-        items: ((j['items'] as List<dynamic>?) ?? [])
-            .map((e) => PettyCashExpense.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        status: j['status'] == null
-            ? null
-            : PettyCashStatus.fromJson(j['status'] as Map<String, dynamic>),
-      );
+    items: ((j['items'] as List<dynamic>?) ?? [])
+        .map((e) => PettyCashExpense.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    status: j['status'] == null
+        ? null
+        : PettyCashStatus.fromJson(j['status'] as Map<String, dynamic>),
+  );
 }
 
 /// Ana Yoneticinin belirledigi magaza basina haftalik limit.
@@ -145,8 +147,8 @@ class PettyCashLimit {
   final num weeklyAmount;
 
   factory PettyCashLimit.fromJson(Map<String, dynamic> j) => PettyCashLimit(
-        storeId: _int(j['store_id']),
-        storeName: j['store_name'] as String? ?? '',
-        weeklyAmount: _num(j['weekly_amount']),
-      );
+    storeId: _int(j['store_id']),
+    storeName: j['store_name'] as String? ?? '',
+    weeklyAmount: _num(j['weekly_amount']),
+  );
 }

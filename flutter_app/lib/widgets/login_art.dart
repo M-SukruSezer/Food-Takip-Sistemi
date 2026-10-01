@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import '../core/login_branding.dart';
+
 import 'package:flutter/material.dart';
 
 /// Giris ekranindaki illustrasyon.
@@ -7,16 +11,44 @@ import 'package:flutter/material.dart';
 /// gosterilir — koyu kartta siyah konturlar kaybolurdu. Kart rengini
 /// [LoginArt] degil cagiran ekran belirler.
 class LoginArt extends StatelessWidget {
-  const LoginArt({super.key});
+  const LoginArt({super.key, this.fit = BoxFit.contain});
+
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
-    // Gorsel kare ve kendi icinde dikey boslugu var; buyutup kirpmak kollari
-    // kesiyordu, bu yuzden oldugu gibi sigdirilir.
-    return Image.asset(
-      'assets/login-art.png',
-      fit: BoxFit.contain,
-      semanticLabel: 'Çak bir beş illüstrasyonu',
+    return ValueListenableBuilder<String?>(
+      valueListenable: loginArtwork,
+      builder: (context, value, _) {
+        if (value != null) {
+          try {
+            return Image.memory(
+              base64Decode(value.split(',').last),
+              width: double.infinity,
+              fit: fit,
+              gaplessPlayback: true,
+              semanticLabel: 'Giriş görseli',
+              errorBuilder: (_, _, _) => _defaultArt(),
+            );
+          } catch (_) {
+            return _defaultArt();
+          }
+        }
+        return _defaultArt();
+      },
     );
   }
+
+  Widget _defaultArt() => Image.asset(
+    'assets/colombia_cafe.png',
+    width: double.infinity,
+    fit: fit,
+    errorBuilder: (context, error, stackTrace) => Image.asset(
+      'assets/login-art.png',
+      width: double.infinity,
+      fit: fit,
+      semanticLabel: 'Colombia Cafe illüstrasyonu',
+    ),
+    semanticLabel: 'Colombia Cafe illüstrasyonu',
+  );
 }

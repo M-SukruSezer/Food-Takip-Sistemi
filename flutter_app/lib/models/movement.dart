@@ -51,19 +51,21 @@ class Movement {
   String get kindLabel => movementKindLabels[kind] ?? kind;
 
   factory Movement.fromJson(Map<String, dynamic> j) => Movement(
-        id: _int(j['id']),
-        kind: j['kind'] as String? ?? 'sale',
-        quantity: _int(j['quantity']),
-        at: j['at'] as String? ?? '',
-        unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
-        total: j['total'] == null ? null : _num(j['total']),
-        productName: j['product_name'] as String?,
-        productTypeId: j['product_type_id'] == null ? null : _int(j['product_type_id']),
-        userName: j['user_name'] as String?,
-        storeName: j['store_name'] as String?,
-        reason: j['reason'] as String?,
-        priceIsCurrent: j['price_is_current'] == true,
-      );
+    id: _int(j['id']),
+    kind: j['kind'] as String? ?? 'sale',
+    quantity: _int(j['quantity']),
+    at: j['at'] as String? ?? '',
+    unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),
+    total: j['total'] == null ? null : _num(j['total']),
+    productName: j['product_name'] as String?,
+    productTypeId: j['product_type_id'] == null
+        ? null
+        : _int(j['product_type_id']),
+    userName: j['user_name'] as String?,
+    storeName: j['store_name'] as String?,
+    reason: j['reason'] as String?,
+    priceIsCurrent: j['price_is_current'] == true,
+  );
 }
 
 class MovementTotals {
@@ -86,18 +88,23 @@ class MovementTotals {
   final int count;
 
   factory MovementTotals.fromJson(Map<String, dynamic> j) => MovementTotals(
-        saleQty: _int(j['sale_qty']),
-        revenue: _num(j['revenue']),
-        ikramQty: _int(j['ikram_qty']),
-        ikramValue: _num(j['ikram_value']),
-        discardQty: _int(j['discard_qty']),
-        discardValue: _num(j['discard_value']),
-        count: _int(j['count']),
-      );
+    saleQty: _int(j['sale_qty']),
+    revenue: _num(j['revenue']),
+    ikramQty: _int(j['ikram_qty']),
+    ikramValue: _num(j['ikram_value']),
+    discardQty: _int(j['discard_qty']),
+    discardValue: _num(j['discard_value']),
+    count: _int(j['count']),
+  );
 
   static const empty = MovementTotals(
-    saleQty: 0, revenue: 0, ikramQty: 0, ikramValue: 0,
-    discardQty: 0, discardValue: 0, count: 0,
+    saleQty: 0,
+    revenue: 0,
+    ikramQty: 0,
+    ikramValue: 0,
+    discardQty: 0,
+    discardValue: 0,
+    count: 0,
   );
 }
 
@@ -108,11 +115,11 @@ class MovementReport {
   final MovementTotals totals;
 
   factory MovementReport.fromJson(Map<String, dynamic> j) => MovementReport(
-        items: ((j['items'] as List<dynamic>?) ?? [])
-            .map((e) => Movement.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        totals: j['totals'] == null
-            ? MovementTotals.empty
-            : MovementTotals.fromJson(j['totals'] as Map<String, dynamic>),
-      );
+    items: ((j['items'] as List<dynamic>?) ?? [])
+        .map((e) => Movement.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    totals: j['totals'] == null
+        ? MovementTotals.empty
+        : MovementTotals.fromJson(j['totals'] as Map<String, dynamic>),
+  );
 }

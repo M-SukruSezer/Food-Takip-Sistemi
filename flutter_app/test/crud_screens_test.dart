@@ -7,6 +7,7 @@ import 'package:foodtakip/screens/product_types_screen.dart';
 import 'package:foodtakip/screens/stores_screen.dart';
 import 'package:foodtakip/screens/users_screen.dart';
 import 'package:foodtakip/widgets/crud_scaffold.dart';
+import 'package:foodtakip/widgets/dialogs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_api.dart';
@@ -125,8 +126,12 @@ void main() {
 
       await tester.tap(find.text('Yeni Çeşit'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'Deneme');
-      await tester.enterText(find.byType(TextField).at(1), '30');
+      final dialogFields = find.descendant(
+        of: find.byType(FormDialog),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(dialogFields.first, 'Deneme');
+      await tester.enterText(dialogFields.at(1), '30');
       await tester.tap(find.text('Kaydet'));
       await tester.pumpAndSettle();
 

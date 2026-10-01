@@ -1,5 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodtakip/core/api_client.dart';
 import 'package:foodtakip/core/nav.dart';
@@ -58,6 +62,18 @@ List<Map<String, Object?>> _recs(List<int> remainings) => [
 ];
 
 void main() {
+  setUpAll(() async {
+    final textFont = FontLoader('Roboto')
+      ..addFont(
+        File('assets/fonts/NotoSans-Regular.ttf')
+            .readAsBytes()
+            .then((b) => ByteData.sublistView(b)),
+      );
+    await textFont.load();
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    await icons.load();
+  });
   late HttpClientAdapter original;
 
   setUp(() {
@@ -86,21 +102,64 @@ void main() {
       tester,
     ) async {
       await phone(tester);
-      for (final label in ['Ana Sayfa', 'Ürünler', 'Öneri', 'Rapor', 'Menü']) {
+      for (final label in [
+        'Ana Sayfa',
+        'Ürünler',
+        'Öneri/SKT',
+        'Rapor',
+        'Menü',
+      ]) {
         expect(find.text(label), findsWidgets, reason: '$label sekmesi yok');
       }
       // Profil gorseli alt cubuktan kalkti: yerini Menu aldi.
       expect(find.text('Profil'), findsNothing);
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('goldens/operations_navigation.png'),
+      );
       await _teardown(tester);
     });
 
     testWidgets('PDKS ekraninda PDKS kisayollari gorunur', (tester) async {
       await phone(tester, at: '/pdks');
       expect(find.text('Devam'), findsWidgets);
+      expect(find.text('Çizelge'), findsWidgets);
+      expect(find.text('QR Okut'), findsOneWidget);
       expect(find.text('Yönetim'), findsWidgets);
       expect(find.text('Menü'), findsWidgets);
       // Operasyon kisayollari bu ekranda cubukta durmaz.
       expect(find.text('Ana Sayfa'), findsNothing);
+      await _teardown(tester);
+    });
+
+    testWidgets('QR menüsü kartları açar ve kapat düğmesiyle kapanır', (
+      tester,
+    ) async {
+      await phone(tester, at: '/pdks');
+      installFakeApi({
+        'GET /pdks/me': {
+          'is_inside': true,
+          'can': {'check_out': true, 'break_start': true},
+          'shifts': [
+            {'break_duration_minutes': 30},
+          ],
+        },
+      });
+      await tester.tap(find.text('QR Okut'));
+      await tester.pumpAndSettle();
+      expect(find.text('Vardiya Giriş / Çıkış'), findsOneWidget);
+      expect(find.text('Mola Giriş / Çıkış'), findsOneWidget);
+      expect(find.text('AKTİF'), findsOneWidget);
+      expect(find.text('30 dk'), findsOneWidget);
+      await expectLater(
+        find.byType(AppShell),
+        matchesGoldenFile('goldens/qr_action_menu.png'),
+      );
+      expect(find.text('Devam'), findsWidgets);
+      await tester.tap(find.text('Kapat'));
+      await tester.pumpAndSettle();
+      expect(find.text('Vardiya Giriş / Çıkış'), findsNothing);
+      expect(find.text('QR Okut'), findsOneWidget);
       await _teardown(tester);
     });
 
@@ -124,13 +183,19 @@ void main() {
       await _teardown(tester);
     });
 
-    testWidgets('aktif sekmenin hapı ikonu ve etiketi birlikte kapsar', (
+    testWidgets('aktif sekmenin ikonu hap içinde, etiketi altında durur', (
       tester,
     ) async {
       await phone(tester, at: '/batches');
-      final label = find.text('Ürünler');
+      final label = find.descendant(
+        of: find.byKey(bottomBarKey),
+        matching: find.text('Ürünler'),
+      );
       final pill = find
-          .ancestor(of: label, matching: find.byType(Container))
+          .ancestor(
+            of: find.byIcon(Icons.view_in_ar_outlined),
+            matching: find.byType(Container),
+          )
           .evaluate()
           .map((e) => e.widget as Container)
           .firstWhere((c) => (c.decoration as BoxDecoration?)?.color != null);
@@ -139,8 +204,11 @@ void main() {
 
       final pillRect = tester.getRect(find.byWidget(pill));
       final labelRect = tester.getRect(label);
-      expect(pillRect.contains(labelRect.topLeft), isTrue);
-      expect(pillRect.contains(labelRect.bottomRight), isTrue);
+      expect(pillRect.bottom, lessThanOrEqualTo(labelRect.top));
+      expect(
+        tester.getRect(find.byIcon(Icons.view_in_ar_outlined)).center.dx,
+        labelRect.center.dx,
+      );
       await _teardown(tester);
     });
 
@@ -152,7 +220,13 @@ void main() {
       await tester.pumpWidget(_shell());
       await tester.pumpAndSettle();
 
-      for (final label in ['Ana Sayfa', 'Ürünler', 'Öneri', 'Rapor', 'Menü']) {
+      for (final label in [
+        'Ana Sayfa',
+        'Ürünler',
+        'Öneri/SKT',
+        'Rapor',
+        'Menü',
+      ]) {
         final tab = find
             .ancestor(of: find.text(label), matching: find.byType(InkWell))
             .first;
@@ -163,7 +237,7 @@ void main() {
   });
 
   group('Alt cubuktan acilan menu', () {
-    testWidgets('yan cekmece yok; menu alt cubugun ustunde aciliyor', (
+    testWidgets('yan cekmece yok; menu ekranin altindan aciliyor', (
       tester,
     ) async {
       await phone(tester);
@@ -179,11 +253,12 @@ void main() {
       // Yine cekmece degil.
       expect(find.byType(Drawer), findsNothing);
 
-      // Menu alt cubugun UZERINDE duruyor: tabakanin alt kenari cubugun ust
-      // kenarindan yukarida.
+      // Gercek bottom sheet: tabakanin alt kenari ekran ve alt cubukla ayni
+      // hizada, ortada yuzen bir kart degil.
       final sheetRect = tester.getRect(sheet);
       final barRect = tester.getRect(find.byKey(bottomBarKey));
-      expect(sheetRect.bottom, lessThanOrEqualTo(barRect.top));
+      expect(sheetRect.bottom, barRect.bottom);
+      expect(sheetRect.left, 0);
       await _teardown(tester);
     });
 
@@ -240,9 +315,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(bottomMenuSheetKey), findsNothing);
-      // Onaylar alt cubukta olmadigi icin hicbir sekme aktif degil; ekran
-      // adinin ust barda durmasi yeterli.
-      expect(find.text('Operasyon'), findsWidgets);
+      expect(
+        GoRouter.of(tester.element(find.byKey(bottomBarKey)))
+            .routeInformationProvider
+            .value
+            .uri
+            .path,
+        '/approvals',
+      );
       await _teardown(tester);
     });
   });

@@ -558,6 +558,7 @@ class PresenceRow {
     required this.userId,
     required this.fullName,
     required this.role,
+    this.attendanceLogId,
     this.lastType,
     this.lastMethod,
     this.lastAt,
@@ -567,6 +568,7 @@ class PresenceRow {
   });
 
   final int userId;
+  final int? attendanceLogId;
   final String fullName;
   final String role;
   final String? lastType;
@@ -580,6 +582,9 @@ class PresenceRow {
 
   factory PresenceRow.fromJson(Map<String, dynamic> j) => PresenceRow(
     userId: _int(j['user_id']),
+    attendanceLogId: j['attendance_log_id'] == null
+        ? null
+        : _int(j['attendance_log_id']),
     fullName: j['full_name'] as String? ?? '',
     role: j['role'] as String? ?? '',
     lastType: j['last_type'] as String?,

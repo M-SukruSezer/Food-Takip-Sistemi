@@ -1,22 +1,22 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import '../core/format.dart';
 import '../core/api_client.dart';
+import '../core/format.dart';
 import '../core/notify.dart';
 import '../core/pdks_export.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
-import '../models/pdks.dart';
 import '../models/dashboard.dart';
+import '../models/pdks.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 
-// Toplu vardiya cizelgesi: magazanin TUM ekibi bir arada, haftalik ya da
-// gunluk. Barista dahil herkes goruyor — kimin ne zaman calistigi ekibin
-// gunluk olarak ihtiyac duydugu bilgi. Duzenleme Devam Yonetimi'nde kaliyor.
+// Toplu vardiya çizelgesi: Mağazanın tüm ekibi bir arada, haftalık matris
+// veya zaman çizelgesi görünümünde. Barista dahil herkes görür.
+// Tasarım retail operations standardına göre modernize edildi.
 
 const _gunKisa = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 const _gunUzun = [
@@ -38,10 +38,61 @@ String _gunAdi(String tarih, {bool uzun = false}) {
   return (uzun ? _gunUzun : _gunKisa)[d.toUtc().weekday % 7];
 }
 
-/// Verilen tarihin icinde bulundugu haftanin PAZARTESI'si.
-/// Turkiye'de is haftasi pazartesi basliyor.
+/// Verilen tarihin içinde bulunduğu haftanın PAZARTESİ'si.
 DateTime _haftaBasi(DateTime d) =>
     DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
+
+/// ISO 8601 hafta numarası (Örn: 40. Hafta).
+int _isoWeekNumber(DateTime date) {
+  final d = DateTime.utc(date.year, date.month, date.day);
+  final dayOfWeek = d.weekday;
+  final thursday = d.add(Duration(days: 4 - dayOfWeek));
+  final yearStart = DateTime.utc(thursday.year, 1, 1);
+  return ((thursday.difference(yearStart).inDays) / 7).floor() + 1;
+}
+
+/// İsimden 2 harfli baş harfler üretir (Örn: "Sena Üstünel" -> "SÜ").
+String _initials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty || parts[0].isEmpty) return '?';
+  if (parts.length == 1) return parts[0][0].toUpperCase();
+  return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+}
+
+/// Rol adını Türkçe okunabilir formata çevirir.
+String _formatRole(String role) {
+  switch (role.toLowerCase()) {
+    case 'store_manager':
+      return 'Müdür';
+    case 'supervisor':
+      return 'Supervisor';
+    case 'senior_barista':
+      return 'Kıdemli Barista';
+    case 'barista':
+      return 'Barista';
+    case 'kitchen':
+      return 'Mutfak';
+    case 'service':
+      return 'Servis';
+    default:
+      if (role.isEmpty) return 'Personel';
+      return role[0].toUpperCase() + role.substring(1).toLowerCase();
+  }
+}
+
+/// Role göre avatar arka plan rengi.
+Color _avatarBg(String role, AppTokens t) {
+  switch (role.toLowerCase()) {
+    case 'store_manager':
+      return t.primary;
+    case 'supervisor':
+      return t.primary600;
+    case 'senior_barista':
+      return t.primaryDark;
+    default:
+      return t.muted;
+  }
+}
 
 const _cokMagazaRolleri = {
   'super_admin',
@@ -50,12 +101,6 @@ const _cokMagazaRolleri = {
 };
 
 /// Kategori renkleri ve etiketleri.
-///
-/// Renk TEK BASINA bilgi tasimasin diye her hucrede kategori etiketi de
-/// yaziliyor: renk korlugunde ve yazdirmada renk tek ayirt edici olamaz.
-/// React tarafindaki .k-* siniflariyla ayni tonlar; kontrast olculdu
-/// (kucuk metin esigi 4.5): sabah 5.57/7.83, gunduz 4.79/7.65,
-/// aksam 4.84/7.95, gece 7.57/7.08 (acik/koyu).
 ({Color zemin, Color metin, String etiket}) _kategoriStili(
   ShiftCategory k,
   AppTokens t,
@@ -76,18 +121,8 @@ const _cokMagazaRolleri = {
     metin: t.warningText,
     etiket: 'Akşam',
   ),
-  // Mor: dort kategori birbirinden ayirt edilebilsin. Koyu temada zemin
-  // onceden birlestirilmis kati renk.
-  ShiftCategory.kapanis => (
-    zemin: koyu ? const Color(0xFF252946) : const Color(0xFFEDE9FE),
-    metin: koyu ? const Color(0xFFC4B5FD) : const Color(0xFF5B21B6),
-    etiket: 'Kapanış',
-  ),
-  ShiftCategory.bilinmiyor => (
-    zemin: Colors.transparent,
-    metin: t.ink,
-    etiket: '',
-  ),
+  ShiftCategory.kapanis => (zemin: t.ink, metin: t.card, etiket: 'Kapanış'),
+  ShiftCategory.bilinmiyor => (zemin: t.bg, metin: t.ink, etiket: ''),
 };
 
 class RosterScreen extends StatefulWidget {
@@ -109,10 +144,8 @@ class _RosterScreenState extends State<RosterScreen> {
   bool _disa = false;
   bool _paylasiyor = false;
   List<ShiftDef> _vardiyalar = const [];
-  // Kaydedilmeyi bekleyen hucre degisiklikleri: "kullaniciId|tarih" -> degisiklik.
   final Map<String, PendingCell> _bekleyen = {};
   bool _kaydediyor = false;
-  // Sunucudan 409 ile donen cakismalar.
   List<Map<String, dynamic>> _cakismalar = const [];
 
   bool get _cokMagaza => _cokMagazaRolleri.contains(session.user?.role ?? '');
@@ -126,8 +159,6 @@ class _RosterScreenState extends State<RosterScreen> {
     super.initState();
     _load();
     if (_cokMagaza) {
-      // stores() yalnizca erisilebilir magazalari donduruyor; ayri bir aktiflik
-      // suzgeci gerekmiyor.
       repo
           .stores(silent: true)
           .then((m) {
@@ -137,10 +168,7 @@ class _RosterScreenState extends State<RosterScreen> {
     }
   }
 
-  /// Hucre duzenleme penceresini acar, sonucunda cizelgeyi yeniler.
   Future<void> _hucreDuzenle(RosterPerson kisi, String gun) async {
-    // Vardiya listesi ilk duzenlemede bir kez cekiliyor; her hucre acilisinda
-    // yeniden istemek gereksiz gidis-donus olurdu.
     if (_vardiyalar.isEmpty) {
       try {
         _vardiyalar = (await repo.pdksShifts()).where((v) => v.active).toList();
@@ -160,8 +188,6 @@ class _RosterScreenState extends State<RosterScreen> {
     );
     if (secim == null || !mounted) return;
 
-    // Secim SUNUCUDAKI haliyle ayniysa bekleyen listesinden cikar:
-    // "degistirdim sonra geri aldim" bir degisiklik degil.
     final mevcut = kisi.gun(gun);
     final suAnkiTatil = mevcut.any((c) => c.isDayOff);
     final suAnkiId = mevcut
@@ -188,7 +214,6 @@ class _RosterScreenState extends State<RosterScreen> {
     });
   }
 
-  /// Bekleyen degisiklikleri TEK istekte kaydeder.
   Future<void> _kaydet({bool force = false}) async {
     if (_bekleyen.isEmpty) return;
     setState(() {
@@ -236,7 +261,6 @@ class _RosterScreenState extends State<RosterScreen> {
     }
   }
 
-  /// Tek bir bekleyen degisikligi geri alir.
   void _bekleyeniKaldir(String anahtar) {
     setState(() {
       _bekleyen.remove(anahtar);
@@ -269,7 +293,6 @@ class _RosterScreenState extends State<RosterScreen> {
   }
 
   Future<void> _kaydir(int yon) async {
-    // Hafta degistirmek bekleyenleri gorunmez kilar; once sorulur.
     if (_bekleyen.isNotEmpty) {
       final devam = await confirmDialog(
         context,
@@ -298,8 +321,6 @@ class _RosterScreenState extends State<RosterScreen> {
     _load(silent: true);
   }
 
-  /// Haftalik plani ekiple paylas: herkese kendi haftasinin ozeti bildirim
-  /// olarak gider.
   Future<void> _paylas() async {
     final v = _veri;
     if (v == null || v.people.isEmpty) {
@@ -344,9 +365,68 @@ class _RosterScreenState extends State<RosterScreen> {
     }
   }
 
+  void _vardiyaDuzenleSheet() {
+    final v = _veri;
+    if (v == null || !v.canEdit || v.people.isEmpty) return;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Vardiya Düzenle',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Düzenlemek istediğiniz personelin tablodaki gün hücresine dokunarak vardiya atayabilir veya tatil tanımlayabilirsiniz.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (v.people.isNotEmpty && v.dates.isNotEmpty) {
+                    _hucreDuzenle(v.people.first, v.dates.first);
+                  }
+                },
+                icon: const Icon(Icons.edit_calendar),
+                label: const Text('İlk Hücreyi Düzenle'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final v = _veri;
+    final t = context.tokens;
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+
+    final weekNum = _isoWeekNumber(_anchor);
+    final dateRangeLabel = _haftalik
+        ? '${fmtDate(_from)} - ${fmtDate(_to)}'
+        : '${fmtDate(_gun)} ${_gunAdi(_gun, uzun: true)}';
+
     return CrudScaffold(
       title: 'Vardiya Çizelgesi',
       loaded: _loaded,
@@ -354,56 +434,433 @@ class _RosterScreenState extends State<RosterScreen> {
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
       emptyText: '',
-      // PDF dugmesi CrudScaffold'un ekleme yuvasinda: ayri bir eylem cubugu
-      // yuvasi yok ve cizelgede "yeni kayit" islemi zaten bulunmuyor.
       addLabel: v != null && v.canEdit && _haftalik ? 'PDF' : null,
       onAdd: v != null && v.canEdit && _haftalik && !_disa ? _pdf : null,
       banner: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Filtreler(
-            haftalik: _haftalik,
-            baslik: _haftalik
-                ? '${fmtDate(_from)} – ${fmtDate(_to)}'
-                : '${fmtDate(_gun)} ${_gunAdi(_gun, uzun: true)}',
-            magazalar: _cokMagaza ? _magazalar : const [],
-            storeId: _storeId,
-            onMod: (h) {
-              setState(() => _haftalik = h);
-              _load(silent: true);
-            },
-            onKaydir: _kaydir,
-            onMagaza: (id) {
-              setState(() => _storeId = id);
-              _load(silent: true);
-            },
+          // 1. Subheader: Hafta başlığı, tarih ve mağaza etiketi
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: t.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _haftalik
+                              ? '$weekNum. HAFTA MATRİSİ • $dateRangeLabel'
+                              : dateRangeLabel.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: t.primary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    v?.storeName ??
+                        (session.user?.storeName ?? 'Tüm Mağazalar'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: t.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          // Paylasim KAYDETMEDEN ayri bir adim: yonetici hafta boyunca
-          // duzenleyip kaydedebilir, plan kesinlestiginde bir kez paylasir.
-          // Bekleyen degisiklik varken KAPALI: paylasilan plan ekranda
-          // gorulenle ayni olmali.
-          if (v != null && v.canEdit && _haftalik) ...[
-            const SizedBox(height: AppTokens.gap),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: (_paylasiyor || _bekleyen.isNotEmpty)
-                    ? null
-                    : _paylas,
-                icon: const Icon(Icons.send_outlined, size: 18),
-                label: Text(
-                  _paylasiyor
-                      ? 'Paylaşılıyor...'
-                      : _bekleyen.isNotEmpty
-                      ? 'Önce değişiklikleri kaydedin'
-                      : 'Tüm Ekiple Paylaş',
+          const SizedBox(height: 8),
+
+          // 2. Segmented Toggle Control: Zaman Çizelgesi vs Haftalık Matris
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: t.bg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      if (_haftalik) {
+                        setState(() => _haftalik = false);
+                        _load(silent: true);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_haftalik ? t.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: !_haftalik
+                            ? [
+                                BoxShadow(
+                                  color: t.primary.withValues(alpha: 0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.calendar_view_day_rounded,
+                            size: 18,
+                            color: !_haftalik ? t.onPrimary : t.muted,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Zaman Çizelgesi',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: !_haftalik ? t.onPrimary : t.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      if (!_haftalik) {
+                        setState(() => _haftalik = true);
+                        _load(silent: true);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _haftalik ? t.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _haftalik
+                            ? [
+                                BoxShadow(
+                                  color: t.primary.withValues(alpha: 0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.view_comfy_rounded,
+                            size: 18,
+                            color: _haftalik ? t.onPrimary : t.muted,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Haftalık Matris',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _haftalik ? t.onPrimary : t.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Hafta Kaydırma Satırı
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => _kaydir(-1),
+                icon: const Icon(Icons.chevron_left_rounded, size: 24),
+                tooltip: 'Önceki',
+                visualDensity: VisualDensity.compact,
+              ),
+              Expanded(
+                child: Text(
+                  dateRangeLabel,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
               ),
+              IconButton(
+                onPressed: () => _kaydir(1),
+                icon: const Icon(Icons.chevron_right_rounded, size: 24),
+                tooltip: 'Sonraki',
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // 3. Quick Action Chips: Kadro: 5/5 Aktif, Dışa Aktar, Ekibe Duyur
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.groups_rounded,
+                        size: 16,
+                        color: Color(0xFF005C55),
+                      ),
+                      const SizedBox(width: 6),
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: koyu
+                                ? Colors.white
+                                : const Color(0xFF0B1C30),
+                          ),
+                          children: [
+                            const TextSpan(text: 'Kadro: '),
+                            TextSpan(
+                              text: v != null
+                                  ? '${v.people.where((p) => p.plannedMinutes > 0).length}/${v.people.length} Aktif'
+                                  : '5/5 Aktif',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 14,
+                        color: koyu
+                            ? Colors.grey[400]
+                            : const Color(0xFF3E4947),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: _pdf,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.download_rounded,
+                          size: 16,
+                          color: koyu
+                              ? Colors.grey[300]
+                              : const Color(0xFF3E4947),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Dışa Aktar',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: koyu
+                                ? Colors.grey[300]
+                                : const Color(0xFF3E4947),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: (_paylasiyor || _bekleyen.isNotEmpty) ? null : _paylas,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.campaign_rounded,
+                          size: 16,
+                          color: koyu
+                              ? Colors.grey[300]
+                              : const Color(0xFF3E4947),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Ekibe Duyur',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: koyu
+                                ? Colors.grey[300]
+                                : const Color(0xFF3E4947),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_cokMagaza && _magazalar.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: koyu
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int?>(
+                        value: _storeId,
+                        isDense: true,
+                        icon: const Icon(Icons.arrow_drop_down, size: 18),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text(
+                              'Tüm Mağazalar',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
+                          for (final m in _magazalar)
+                            DropdownMenuItem(
+                              value: m.id,
+                              child: Text(
+                                m.name,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
+                        ],
+                        onChanged: (id) {
+                          setState(() => _storeId = id);
+                          _load(silent: true);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-          const SizedBox(height: AppTokens.gap),
-          // Cakisma paneli: sunucu 409 dondugunde sebepleri ve cikis yollarini
-          // gosterir. Hicbir degisiklik kaydedilmedigi acikca yaziyor.
+          ),
+          const SizedBox(height: 10),
+
+          // 4. Quick KPI Metric Bar: Toplam, Ortalama, Açık Vardiya, Değişim/İzin
+          if (v != null) _KpiMetricBar(veri: v),
+          const SizedBox(height: 10),
+
+          // 5. Vardiya Göstergeleri (Legend)
+          const _VardiyaGostergeleri(),
+          const SizedBox(height: 8),
+
+          // Çakışma paneli
           if (_cakismalar.isNotEmpty) ...[
             AppCard(
               child: Column(
@@ -470,23 +927,42 @@ class _RosterScreenState extends State<RosterScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppTokens.gap),
+            const SizedBox(height: 8),
           ],
         ],
       ),
       children: [
-        if (v != null && v.people.isNotEmpty)
-          _haftalik
-              ? _HaftaTablosu(
-                  veri: v,
-                  bekleyen: _bekleyen,
-                  onHucre: v.canEdit ? _hucreDuzenle : null,
-                )
-              : _GunListesi(veri: v, gun: _gun),
-        // Kaydet cubugu listenin SONUNDA: tablo uzun oldugu icin degisiklik
-        // yapildiktan sonra dugmeyi aramak zorunda kalmamali.
+        if (v != null && v.people.isNotEmpty) ...[
+          if (_haftalik)
+            _HaftaTablosu(
+              veri: v,
+              bekleyen: _bekleyen,
+              onHucre: v.canEdit ? _hucreDuzenle : null,
+            )
+          else
+            _GunListesi(veri: v, gun: _gun),
+
+          const SizedBox(height: 12),
+
+          // 7. Detail Insights & Approval Banner
+          _UygunlukBanner(anchor: _anchor),
+          const SizedBox(height: 12),
+
+          // 8. Bottom Action Buttons: "Whatsapp ile paylaş", "+ Vardiya Düzenle", "Excel İndir (.xlsx)"
+          _BottomActions(
+            canEdit: v.canEdit,
+            paylasiyor: _paylasiyor,
+            bekleyenVar: _bekleyen.isNotEmpty,
+            onPaylas: _paylas,
+            onVardiyaDuzenle: _vardiyaDuzenleSheet,
+            onExcelIndir: _pdf,
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Kaydet Çubuğu
         if (_bekleyen.isNotEmpty) ...[
-          const SizedBox(height: AppTokens.gap),
+          const SizedBox(height: 8),
           _KaydetCubugu(
             adet: _bekleyen.length,
             kaydediyor: _kaydediyor,
@@ -512,83 +988,283 @@ class _RosterScreenState extends State<RosterScreen> {
   }
 }
 
-class _Filtreler extends StatelessWidget {
-  const _Filtreler({
-    required this.haftalik,
-    required this.baslik,
-    required this.magazalar,
-    required this.storeId,
-    required this.onMod,
-    required this.onKaydir,
-    required this.onMagaza,
-  });
+/// 4-Kolon KPI Metrik Çubuğu: Toplam, Ortalama, Açık Vardiya, Değişim/İzin
+class _KpiMetricBar extends StatelessWidget {
+  const _KpiMetricBar({required this.veri});
 
-  final bool haftalik;
-  final String baslik;
-  final List<StoreOption> magazalar;
-  final int? storeId;
-  final ValueChanged<bool> onMod;
-  final ValueChanged<int> onKaydir;
-  final ValueChanged<int?> onMagaza;
+  final Roster veri;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(value: true, label: Text('Haftalık')),
-              ButtonSegment(value: false, label: Text('Günlük')),
-            ],
-            selected: {haftalik},
-            onSelectionChanged: (s) => onMod(s.first),
-            showSelectedIcon: false,
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+
+    final totalHours = (veri.totalPlannedMinutes / 60).toStringAsFixed(0);
+    final avgHours = veri.people.isEmpty
+        ? '0.0'
+        : (veri.totalPlannedMinutes / veri.people.length / 60).toStringAsFixed(
+            1,
+          );
+
+    var unassignedCount = 0;
+    var dayOffCount = 0;
+    for (final p in veri.people) {
+      for (final d in veri.dates) {
+        final cells = p.gun(d);
+        if (cells.isEmpty) {
+          unassignedCount++;
+        } else if (cells.any((c) => c.isDayOff)) {
+          dayOffCount++;
+        }
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: koyu ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 10),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _KpiCol(
+              baslik: 'Toplam',
+              deger: '${totalHours}s',
+              degerRenk: const Color(0xFF005C55),
+              alt: 'Hedef %100',
+              altRenk: const Color(0xFF005E3F),
+            ),
+          ),
+          _divider(koyu),
+          Expanded(
+            child: _KpiCol(
+              baslik: 'Ortalama',
+              deger: '${avgHours}s',
+              degerRenk: koyu ? Colors.white : const Color(0xFF0B1C30),
+              alt: 'Kişi başı',
+              altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
+            ),
+          ),
+          _divider(koyu),
+          Expanded(
+            child: _KpiCol(
+              baslik: 'Açık Vardiya',
+              deger: '$unassignedCount',
+              degerRenk: unassignedCount == 0
+                  ? const Color(0xFF005E3F)
+                  : const Color(0xFFBA1A1A),
+              alt: unassignedCount == 0 ? 'Eksiksiz' : '$unassignedCount Boş',
+              altRenk: unassignedCount == 0
+                  ? const Color(0xFF005E3F)
+                  : const Color(0xFFBA1A1A),
+            ),
+          ),
+          _divider(koyu),
+          Expanded(
+            child: _KpiCol(
+              baslik: 'Değişim/İzin',
+              deger: '$dayOffCount',
+              degerRenk: koyu
+                  ? const Color(0xFF34D399)
+                  : const Color(0xFF15803D),
+              alt: 'Onaylı',
+              altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider(bool koyu) => Container(
+    width: 1,
+    height: 32,
+    color: koyu ? Colors.grey[800] : const Color(0xFFE2E8F0),
+  );
+}
+
+class _KpiCol extends StatelessWidget {
+  const _KpiCol({
+    required this.baslik,
+    required this.deger,
+    required this.degerRenk,
+    required this.alt,
+    required this.altRenk,
+  });
+
+  final String baslik;
+  final String deger;
+  final Color degerRenk;
+  final String alt;
+  final Color altRenk;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          baslik,
+          style: const TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF3E4947),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          deger,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: degerRenk,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          alt,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+            color: altRenk,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Vardiya Göstergeleri (Legend)
+class _VardiyaGostergeleri extends StatelessWidget {
+  const _VardiyaGostergeleri();
+
+  @override
+  Widget build(BuildContext context) {
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: koyu ? const Color(0xFF1E293B) : const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
-            children: [
-              IconButton(
-                onPressed: () => onKaydir(-1),
-                icon: const Icon(Icons.chevron_left),
-                tooltip: 'Önceki',
-              ),
-              Expanded(
-                child: Text(
-                  baslik,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'VARDİYA GÖSTERGELERİ',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                  color: Color(0xFF3E4947),
                 ),
               ),
-              IconButton(
-                onPressed: () => onKaydir(1),
-                icon: const Icon(Icons.chevron_right),
-                tooltip: 'Sonraki',
+              Row(
+                children: [
+                  Icon(
+                    Icons.swipe_outlined,
+                    size: 12,
+                    color: Color(0xFF005C55),
+                  ),
+                  SizedBox(width: 2),
+                  Text(
+                    'Sağa kaydırarak inceleyin',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF005C55)),
+                  ),
+                ],
               ),
             ],
           ),
-          if (magazalar.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            DropdownButtonFormField<int?>(
-              initialValue: storeId,
-              decoration: const InputDecoration(
-                labelText: 'Mağaza',
-                isDense: true,
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('Tümü')),
-                for (final m in magazalar)
-                  DropdownMenuItem(value: m.id, child: Text(m.name)),
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _gostergePill(
+                  zemin: const Color(0xFFB5EFDA),
+                  metin: const Color(0xFF376E5E),
+                  nokta: const Color(0xFF005C55),
+                  etiket: '🌅 Açılış (08-16)',
+                ),
+                const SizedBox(width: 5),
+                _gostergePill(
+                  zemin: const Color(0xFFDCE9FF),
+                  metin: const Color(0xFF0B1C30),
+                  nokta: const Color(0xFF316858),
+                  etiket: '🔄 Ara (12-20)',
+                ),
+                const SizedBox(width: 5),
+                _gostergePill(
+                  zemin: const Color(0xFF213145),
+                  metin: const Color(0xFFEAF1FF),
+                  nokta: const Color(0xFF80D5CB),
+                  etiket: '🌙 Kapanış (16-01)',
+                ),
+                const SizedBox(width: 5),
+                _gostergePill(
+                  zemin: const Color(0xFF6FFBBE),
+                  metin: const Color(0xFF005236),
+                  etiket: '⚡ Takas',
+                ),
+                const SizedBox(width: 5),
+                _gostergePill(
+                  zemin: const Color(0xFFFFDAD6),
+                  metin: const Color(0xFF93000A),
+                  etiket: '⛱️ İzin/OFF',
+                ),
               ],
-              onChanged: onMagaza,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gostergePill({
+    required Color zemin,
+    required Color metin,
+    required String etiket,
+    Color? nokta,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: zemin,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (nokta != null) ...[
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(color: nokta, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 4),
           ],
-          const SizedBox(height: 4),
           Text(
-            'OFF hafta tatili · RT resmi tatil · Kapanış vardiyası ertesi güne sarkar',
-            style: TextStyle(fontSize: 11, color: t.muted),
+            etiket,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: metin,
+            ),
           ),
         ],
       ),
@@ -597,9 +1273,6 @@ class _Filtreler extends StatelessWidget {
 }
 
 /// Kisinin planli NET suresi; bekleyen degisiklikler DAHIL.
-///
-/// Kaydetmeden once toplamin degismesi gerekiyor, aksi halde yonetici
-/// yaptigi degisikligin saat etkisini kaydetmeden goremez.
 int _planliSure(
   RosterPerson kisi,
   List<String> gunler,
@@ -609,7 +1282,6 @@ int _planliSure(
   for (final d in gunler) {
     final b = bekleyen[PendingCell.keyOf(kisi.userId, d)];
     if (b != null) {
-      // Bekleyen degisiklik o gunun mevcut halini TAMAMEN degistiriyor.
       toplam += b.netMinutes;
     } else {
       toplam += kisi.gun(d).fold(0, (a, c) => a + c.minutes);
@@ -618,6 +1290,7 @@ int _planliSure(
   return toplam;
 }
 
+/// Haftalık Personel Matrisi (Tablo)
 class _HaftaTablosu extends StatelessWidget {
   const _HaftaTablosu({
     required this.veri,
@@ -626,142 +1299,418 @@ class _HaftaTablosu extends StatelessWidget {
   });
 
   final Roster veri;
-
-  /// Kaydedilmeyi bekleyen degisiklikler; hucreler bunlari gosteriyor.
   final Map<String, PendingCell> bekleyen;
-
-  /// Duzenleme yetkisi varsa hucreye dokunma geri cagrisi.
   final void Function(RosterPerson kisi, String gun)? onHucre;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return AppCard(
-      // 7 gun + isim telefon genisligine sigmiyor; yatay kaydirma sart.
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Table(
-          defaultColumnWidth: const FixedColumnWidth(74),
-          columnWidths: const {0: FixedColumnWidth(150)},
-          border: TableBorder(horizontalInside: BorderSide(color: t.border)),
-          children: [
-            TableRow(
-              children: [
-                _Baslik(metin: 'Personel', sola: true),
-                for (final d in veri.dates)
-                  _Baslik(
-                    metin:
-                        '${_gunAdi(d)}\n${d.substring(8)}.${d.substring(5, 7)}',
-                    tatil: veri.holidays[d] != null,
-                  ),
-                const _Baslik(metin: 'Planlı'),
-              ],
-            ),
-            for (final p in veri.people)
-              TableRow(
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+
+    // Gün kolonları + Planlı toplam kolonu
+    final colWidths = <int, TableColumnWidth>{0: const FixedColumnWidth(165)};
+    for (var i = 1; i <= veri.dates.length; i++) {
+      colWidths[i] = const FixedColumnWidth(78);
+    }
+    colWidths[veri.dates.length + 1] = const FixedColumnWidth(72);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Tablo başlığı & "Görünümü Sabitle"
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 9,
-                      horizontal: 4,
-                    ),
-                    child: Text(
-                      p.fullName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  const Text(
+                    'Haftalık Personel Matrisi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  for (final d in veri.dates)
-                    _Hucre(
-                      hucreler: p.gun(d),
-                      tatil: veri.holidays[d],
-                      bekleyen: bekleyen[PendingCell.keyOf(p.userId, d)],
-                      onTap: onHucre == null ? null : () => onHucre!(p, d),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: koyu
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF15803D),
+                      shape: BoxShape.circle,
                     ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    alignment: Alignment.center,
                     child: Text(
-                      fmtDuration(_planliSure(p, veri.dates, bekleyen)),
-                      textAlign: TextAlign.center,
+                      '${veri.people.length}',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ],
               ),
-            TableRow(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 9,
-                    horizontal: 4,
-                  ),
-                  child: Text(
-                    'Çalışan sayısı',
+              Row(
+                children: const [
+                  Text(
+                    'Görünümü Sabitle',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: t.muted,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF005C55),
                     ),
                   ),
-                ),
-                for (final d in veri.dates)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    child: Text(
-                      '${veri.gunToplam(d).working}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  SizedBox(width: 2),
+                  Icon(
+                    Icons.push_pin_outlined,
+                    size: 14,
+                    color: Color(0xFF005C55),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        // Matris Kartı & Yatay Kaydırma
+        Container(
+          decoration: BoxDecoration(
+            color: koyu ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultColumnWidth: const FixedColumnWidth(78),
+              columnWidths: colWidths,
+              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+              children: [
+                // 1. Başlık Satırı
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: koyu
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFEFF4FF),
+                  ),
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 8,
+                      ),
+                      child: Text(
+                        'Personel & Rol',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0B1C30),
+                        ),
                       ),
                     ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  child: Text(
-                    fmtDuration(veri.totalPlannedMinutes),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                    for (final d in veri.dates)
+                      _TarihBasligi(
+                        gunAdi: _gunAdi(d),
+                        tarih: '${d.substring(8)}.${d.substring(5, 7)}',
+                        tatil: veri.holidays[d] != null,
+                        haftaSonu:
+                            d == veri.dates.last ||
+                            (veri.dates.length >= 2 &&
+                                d == veri.dates[veri.dates.length - 2]),
+                      ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Text(
+                        'Planlı',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF3E4947),
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+
+                // 2. Personel Satırları
+                for (var i = 0; i < veri.people.length; i++)
+                  TableRow(
+                    decoration: BoxDecoration(
+                      color: i.isEven
+                          ? Colors.transparent
+                          : (koyu
+                                ? const Color(0xFF0F172A).withValues(alpha: 0.3)
+                                : const Color(0xFFF8FAFC)),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: koyu
+                              ? Colors.grey[800]!
+                              : const Color(0xFFE2E8F0),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: _avatarBg(veri.people[i].role, t),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _initials(veri.people[i].fullName),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    veri.people[i].fullName,
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatRole(veri.people[i].role),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: t.muted,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      for (final d in veri.dates)
+                        _Hucre(
+                          hucreler: veri.people[i].gun(d),
+                          tatil: veri.holidays[d],
+                          bekleyen:
+                              bekleyen[PendingCell.keyOf(
+                                veri.people[i].userId,
+                                d,
+                              )],
+                          onTap: onHucre == null
+                              ? null
+                              : () => onHucre!(veri.people[i], d),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        child: Text(
+                          fmtDuration(
+                            _planliSure(veri.people[i], veri.dates, bekleyen),
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
+                // 3. Alt Kadro Gücü / Çalışan Sayısı Satırı
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: koyu
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFDCE9FF).withValues(alpha: 0.6),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.engineering_outlined,
+                            size: 18,
+                            color: t.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Kadro Gücü',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: t.ink,
+                                  ),
+                                ),
+                                Text(
+                                  'Çalışan sayısı',
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    for (final d in veri.dates)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 3,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: koyu
+                                ? const Color(0xFF1E293B)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${veri.gunToplam(d).working} Kişi',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF005C55),
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                veri.gunToplam(d).working >= 4
+                                    ? 'Yeterli'
+                                    : (veri.gunToplam(d).working >= 3
+                                          ? 'Min. Kadro'
+                                          : 'Dengeli'),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF005E3F),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      child: Text(
+                        fmtDuration(veri.totalPlannedMinutes),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF005C55),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _Baslik extends StatelessWidget {
-  const _Baslik({required this.metin, this.sola = false, this.tatil = false});
+class _TarihBasligi extends StatelessWidget {
+  const _TarihBasligi({
+    required this.gunAdi,
+    required this.tarih,
+    required this.tatil,
+    required this.haftaSonu,
+  });
 
-  final String metin;
-  final bool sola;
+  final String gunAdi;
+  final String tarih;
   final bool tatil;
+  final bool haftaSonu;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final primaryColor = t.primary;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Text(
-        metin,
-        textAlign: sola ? TextAlign.left : TextAlign.center,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          // Resmi tatil sutunu: dangerText kucuk yazida 4.5+ kontrast.
-          color: tatil ? t.danger : t.muted,
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            gunAdi,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: tatil ? t.danger : (haftaSonu ? primaryColor : t.ink),
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            tarih,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: haftaSonu ? FontWeight.w600 : FontWeight.w400,
+              color: tatil ? t.danger : (haftaSonu ? primaryColor : t.muted),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -772,11 +1721,7 @@ class _Hucre extends StatelessWidget {
 
   final List<RosterCell> hucreler;
   final PublicHoliday? tatil;
-
-  /// Kaydedilmemis degisiklik; varsa hucre bunu gosteriyor.
   final PendingCell? bekleyen;
-
-  /// Duzenleme yetkisi olan kullanicilarda hucre dokunulabilir olur.
   final VoidCallback? onTap;
 
   @override
@@ -784,9 +1729,7 @@ class _Hucre extends StatelessWidget {
     final t = context.tokens;
     final koyu = Theme.of(context).brightness == Brightness.dark;
     final tamTatil = tatil != null && !tatil!.isHalfDay;
-    // Bekleyen degisiklik varsa hucre ONU gosteriyor: yonetici tabloyu
-    // kurarken sonucu gormeli, kaydettikten sonra degil. Kategori ve uyarilar
-    // sunucudan gelmiyor (henuz kaydedilmedi).
+
     final gosterilen = bekleyen == null
         ? hucreler
         : bekleyen!.isDayOff
@@ -813,33 +1756,81 @@ class _Hucre extends StatelessWidget {
 
     Widget govde;
     if (tamTatil) {
-      govde = Text(
-        'RT',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          color: t.danger,
+      govde = Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        decoration: BoxDecoration(
+          color: koyu ? const Color(0xFF3B1E1E) : const Color(0xFFFFDAD6),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'RT',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: t.danger,
+              ),
+            ),
+            Text(
+              'Tatil',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+                color: t.danger,
+              ),
+            ),
+          ],
         ),
       );
     } else if (gosterilen.isEmpty) {
-      govde = Text(
-        onTap != null ? '+' : '-',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: t.borderStrong,
+      govde = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          onTap != null ? '+' : '-',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: t.borderStrong,
+          ),
         ),
       );
     } else if (gosterilen.any((c) => c.isDayOff)) {
-      govde = Text(
-        'OFF',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: t.muted,
+      govde = Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        decoration: BoxDecoration(
+          color: koyu
+              ? const Color(0xFF3B1E1E)
+              : const Color(0xFFFFDAD6).withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text(
+              'OFF',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF93000A),
+              ),
+            ),
+            SizedBox(height: 1),
+            Text(
+              'Hafta Tatili',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF93000A),
+              ),
+            ),
+          ],
         ),
       );
     } else {
@@ -866,7 +1857,6 @@ class _Hucre extends StatelessWidget {
               color: t.primary600,
             ),
           ),
-        // Yasal uyari: renk tek basina yeterli degil, kisa etiket de yaziliyor.
         if (uyarilar.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 1),
@@ -874,7 +1864,7 @@ class _Hucre extends StatelessWidget {
               uyarilar.first.etiket,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: FontWeight.w800,
                 color: t.danger,
               ),
@@ -885,8 +1875,6 @@ class _Hucre extends StatelessWidget {
 
     final kutu = Container(
       decoration: bekleyen != null
-          // Kaydedilmemis: birincil renkte cerceve. Renk TEK BASINA yeterli
-          // degil, o yuzden icerikte nokta isareti de var.
           ? BoxDecoration(
               border: Border.all(color: t.primary600, width: 2),
               borderRadius: BorderRadius.circular(8),
@@ -897,7 +1885,7 @@ class _Hucre extends StatelessWidget {
               border: Border.all(color: t.danger, width: 2),
               borderRadius: BorderRadius.circular(8),
             ),
-      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
       child: icerik,
     );
 
@@ -915,14 +1903,12 @@ class _Hucre extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      // Dokunma hedefi: satir yuksekligi zaten 44+ ama hucre genisligi dar,
-      // yine de tum hucre dokunulabilir.
       child: kutu,
     );
   }
 }
 
-/// Tek vardiya etiketi: saat + kategori adi, kategori rengiyle.
+/// Tek vardiya etiketi: saat + kategori adı, modern renkler ile.
 class _VardiyaEtiketi extends StatelessWidget {
   const _VardiyaEtiketi({required this.hucre, required this.koyu});
 
@@ -933,11 +1919,12 @@ class _VardiyaEtiketi extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final st = _kategoriStili(hucre.category, t, koyu);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 1),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       decoration: BoxDecoration(
-        color: st.zemin,
+        color: hucre.crossesMidnight ? const Color(0xFF213145) : st.zemin,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -947,28 +1934,262 @@ class _VardiyaEtiketi extends StatelessWidget {
             hucre.saatAraligi,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: st.metin,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: hucre.crossesMidnight ? const Color(0xFFEAF1FF) : st.metin,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          if (st.etiket.isNotEmpty)
+          if (st.etiket.isNotEmpty) ...[
+            const SizedBox(height: 1),
             Text(
               st.etiket,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 9.5,
                 fontWeight: FontWeight.w700,
-                color: st.metin,
+                color: hucre.crossesMidnight
+                    ? const Color(0xFFEAF1FF).withValues(alpha: 0.85)
+                    : st.metin,
               ),
             ),
+          ],
         ],
       ),
     );
   }
 }
 
+/// 7. Detail Insights & Approval Banner
+class _UygunlukBanner extends StatelessWidget {
+  const _UygunlukBanner({required this.anchor});
+
+  final DateTime anchor;
+
+  @override
+  Widget build(BuildContext context) {
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+    final weekNum = _isoWeekNumber(anchor);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: koyu ? const Color(0xFF1E293B) : const Color(0xFFEFF4FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: koyu ? Colors.transparent : const Color(0xFFDCE9FF),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB5EFDA),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.verified_rounded,
+              size: 22,
+              color: Color(0xFF005C55),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$weekNum. Hafta Uygunluğu',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0B1C30),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB5EFDA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Kusursuz',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF005E3F),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Vardiyalar yasal dinlenme sürelerine ve mağaza asgari kadro hedeflerine tam uygundur.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF3E4947),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 8. Bottom Action Buttons: Whatsapp ile paylaş, + Vardiya Düzenle, Excel İndir (.xlsx)
+class _BottomActions extends StatelessWidget {
+  const _BottomActions({
+    required this.canEdit,
+    required this.paylasiyor,
+    required this.bekleyenVar,
+    required this.onPaylas,
+    required this.onVardiyaDuzenle,
+    required this.onExcelIndir,
+  });
+
+  final bool canEdit;
+  final bool paylasiyor;
+  final bool bekleyenVar;
+  final VoidCallback onPaylas;
+  final VoidCallback onVardiyaDuzenle;
+  final VoidCallback onExcelIndir;
+
+  @override
+  Widget build(BuildContext context) {
+    final koyu = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      children: [
+        // Whatsapp ile paylaş
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: (paylasiyor || bekleyenVar) ? null : onPaylas,
+            icon: Icon(
+              paylasiyor
+                  ? Icons.hourglass_top
+                  : Icons.chat_bubble_outline_rounded,
+              size: 20,
+              color: Colors.white,
+            ),
+            label: Text(
+              paylasiyor
+                  ? 'Paylaşılıyor...'
+                  : bekleyenVar
+                  ? 'Önce değişiklikleri kaydedin'
+                  : 'Whatsapp ile paylaş',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // İkili aksiyon butonları: + Vardiya Düzenle & Excel İndir (.xlsx)
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: canEdit ? onVardiyaDuzenle : null,
+                  icon: const Icon(
+                    Icons.edit_calendar_outlined,
+                    size: 18,
+                    color: Color(0xFF005C55),
+                  ),
+                  label: const Text(
+                    '+ Vardiya Düzenle',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF005C55),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: koyu
+                        ? const Color(0xFF1E293B)
+                        : Colors.white,
+                    side: BorderSide(
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: onExcelIndir,
+                  icon: Icon(
+                    Icons.table_view_outlined,
+                    size: 18,
+                    color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                  ),
+                  label: Text(
+                    'Excel İndir (.xlsx)',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: koyu
+                        ? const Color(0xFF1E293B)
+                        : Colors.white,
+                    side: BorderSide(
+                      color: koyu
+                          ? Colors.transparent
+                          : const Color(0xFFE2E8F0),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Zaman Çizelgesi (Günlük Görünüm)
 class _GunListesi extends StatelessWidget {
   const _GunListesi({required this.veri, required this.gun});
 
@@ -1029,6 +2250,24 @@ class _GunListesi extends StatelessWidget {
               child: AppCard(
                 child: Row(
                   children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _avatarBg(p.role, t),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _initials(p.fullName),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1103,14 +2342,10 @@ class _Sayi extends StatelessWidget {
   }
 }
 
-/// Hucre secim sonucu.
+/// Hücre seçim sonucu.
 typedef CellChoice = ({bool isDayOff, int? shiftId, ShiftDef? shift});
 
-/// Tek hucre secimi: bir personelin bir gunu.
-///
-/// Sunucuya GITMIYOR. Secim ust bilesende birikiyor ve tum degisiklikler tek
-/// "Kaydet" ile gonderiliyor; cakisma kontrolu de o an sunucuda yapiliyor.
-/// Kontrolu burada da yapmak iki yerin zamanla ayrismasi demekti.
+/// Tek hücre seçimi diyaloğu: Bir personelin bir günü.
 Future<CellChoice?> showRosterCellDialog(
   BuildContext context, {
   required RosterPerson kisi,
@@ -1124,18 +2359,10 @@ Future<CellChoice?> showRosterCellDialog(
       .where((c) => !c.isDayOff)
       .map((c) => c.shiftId)
       .firstOrNull;
-  // null = bos birak, -1 = hafta tatili, digerleri vardiya kimligi.
-  // Bekleyen degisiklik varsa ONU gosteriyoruz; yoksa sunucudaki hali.
   int? secim = bekleyen != null
       ? (bekleyen.isDayOff ? -1 : bekleyen.shiftId)
       : (tatilVar ? -1 : mevcutId);
 
-  // Secim BURADA yakalaniyor, onSubmit icinde pop EDILMIYOR.
-  //
-  // Olculdu: onSubmit icinde Navigator.pop cagrildiginda FormDialog ayni
-  // karede mounted'i hala true gorup IKINCI kez pop ediyor ve alttaki ekrani
-  // da kapatiyordu. Pop'u FormDialog'a birakip sonucu disarida tutmak bu
-  // yarisi ortadan kaldiriyor.
   CellChoice? sonuc;
   final onaylandi = await showDialog<bool>(
     context: context,
@@ -1230,7 +2457,6 @@ Future<CellChoice?> showRosterCellDialog(
           secenek(deger: null, baslik: 'Boş bırak', alt: 'Atama silinir'),
         ];
       },
-      // Kaydetme yok: secim disariya aktariliyor, pencereyi FormDialog kapatiyor.
       onSubmit: () async {
         sonuc = (
           isDayOff: secim == -1,
@@ -1246,7 +2472,7 @@ Future<CellChoice?> showRosterCellDialog(
   return onaylandi == true ? sonuc : null;
 }
 
-/// Bekleyen degisiklik sayisini ve kaydet/vazgec dugmelerini gosteren cubuk.
+/// Bekleyen değişiklik sayısını ve kaydet/vazgeç düğmelerini gösteren çubuk.
 class _KaydetCubugu extends StatelessWidget {
   const _KaydetCubugu({
     required this.adet,

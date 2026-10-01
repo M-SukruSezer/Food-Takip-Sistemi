@@ -85,6 +85,7 @@ flutter:
 
   assets:
     - assets/login-art.png
+    - assets/colombia_cafe.png
     # PDF ciktilarinda Turkce karakterler. Dart pdf paketinin gomulu
     # Helvetica'si WinAnsiEncoding kullaniyor ve s, g, i, I, S, G
     # karakterlerini ICERMIYOR: olculdu, "IZMIT DOLPHIN COLOMBIA" metni

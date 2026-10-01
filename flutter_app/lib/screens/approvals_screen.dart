@@ -90,9 +90,9 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     if (ok != true) return;
     try {
       await repo.approveTransfer(item);
-    } catch (_) {
-      // Bildirim API katmanindan gelir; liste yine yenilenir cunku sunucu
-      // istegi "artik cozulmede degil" diyerek iptal etmis olabilir.
+    } catch (err) {
+      if (mounted) toastError(errorMessage(err));
+      return;
     }
     await _load(silent: true);
   }

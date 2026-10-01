@@ -33,30 +33,34 @@ class DashboardCounts {
   int get totalStock => frozenQty + thawingQty + cabinetQty;
 
   factory DashboardCounts.fromJson(Map<String, dynamic> j) => DashboardCounts(
-        frozen: _int(j['frozen']),
-        frozenQty: _int(j['frozen_qty']),
-        thawing: _int(j['thawing']),
-        thawingQty: _int(j['thawing_qty']),
-        cabinet: _int(j['food_cabinet']),
-        cabinetQty: _int(j['food_cabinet_qty']),
-        expiringQty: _int(j['expiring_qty']),
-        expiredQty: _int(j['expired_qty']),
-        expiringCount: _int(j['expiring_count']),
-      );
+    frozen: _int(j['frozen']),
+    frozenQty: _int(j['frozen_qty']),
+    thawing: _int(j['thawing']),
+    thawingQty: _int(j['thawing_qty']),
+    cabinet: _int(j['food_cabinet']),
+    cabinetQty: _int(j['food_cabinet_qty']),
+    expiringQty: _int(j['expiring_qty']),
+    expiredQty: _int(j['expired_qty']),
+    expiringCount: _int(j['expiring_count']),
+  );
 }
 
 class SoldToday {
-  const SoldToday({required this.count, required this.qty, required this.revenue});
+  const SoldToday({
+    required this.count,
+    required this.qty,
+    required this.revenue,
+  });
 
   final int count;
   final int qty;
   final num revenue;
 
   factory SoldToday.fromJson(Map<String, dynamic> j) => SoldToday(
-        count: _int(j['count']),
-        qty: _int(j['qty']),
-        revenue: _num(j['revenue']),
-      );
+    count: _int(j['count']),
+    qty: _int(j['qty']),
+    revenue: _num(j['revenue']),
+  );
 }
 
 class DashboardData {
@@ -66,9 +70,9 @@ class DashboardData {
   final SoldToday soldToday;
 
   factory DashboardData.fromJson(Map<String, dynamic> j) => DashboardData(
-        counts: DashboardCounts.fromJson(j['counts'] as Map<String, dynamic>),
-        soldToday: SoldToday.fromJson(j['soldToday'] as Map<String, dynamic>),
-      );
+    counts: DashboardCounts.fromJson(j['counts'] as Map<String, dynamic>),
+    soldToday: SoldToday.fromJson(j['soldToday'] as Map<String, dynamic>),
+  );
 }
 
 class StoreSummaryRow {
@@ -97,17 +101,17 @@ class StoreSummaryRow {
   final int productCount;
 
   factory StoreSummaryRow.fromJson(Map<String, dynamic> j) => StoreSummaryRow(
-        id: _int(j['id']),
-        name: j['name'] as String? ?? '',
-        frozenQty: _int(j['frozen_qty']),
-        thawingQty: _int(j['thawing_qty']),
-        cabinetQty: _int(j['cabinet_qty']),
-        discardedQty: _int(j['discarded_qty']),
-        soldQty: _int(j['sold_qty']),
-        soldCount: _int(j['sold_count']),
-        revenue: _num(j['revenue']),
-        productCount: _int(j['product_count']),
-      );
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    frozenQty: _int(j['frozen_qty']),
+    thawingQty: _int(j['thawing_qty']),
+    cabinetQty: _int(j['cabinet_qty']),
+    discardedQty: _int(j['discarded_qty']),
+    soldQty: _int(j['sold_qty']),
+    soldCount: _int(j['sold_count']),
+    revenue: _num(j['revenue']),
+    productCount: _int(j['product_count']),
+  );
 }
 
 /// /reports/summary iki bicimde doner: coklu magaza ya da tek magaza.
@@ -155,17 +159,21 @@ class ReportSummary {
 }
 
 class SalesPoint {
-  const SalesPoint({required this.date, required this.qty, required this.revenue});
+  const SalesPoint({
+    required this.date,
+    required this.qty,
+    required this.revenue,
+  });
 
   final String date;
   final int qty;
   final num revenue;
 
   factory SalesPoint.fromJson(Map<String, dynamic> j) => SalesPoint(
-        date: j['date'] as String? ?? '',
-        qty: _int(j['qty']),
-        revenue: _num(j['revenue']),
-      );
+    date: j['date'] as String? ?? '',
+    qty: _int(j['qty']),
+    revenue: _num(j['revenue']),
+  );
 }
 
 class StatusSlice {
@@ -175,13 +183,18 @@ class StatusSlice {
   final int quantity;
 
   factory StatusSlice.fromJson(Map<String, dynamic> j) => StatusSlice(
-        status: j['status'] as String? ?? '',
-        quantity: _int(j['quantity']),
-      );
+    status: j['status'] as String? ?? '',
+    quantity: _int(j['quantity']),
+  );
 }
 
 class ProductRank {
-  const ProductRank({required this.id, required this.name, required this.qty, this.revenue = 0});
+  const ProductRank({
+    required this.id,
+    required this.name,
+    required this.qty,
+    this.revenue = 0,
+  });
 
   final int id;
   final String name;
@@ -189,11 +202,11 @@ class ProductRank {
   final num revenue;
 
   factory ProductRank.fromJson(Map<String, dynamic> j) => ProductRank(
-        id: _int(j['id']),
-        name: j['name'] as String? ?? '',
-        qty: _int(j['qty']),
-        revenue: _num(j['revenue']),
-      );
+    id: _int(j['id']),
+    name: j['name'] as String? ?? '',
+    qty: _int(j['qty']),
+    revenue: _num(j['revenue']),
+  );
 }
 
 /// Bir donemin satis ve zayi siralamalari. Sunucu tam listeyi doner;
@@ -211,7 +224,8 @@ class PeriodPerformance {
   int get wastedTotal => wasted.fold<int>(0, (a, r) => a + r.qty);
   int get kinds => sold.length;
 
-  factory PeriodPerformance.fromJson(Map<String, dynamic> j) => PeriodPerformance(
+  factory PeriodPerformance.fromJson(Map<String, dynamic> j) =>
+      PeriodPerformance(
         sold: (j['sold'] as List<dynamic>? ?? [])
             .map((e) => ProductRank.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -227,7 +241,8 @@ class ProductPerformance {
   final PeriodPerformance week;
   final PeriodPerformance month;
 
-  factory ProductPerformance.fromJson(Map<String, dynamic> j) => ProductPerformance(
+  factory ProductPerformance.fromJson(Map<String, dynamic> j) =>
+      ProductPerformance(
         week: PeriodPerformance.fromJson(j['week'] as Map<String, dynamic>),
         month: PeriodPerformance.fromJson(j['month'] as Map<String, dynamic>),
       );

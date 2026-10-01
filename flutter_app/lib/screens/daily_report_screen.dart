@@ -123,6 +123,245 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
     }
   }
 
+  Future<void> _showExportSheet() async {
+    var pdf = false;
+    var audit = true;
+    var finance = true;
+    var personnel = true;
+    var signature = false;
+    final run = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final t = ctx.tokens;
+          return SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  4,
+                  20,
+                  20 + MediaQuery.viewInsetsOf(ctx).bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: t.primarySoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.drive_folder_upload_outlined,
+                            color: t.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Raporu Dışa Aktar',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                'Seçilen tarih ve filtre kriterlerine uygun resmî rapor dosyasını oluşturun.',
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB7F3DF),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Text(
+                            'CANLI',
+                            style: TextStyle(
+                              color: Color(0xFF047857),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          tooltip: 'Kapat',
+                          onPressed: () => Navigator.pop(ctx, false),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '1. Dosya Formatı Seçimi',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        Text(
+                          'Tek seçim zorunludur',
+                          style: TextStyle(
+                            color: Color(0xFF0F766E),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ExportChoice(
+                            selected: !pdf,
+                            icon: Icons.table_view_outlined,
+                            title: 'Excel Tablosu',
+                            subtitle: '.xlsx · Formüllü ham veri',
+                            onTap: () => setLocal(() => pdf = false),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ExportChoice(
+                            selected: pdf,
+                            icon: Icons.picture_as_pdf_outlined,
+                            title: 'Resmî PDF',
+                            subtitle: '.pdf · A4 döküm',
+                            onTap: () => setLocal(() => pdf = true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: context.tokens.bg,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '2. Rapor Kapsamı & Şube',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 8),
+                          _ExportScopeRow(
+                            icon: Icons.storefront_outlined,
+                            label: 'Aktif Lokasyon',
+                            value: session.user?.storeName ?? 'Tüm Şubeler',
+                          ),
+                          const SizedBox(height: 9),
+                          _ExportScopeRow(
+                            icon: Icons.calendar_month_outlined,
+                            label: 'Tarih Aralığı & Kayıt',
+                            value: _page.items.isEmpty
+                                ? 'Kayıt yok'
+                                : '${fmtDate(_page.from)} — ${fmtDate(_page.to)} (${_page.items.length} Kayıt)',
+                          ),
+                          const SizedBox(height: 9),
+                          const _ExportScopeRow(
+                            icon: Icons.account_tree_outlined,
+                            label: 'Döküm Modülü',
+                            value: 'Günlük Rapor & Denetim Dökümü',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      '3. Dahil Edilecek Veri Katmanları',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    _ExportLayer(
+                      icon: Icons.verified_user_outlined,
+                      title: 'İşlem detayları ve kullanıcı IP logları',
+                      subtitle: 'KVKK denetim uyumluluk kayıtları',
+                      value: audit,
+                      onChanged: (v) => setLocal(() => audit = v ?? true),
+                    ),
+                    const SizedBox(height: 8),
+                    _ExportLayer(
+                      icon: Icons.payments_outlined,
+                      title: 'Ciro & finansal tutar sütunları',
+                      subtitle: 'Kasa mutabakatı, zayi ve personel ikramları',
+                      value: finance,
+                      onChanged: (v) => setLocal(() => finance = v ?? true),
+                    ),
+                    const SizedBox(height: 8),
+                    _ExportLayer(
+                      icon: Icons.badge_outlined,
+                      title: 'Personel vardiya & mola dökümü',
+                      subtitle: 'Personel çalışma ve eşleşme süreleri',
+                      value: personnel,
+                      onChanged: (v) => setLocal(() => personnel = v ?? true),
+                    ),
+                    const SizedBox(height: 8),
+                    _ExportLayer(
+                      icon: Icons.approval_outlined,
+                      title: 'Yönetici imza & resmî kaşe alanı',
+                      subtitle: 'A4 altbilgi onay bloğu ekler',
+                      value: signature,
+                      onChanged: (v) => setLocal(() => signature = v ?? false),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.tokens.bg,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _ExportStat(label: 'DOSYA BOYUTU', value: '~420 KB'),
+                          _ExportStat(
+                            label: 'SATIR SAYISI',
+                            value: '${_page.items.length} Satır',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      icon: const Icon(Icons.download_done_rounded),
+                      label: Text(
+                        pdf ? 'PDF Raporunu Oluştur' : 'Excel Raporunu Oluştur',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (run == true) await _export(pdf);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -167,27 +406,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                   style: TextStyle(fontSize: 13, color: t.muted),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _export(false),
-                        icon: const Icon(Icons.table_view_outlined, size: 18),
-                        label: const Text('Excel'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _export(true),
-                        icon: const Icon(
-                          Icons.picture_as_pdf_outlined,
-                          size: 18,
-                        ),
-                        label: const Text('PDF'),
-                      ),
-                    ),
-                  ],
+                FilledButton.icon(
+                  onPressed: _showExportSheet,
+                  icon: const Icon(Icons.drive_folder_upload_outlined),
+                  label: const Text('Raporu Dışa Aktar'),
                 ),
               ],
             ),
@@ -278,6 +500,181 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _ExportScopeRow extends StatelessWidget {
+  const _ExportScopeRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: t.card,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 19, color: t.primary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: t.muted)),
+              Text(
+                value,
+                style: TextStyle(fontWeight: FontWeight.w800, color: t.ink),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExportLayer extends StatelessWidget {
+  const _ExportLayer({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Material(
+      color: t.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => onChanged(!value),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: t.border),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: context.tokens.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: t.primary, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: t.ink,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Checkbox(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExportStat extends StatelessWidget {
+  const _ExportStat({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: context.tokens.muted,
+        ),
+      ),
+      const SizedBox(height: 3),
+      Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+    ],
+  );
+}
+
+class _ExportChoice extends StatelessWidget {
+  const _ExportChoice({
+    required this.selected,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final bool selected;
+  final IconData icon;
+  final String title, subtitle;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected ? t.primarySoft : t.bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: selected ? t.primary : Colors.transparent),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: selected ? t.primary : t.danger),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 3),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: t.muted)),
+          ],
+        ),
+      ),
     );
   }
 }

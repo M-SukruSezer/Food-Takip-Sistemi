@@ -58,6 +58,7 @@ class LogsScreen extends StatefulWidget {
 class _LogsScreenState extends State<LogsScreen> {
   List<ActivityLog> _items = const [];
   String? _filter;
+  String _search = '';
   String? _error;
   bool _loaded = false;
 
@@ -91,9 +92,27 @@ class _LogsScreenState extends State<LogsScreen> {
     final isSuper = session.user?.isSuperAdmin ?? false;
     // Filtre secenekleri gelen kayitlardan turetilir; bos liste olmaz.
     final actions = _items.map((l) => l.action).toSet().toList()..sort();
-    final shown = _filter == null
+    final filtered = _filter == null
         ? _items
         : _items.where((l) => l.action == _filter).toList();
+    final query = normalizeSearch(_search.trim());
+    final shown = query.isEmpty
+        ? filtered
+        : filtered
+              .where(
+                (log) => normalizeSearch(
+                  '${log.action} ${log.details ?? ''} ${log.username ?? ''} ${log.storeName ?? ''}',
+                ).contains(query),
+              )
+              .toList();
+    final now = DateTime.now();
+    final today = _items.where((log) {
+      final at = DateTime.tryParse(log.createdAt)?.toLocal();
+      return at != null &&
+          at.year == now.year &&
+          at.month == now.month &&
+          at.day == now.day;
+    }).length;
 
     return CrudScaffold(
       title: 'Hareket Kayıtları',
@@ -106,23 +125,67 @@ class _LogsScreenState extends State<LogsScreen> {
           : 'Bu işlem türünde kayıt yok.',
       banner: actions.isEmpty
           ? null
-          : AppCard(
-              padding: const EdgeInsets.all(12),
-              child: DropdownButtonFormField<String?>(
-                initialValue: _filter,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'İşlem Türü'),
-                items: [
-                  DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Tüm İşlemler (${_items.length})'),
+          : Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _AuditStat(
+                        label: 'TOPLAM',
+                        value: '${_items.length}',
+                        note: 'Sistem Logu',
+                        icon: Icons.storage_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _AuditStat(
+                        label: 'BUGÜN',
+                        value: '$today İşlem',
+                        note: session.user?.storeName ?? 'Merkez Şube',
+                        icon: Icons.today_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: _AuditStat(
+                        label: 'EŞİTLEME',
+                        value: 'Canlı',
+                        note: 'Anlık Senkron',
+                        icon: Icons.circle,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                AppCard(
+                  padding: const EdgeInsets.all(10),
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _filter,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'İŞLEM TÜRÜ'),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Tüm İşlemler (${_items.length})'),
+                      ),
+                      ...actions.map(
+                        (a) =>
+                            DropdownMenuItem<String?>(value: a, child: Text(a)),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _filter = v),
                   ),
-                  ...actions.map(
-                    (a) => DropdownMenuItem<String?>(value: a, child: Text(a)),
+                ),
+                const SizedBox(height: 9),
+                TextField(
+                  onChanged: (value) => setState(() => _search = value),
+                  decoration: const InputDecoration(
+                    hintText: 'Kayıt veya personel ara…',
+                    prefixIcon: Icon(Icons.search_rounded),
                   ),
-                ],
-                onChanged: (v) => setState(() => _filter = v),
-              ),
+                ),
+              ],
             ),
       children: shown
           .map(
@@ -131,11 +194,16 @@ class _LogsScreenState extends State<LogsScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: t.primarySoft,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Icon(
                       logIcon(log.action),
-                      size: 18,
+                      size: 17,
                       color: t.primary,
                     ),
                   ),
@@ -175,6 +243,64 @@ class _LogsScreenState extends State<LogsScreen> {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _AuditStat extends StatelessWidget {
+  const _AuditStat({
+    required this.label,
+    required this.value,
+    required this.note,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final String note;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return AppCard(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: t.muted,
+                ),
+              ),
+              Icon(icon, size: 14, color: t.primary),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: t.ink,
+            ),
+          ),
+          Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 9.5, color: t.muted),
+          ),
+        ],
+      ),
     );
   }
 }

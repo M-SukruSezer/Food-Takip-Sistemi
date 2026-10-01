@@ -1,10 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/format.dart';
-import '../core/notify.dart';
-import '../core/device_integrity.dart';
-import '../core/pdks_location.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/pdks.dart';
@@ -12,7 +11,7 @@ import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import 'pdks_dialogs.dart';
-import 'qr_scan_screen.dart';
+import '../widgets/pdks_qr_action.dart';
 
 /// Personel devam takibi ekrani.
 ///
@@ -39,12 +38,20 @@ class _PdksScreenState extends State<PdksScreen> {
   DateTime _month = DateTime.now();
   String? _error;
   bool _loaded = false;
-  bool _busy = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    pdksChanges.addListener(_refreshAttendance);
+  }
+
+  void _refreshAttendance() => _load(silent: true);
+
+  @override
+  void dispose() {
+    pdksChanges.removeListener(_refreshAttendance);
+    super.dispose();
   }
 
   String get _monthKey =>
@@ -103,69 +110,6 @@ class _PdksScreenState extends State<PdksScreen> {
         .onError((Object _, StackTrace _) {});
   }
 
-  /// QR ile islem (dort adimdan biri).
-  Future<void> _qrPunch(PdksPunch adim) async {
-    final basliklar = {
-      PdksPunch.checkIn: 'QR ile Giriş',
-      PdksPunch.checkOut: 'QR ile Çıkış',
-      PdksPunch.breakStart: 'QR ile Mola Başlangıcı',
-      PdksPunch.breakEnd: 'QR ile Mola Bitişi',
-    };
-    final token = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => QrScanScreen(title: basliklar[adim] ?? 'QR Okut'),
-      ),
-    );
-    if (token == null || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      // Konum ZORUNLU: QR "kodu okuttu" der, konum "IS YERINDE okuttu" der.
-      // Cihaz kontrolu konumla PARALEL yurutulur; seri yapilsa bekleme iki
-      // islemin toplami olurdu.
-      final sonuclar = await Future.wait([
-        currentPosition(),
-        readDeviceIntegrity(),
-      ]);
-      final pos = sonuclar[0] as PdksPosition;
-      final integrity = sonuclar[1] as DeviceIntegrity;
-      await repo.pdksPunchQr(
-        adim: adim,
-        token: token,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
-        accuracy: pos.accuracy,
-        // Android'in bu OLCUM icin verdigi sahte konum karari. Sunucu
-        // true ise kaydi REDDEDIYOR.
-        isMocked: pos.isMocked,
-        integrity: integrity,
-      );
-      toastSaved(adim.mesaj);
-      _warnIntegrity(integrity);
-      await _load(silent: true);
-    } on LocationDenied catch (e) {
-      toast(e.message, kind: ToastKind.error);
-    } catch (e) {
-      toast(errorMessage(e), kind: ToastKind.error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  /// Engellemeyen uyarilari personele bildirir.
-  ///
-  /// Islem KABUL EDILDI; bu yalnizca "kaydin yaninda su not durdu" bilgisi.
-  /// Sessiz kalmak dogru olmazdi: yonetici ekraninda bayrak gorunurken
-  /// personelin sebebini bilmemesi sonradan tartisma uretir.
-  void _warnIntegrity(DeviceIntegrity integrity) {
-    final w = integrity.warnings;
-    if (w.isEmpty || !mounted) return;
-    toast(
-      'Kayıt alındı, not düşüldü: ${w.join(', ')}',
-      kind: ToastKind.warning,
-    );
-  }
-
   Future<void> _newRequest() async {
     final ok = await showRequestDialog(context, balance: _balance);
     if (ok == true) await _load(silent: true);
@@ -194,6 +138,7 @@ class _PdksScreenState extends State<PdksScreen> {
 
     return CrudScaffold(
       title: 'Devam Takibi',
+      showHeader: false,
       loaded: _loaded,
       error: _error,
       onRetry: () => _load(),
@@ -222,7 +167,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ),
             const SizedBox(height: AppTokens.gap),
           ],
-          _PunchCard(status: _status, busy: _busy, onQr: _qrPunch),
+          _PunchCard(status: _status),
           const SizedBox(height: AppTokens.gap),
           _TodayCard(status: _status),
           if (_balance != null) ...[
@@ -251,7 +196,7 @@ class _PdksScreenState extends State<PdksScreen> {
                   FilledButton.icon(
                     onPressed: _newRequest,
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Yeni'),
+                    label: const Text('Yeni İzin'),
                   ),
                 ],
               ),
@@ -321,6 +266,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ],
           ),
         ),
+        _ShiftSwapCard(onSwap: _newRequest),
       ],
     );
   }
@@ -350,148 +296,143 @@ String fmtMonth(String key) {
 }
 
 class _PunchCard extends StatelessWidget {
-  const _PunchCard({
-    required this.status,
-    required this.busy,
-    required this.onQr,
-  });
+  const _PunchCard({required this.status});
 
   final PdksStatus status;
-  final bool busy;
-  final Future<void> Function(PdksPunch adim) onQr;
+
+  String _longDate(String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+    const months = [
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
+    ];
+    const days = [
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}, ${days[date.weekday - 1]}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final inside = status.isInside;
-    final molada = status.onBreak;
     final store = status.store;
-    final qr = status.canUseQr && !busy;
-    // Sonraki gecerli adim SUNUCUDAN geliyor; kurali burada tekrar yazmak
-    // iki tarafin ayrismasi demekti.
-    final anaAdim = status.canCheckOut ? PdksPunch.checkOut : PdksPunch.checkIn;
-    final anaAcik = qr && (status.canCheckIn || status.canCheckOut);
+    final inside = status.isInside;
+    final onBreak = status.onBreak;
 
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${status.workDate}${store != null ? ' · ${store.name}' : ''}',
-                  style: TextStyle(fontSize: 12, color: t.muted),
+          Icon(Icons.location_on_outlined, color: t.primary, size: 23),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  store != null && store.name.isNotEmpty
+                      ? store.name
+                      : 'Mağaza Belirlenmedi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: t.ink,
+                  ),
                 ),
-              ),
-              Pill(
-                text: molada
-                    ? 'Moladasınız'
-                    : inside
-                    ? 'İş yerindesiniz'
-                    : 'İş yerinde değilsiniz',
-                color: molada
-                    ? t.warning
-                    : inside
-                    ? t.success
-                    : t.muted,
-              ),
-            ],
-          ),
-          if (inside && status.openSince != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              '${fmtDateTime(status.openSince)} itibarıyla giriş yapıldı',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.success,
-              ),
-            ),
-          ],
-          if (molada && status.breakSince != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${fmtDateTime(status.breakSince)} itibarıyla molada',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: t.warningText,
-              ),
-            ),
-          ],
-          if (status.breakMinutesToday > 0) ...[
-            const SizedBox(height: 2),
-            Text(
-              'Bugün toplam mola: ${status.breakMinutesToday} dk',
-              style: TextStyle(fontSize: 12, color: t.muted),
-            ),
-          ],
-          const SizedBox(height: 14),
-          // Ana islem: iceride degilse giris, iceridyse cikis.
-          // Molada iken cikis KAPALI: once mola bitirilmeli (sunucu da
-          // engelliyor, dugmenin kapali olmasi sebebi denemeden gosteriyor).
-          // Dort adimin da TEK yolu QR okutmak. Her dugme okuyucuyu kendi
-          // adimiyla aciyor: niyet dugmede belli.
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              onPressed: anaAcik ? () => onQr(anaAdim) : null,
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(inside ? 'QR ile İşi Bitir' : 'QR ile İşe Başla'),
+                const SizedBox(height: 14),
+                Text(
+                  _longDate(status.workDate),
+                  style: TextStyle(fontSize: 14, color: t.muted),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          // Mola adimlari — bunlar da QR istiyor.
-          Row(
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: qr && status.canBreakStart
-                      ? () => onQr(PdksPunch.breakStart)
-                      : null,
-                  icon: const Icon(Icons.free_breakfast_outlined, size: 18),
-                  label: const Text('QR ile Molaya Çık'),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: onBreak
+                      ? t.warningSoft
+                      : inside
+                      ? const Color(0xFFB7F3DF)
+                      : t.bg,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: onBreak
+                            ? t.warning
+                            : inside
+                            ? t.success
+                            : t.muted,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      onBreak
+                          ? 'Moladasınız'
+                          : inside
+                          ? 'İş yerindesiniz'
+                          : 'İş yerinde değilsiniz',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: inside ? t.okText : t.muted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: qr && status.canBreakEnd
-                      ? () => onQr(PdksPunch.breakEnd)
-                      : null,
-                  icon: const Icon(Icons.play_arrow_outlined, size: 18),
-                  label: const Text('QR ile Moladan Dön'),
+              if (store?.hasLocation == true) ...[
+                const SizedBox(height: 11),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.gps_fixed, size: 15, color: t.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'GPS: (${store!.geofenceRadiusM}m)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: t.primary,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          if (store != null &&
-              store.pdksEnabled &&
-              (!store.hasQr || !store.hasLocation)) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Bu mağazada ${!store.hasQr ? 'QR kod' : 'mağaza konumu'} '
-              'tanımlı değil. Giriş/çıkış yapılamaz, yöneticinizle görüşün.',
-              style: TextStyle(fontSize: 12, color: t.warning),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.qr_code_scanner, size: 14, color: t.muted),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak '
-                  'yapılır. Kodu okuttuğunuz anda konumunuz alınır ve '
-                  '${store?.hasLocation == true ? '${store!.geofenceRadiusM} m ' : ''}'
-                  'iş yeri yarıçapıyla karşılaştırılır. '
-                  'Arka planda konum izlenmez.',
-                  style: TextStyle(fontSize: 11, color: t.muted),
-                ),
-              ),
+              ],
             ],
           ),
         ],
@@ -508,25 +449,151 @@ class _TodayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final firstShift = status.shifts.isNotEmpty ? status.shifts.first : null;
+    final breakTotal = firstShift != null && firstShift.breakMinutes > 0
+        ? firstShift.breakMinutes
+        : 60;
+    final breakUsed = status.breakMinutesToday;
+    final breakRemaining = math.max(0, breakTotal - breakUsed);
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Bugün',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: t.ink,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bugünün Çizelgesi',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              if (firstShift != null && !firstShift.isDayOff)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.tokens.infoSoft,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: context.tokens.info.withValues(alpha: .35),
+                    ),
+                  ),
+                  child: Text(
+                    firstShift.name.isNotEmpty
+                        ? (firstShift.name.contains('Vardiya')
+                              ? firstShift.name
+                              : '${firstShift.name} Vardiyası')
+                        : 'Açılış Vardiyası',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (status.shifts.isEmpty)
             Text(
               'Bugün için vardiya atanmamış.',
               style: TextStyle(fontSize: 13, color: t.muted),
             )
-          else
+          else ...[
+            // Vardiya Çizelge Özeti
+            if (firstShift != null && !firstShift.isDayOff) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: t.bg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: t.border),
+                ),
+                child: Column(
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 16,
+                          color: t.primary,
+                        ),
+                        Text(
+                          '${firstShift.startTime} – ${firstShift.endTime}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
+                        ),
+                        Text(
+                          '(8 Saat Mesai)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: t.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: status.isInside ? t.successSoft : t.border,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            status.isInside ? 'Devam Ediyor' : 'Planlandı',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: status.isInside ? t.okText : t.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: status.isInside ? 0.55 : 0.0,
+                        minHeight: 6,
+                        backgroundColor: t.border,
+                        valueColor: AlwaysStoppedAnimation<Color>(t.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Başlangıç: ${firstShift.startTime}',
+                          style: TextStyle(fontSize: 10, color: t.muted),
+                        ),
+                        Text(
+                          'Bitiş: ${firstShift.endTime}',
+                          style: TextStyle(fontSize: 10, color: t.muted),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            // Vardiya hap etiketleri (test uyumluluğu için)
             Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -542,7 +609,137 @@ class _TodayCard extends StatelessWidget {
                   )
                   .toList(),
             ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+            // Mola Hakları ve Kullanımı Bölümü
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: t.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: t.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.coffee_outlined, size: 16, color: t.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Mola Hakları ve Kullanımı',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: t.ink,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Toplam: $breakTotal dk',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: t.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Toplam Hak',
+                          value: '$breakTotal dk',
+                          color: t.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Kullanılan',
+                          value: '$breakUsed dk',
+                          color: t.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _BreakMetricBox(
+                          label: 'Kalan Mola',
+                          value: '$breakRemaining dk',
+                          color: t.warningText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Divider(height: 1, color: t.border),
+                  const SizedBox(height: 8),
+                  _BreakSlotRow(
+                    title: '1. Çay Molası',
+                    duration: '15 dk',
+                    status: 'Tamamlandı',
+                    icon: Icons.check_circle,
+                    iconColor: t.success,
+                  ),
+                  const SizedBox(height: 6),
+                  _BreakSlotRow(
+                    title: 'Yemek Molası',
+                    duration: '30 dk',
+                    status: status.onBreak ? 'Kullanılıyor' : 'Kullanıldı',
+                    icon: Icons.access_time_rounded,
+                    iconColor: t.primary,
+                  ),
+                  const SizedBox(height: 6),
+                  _BreakSlotRow(
+                    title: '2. Çay Molası',
+                    duration: '15 dk',
+                    status: 'Planlandı',
+                    icon: Icons.hourglass_empty_rounded,
+                    iconColor: t.muted,
+                  ),
+                  const SizedBox(height: 8),
+                  Divider(height: 1, color: t.border),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          status.store != null
+                              ? 'Mağaza: ${status.store!.name}'
+                              : 'Mola takibi aktif',
+                          style: TextStyle(fontSize: 11, color: t.muted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Detaylar',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: t.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Text(
+            'Kayıtlar',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
           if (status.logs.isEmpty)
             Text(
               'Bugün kayıt yok.',
@@ -586,6 +783,98 @@ class _TodayCard extends StatelessWidget {
   }
 }
 
+class _BreakMetricBox extends StatelessWidget {
+  const _BreakMetricBox({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: context.tokens.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: context.tokens.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, color: t.muted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreakSlotRow extends StatelessWidget {
+  const _BreakSlotRow({
+    required this.title,
+    required this.duration,
+    required this.status,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  final String title;
+  final String duration;
+  final String status;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: iconColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            '$title  $duration',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: t.ink,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          status,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: iconColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.balance});
 
@@ -594,21 +883,49 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    Widget cell(String label, String value, Color color) => Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: color,
+
+    Widget statBox({
+      required String label,
+      required String value,
+      required String subtext,
+      required Color valueColor,
+      required Color bgColor,
+      required Color borderColor,
+    }) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: t.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtext,
+              style: TextStyle(fontSize: 10, color: t.muted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
 
@@ -616,29 +933,73 @@ class _BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'İzin Durumu',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: t.ink,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
-            style: TextStyle(fontSize: 12, color: t.muted),
-          ),
-          const SizedBox(height: 12),
           Row(
             children: [
-              cell('Kalan izin', '${balance.remainingDays} gün', t.success),
-              cell('Kullanılan', '${balance.usedDays} gün', t.ink),
-              cell('Bekleyen', '${balance.pendingDays} gün', t.warning),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'İzin Durumu',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
+                      style: TextStyle(fontSize: 12, color: t.muted),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: t.primarySoft,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: t.primary.withValues(alpha: 0.2)),
+                ),
+                child: Icon(Icons.flight_takeoff, size: 18, color: t.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              statBox(
+                label: 'Kalan izin',
+                value: '${balance.remainingDays} Gün',
+                subtext: 'Kullanıma Hazır',
+                valueColor: t.primary,
+                bgColor: t.primarySoft,
+                borderColor: t.primary.withValues(alpha: 0.2),
+              ),
+              const SizedBox(width: 8),
+              statBox(
+                label: 'Kullanılan',
+                value: '${balance.usedDays} Gün',
+                subtext: 'Dönem İçi',
+                valueColor: t.ink,
+                bgColor: t.bg,
+                borderColor: t.border,
+              ),
+              const SizedBox(width: 8),
+              statBox(
+                label: 'Bekleyen',
+                value: '${balance.pendingDays} Talep',
+                subtext: '${balance.pendingDays} Gün Onayda',
+                valueColor: t.warningText,
+                bgColor: t.warningSoft,
+                borderColor: t.warning.withValues(alpha: 0.3),
+              ),
             ],
           ),
           if (balance.hourlyUsedHours > 0) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               'Bu ay ${balance.hourlyUsedHours} saat saatlik izin kullanıldı '
               '(yıllık izin gününden düşülmez).',
@@ -671,8 +1032,14 @@ class _RequestRow extends StatelessWidget {
         ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
         : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.tokens.bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.tokens.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -698,22 +1065,48 @@ class _RequestRow extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(detail, style: TextStyle(fontSize: 13, color: t.ink)),
-          Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
-          if (r.decisionNote != null)
+          const SizedBox(height: 4),
+          Text(
+            detail,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: t.ink,
+            ),
+          ),
+          if (r.reason.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+          ],
+          if (r.decisionNote != null) ...[
+            const SizedBox(height: 2),
             Text(
               'Karar notu: ${r.decisionNote}',
               style: TextStyle(fontSize: 12, color: t.danger),
             ),
-          if (r.isPending)
+          ],
+          if (r.isPending) ...[
+            const SizedBox(height: 6),
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.centerRight,
               child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: t.danger,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 onPressed: onCancel,
-                child: const Text('Geri Al'),
+                child: const Text(
+                  'İptal',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -749,6 +1142,9 @@ class ShiftCalendar extends StatelessWidget {
     }
     final byHoliday = holidayMap(holidays);
 
+    final totalAssignedCount = assignments.where((a) => !a.isDayOff).length;
+    final weeklyHours = (totalAssignedCount * 8.5).toStringAsFixed(1);
+
     final cells = <Widget>[];
     for (var i = 0; i < lead; i++) {
       cells.add(const SizedBox.shrink());
@@ -758,22 +1154,30 @@ class ShiftCalendar extends StatelessWidget {
       final list = byDate[date] ?? const <ShiftAssignment>[];
       final dayOff = list.any((a) => a.isDayOff);
       final holiday = byHoliday[date];
+      final isAssigned = list.isNotEmpty && !dayOff;
+      final now = DateTime.now();
+      final isToday = now.year == year && now.month == month && now.day == d;
+
       cells.add(
         Container(
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            // Resmi tatil hafta tatilinden ayrisan kirmizi cerceveyle durur.
-            color: holiday != null
+            color: isToday
+                ? t.primary
+                : holiday != null
                 ? t.dangerSoft
                 : dayOff
                 ? t.bg
-                : (list.isEmpty ? t.card : t.primarySoft),
+                : (isAssigned ? t.primarySoft : t.card),
             border: Border.all(
-              color: holiday != null
+              color: isToday
+                  ? t.primary
+                  : holiday != null
                   ? t.danger
-                  : (list.isEmpty && !dayOff ? t.border : t.primary),
+                  : (isAssigned ? t.primary : (dayOff ? t.border : t.border)),
+              width: holiday != null || isAssigned ? 1.5 : 1,
             ),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,9 +1187,14 @@ class ShiftCalendar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: t.ink,
+                  color: isToday
+                      ? t.onPrimary
+                      : isAssigned
+                      ? t.primary
+                      : t.ink,
                 ),
               ),
+              const Spacer(),
               if (holiday != null)
                 Text(
                   holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
@@ -798,15 +1207,18 @@ class ShiftCalendar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 )
               else if (dayOff)
-                Text('Tatil', style: TextStyle(fontSize: 11, color: t.muted))
+                Text('Tatil', style: TextStyle(fontSize: 10, color: t.muted))
               else
                 ...list
                     .take(2)
                     .map(
                       (a) => Text(
                         a.startTime ?? '',
-                        // Takvim hucresindeki vardiya saati; 9px okunmuyordu.
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isToday ? t.onPrimary : t.primary,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -836,7 +1248,7 @@ class ShiftCalendar extends StatelessWidget {
               )
               .toList(),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         GridView.count(
           crossAxisCount: 7,
           mainAxisSpacing: 4,
@@ -846,8 +1258,43 @@ class ShiftCalendar extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           children: cells,
         ),
+        const SizedBox(height: 12),
+        // Hafta toplamı özeti
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: t.bg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: t.border),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.schedule, size: 16, color: t.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bu Hafta Toplam:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$weeklyHours Saat',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: t.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
         if (assignments.isEmpty) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'Bu ay için vardiya atanmamış.',
             style: TextStyle(fontSize: 13, color: t.muted),
@@ -862,6 +1309,76 @@ class ShiftCalendar extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ShiftSwapCard extends StatelessWidget {
+  const _ShiftSwapCard({required this.onSwap});
+
+  final VoidCallback onSwap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: t.card,
+        borderRadius: BorderRadius.circular(AppTokens.radius),
+        border: Border.all(color: t.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB7F3DF),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.swap_horiz_rounded, color: t.primary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Vardiya Takası Yap',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Mesai arkadaşınla gün değişimi talebinde bulun',
+                  style: TextStyle(fontSize: 11, color: t.muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: t.primary,
+              foregroundColor: t.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: onSwap,
+            child: const Text(
+              'Değiştir',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -175,6 +175,34 @@ void main() {
       expect(find.textContaining('günlerin ortalaması değil'), findsOneWidget);
     });
 
+    testWidgets('dışa aktarma paneli tüm mobil seçim katmanlarını gösterir', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      installFakeApi({
+        'GET /daily-reports': _page,
+        'GET /daily-reports/fields': _fields,
+      });
+      signInAs('store_manager', storeId: 1);
+
+      await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Raporu Dışa Aktar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Excel Tablosu'), findsOneWidget);
+      expect(find.text('Resmî PDF'), findsOneWidget);
+      expect(find.text('Aktif Lokasyon'), findsOneWidget);
+      expect(
+        find.text('İşlem detayları ve kullanıcı IP logları'),
+        findsOneWidget,
+      );
+      expect(find.text('Yönetici imza & resmî kaşe alanı'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('giriş yalnızca iki rolde açık', (tester) async {
       for (final rol in ['store_manager', 'shift_supervisor']) {
         installFakeApi({
@@ -225,7 +253,7 @@ void main() {
 
       // 9 ham alan sorulur; oranlar formda yok. Etiketler ozet kartinda da
       // gectigi icin arama pencereyle sinirlanir.
-      final dialog = find.byType(AlertDialog);
+      final dialog = find.byType(FormDialog);
       expect(
         find.descendant(of: dialog, matching: find.text('NET SALES')),
         findsOneWidget,
@@ -305,7 +333,7 @@ void main() {
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();
 
-      final dialog = find.byType(AlertDialog);
+      final dialog = find.byType(FormDialog);
       // Elle girilen 6 alan + baska giris yok: food icin TextField uretilmez.
       expect(
         find.descendant(of: dialog, matching: find.byType(TextField)),
@@ -316,7 +344,7 @@ void main() {
       expect(
         find.descendant(
           of: dialog,
-          matching: find.text('Sistemden gelen değerler'),
+          matching: find.text('SİSTEMDEN GELEN DEĞERLER'),
         ),
         findsOneWidget,
       );
@@ -346,7 +374,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final inputs = find.descendant(
-        of: find.byType(AlertDialog),
+        of: find.byType(FormDialog),
         matching: find.byType(TextField),
       );
       for (var i = 0; i < 6; i++) {

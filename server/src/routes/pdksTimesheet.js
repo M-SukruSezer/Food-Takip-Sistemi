@@ -414,12 +414,12 @@ router.get('/now', async (req, res) => {
   // Her personelin SON kaydi: giris ise iceride.
   const rows = await queryAll(`
     SELECT u.id, u.full_name, u.role, u.store_id, s.name AS store_name,
-           l.type, l.method, l.occurred_at, l.work_date, l.distance_m,
+           l.id AS attendance_log_id, l.type, l.method, l.occurred_at, l.work_date, l.distance_m,
            l.is_valid_location, l.risk_flags
     FROM users u
     LEFT JOIN stores s ON s.id = u.store_id
     LEFT JOIN LATERAL (
-      SELECT type, method, occurred_at, work_date, distance_m, is_valid_location,
+      SELECT id, type, method, occurred_at, work_date, distance_m, is_valid_location,
              risk_flags
       FROM attendance_logs al WHERE al.user_id = u.id
       ORDER BY al.occurred_at DESC, al.id DESC LIMIT 1
@@ -433,6 +433,7 @@ router.get('/now', async (req, res) => {
   for (const r of rows) {
     const item = {
       user_id: r.id, full_name: r.full_name, role: r.role,
+      attendance_log_id: r.attendance_log_id,
       store_id: r.store_id, store_name: r.store_name,
       last_type: r.type, last_method: r.method, last_at: r.occurred_at,
       work_date: r.work_date, distance_m: r.distance_m,

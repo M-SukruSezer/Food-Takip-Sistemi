@@ -1,3 +1,7 @@
+import 'package:foodtakip/core/api_client.dart';
+
+import 'support/fake_api.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodtakip/core/format.dart';
@@ -6,10 +10,18 @@ import 'package:foodtakip/screens/login_screen.dart';
 
 void main() {
   testWidgets('giris ekrani alanlari ve dokunma hedefleri', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(Brightness.light),
-      home: const LoginScreen(),
-    ));
+    final original = api.dio.httpClientAdapter;
+    addTearDown(() => api.dio.httpClientAdapter = original);
+    installFakeApi({
+      'GET /branding/login': {'image': null},
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(Brightness.light),
+        home: const LoginScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Giriş Yap'), findsWidgets);
     expect(find.byType(TextField), findsNWidgets(2));

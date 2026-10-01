@@ -122,18 +122,30 @@ List<ManagedUser> filterUsers(List<ManagedUser> items, String search) {
   final q = _normalize(search);
   if (q.isEmpty) return items;
   return items
-      .where((u) =>
-          _normalize(u.fullName).contains(q) ||
-          _normalize(u.username).contains(q) ||
-          _normalize(u.storeName ?? '').contains(q))
+      .where(
+        (u) =>
+            _normalize(u.fullName).contains(q) ||
+            _normalize(u.username).contains(q) ||
+            _normalize(u.storeName ?? '').contains(q),
+      )
       .toList();
 }
 
 String _normalize(String value) {
   var s = value.toLowerCase();
   const map = {
-    'ı': 'i', 'İ': 'i', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g',
-    'ç': 'c', 'Ç': 'c', 'ö': 'o', 'Ö': 'o', 'ü': 'u', 'Ü': 'u',
+    'ı': 'i',
+    'İ': 'i',
+    'ş': 's',
+    'Ş': 's',
+    'ğ': 'g',
+    'Ğ': 'g',
+    'ç': 'c',
+    'Ç': 'c',
+    'ö': 'o',
+    'Ö': 'o',
+    'ü': 'u',
+    'Ü': 'u',
   };
   map.forEach((k, v) => s = s.replaceAll(k, v));
   return s;

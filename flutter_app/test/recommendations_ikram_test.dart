@@ -86,7 +86,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Ciroya'), findsOneWidget);
 
-    await tester.tap(find.text('1 Adet Sat'));
+    // Yeni satis onay sheet'i adedi 1'e sabitler ve dugmeyi '1 Adet Satışı Yap' yazar.
+    await tester.tap(find.text('1 Adet Satışı Yap'));
     await tester.pumpAndSettle();
 
     expect(adapter.bodies['POST /batches/101/sell'], {'quantity': 1});

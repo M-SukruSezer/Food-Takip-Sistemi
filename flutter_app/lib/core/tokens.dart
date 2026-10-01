@@ -95,7 +95,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
   /// Giris ekraninin panel rengi. Temaya gore degismez: koyu temanin
   /// turkuazi tum ekrani kaplayinca goz aliyor, marka rengi ise iki temada da
   /// beyaz yaziyla 5:1 ustu kontrast veriyor.
-  static const Color brandGreen = Color(0xFF005C55);
+  static const Color brandGreen = Color(0xFF0F766E);
 
   /// Dokunma hedefi tabani. React tarafindaki --tap ile ayni.
   static const double tap = 44;
@@ -104,17 +104,22 @@ class AppTokens extends ThemeExtension<AppTokens> {
   static const double radiusLg = 20;
   static const double gap = 12;
 
+  /// Responsive breakpoints — tum ekranlarda ayni sinirlar kullaniyor.
+  /// sm: telefon/tablet gecisi | md: tablet/masaustu | lg: genis masaustu
+  static const double bpSm = 641;
+  static const double bpMd = 900;
+  static const double bpLg = 1200;
+
   static const AppTokens light = AppTokens(
-    // Stitch yeniden tasarim setinden (Material 3, tohum rengi #005c55).
-    primary: Color(0xFF005C55),
-    // Beyaz metin #005C55 uzerinde 7.89 veriyor.
+    primary: Color(0xFF0F766E),
+    // Turkuaz ana islem rengi; beyaz metinle okunur kontrast.
     onPrimary: Color(0xFFFFFFFF),
-    dangerStrong: Color(0xFFBA1A1A),
-    primary600: Color(0xFF006A63),
-    primaryDark: Color(0xFF00504A),
-    primarySoft: Color(0xFFB5EFDA),
-    danger: Color(0xFFBA1A1A),
-    dangerSoft: Color(0xFFFFDAD6),
+    dangerStrong: Color(0xFFDC2626),
+    primary600: Color(0xFF0D9488),
+    primaryDark: Color(0xFF115E59),
+    primarySoft: Color(0xFFE6F8F3),
+    danger: Color(0xFFDC2626),
+    dangerSoft: Color(0xFFFEF2F2),
     warning: Color(0xFFD97706),
     warningSoft: Color(0xFFFFFBEB),
     warningText: Color(0xFFB45309),
@@ -137,14 +142,13 @@ class AppTokens extends ThemeExtension<AppTokens> {
   );
 
   static const AppTokens dark = AppTokens(
-    // M3 setinin koyu zeminde okunmak icin uretilen "inverse-primary" tonu.
-    primary: Color(0xFF80D5CB),
-    // #00201D, #80D5CB uzerinde 10.04 veriyor.
-    onPrimary: Color(0xFF00201D),
+    primary: Color(0xFF5EEAD4),
+    // Koyu temada acik turkuaz uzerine koyu metin.
+    onPrimary: Color(0xFF0B1220),
     dangerStrong: Color(0xFFB91C1C),
-    primary600: Color(0xFF4EDEA3),
-    primaryDark: Color(0xFF9CF2E8),
-    primarySoft: Color(0x2480D5CB),
+    primary600: Color(0xFF10B981),
+    primaryDark: Color(0xFF99F6E4),
+    primarySoft: Color(0x245EEAD4),
     danger: Color(0xFFF87171),
     dangerSoft: Color(0x1FF87171),
     warning: Color(0xFFFBBF24),
@@ -264,38 +268,259 @@ class AppTokens extends ThemeExtension<AppTokens> {
   }
 }
 
+/// Standart boşluk ölçeği (Spacing Scale).
+abstract final class AppSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12; // AppTokens.gap
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double xxxl = 32;
+}
+
+/// Standart köşe yuvarlama ölçeği (Border Radius Scale).
+abstract final class AppRadius {
+  static const double sm = AppTokens.radiusSm; // 10
+  static const double md = AppTokens.radius; // 14
+  static const double lg = AppTokens.radiusLg; // 20
+  static const double full = 9999;
+}
+
+/// Ortak yüzey derinlikleri. Gölge renkleri temaya göre üretildiği için
+/// ekranların kendi siyah opaklıklarını tanımlamasına gerek kalmaz.
+abstract final class AppElevation {
+  static List<BoxShadow> low(Brightness brightness) => [
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: brightness == Brightness.dark ? .20 : .055,
+      ),
+      blurRadius: 10,
+      offset: const Offset(0, 3),
+    ),
+  ];
+
+  static List<BoxShadow> medium(Brightness brightness) => [
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: brightness == Brightness.dark ? .28 : .09,
+      ),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
+    ),
+  ];
+}
+
+/// Sayfa ve pencere ölçüleri için ortak responsive sınırlar.
+abstract final class AppLayout {
+  // 320px cihazda dialog içeriği kenar boşluklarından sonra yaklaşık 270px
+  // kalır. Daha geniş telefonlarda yoğun sayısal formlar iki sütunu korur.
+  static const double compactForm = 280;
+  static const double dialogMaxWidth = 480;
+  static const double contentMaxWidth = 1440;
+
+  static double pageGutter(double width) {
+    if (width < AppTokens.bpSm) return AppSpacing.lg;
+    if (width < AppTokens.bpMd) return AppSpacing.xl;
+    return AppSpacing.xxl;
+  }
+}
+
 extension AppTokensContext on BuildContext {
   AppTokens get tokens =>
       Theme.of(this).extension<AppTokens>() ?? AppTokens.light;
 }
 
+/// Tema üretim algoritmasının sözleşmesi.
+///
+/// Yeni bir tema varyantı eklenirken [buildAppTheme] içine yeni koşullar
+/// yazmak yerine bu strateji genişletilir. Böylece palet, Material renk
+/// rolleri ve yüzey davranışları tek bir nesnenin sorumluluğunda kalır.
+sealed class AppThemeStrategy {
+  const AppThemeStrategy();
+
+  Brightness get brightness;
+  AppTokens get tokens;
+  Color get scrim;
+  double get shadowAlpha;
+
+  ColorScheme buildColorScheme() {
+    final t = tokens;
+    return ColorScheme.fromSeed(
+      seedColor: t.primary,
+      brightness: brightness,
+    ).copyWith(
+      primary: t.primary,
+      onPrimary: t.onPrimary,
+      primaryContainer: t.primarySoft,
+      onPrimaryContainer: t.primaryDark,
+      secondary: t.primary600,
+      onSecondary: t.onPrimary,
+      secondaryContainer: t.successSoft,
+      onSecondaryContainer: t.okText,
+      error: t.danger,
+      onError: const Color(0xFFFFFFFF),
+      errorContainer: t.dangerSoft,
+      onErrorContainer: t.danger,
+      surface: t.card,
+      onSurface: t.ink,
+      surfaceContainerLowest: t.card,
+      surfaceContainerLow: t.card,
+      surfaceContainer: t.bg,
+      surfaceContainerHigh: t.border,
+      surfaceContainerHighest: t.borderStrong,
+      onSurfaceVariant: t.muted,
+      outline: t.borderStrong,
+      outlineVariant: t.border,
+      shadow: Colors.black,
+      scrim: scrim,
+    );
+  }
+
+  static AppThemeStrategy resolve(Brightness brightness) =>
+      brightness == Brightness.dark
+      ? const DarkThemeStrategy()
+      : const LightThemeStrategy();
+}
+
+final class LightThemeStrategy extends AppThemeStrategy {
+  const LightThemeStrategy();
+
+  @override
+  Brightness get brightness => Brightness.light;
+
+  @override
+  AppTokens get tokens => AppTokens.light;
+
+  @override
+  Color get scrim => const Color(0x73111B2E);
+
+  @override
+  double get shadowAlpha => .08;
+}
+
+final class DarkThemeStrategy extends AppThemeStrategy {
+  const DarkThemeStrategy();
+
+  @override
+  Brightness get brightness => Brightness.dark;
+
+  @override
+  AppTokens get tokens => AppTokens.dark;
+
+  @override
+  Color get scrim => const Color(0xB3020617);
+
+  @override
+  double get shadowAlpha => .28;
+}
+
 ThemeData buildAppTheme(Brightness brightness) {
-  final t = brightness == Brightness.dark ? AppTokens.dark : AppTokens.light;
+  final strategy = AppThemeStrategy.resolve(brightness);
+  final t = strategy.tokens;
   final base = ThemeData(
-    brightness: brightness,
+    brightness: strategy.brightness,
     useMaterial3: true,
     scaffoldBackgroundColor: t.bg,
-    colorScheme:
-        ColorScheme.fromSeed(
-          seedColor: t.primary,
-          brightness: brightness,
-        ).copyWith(
-          primary: t.primary,
-          onPrimary: t.onPrimary,
-          error: t.danger,
-          surface: t.card,
+    colorScheme: strategy.buildColorScheme(),
+  );
+
+  final textTheme = base.textTheme
+      .copyWith(
+        displayLarge: base.textTheme.displayLarge?.copyWith(
+          fontSize: 42,
+          height: 1.08,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -1.2,
         ),
+        displayMedium: base.textTheme.displayMedium?.copyWith(
+          fontSize: 34,
+          height: 1.12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -.8,
+        ),
+        headlineLarge: base.textTheme.headlineLarge?.copyWith(
+          fontSize: 28,
+          height: 1.18,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -.45,
+        ),
+        headlineMedium: base.textTheme.headlineMedium?.copyWith(
+          fontSize: 24,
+          height: 1.2,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -.3,
+        ),
+        titleLarge: base.textTheme.titleLarge?.copyWith(
+          fontSize: 20,
+          height: 1.25,
+          fontWeight: FontWeight.w700,
+        ),
+        titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontSize: 16,
+          height: 1.3,
+          fontWeight: FontWeight.w700,
+        ),
+        bodyLarge: base.textTheme.bodyLarge?.copyWith(
+          fontSize: 16,
+          height: 1.5,
+        ),
+        bodyMedium: base.textTheme.bodyMedium?.copyWith(
+          fontSize: 14,
+          height: 1.45,
+        ),
+        bodySmall: base.textTheme.bodySmall?.copyWith(
+          fontSize: 12,
+          height: 1.4,
+        ),
+        labelLarge: base.textTheme.labelLarge?.copyWith(
+          fontSize: 14,
+          height: 1.2,
+          fontWeight: FontWeight.w700,
+        ),
+      )
+      .apply(bodyColor: t.ink, displayColor: t.ink);
+
+  final buttonShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(AppRadius.sm),
   );
 
   return base.copyWith(
     extensions: <ThemeExtension<dynamic>>[t],
-    textTheme: base.textTheme.apply(bodyColor: t.ink, displayColor: t.ink),
+    textTheme: textTheme,
+    dividerTheme: DividerThemeData(color: t.border, thickness: 1, space: 1),
     cardTheme: CardThemeData(
       color: t.card,
-      elevation: 0,
+      elevation: 1,
+      margin: EdgeInsets.zero,
+      shadowColor: Colors.black.withValues(alpha: strategy.shadowAlpha),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: t.border),
-        borderRadius: BorderRadius.circular(AppTokens.radius),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: t.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 8,
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xxl,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      titleTextStyle: textTheme.titleLarge,
+      contentTextStyle: textTheme.bodyMedium,
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: t.card,
+      surfaceTintColor: Colors.transparent,
+      modalBackgroundColor: t.card,
+      modalElevation: 8,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -303,9 +528,9 @@ ThemeData buildAppTheme(Brightness brightness) {
         backgroundColor: t.primary,
         foregroundColor: t.onPrimary,
         minimumSize: const Size(0, AppTokens.tap),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        textStyle: textTheme.labelLarge,
+        shape: buttonShape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -313,11 +538,69 @@ ThemeData buildAppTheme(Brightness brightness) {
         foregroundColor: t.ink,
         side: BorderSide(color: t.borderStrong),
         minimumSize: const Size(0, AppTokens.tap),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusSm),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        textStyle: textTheme.labelLarge,
+        shape: buttonShape,
       ),
     ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: t.card,
+        foregroundColor: t.ink,
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: strategy.shadowAlpha),
+        minimumSize: const Size(0, AppTokens.tap),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        textStyle: textTheme.labelLarge,
+        shape: buttonShape,
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: t.primary,
+        minimumSize: const Size(0, AppTokens.tap),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        textStyle: textTheme.labelLarge,
+        shape: buttonShape,
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: t.muted,
+        minimumSize: const Size.square(AppTokens.tap),
+        shape: const CircleBorder(),
+      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: t.muted,
+      textColor: t.ink,
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      minTileHeight: AppTokens.tap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+    ),
+    chipTheme: base.chipTheme.copyWith(
+      backgroundColor: t.bg,
+      selectedColor: t.primarySoft,
+      disabledColor: t.border.withValues(alpha: .45),
+      side: BorderSide(color: t.border),
+      labelStyle: textTheme.labelMedium?.copyWith(color: t.ink),
+      secondaryLabelStyle: textTheme.labelMedium?.copyWith(
+        color: t.primaryDark,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      shape: const StadiumBorder(),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: t.ink,
+      contentTextStyle: textTheme.bodyMedium?.copyWith(color: t.card),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: t.primary),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: t.card,
@@ -338,6 +621,14 @@ ThemeData buildAppTheme(Brightness brightness) {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppTokens.radiusSm),
         borderSide: BorderSide(color: t.primary600, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: BorderSide(color: t.danger),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: BorderSide(color: t.danger, width: 2),
       ),
     ),
   );

@@ -10,7 +10,6 @@ import {
 } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
-import ShortcutFab from './ShortcutFab';
 import NotificationBell from './NotificationBell';
 
 // Uygulama iki ekrana ayrildi. Sira onemli: ILK eleman girişte acilan ekran.
@@ -228,6 +227,8 @@ export default function Layout() {
   const groups = groupsFor(user.role, section);
   const tabs = tabsFor(user.role, section);
   const activeSection = sections.find((x) => x.id === section);
+  const activePage = [...NAV_SECTIONS.flatMap((s) => s.groups.flatMap((g) => g.items)), ...PROFILE_GROUP.items]
+    .find((item) => item.to === location.pathname);
 
   const pickSection = (target) => {
     setMenuOpen(false);
@@ -299,7 +300,9 @@ export default function Layout() {
           {/* Hamburger kalkti: menu alt cubuktan aciliyor. Yerine bulundugun
               ekranin adi yaziyor ki iki ekran arasinda nerede oldugun belli
               olsun. */}
-          <span className="topbar-section">{activeSection ? activeSection.label : ''}</span>
+          <span className="topbar-section" title={activePage?.label || activeSection?.label || ''}>
+            {activePage?.label || activeSection?.label || ''}
+          </span>
 
           <span className="mobile-header-logo">
             <img src="/logo.png" alt="Saha Takip" />
@@ -470,11 +473,6 @@ export default function Layout() {
           onConfirm={() => { setConfirmLogout(false); logout(); navigate('/login'); }}
         />
       )}
-      {/* Yuzen buton yalnizca Operasyon ekraninda. Kisayollarin hepsi
-          operasyon islemi (donuk depoya urun, masraf, gunluk rapor, onaylar);
-          PDKS ekraninda hicbiri o baglama ait degil ve dugme mola/giris
-          dugmelerinin uzerine geliyordu. */}
-      {section === 'operations' && <ShortcutFab role={user.role} />}
     </div>
   );
 }

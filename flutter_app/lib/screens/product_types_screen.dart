@@ -26,6 +26,8 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
   List<StoreOption> _stores = const [];
   String? _error;
   bool _loaded = false;
+  String _query = '';
+  String _status = 'all';
 
   // Ana Yonetici ya da "Pasta cesidi yonetimi" yetkisi verilmis kullanici.
   bool get _canManage => session.user?.can('manage_product_types') ?? false;
@@ -100,6 +102,17 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
     final t = context.tokens;
     // Fiyati tanimsiz aktif cesitler satildiginda ciroya 0 yazar.
     final missingPrice = _items.where((e) => e.active && !e.hasPrice).toList();
+    final q = normalizeSearch(_query.trim());
+    final visible = _items.where((type) {
+      final matchesQuery = q.isEmpty || normalizeSearch(type.name).contains(q);
+      final matchesStatus = switch (_status) {
+        'active' => type.active,
+        'passive' => !type.active,
+        'skt3' => type.sktDays == 3,
+        _ => true,
+      };
+      return matchesQuery && matchesStatus;
+    }).toList();
 
     return CrudScaffold(
       title: 'Pasta Çeşitleri ve SKT Süreleri',
@@ -111,18 +124,53 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
       onAdd: _canManage ? () => _edit() : null,
       emptyText: 'Henüz ürün çeşidi eklenmemiş.',
       grid: true,
-      banner: _canManage && missingPrice.isNotEmpty
-          ? AppAlert(
+      banner: Column(
+        children: [
+          SearchBar(
+            onChanged: (value) => setState(() => _query = value),
+            hintText: 'Pasta çeşidi ara…',
+            leading: const Icon(Icons.search_rounded, size: 20),
+            elevation: const WidgetStatePropertyAll(0),
+            side: WidgetStatePropertyAll(BorderSide(color: t.border)),
+            backgroundColor: WidgetStatePropertyAll(t.card),
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final item in [
+                  ('all', 'Tümü (${_items.length})'),
+                  ('active', 'Aktif (${_items.where((e) => e.active).length})'),
+                  ('skt3', 'SKT: 3 Gün'),
+                  (
+                    'passive',
+                    'Pasif (${_items.where((e) => !e.active).length})',
+                  ),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(item.$2),
+                      selected: _status == item.$1,
+                      onSelected: (_) => setState(() => _status = item.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_canManage && missingPrice.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            AppAlert(
               danger: false,
               icon: Icons.price_change_outlined,
               message:
-                  '${missingPrice.length} aktif çeşidin satış fiyatı tanımlı değil. Bu çeşitler '
-                  'satıldığında ciroya 0 TL yazılır: '
-                  '${missingPrice.take(5).map((e) => e.name).join(', ')}'
-                  '${missingPrice.length > 5 ? ' ve ${missingPrice.length - 5} çeşit daha' : ''}.',
-            )
-          : null,
-      children: _items
+                  '${missingPrice.length} aktif çeşidin satış fiyatı tanımlı değil. Bu çeşitler satışta ciroya 0 TL yazar.',
+            ),
+          ],
+        ],
+      ),
+      children: visible
           .map(
             (type) => AppCard(
               child: Column(

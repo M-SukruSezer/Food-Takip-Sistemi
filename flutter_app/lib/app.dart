@@ -4,28 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import 'core/api_client.dart';
 import 'core/notify.dart';
-import 'core/nav.dart';
 import 'core/session.dart';
 import 'core/theme_mode.dart';
 import 'core/tokens.dart';
-import 'screens/approvals_screen.dart';
-import 'screens/batches_screen.dart';
-import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/recommendations_screen.dart';
-import 'screens/logs_screen.dart';
-import 'screens/daily_report_screen.dart';
-import 'screens/pdks_admin_screen.dart';
-import 'screens/pdks_screen.dart';
-import 'screens/petty_cash_screen.dart';
-import 'screens/product_types_screen.dart';
-import 'screens/roster_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/sales_screen.dart';
-import 'screens/stock_coverage_screen.dart';
-import 'screens/stores_screen.dart';
-import 'screens/timesheet_screen.dart';
-import 'screens/users_screen.dart';
+import 'navigation/app_screen_factory.dart';
+import 'navigation/route_access_strategy.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/busy_overlay.dart';
 
@@ -36,37 +20,7 @@ import 'widgets/busy_overlay.dart';
 /// Ekranlar sorgu parametresi alabilir: ana sayfadaki ozet kutulari
 /// /batches?tab=... ve /sales?range=...&kind=... ile dogrudan ilgili
 /// sekmeye/filtreye gidiyor.
-final shellScreens = <String, Widget Function(GoRouterState)>{
-  '/dashboard': (s) => const DashboardScreen(),
-  '/recommendations': (s) => const RecommendationsScreen(),
-  '/batches': (s) => BatchesScreen(
-    // Ayni yolda filtre degisince State yeniden kurulsun.
-    key: ValueKey(s.uri.toString()),
-    initialTab: s.uri.queryParameters['tab'],
-  ),
-  '/roster': (s) => const RosterScreen(),
-  '/product-types': (s) => const ProductTypesScreen(),
-  '/stores': (s) => const StoresScreen(),
-  '/users': (s) => const UsersScreen(),
-  '/sales': (s) => SalesScreen(
-    key: ValueKey(s.uri.toString()),
-    initialRange: s.uri.queryParameters['range'],
-    initialKind: s.uri.queryParameters['kind'],
-  ),
-  '/logs': (s) => const LogsScreen(),
-  '/approvals': (s) => const ApprovalsScreen(),
-  '/petty-cash': (s) => const PettyCashScreen(),
-  '/daily-report': (s) => const DailyReportScreen(),
-  '/stock-coverage': (s) => const StockCoverageScreen(),
-  '/pdks': (s) => PdksScreen(
-    // shift=1 ile gelindiyse sebep yazisi gosterilsin.
-    key: ValueKey(s.uri.toString()),
-    shiftRequired: s.uri.queryParameters['shift'] == '1',
-  ),
-  '/pdks-admin': (s) => const PdksAdminScreen(),
-  '/timesheet': (s) => const TimesheetScreen(),
-  '/profile': (s) => const ProfileScreen(),
-};
+final shellScreens = AppScreenFactory.builders;
 
 class FoodTakipApp extends StatefulWidget {
   const FoodTakipApp({super.key});
@@ -77,6 +31,7 @@ class FoodTakipApp extends StatefulWidget {
 
 class _FoodTakipAppState extends State<FoodTakipApp> {
   late final GoRouter _router;
+  final RouteAccessStrategy _routeAccess = const RoleBasedRouteAccessStrategy();
 
   @override
   void initState() {
@@ -119,14 +74,15 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
 
         // Girişte PDKS ekrani acilir. IK gibi PDKS'te farkli bir ilk sayfasi
         // olan roller icin landingPathFor dogru yolu veriyor.
-        final landing = landingPathFor(session.user);
+        final landing = _routeAccess.landingPath(session.user);
         if (atLogin) return landing;
 
         // Rolune kapali bir yola URL yazarak gidilemez. Sunucu zaten 403
         // veriyor; burada da kesilmesi bos ya da hatali bir ekran yerine
         // dogrudan kendi sayfasina dusurmek icin.
-        final allowed = navFor(session.user).map((i) => i.path).toSet();
-        if (!allowed.contains(state.matchedLocation)) return landing;
+        if (!_routeAccess.canAccess(session.user, state.matchedLocation)) {
+          return landing;
+        }
         return null;
       },
     );

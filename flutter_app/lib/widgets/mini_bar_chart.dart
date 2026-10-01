@@ -53,7 +53,7 @@ class MiniBarChart extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        showAsMoney ? v.round().toString() : '${v.round()}',
+                        showAsMoney ? fmtMoney(v) : '${v.round()}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         // Grafik ekseni: React tarafinda da 11px taban

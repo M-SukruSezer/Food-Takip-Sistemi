@@ -85,8 +85,9 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
     if (ok != true) return;
     try {
       await repo.approvePettyCash(e);
-    } catch (_) {
-      // Bildirim API katmanindan gelir.
+    } catch (err) {
+      if (mounted) toastError(errorMessage(err));
+      return;
     }
     await _load(silent: true);
   }
@@ -108,8 +109,9 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
     if (ok != true) return;
     try {
       await repo.deletePettyCash(e);
-    } catch (_) {
-      // Bildirim API katmanindan gelir.
+    } catch (err) {
+      if (mounted) toastError(errorMessage(err));
+      return;
     }
     await _load(silent: true);
   }
@@ -118,7 +120,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
     String? data;
     try {
       data = await repo.pettyCashReceipt(e.id);
-    } catch (_) {
+    } catch (err) {
+      if (mounted) toastError(errorMessage(err));
       return;
     }
     if (!mounted || data == null) return;
@@ -247,8 +250,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         color: e.isPending
                             ? t.warning
                             : e.isRejected
-                                ? t.danger
-                                : t.success,
+                            ? t.danger
+                            : t.success,
                       ),
                       if (e.hasReceipt)
                         Pill(text: 'fişli', color: t.success)
@@ -277,7 +280,8 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         onPressed: e.hasReceipt ? () => _showReceipt(e) : null,
                         child: const Text('Fişi Gör'),
                       ),
-                      if (e.isPending && (_page.status?.canApprove ?? false)) ...[
+                      if (e.isPending &&
+                          (_page.status?.canApprove ?? false)) ...[
                         FilledButton(
                           onPressed: () => _approve(e),
                           child: const Text('Onayla'),
@@ -291,14 +295,15 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                           child: const Text('Reddet'),
                         ),
                       ],
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: t.danger,
-                          side: BorderSide(color: t.danger),
+                      if (_isSuper || (e.isPending && _canSpend))
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: t.danger,
+                            side: BorderSide(color: t.danger),
+                          ),
+                          onPressed: () => _delete(e),
+                          child: const Text('Sil'),
                         ),
-                        onPressed: () => _delete(e),
-                        child: const Text('Sil'),
-                      ),
                     ],
                   ),
                 ],

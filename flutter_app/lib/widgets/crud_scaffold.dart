@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
 import 'panels.dart';
+import 'shell_scope.dart';
 
 /// Kart izgarasinin kolon sayisi. Esikler CSS'teki kirilma noktalariyla ayni:
 /// 640 telefon, 900 tablet, 1200 genis masaustu. Tablet dikeyde (768) iki kolon
@@ -29,6 +30,7 @@ class CrudScaffold extends StatelessWidget {
     this.banner,
     this.emptyText,
     this.grid = false,
+    this.showHeader = true,
   });
 
   final String title;
@@ -44,11 +46,19 @@ class CrudScaffold extends StatelessWidget {
 
   /// Kart izgarasi (Cesitler, Magazalar) ya da tek kolon liste (Kullanicilar).
   final bool grid;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final columns = gridColumnsFor(MediaQuery.sizeOf(context).width);
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = gridColumnsFor(width);
+    // Telefonda ve dikey tablette sayfa adı AppShell üst barında bulunur.
+    // İçerikte aynı başlığı ikinci kez göstermek hem alan tüketiyor hem de
+    // sayfa hiyerarşisini bozuyordu. Masaüstünde üst bar başlık göstermediği
+    // için içerik başlığı korunur.
+    final displayHeader = showHeader && !AppShellScope.isMobile(context);
+    final displayHeaderActions = showHeader && onAdd != null;
 
     if (!loaded) return const SizedBox.shrink();
     if (error != null && children.isEmpty) {
@@ -74,34 +84,53 @@ class CrudScaffold extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          AppCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: t.ink,
+          if (displayHeader || displayHeaderActions)
+            AppCard(
+              padding: displayHeader
+                  ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                  : EdgeInsets.zero,
+              child: displayHeader
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
+                          ),
+                        ),
+                        if (onAdd != null)
+                          FilledButton.icon(
+                            onPressed: onAdd,
+                            icon: const Icon(Icons.add, size: 18),
+                            label: Text(addLabel ?? 'Yeni'),
+                          ),
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: onAdd,
+                        icon: const Icon(Icons.add, size: 20),
+                        label: Text(addLabel ?? 'Yeni'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                if (onAdd != null)
-                  FilledButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(addLabel ?? 'Yeni'),
-                  ),
-              ],
             ),
-          ),
           if (banner != null) ...[
-            const SizedBox(height: AppTokens.gap),
+            if (displayHeader) const SizedBox(height: AppTokens.gap),
             banner!,
           ],
-          const SizedBox(height: AppTokens.gap),
+          if (displayHeader || banner != null)
+            const SizedBox(height: AppTokens.gap),
           if (children.isEmpty)
             AppCard(
               child: Text(

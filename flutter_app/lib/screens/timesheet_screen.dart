@@ -178,7 +178,7 @@ class _StoreCard extends StatelessWidget {
                     style: TextStyle(
                       color: t.ink,
                       fontWeight: FontWeight.w800,
-                      fontSize: 14.5,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -302,7 +302,22 @@ class _StoreTimesheet extends StatelessWidget {
             ),
           ] else if (loading && report == null) ...[
             const SizedBox(height: AppTokens.gap),
-            const AppCard(child: Text('Puantaj hesaplanıyor...')),
+            const AppCard(
+              padding: EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(height: 16),
+                    Text('Puantaj hesaplanıyor...'),
+                  ],
+                ),
+              ),
+            ),
           ] else if (people.isEmpty) ...[
             const SizedBox(height: AppTokens.gap),
             const AppCard(child: Text('Bu mağazada aktif personel yok.')),
@@ -316,22 +331,23 @@ class _StoreTimesheet extends StatelessWidget {
                 child: _PersonRow(person: p),
               ),
             ),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: report!.notes
-                    .map(
-                      (n) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          '• $n',
-                          style: TextStyle(color: t.muted, fontSize: 11.5),
+            if (report!.notes.isNotEmpty)
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: report!.notes
+                      .map(
+                        (n) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '• $n',
+                            style: TextStyle(color: t.muted, fontSize: 12),
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
-            ),
           ],
         ],
       ),
@@ -420,7 +436,7 @@ class _PersonRow extends StatelessWidget {
                   style: TextStyle(
                     color: t.ink,
                     fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -428,7 +444,7 @@ class _PersonRow extends StatelessWidget {
                 roleLabels[person.role] ?? '',
                 style: TextStyle(
                   color: t.muted,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),

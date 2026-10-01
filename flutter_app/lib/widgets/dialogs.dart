@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
+import 'mobile_sheet.dart';
 
 /// Ortak onay penceresi. Oneri listesi ve stok ekrani ayni bicimi kullanir.
 Future<bool?> confirmDialog(
@@ -42,10 +43,20 @@ class FormDialog extends StatefulWidget {
     required this.submitLabel,
     required this.fields,
     required this.onSubmit,
+    this.headerIcon,
+    this.subtitle,
+    this.submitColor,
+    this.titleWidget,
+    this.mobileSheet = false,
   });
 
   final String title;
+  final bool mobileSheet;
   final String submitLabel;
+  final IconData? headerIcon;
+  final String? subtitle;
+  final Color? submitColor;
+  final Widget? titleWidget;
 
   /// Alanlari kuran yapici; hata metni ve mesgul durumu dialog tarafindan yonetilir.
   final List<Widget> Function(BuildContext context, VoidCallback rebuild)
@@ -68,7 +79,12 @@ class _FormDialogState extends State<FormDialog> {
       _busy = true;
       _error = null;
     });
-    final err = await widget.onSubmit();
+    String? err;
+    try {
+      err = await widget.onSubmit();
+    } catch (_) {
+      err = 'İşlem tamamlanamadı. Tekrar deneyin.';
+    }
     if (!mounted) return;
     if (err == null) {
       Navigator.pop(context, true);
@@ -87,18 +103,169 @@ class _FormDialogState extends State<FormDialog> {
     // kapliyordu. Genislik ekrana gore daralir, kenarda bosluk kalir.
     final screen = MediaQuery.sizeOf(context);
     final narrow = screen.width < 600;
+    if (widget.mobileSheet) {
+      return MobileSheet(
+        title: widget.titleWidget ?? Text(widget.title),
+        subtitle: widget.subtitle,
+        icon: widget.headerIcon,
+        busy: _busy,
+        footer: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: t.bg,
+                  foregroundColor: t.ink,
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: _busy ? null : () => Navigator.pop(context, false),
+                child: const Text('Vazgeç'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 3,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: widget.submitColor ?? t.primary,
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: _busy ? null : _submit,
+                icon: const Icon(Icons.check_circle_outline, size: 19),
+                label: Text(
+                  _busy ? 'Kaydediliyor...' : widget.submitLabel,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+        child: AbsorbPointer(
+          absorbing: _busy,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_error!, style: TextStyle(color: t.danger)),
+                ),
+              ...widget.fields(context, () {
+                if (mounted) setState(() {});
+              }),
+            ],
+          ),
+        ),
+      );
+    }
     return AlertDialog(
-      title: Text(widget.title, style: TextStyle(fontSize: narrow ? 17 : 20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      title:
+          widget.titleWidget ??
+          (widget.headerIcon != null || widget.subtitle != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!narrow) ...[
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: t.border,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ],
+                    Row(
+                      children: [
+                        if (widget.headerIcon != null) ...[
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: t.primarySoft,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              widget.headerIcon,
+                              color: t.primary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.title,
+                                style: TextStyle(
+                                  fontSize: narrow ? 16 : 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.ink,
+                                ),
+                              ),
+                              if (widget.subtitle != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.subtitle!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.primary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(context, false),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: t.card,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: t.border.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: t.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Text(
+                  widget.title,
+                  style: TextStyle(fontSize: narrow ? 17 : 20),
+                )),
       titlePadding: EdgeInsets.fromLTRB(
-        narrow ? 18 : 24,
-        narrow ? 18 : 24,
-        narrow ? 18 : 24,
+        narrow ? 16 : 24,
+        narrow ? 14 : 22,
+        narrow ? 16 : 24,
         0,
       ),
       contentPadding: EdgeInsets.fromLTRB(
-        narrow ? 18 : 24,
-        14,
-        narrow ? 18 : 24,
+        narrow ? 16 : 24,
+        narrow ? 8 : 14,
+        narrow ? 16 : 24,
         0,
       ),
       insetPadding: EdgeInsets.symmetric(
@@ -136,12 +303,35 @@ class _FormDialogState extends State<FormDialog> {
       ),
       actions: [
         OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: t.bg,
+            foregroundColor: t.ink,
+            side: BorderSide(color: t.borderStrong),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ),
           onPressed: _busy ? null : () => Navigator.pop(context, false),
-          child: const Text('Vazgeç'),
+          child: const Text(
+            'Vazgeç',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.submitColor ?? t.primary,
+            foregroundColor: t.onPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          ),
           onPressed: _busy ? null : _submit,
-          child: Text(_busy ? 'Kaydediliyor...' : widget.submitLabel),
+          child: Text(
+            _busy ? 'Kaydediliyor...' : widget.submitLabel,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
@@ -198,23 +388,39 @@ class LabeledField extends StatelessWidget {
 /// Iki alani yan yana koyar. Sayisal alanlar kisa oldugu icin cep ekraninda
 /// bile rahat sigar ve form yuksekligi yariya iner.
 class FormRow extends StatelessWidget {
-  const FormRow({super.key, required this.left, this.right});
+  const FormRow({
+    super.key,
+    required this.left,
+    this.right,
+    this.stackBelow = AppLayout.compactForm,
+  });
 
   final Widget left;
 
   /// Tek sayida alan kaldiginda bos birakilir; sol alan yarim genislikte durur
   /// ki hizalama bozulmasin.
   final Widget? right;
+  final double stackBelow;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: left),
-        const SizedBox(width: 10),
-        Expanded(child: right ?? const SizedBox.shrink()),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (right != null && constraints.maxWidth < stackBelow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [left, right!],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: left),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: right ?? const SizedBox.shrink()),
+          ],
+        );
+      },
     );
   }
 }
@@ -238,11 +444,13 @@ class DateTimeField extends StatelessWidget {
   const DateTimeField({
     super.key,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
+    this.fillColor,
   });
 
   final DateTime? value;
-  final ValueChanged<DateTime> onChanged;
+  final Color? fillColor;
+  final ValueChanged<DateTime>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -258,26 +466,43 @@ class DateTimeField extends StatelessWidget {
         alignment: Alignment.centerLeft,
         minimumSize: const Size(double.infinity, AppTokens.tap),
         foregroundColor: t.ink,
+        disabledForegroundColor: t.primaryDark,
+        backgroundColor: fillColor ?? t.card,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        side: BorderSide(
+          color: fillColor != null ? Colors.transparent : t.border,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
       ),
-      onPressed: () async {
-        final base = value ?? DateTime.now();
-        final date = await showDatePicker(
-          context: context,
-          initialDate: base,
-          firstDate: DateTime(base.year - 2),
-          lastDate: DateTime(base.year + 2),
-        );
-        if (date == null) return;
-        if (!context.mounted) return;
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
-        );
-        if (time == null) return;
-        onChanged(
-          DateTime(date.year, date.month, date.day, time.hour, time.minute),
-        );
-      },
+      onPressed: onChanged == null
+          ? null
+          : () async {
+              final base = value ?? DateTime.now();
+              final date = await showDatePicker(
+                context: context,
+                initialDate: base,
+                firstDate: DateTime(base.year - 2),
+                lastDate: DateTime(base.year + 2),
+              );
+              if (date == null) return;
+              if (!context.mounted) return;
+              final time = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
+              );
+              if (time == null) return;
+              onChanged!(
+                DateTime(
+                  date.year,
+                  date.month,
+                  date.day,
+                  time.hour,
+                  time.minute,
+                ),
+              );
+            },
     );
   }
 }

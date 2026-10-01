@@ -6,6 +6,7 @@ import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/daily_report.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/mobile_sheet.dart';
 
 /// Rapor degerlerini tipine gore bicimler. Payda sifirsa "-" gosterilir.
 String formatReportValue(num? value, String type) {
@@ -36,11 +37,14 @@ Future<bool?> showDailyReportDialog(
   BuildContext context, {
   required ReportFields fields,
   DailyReport? existing,
+  DateTime? initialDate,
 }) async {
   if (fields.entry.isEmpty) return null;
 
   final editing = existing != null;
-  var date = editing ? DateTime.parse(existing.date) : DateTime.now();
+  var date = editing
+      ? DateTime.parse(existing.date)
+      : (initialDate ?? DateTime.now());
   final controllers = {
     for (final f in fields.entry) f.key: TextEditingController(),
   };
@@ -63,6 +67,7 @@ Future<bool?> showDailyReportDialog(
     loadedFor = key;
     try {
       final day = await repo.dailyReportFor(key);
+      if (key != dayKey(date)) return;
       system = day.suggested;
       // Duzenlemede alanlar zaten dolu; ustune yazilmaz.
       if (!editing) {
@@ -78,20 +83,24 @@ Future<bool?> showDailyReportDialog(
     rebuild();
   }
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
+      mobileSheet: true,
       title: editing ? 'Günlük Raporu Düzenle' : 'Günlük Rapor',
+      headerIcon: Icons.receipt_long_rounded,
+      subtitle: '• Kasa Kapanış & Vardiya Girişi',
       submitLabel: editing ? 'Güncelle' : 'Kaydet',
+      submitColor: context.tokens.primary,
       fields: (context, rebuild) {
         loadDay(rebuild);
         final t = context.tokens;
         return [
           LabeledField(
-            label: 'Tarih',
+            label: 'Tarih & Vardiya Saati',
             hint: editing
                 ? 'Tarih değiştirilemez. Farklı bir gün için kaydı silip yeniden girin.'
-                : 'Aynı gün için tekrar giriş mevcut kaydı günceller.',
+                : 'Aynı gün için tekrar giriş mevcut kaydı otomatik günceller.',
             child: editing
                 ? InputDecorator(
                     decoration: const InputDecoration(),
@@ -101,12 +110,51 @@ Future<bool?> showDailyReportDialog(
                     ),
                   )
                 : DateTimeField(
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? t.bg
+                        : t.bg,
                     value: date,
                     onChanged: (v) {
                       date = v;
                       rebuild();
                     },
                   ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'MANUEL KASA GİRİŞLERİ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: t.muted,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '• Birimler senkronize',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: t.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           // Sayisal alanlar kisa; ikili satirlarda form yuksekligi yariya iner.
           ...pairFields(
@@ -119,10 +167,35 @@ Future<bool?> showDailyReportDialog(
                       keyboardType: TextInputType.numberWithOptions(
                         decimal: !f.isInt,
                       ),
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                       decoration: InputDecoration(
-                        suffixText: f.type == 'money' ? '₺' : null,
-                        hintText: f.isInt ? 'adet' : null,
+                        suffixText: f.type == 'money'
+                            ? '₺'
+                            : f.isInt
+                            ? 'adet'
+                            : null,
+                        hintText: f.isInt ? '0' : '0,00',
+                        isDense: true,
+                        filled: true,
+                        fillColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? t.bg
+                            : t.bg,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.transparent),
+                        ),
                       ),
                     ),
                   ),
@@ -132,68 +205,129 @@ Future<bool?> showDailyReportDialog(
           // Sistemden gelen food alanlari: okunur, girilmez.
           if (fields.system.isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: t.primarySoft,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: t.border),
+                color: t.successSoft,
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 15, color: t.primary),
-                      const SizedBox(width: 6),
+                      Icon(Icons.auto_awesome, size: 13, color: t.primary),
+                      const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Sistemden gelen değerler',
+                          'SİSTEMDEN GELEN DEĞERLER',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: t.primary,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.successSoft,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '• Canlı POS',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: t.okText,
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  ...fields.system.map(
-                    (f) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              f.label,
-                              style: TextStyle(fontSize: 13, color: t.muted),
-                            ),
+                  Row(
+                    children: fields.system.map((f) {
+                      return Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 5,
                           ),
-                          Text(
-                            formatReportValue(system[f.key], f.type),
+                          decoration: BoxDecoration(
+                            color: t.card,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: t.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                f.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: t.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                formatReportValue(system[f.key], f.type),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: t.ink,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: t.card.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.calculate_outlined,
+                          size: 13,
+                          color: t.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'FOOD alanları o günün pasta satış ve zayi kayıtlarından hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: t.ink,
+                              fontSize: 11,
+                              color: t.muted,
+                              height: 1.5,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'FOOD alanları o günün pasta satış ve zayi kayıtlarından '
-              'hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, '
-              'MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
-              style: TextStyle(fontSize: 12, color: context.tokens.muted),
-            ),
-          ),
         ];
       },
       onSubmit: () async {
@@ -203,11 +337,11 @@ Future<bool?> showDailyReportDialog(
           if (raw.isEmpty) return '${f.label} zorunludur';
           final n = num.tryParse(raw);
           if (n == null || n < 0) {
-              return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
-            }
+            return '${f.label} 0 veya daha büyük bir sayı olmalıdır';
+          }
           if (f.isInt && n != n.roundToDouble()) {
-              return '${f.label} tam sayı olmalıdır';
-            }
+            return '${f.label} tam sayı olmalıdır';
+          }
           values[f.key] = f.isInt ? n.toInt() : n;
         }
         try {
@@ -271,8 +405,8 @@ Future<void> showDailyReportDetail(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(fmtDate(report.date)),
-      content: SizedBox(
-        width: 420,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

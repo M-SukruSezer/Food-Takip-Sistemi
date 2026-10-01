@@ -6,6 +6,9 @@ import '../core/remember.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import '../widgets/login_art.dart';
+import '../core/login_branding.dart';
+
+import 'package:flutter/services.dart';
 
 /// Giris ekrani. Duzen referans tasarimdan alindi: ustte yuvarlak kose beyaz
 /// kart (marka + illustrasyon), altta marka renginde panel (baslik, beyaz hap
@@ -29,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _restoreRemembered();
+    loadLoginArtwork().catchError((Object _) {});
   }
 
   /// React'teki "Beni hatirla" ile ayni davranis: yalnizca kullanici adi
@@ -52,13 +56,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     // Cift gonderim korumasi: Enter'a arka arkaya basmak ikinci istek atmaz.
     if (_busy) return;
+    // Bos alan dogrulamasi: gereksiz ag istegi atmasin.
+    final user = _username.text.trim();
+    final pass = _password.text;
+    if (user.isEmpty || pass.isEmpty) {
+      setState(() => _error = 'Kullanıcı adı ve şifre boş bırakılamaz.');
+      return;
+    }
+    FocusScope.of(context).unfocus();
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await session.signIn(_username.text.trim(), _password.text);
-      await setRememberedUsername(_remember ? _username.text.trim() : null);
+      await session.signIn(user, pass);
+      await setRememberedUsername(_remember ? user : null);
+      TextInput.finishAutofillContext();
     } catch (e) {
       if (mounted) setState(() => _error = errorMessage(e));
     } finally {
@@ -69,204 +82,229 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final media = MediaQuery.of(context);
 
-    // Zemin ve uzerindeki yazi temayla gelir: acik temada acik gri + koyu
-    // yazi, koyu temada lacivert + acik yazi.
-    final panel = t.bg;
+    // Formun devamindaki bos alan kartla ayni renkte kalir. Acik temada bu
+    // renk saf beyazdir; boylece butonun altinda kirik beyaz bant olusmaz.
+    final panel = t.card;
     final onPanel = t.ink;
 
     return Scaffold(
       backgroundColor: panel,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _Art(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Hoş geldin!',
-                          style: TextStyle(
-                            fontSize: 34,
-                            height: 1.05,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                            color: onPanel,
-                          ),
+      body: AutofillGroup(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _Art(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: t.card,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(32),
                         ),
-                        const SizedBox(height: 22),
-                        if (_error != null) ...[
-                          _ErrorPill(
-                            message: _error!,
-                            card: t.card,
-                            danger: t.danger,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 16,
+                            offset: const Offset(0, -4),
                           ),
-                          const SizedBox(height: 12),
                         ],
-                        _PillField(
-                          controller: _username,
-                          hint: 'Kullanıcı adı',
-                          icon: Icons.person_outline,
-                          card: t.card,
-                          ink: t.ink,
-                          muted: t.muted,
-                          border: t.border,
-                          accent: t.primary,
-                          ring: t.primary.withValues(alpha: 0.35),
-                          autofill: const [AutofillHints.username],
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 12),
-                        _PillField(
-                          controller: _password,
-                          hint: 'Şifre',
-                          icon: Icons.lock_outline,
-                          card: t.card,
-                          ink: t.ink,
-                          muted: t.muted,
-                          border: t.border,
-                          accent: t.primary,
-                          ring: t.primary.withValues(alpha: 0.35),
-                          autofill: const [AutofillHints.password],
-                          obscure: _obscure,
-                          onSubmitted: (_) => _submit(),
-                          trailing: IconButton(
-                            // 44px dokunma hedefi
-                            constraints: const BoxConstraints(
-                              minWidth: AppTokens.tap,
-                              minHeight: AppTokens.tap,
+                      ),
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Hoş geldin!',
+                            style: TextStyle(
+                              fontSize: 28,
+                              height: 1.1,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: onPanel,
                             ),
-                            icon: Icon(
-                              _obscure
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Lütfen hesabınıza giriş yapın',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                               color: t.muted,
                             ),
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
-                            tooltip: 'Şifreyi göster',
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        // React istemcisiyle ayni duzen: solda "Beni hatirla",
-                        // sagda "Sifremi unuttum?".
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: InkWell(
-                                onTap: () =>
-                                    setState(() => _remember = !_remember),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: AppTokens.tap,
-                                        height: AppTokens.tap,
-                                        child: Checkbox(
-                                          value: _remember,
-                                          onChanged: (v) => setState(
-                                            () => _remember = v ?? false,
-                                          ),
-                                          side: BorderSide(
-                                            color: onPanel,
-                                            width: 2,
-                                          ),
-                                          checkColor: panel,
-                                          fillColor:
-                                              WidgetStateProperty.resolveWith(
-                                                (states) =>
-                                                    states.contains(
-                                                      WidgetState.selected,
-                                                    )
-                                                    ? onPanel
-                                                    : Colors.transparent,
-                                              ),
-                                        ),
-                                      ),
-                                      Flexible(
-                                        child: Text(
-                                          'Beni hatırla',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: onPanel,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                          const SizedBox(height: 16),
+                          if (_error != null) ...[
+                            _ErrorPill(
+                              message: _error!,
+                              card: t.card,
+                              danger: t.danger,
                             ),
-                            TextButton(
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(0, AppTokens.tap),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                foregroundColor: onPanel,
-                              ),
-                              onPressed: () => toast(
-                                'Şifre sıfırlama için yöneticinle iletişime geç',
-                              ),
-                              child: const Text(
-                                'Şifremi unuttum?',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Siyah hap dugme: koyu temada ink acik renge dondugu
-                        // icin yazi kart rengiyle okunur kalir.
-                        SizedBox(
-                          height: 56,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: t.ink,
-                              foregroundColor: t.card,
-                              disabledBackgroundColor: t.ink.withValues(
-                                alpha: 0.55,
+                          _PillField(
+                            controller: _username,
+                            hint: 'Kullanıcı adı',
+                            icon: Icons.alternate_email_rounded,
+                            card: t.bg,
+                            ink: t.ink,
+                            muted: t.muted,
+                            border: t.border.withValues(alpha: 0.6),
+                            accent: t.primary,
+                            ring: t.primary.withValues(alpha: 0.35),
+                            autofill: const [AutofillHints.username],
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 12),
+                          _PillField(
+                            controller: _password,
+                            hint: 'Şifre',
+                            icon: Icons.shield_outlined,
+                            card: t.bg,
+                            ink: t.ink,
+                            muted: t.muted,
+                            border: t.border.withValues(alpha: 0.6),
+                            accent: t.primary,
+                            ring: t.primary.withValues(alpha: 0.35),
+                            autofill: const [AutofillHints.password],
+                            obscure: _obscure,
+                            onSubmitted: (_) => _submit(),
+                            trailing: IconButton(
+                              // 44px dokunma hedefi
+                              constraints: const BoxConstraints(
+                                minWidth: AppTokens.tap,
+                                minHeight: AppTokens.tap,
                               ),
-                              disabledForegroundColor: t.card.withValues(
-                                alpha: 0.8,
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 20,
+                                color: t.muted,
                               ),
-                              shape: const StadiumBorder(),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            onPressed: _busy ? null : _submit,
-                            child: Text(
-                              _busy ? 'Giriş yapılıyor...' : 'Giriş Yap',
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              tooltip: 'Şifreyi göster',
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          // React istemcisiyle ayni duzen: solda "Beni hatirla",
+                          // sagda "Sifremi unuttum?".
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: InkWell(
+                                  onTap: () =>
+                                      setState(() => _remember = !_remember),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: AppTokens.tap,
+                                          height: AppTokens.tap,
+                                          child: Checkbox(
+                                            value: _remember,
+                                            onChanged: (v) => setState(
+                                              () => _remember = v ?? false,
+                                            ),
+                                            side: BorderSide(
+                                              color: t.border,
+                                              width: 1.5,
+                                            ),
+                                            activeColor: t.primary,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            'Beni hatırla',
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: onPanel,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, AppTokens.tap),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  foregroundColor: t.primary,
+                                ),
+                                onPressed: () => toast(
+                                  'Şifre sıfırlama için yöneticinle iletişime geç',
+                                ),
+                                child: const Text(
+                                  'Şifremi unuttum?',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Siyah hap dugme: koyu temada ink acik renge dondugu
+                          // icin yazi kart rengiyle okunur kalir.
+                          SizedBox(
+                            height: 52,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFF115E59),
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: t.ink.withValues(
+                                  alpha: 0.55,
+                                ),
+                                disabledForegroundColor: t.card.withValues(
+                                  alpha: 0.8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                textStyle: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge!
+                                    .copyWith(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              onPressed: _busy ? null : _submit,
+                              child: Text(
+                                _busy ? 'Giriş yapılıyor...' : 'Giriş Yap',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -276,47 +314,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// Ustteki illustrasyon. Kart yok: gorsel dogrudan sayfa zemini uzerinde
-/// duruyor.
-///
-/// Koyu temada gorselin siyah konturlari lacivert zeminle birlesiyordu; bu
-/// yuzden yalnizca koyu temada arkasina acik bir daire konur. Acik temada
-/// zemin zaten aciktir, daireye gerek yok.
+/// Ustteki illustrasyon ekran genisligini kaplayan, cihaz yuksekligine gore
+/// olceklenen bir kapak gorseli olarak gosterilir.
 class _Art extends StatelessWidget {
   const _Art();
 
-  /// Daire, gorselin kare kutusu kadar; gorsel biraz iceri alinir ki en
-  /// distaki parmak uclari dairenin kenarina dayanmasin.
-  static const double _inset = 0.045;
-
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final height = (MediaQuery.sizeOf(context).height * 0.30).clamp(
-      170.0,
-      280.0,
+    final media = MediaQuery.of(context);
+    final keyboardOpen = media.viewInsets.bottom > 0;
+
+    final art = const ColoredBox(
+      color: Colors.white,
+      child: LoginArt(fit: BoxFit.fitWidth),
     );
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: SizedBox(
-        height: height,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Container(
-              padding: dark ? EdgeInsets.all(height * _inset) : EdgeInsets.zero,
-              decoration: dark
-                  ? const BoxDecoration(
-                      color: Color(0xFFFFFFFF),
-                      shape: BoxShape.circle,
-                    )
-                  : null,
-              child: const LoginArt(),
-            ),
-          ),
-        ),
-      ),
+    return ClipRect(
+      key: const Key('loginHero'),
+      child: keyboardOpen
+          ? SizedBox(width: double.infinity, height: 80, child: art)
+          : art,
     );
   }
 }
@@ -389,8 +406,11 @@ class _PillFieldState extends State<_PillField> {
       height: 56,
       decoration: BoxDecoration(
         color: widget.card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: widget.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _focus.hasFocus ? widget.accent : widget.border,
+          width: _focus.hasFocus ? 1.5 : 1.0,
+        ),
         boxShadow: _focus.hasFocus
             ? [BoxShadow(color: widget.ring, spreadRadius: 3, blurRadius: 0)]
             : null,
@@ -405,6 +425,8 @@ class _PillFieldState extends State<_PillField> {
               controller: widget.controller,
               focusNode: _focus,
               obscureText: widget.obscure,
+              autocorrect: false,
+              enableSuggestions: false,
               autofillHints: widget.autofill,
               textInputAction: widget.textInputAction,
               onSubmitted: widget.onSubmitted,

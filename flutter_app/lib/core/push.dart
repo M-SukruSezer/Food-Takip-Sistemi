@@ -147,8 +147,11 @@ Future<void> initPush() async {
       await _isaretiIlerlet(_sayi(mesaj.data['user_id']), id);
       final n = mesaj.notification;
       if (n == null) return;
-      await _goster(id ?? DateTime.now().millisecondsSinceEpoch % 100000,
-          n.title ?? 'Bildirim', n.body ?? '');
+      await _goster(
+        id ?? DateTime.now().millisecondsSinceEpoch % 100000,
+        n.title ?? 'Bildirim',
+        n.body ?? '',
+      );
     });
 
     _fcmHazir = true;

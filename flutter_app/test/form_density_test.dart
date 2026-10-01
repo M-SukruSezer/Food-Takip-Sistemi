@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:foodtakip/core/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodtakip/models/daily_report.dart';
@@ -7,12 +11,23 @@ import 'package:foodtakip/widgets/dialogs.dart';
 
 import 'support/fake_api.dart';
 
+import 'package:foodtakip/widgets/mobile_sheet.dart';
+
 /// Cep ekraninda formlarin sigdigini dogrular.
 ///
 /// Olculen sorun: 375x667 telefonda gunluk rapor formu 1011px icerik uretip
 /// 640px kaydirma gerektiriyordu ve dialog ekranin tamamini kapliyordu.
 void main() {
-  setUpAll(initTestFormatting);
+  setUpAll(() async {
+    initTestFormatting();
+    final font = FontLoader('Roboto')
+      ..addFont(
+        File('assets/fonts/NotoSans-Regular.ttf')
+            .readAsBytes()
+            .then(ByteData.sublistView),
+      );
+    await font.load();
+  });
 
   const phone = Size(375, 667);
 
@@ -23,14 +38,20 @@ void main() {
   }
 
   /// Dialogun kaydirma miktari ve gercek kutusu.
-  ({double content, double viewport, double scroll, Size box, Offset at}) measure(
-      WidgetTester tester) {
+  ({double content, double viewport, double scroll, Size box, Offset at})
+  measure(WidgetTester tester) {
     final scroll = find
-        .descendant(of: find.byType(AlertDialog), matching: find.byType(Scrollable))
+        .descendant(
+          of: find.byType(MobileSheet),
+          matching: find.byType(Scrollable),
+        )
         .first;
     final pos = tester.state<ScrollableState>(scroll).position;
     final mat = find
-        .descendant(of: find.byType(AlertDialog), matching: find.byType(Material))
+        .descendant(
+          of: find.byType(MobileSheet),
+          matching: find.byType(Material),
+        )
         .first;
     return (
       content: pos.maxScrollExtent + pos.viewportDimension,
@@ -58,44 +79,76 @@ void main() {
     'derived': [],
   });
 
-  Future<void> open(WidgetTester tester, Future<void> Function(BuildContext) show) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (ctx) => ElevatedButton(onPressed: () => show(ctx), child: const Text('aç')),
+  Future<void> open(
+    WidgetTester tester,
+    Future<void> Function(BuildContext) show,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(Brightness.light),
+        home: Builder(
+          builder: (ctx) => ElevatedButton(
+            onPressed: () => show(ctx),
+            child: const Text('aç'),
+          ),
+        ),
       ),
-    ));
+    );
     await tester.tap(find.text('aç'));
     await tester.pumpAndSettle();
   }
 
   group('Cep ekranında form yoğunluğu', () {
-    testWidgets('dialog ekrana yapışmaz, kenarda boşluk kalır', (tester) async {
+    testWidgets('mobil panel tam genişlikte ve üstte boşluk bırakarak açılır', (
+      tester,
+    ) async {
       onPhone(tester);
       installFakeApi({
         'GET /daily-reports/day/2026-09-25': {'report': null, 'suggested': {}},
       });
       signInAs('store_manager', storeId: 1);
 
-      await open(tester, (ctx) => showDailyReportDialog(ctx, fields: reportFields));
+      await open(
+        tester,
+        (ctx) => showDailyReportDialog(
+          ctx,
+          fields: reportFields,
+          initialDate: DateTime(2026, 9, 25),
+        ),
+      );
       final m = measure(tester);
 
-      // Dialog ekrandan dar ve kenarlarda bosluk var.
-      expect(m.box.width, lessThan(phone.width));
-      expect(m.at.dx, greaterThanOrEqualTo(12));
+      // Yeni tasarım alttan tam genişlikte açılır.
+      expect(m.box.width, phone.width);
+      expect(m.at.dx, 0);
+      expect(m.at.dy, greaterThan(0));
       expect(m.box.height, lessThan(phone.height));
     });
 
-    testWidgets('günlük rapor formu ölçülebilir ölçüde kısaldı', (tester) async {
+    testWidgets('günlük rapor formu ölçülebilir ölçüde kısaldı', (
+      tester,
+    ) async {
       onPhone(tester);
       installFakeApi({
         'GET /daily-reports/day/2026-09-25': {
           'report': null,
-          'suggested': {'food_usd': 31, 'food_usd_try': 5980, 'food_mo_try': 400},
+          'suggested': {
+            'food_usd': 31,
+            'food_usd_try': 5980,
+            'food_mo_try': 400,
+          },
         },
       });
       signInAs('store_manager', storeId: 1);
 
-      await open(tester, (ctx) => showDailyReportDialog(ctx, fields: reportFields));
+      await open(
+        tester,
+        (ctx) => showDailyReportDialog(
+          ctx,
+          fields: reportFields,
+          initialDate: DateTime(2026, 9, 25),
+        ),
+      );
       final m = measure(tester);
 
       // Onceki tasarim: 1011px icerik, 640px kaydirma.
@@ -110,9 +163,19 @@ void main() {
       });
       signInAs('store_manager', storeId: 1);
 
-      await open(tester, (ctx) => showDailyReportDialog(ctx, fields: reportFields));
+      await open(
+        tester,
+        (ctx) => showDailyReportDialog(
+          ctx,
+          fields: reportFields,
+          initialDate: DateTime(2026, 9, 25),
+        ),
+      );
 
-      final rows = find.descendant(of: find.byType(AlertDialog), matching: find.byType(FormRow));
+      final rows = find.descendant(
+        of: find.byType(MobileSheet),
+        matching: find.byType(FormRow),
+      );
       expect(rows, findsNWidgets(3));
 
       // Yan yana duran alanlar ayni hizada.
@@ -123,7 +186,9 @@ void main() {
 
     testWidgets('petty cash formunda tutar ve tarih yan yana', (tester) async {
       onPhone(tester);
-      installFakeApi({'GET /petty-cash': {'items': [], 'status': null}});
+      installFakeApi({
+        'GET /petty-cash': {'items': [], 'status': null},
+      });
       signInAs('store_manager', storeId: 1);
 
       await open(tester, (ctx) => showExpenseDialog(ctx));
@@ -140,7 +205,9 @@ void main() {
 
   test('pairFields tek sayıda alanı boş eşle tamamlar', () {
     final rows = pairFields([
-      const Text('a'), const Text('b'), const Text('c'),
+      const Text('a'),
+      const Text('b'),
+      const Text('c'),
     ]);
     expect(rows.length, 2);
     expect((rows[1] as FormRow).right, isNull);

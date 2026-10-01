@@ -33,18 +33,22 @@ class PettyCashStatus {
   final num? usedPct;
 
   factory PettyCashStatus.fromJson(Map<String, dynamic> j) => PettyCashStatus(
-        weeklyLimit: _num(j['weekly_limit']),
-        spentThisWeek: _num(j['spent_this_week']),
-        remaining: _num(j['remaining']),
-        expenseCount: _int(j['expense_count']),
-        limitSet: j['limit_set'] == true,
-        overLimit: j['over_limit'] == true,
-        usedPct: _numOrNull(j['used_pct']),
-      );
+    weeklyLimit: _num(j['weekly_limit']),
+    spentThisWeek: _num(j['spent_this_week']),
+    remaining: _num(j['remaining']),
+    expenseCount: _int(j['expense_count']),
+    limitSet: j['limit_set'] == true,
+    overLimit: j['over_limit'] == true,
+    usedPct: _numOrNull(j['used_pct']),
+  );
 
   static const empty = PettyCashStatus(
-    weeklyLimit: 0, spentThisWeek: 0, remaining: 0,
-    expenseCount: 0, limitSet: false, overLimit: false,
+    weeklyLimit: 0,
+    spentThisWeek: 0,
+    remaining: 0,
+    expenseCount: 0,
+    limitSet: false,
+    overLimit: false,
   );
 }
 
@@ -90,28 +94,35 @@ class RevenuePace {
   final DailyReport? today;
 
   factory RevenuePace.fromJson(Map<String, dynamic> j) => RevenuePace(
-        month: j['month'] as String? ?? '',
-        daysInMonth: _int(j['days_in_month']),
-        daysElapsed: _int(j['days_elapsed']),
-        daysWithData: _int(j['days_with_data']),
-        daysMissing: _int(j['days_missing']),
-        mtdNetSales: _num(j['mtd_net_sales']),
-        remainingDays: _int(j['remaining_days']),
-        monthTotals: ((j['month_totals'] as Map<String, dynamic>?) ?? {})
-            .map((k, v) => MapEntry(k, _num(v))),
-        monthMetrics: j['month_metrics'] == null
-            ? ReportMetrics.empty
-            : ReportMetrics.fromJson(j['month_metrics'] as Map<String, dynamic>),
-        dailyAvg: _numOrNull(j['daily_avg']),
-        forecastMonthEnd: _numOrNull(j['forecast_month_end']),
-        today: j['today'] == null
-            ? null
-            : DailyReport.fromJson(j['today'] as Map<String, dynamic>),
-      );
+    month: j['month'] as String? ?? '',
+    daysInMonth: _int(j['days_in_month']),
+    daysElapsed: _int(j['days_elapsed']),
+    daysWithData: _int(j['days_with_data']),
+    daysMissing: _int(j['days_missing']),
+    mtdNetSales: _num(j['mtd_net_sales']),
+    remainingDays: _int(j['remaining_days']),
+    monthTotals: ((j['month_totals'] as Map<String, dynamic>?) ?? {}).map(
+      (k, v) => MapEntry(k, _num(v)),
+    ),
+    monthMetrics: j['month_metrics'] == null
+        ? ReportMetrics.empty
+        : ReportMetrics.fromJson(j['month_metrics'] as Map<String, dynamic>),
+    dailyAvg: _numOrNull(j['daily_avg']),
+    forecastMonthEnd: _numOrNull(j['forecast_month_end']),
+    today: j['today'] == null
+        ? null
+        : DailyReport.fromJson(j['today'] as Map<String, dynamic>),
+  );
 
   static const empty = RevenuePace(
-    month: '', daysInMonth: 0, daysElapsed: 0, daysWithData: 0, daysMissing: 0,
-    mtdNetSales: 0, remainingDays: 0, monthTotals: {},
+    month: '',
+    daysInMonth: 0,
+    daysElapsed: 0,
+    daysWithData: 0,
+    daysMissing: 0,
+    mtdNetSales: 0,
+    remainingDays: 0,
+    monthTotals: {},
     monthMetrics: ReportMetrics.empty,
   );
 }
@@ -157,7 +168,8 @@ class StockCoverageItem {
   /// 0 stok yok, 1 <3 gun, 2 <7 gun, 3 yeterli, null satis yok.
   final int? risk;
 
-  factory StockCoverageItem.fromJson(Map<String, dynamic> j) => StockCoverageItem(
+  factory StockCoverageItem.fromJson(Map<String, dynamic> j) =>
+      StockCoverageItem(
         productTypeId: _int(j['product_type_id']),
         name: j['name'] as String? ?? '',
         frozenQty: _int(j['frozen_qty']),
@@ -182,11 +194,11 @@ class StockCoverage {
   final List<StockCoverageItem> items;
 
   factory StockCoverage.fromJson(Map<String, dynamic> j) => StockCoverage(
-        windowDays: _int(j['window_days']),
-        items: ((j['items'] as List<dynamic>?) ?? [])
-            .map((e) => StockCoverageItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    windowDays: _int(j['window_days']),
+    items: ((j['items'] as List<dynamic>?) ?? [])
+        .map((e) => StockCoverageItem.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 
   static const empty = StockCoverage(windowDays: 14, items: []);
 }
@@ -206,17 +218,17 @@ class ManagerOverview {
   final StockCoverage stock;
 
   factory ManagerOverview.fromJson(Map<String, dynamic> j) => ManagerOverview(
-        storeName: (j['store'] as Map<String, dynamic>?)?['name'] as String?,
-        pettyCash: j['petty_cash'] == null
-            ? PettyCashStatus.empty
-            : PettyCashStatus.fromJson(j['petty_cash'] as Map<String, dynamic>),
-        revenue: j['revenue'] == null
-            ? RevenuePace.empty
-            : RevenuePace.fromJson(j['revenue'] as Map<String, dynamic>),
-        stock: j['stock'] == null
-            ? StockCoverage.empty
-            : StockCoverage.fromJson(j['stock'] as Map<String, dynamic>),
-      );
+    storeName: (j['store'] as Map<String, dynamic>?)?['name'] as String?,
+    pettyCash: j['petty_cash'] == null
+        ? PettyCashStatus.empty
+        : PettyCashStatus.fromJson(j['petty_cash'] as Map<String, dynamic>),
+    revenue: j['revenue'] == null
+        ? RevenuePace.empty
+        : RevenuePace.fromJson(j['revenue'] as Map<String, dynamic>),
+    stock: j['stock'] == null
+        ? StockCoverage.empty
+        : StockCoverage.fromJson(j['stock'] as Map<String, dynamic>),
+  );
 
   static const empty = ManagerOverview(
     storeName: null,
