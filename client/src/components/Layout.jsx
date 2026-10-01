@@ -6,7 +6,7 @@ import {
 import { useAuth } from '../auth';
 import {
   ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES,
-  HR_ROLES,
+  HR_ROLES, PDKS_ROLES, OPERATIONS_ROLES,
 } from '../format';
 import api from '../api';
 import { Avatar, Confirm } from './ui';
@@ -31,10 +31,10 @@ export const NAV_SECTIONS = [
       {
         title: 'PDKS & Kadro',
         items: [
-          { to: '/pdks', label: 'Devam Takibi', short: 'Devam', ico: Clock, roles: ALL_ROLES, tab: true, desc: 'Giriş/çıkış, mola süreleri ve QR doğrulama', tone: 'success', live: true },
+          { to: '/pdks', label: 'Devam Takibi', short: 'Devam', ico: Clock, roles: PDKS_ROLES, tab: true, desc: 'Giriş/çıkış, mola süreleri ve QR doğrulama', tone: 'success', live: true },
           // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
           // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
-          { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: ALL_ROLES, tab: true, desc: 'Haftalık nöbet planı ve çalışma saatleri', tone: 'muted' },
+          { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: PDKS_ROLES, tab: true, desc: 'Haftalık nöbet planı ve çalışma saatleri', tone: 'muted' },
           { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true, desc: 'Yıllık izin talepleri, mazeret ve onaylar', tone: 'muted' },
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden
@@ -53,9 +53,9 @@ export const NAV_SECTIONS = [
       {
         title: 'Mağaza & Ürün Operasyonları',
         items: [
-          { to: '/dashboard', label: 'Ana Sayfa', short: 'Ana Sayfa', ico: Home, roles: ALL_ROLES, tab: true, desc: 'Günlük özet ve operasyon paneli', tone: 'primary' },
-          { to: '/recommendations', label: 'SKT & Aksiyon Takibi', short: 'Öneri', ico: Flame, roles: ALL_ROLES, tab: true, badge: true, desc: 'Yaklaşan son kullanma & fire aksiyonları', tone: 'warning' },
-          { to: '/batches', label: 'Ürünler & Donuk Depo', short: 'Ürünler', ico: Package, roles: ALL_ROLES, tab: true, desc: 'Donuk stok sayımı, çözünme ve vitrin', tone: 'info' },
+          { to: '/dashboard', label: 'Ana Sayfa', short: 'Ana Sayfa', ico: Home, roles: OPERATIONS_ROLES, tab: true, desc: 'Günlük özet ve operasyon paneli', tone: 'primary' },
+          { to: '/recommendations', label: 'SKT & Aksiyon Takibi', short: 'Öneri', ico: Flame, roles: OPERATIONS_ROLES, tab: true, badge: true, desc: 'Yaklaşan son kullanma & fire aksiyonları', tone: 'warning' },
+          { to: '/batches', label: 'Ürünler & Donuk Depo', short: 'Ürünler', ico: Package, roles: OPERATIONS_ROLES, tab: true, desc: 'Donuk stok sayımı, çözünme ve vitrin', tone: 'info' },
           { to: '/product-types', label: 'Pasta Çeşitleri & Raf Ömrü', ico: Cake, roles: MANAGER_ROLES, desc: 'Reçete, vitrin saati ve porsiyon takibi', tone: 'accent' },
           { to: '/petty-cash', label: 'Kasa, Petty Cash & Satış', ico: Receipt, roles: PETTY_CASH_ROLES, desc: 'Günlük ciro, gider fişleri ve kasa teslimi', tone: 'success' },
         ],
@@ -65,8 +65,8 @@ export const NAV_SECTIONS = [
         items: [
           { to: '/daily-report', label: 'Rapor Paneli', ico: BarChart3, roles: REPORT_PANEL_ROLES, desc: 'Aylık ciro ve satış tahmini', tone: 'info' },
           { to: '/stock-coverage', label: 'Stok Yeterliliği', ico: Snowflake, roles: REPORT_PANEL_ROLES, desc: 'Tüketim hızı ve stok gün sayısı', tone: 'info' },
-          { to: '/sales', label: 'Hareket Raporu', short: 'Rapor', ico: Banknote, roles: ALL_ROLES, tab: true, desc: 'Satış, ikram ve zayi kayıtları', tone: 'muted' },
-          { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: ALL_ROLES, desc: 'Sistem denetim günlüğü', tone: 'muted' },
+          { to: '/sales', label: 'Hareket Raporu', short: 'Rapor', ico: Banknote, roles: OPERATIONS_ROLES, tab: true, desc: 'Satış, ikram ve zayi kayıtları', tone: 'muted' },
+          { to: '/logs', label: 'Hareket Kayıtları', ico: ScrollText, roles: OPERATIONS_ROLES, desc: 'Sistem denetim günlüğü', tone: 'muted' },
           { to: '/approvals', label: 'Onaylar', ico: ClipboardCheck, roles: MANAGER_ROLES, desc: 'Erken aktarım isteklerini onayla', tone: 'muted' },
         ],
       },
@@ -206,9 +206,9 @@ export default function Layout() {
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    // Oneri rozetini yalnizca o listeyi goren roller icin iste; IK'da uc
-    // 403 donuyor, saniyede bir vurmanin anlami yok.
-    if (!user || !ALL_ROLES.includes(user.role)) return undefined;
+    // Oneri rozetini yalnizca o listeyi goren roller icin iste; IK ve
+    // baristada uc 403 donuyor, dakikada bir vurmanin anlami yok.
+    if (!user || !OPERATIONS_ROLES.includes(user.role)) return undefined;
     const loadCount = () => {
       api
         .get('/recommendations', { silent: true })
@@ -320,7 +320,9 @@ export default function Layout() {
             </span>
           </NavLink>
 
-          <NotificationBell />
+          {/* Bildirimler PDKS kaynaklı (izin, takas, vardiya); PDKS'i
+              görmeyen mağaza hesabında zil gösterilmez. */}
+          {PDKS_ROLES.includes(user.role) && <NotificationBell />}
 
           <button
             type="button"

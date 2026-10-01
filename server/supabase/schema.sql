@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'store_manager', 'shift_supervisor', 'barista')),
+  role TEXT NOT NULL CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'store_manager', 'shift_supervisor', 'store', 'barista')),
   avatar TEXT,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -129,6 +129,12 @@ CREATE INDEX IF NOT EXISTS idx_role_templates_store ON role_templates(store_id);
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 UPDATE users SET role = 'barista' WHERE role = 'staff';
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'hr', 'store_manager', 'shift_supervisor', 'barista'));
+
+-- Mağaza hesabı (store): mağazadaki ortak cihazın hesabı. Yalnızca operasyon
+-- alanını kullanır; PDKS personel listelerine girmez. Kısıt yeniden kurulur
+-- (yalnızca genişletir, mevcut satırları etkilemez).
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'operations_manager', 'regional_manager', 'hr', 'store_manager', 'shift_supervisor', 'store', 'barista'));
 
 -- Operations/regional manager birden fazla magazadan sorumlu olabilir; tek
 -- users.store_id yetmiyor. Diger roller tek magazaya bagli kalir.

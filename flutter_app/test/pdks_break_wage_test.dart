@@ -338,10 +338,11 @@ void main() {
   });
 
   group('Toplu vardiya cizelgesi', () {
-    test('menude TUM ekibe acik, IK haric', () {
+    test('menude TUM personele acik, IK ve magaza hesabi haric', () {
       final item = navItems.firstWhere((i) => i.path == '/roster');
       expect(item.label, 'Vardiya Çizelgesi');
-      expect(item.roles, allRoles);
+      expect(item.roles, pdksRoles);
+      expect(item.roles.contains('store'), isFalse);
       // Sunucu IK'yi cizelgeden 403 ile engelliyor; menude gorunmesi bozuk
       // ekrana goturuydu.
       expect(item.roles.contains('hr'), isFalse);

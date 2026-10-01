@@ -83,6 +83,8 @@ export const ROLE_ORDER = [
   'regional_manager',
   'store_manager',
   'shift_supervisor',
+  // Mağaza hesabı: mağazadaki ortak cihazın hesabı (kişi değil).
+  'store',
   'barista',
 ];
 
@@ -93,6 +95,7 @@ export const ROLE_LABELS = {
   regional_manager: 'Regional Manager',
   store_manager: 'Store Manager',
   shift_supervisor: 'Shift Supervisor',
+  store: 'Mağaza',
   barista: 'Barista',
 };
 
@@ -111,6 +114,13 @@ export const HR_ROLES = ['hr'];
 // ve kullanici modullerinin hicbirine erismiyor. ROLE_ORDER'dan turetiliyor
 // ki yeni bir rol eklendiginde iki liste ayrismasin.
 export const ALL_ROLES = ROLE_ORDER.filter((r) => !HR_ROLES.includes(r));
+
+// Uygulamanın iki alanı; sunucudaki ROLE_AREAS ile aynı kural (sunucu da
+// aynı ayrımı 403 ile uygular, istemci yalnızca menüyü buna göre çizer).
+//   Mağaza hesabı kişi değildir: mesai/izin tutmaz -> PDKS & Kadro'yu görmez.
+//   Barista operasyona girmez; stok/satış/zayi mağaza hesabından yapılır.
+export const PDKS_ROLES = ALL_ROLES.filter((r) => r !== 'store');
+export const OPERATIONS_ROLES = ALL_ROLES.filter((r) => r !== 'barista');
 
 // Rapor Panelini gorebilen roller. Ust kademeler bu paneli hic gormez.
 export const REPORT_PANEL_ROLES = ['store_manager', 'shift_supervisor'];

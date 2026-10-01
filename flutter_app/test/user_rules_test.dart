@@ -112,7 +112,7 @@ void main() {
 
     test('store manager yalnizca kendi altini olusturur', () {
       final roles = assignableRoles(_user(1, 'store_manager', storeId: 2));
-      expect(roles, ['shift_supervisor', 'barista']);
+      expect(roles, ['shift_supervisor', 'store', 'barista']);
     });
   });
 

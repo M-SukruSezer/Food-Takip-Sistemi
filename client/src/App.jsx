@@ -1,4 +1,4 @@
-import { ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES, HR_ROLES } from './format';
+import { MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES, HR_ROLES, PDKS_ROLES } from './format';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth';
 import Layout, { landingPathFor, allowedPaths } from './components/Layout';
@@ -87,8 +87,8 @@ export default function App() {
         <Route path="daily-report" element={<Guard roles={REPORT_PANEL_ROLES}><DailyReport /></Guard>} />
         <Route path="stock-coverage" element={<Guard roles={REPORT_PANEL_ROLES}><StockCoverage /></Guard>} />
         {/* Devam takibi: personel ekrani herkeste, yonetim ekrani yonetici rollerinde. */}
-        <Route path="pdks" element={<Guard roles={ALL_ROLES}><Pdks /></Guard>} />
-        <Route path="roster" element={<Guard roles={ALL_ROLES}><Roster /></Guard>} />
+        <Route path="pdks" element={<Guard roles={PDKS_ROLES}><Pdks /></Guard>} />
+        <Route path="roster" element={<Guard roles={PDKS_ROLES}><Roster /></Guard>} />
         <Route path="pdks-admin" element={<Guard roles={MANAGER_ROLES}><PdksAdmin /></Guard>} />
         <Route path="timesheet" element={<Guard roles={HR_ROLES}><Timesheet /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />

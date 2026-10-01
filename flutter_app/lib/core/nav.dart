@@ -54,7 +54,29 @@ const allRoles = [
   'regional_manager',
   'store_manager',
   'shift_supervisor',
+  'store',
   'barista',
+];
+
+/// Uygulamanın iki alanı; sunucudaki ROLE_AREAS ile aynı kural (sunucu da
+/// aynı ayrımı 403 ile uygular, istemci yalnızca menüyü buna göre çizer).
+///   Mağaza hesabı kişi değildir: mesai/izin tutmaz -> PDKS & Kadro'yu görmez.
+///   Barista operasyona girmez; stok/satış/zayi mağaza hesabından yapılır.
+const pdksRoles = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'barista',
+];
+const operationsRoles = [
+  'super_admin',
+  'operations_manager',
+  'regional_manager',
+  'store_manager',
+  'shift_supervisor',
+  'store',
 ];
 
 /// IK rolu. Operasyon ekranini HIC gormez; yalnizca magaza puantaji.
@@ -110,7 +132,7 @@ const navSections = <NavSection>[
             label: 'Devam Takibi',
             shortLabel: 'Devam',
             icon: Icons.schedule_outlined,
-            roles: allRoles,
+            roles: pdksRoles,
             inBottomBar: true,
           ),
           // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
@@ -120,7 +142,7 @@ const navSections = <NavSection>[
             label: 'Vardiya Çizelgesi',
             shortLabel: 'Çizelge',
             icon: Icons.calendar_view_week_outlined,
-            roles: allRoles,
+            roles: pdksRoles,
             inBottomBar: true,
           ),
           NavItem(
@@ -160,7 +182,7 @@ const navSections = <NavSection>[
             label: 'Ana Sayfa',
             shortLabel: 'Ana Sayfa',
             icon: Icons.home_outlined,
-            roles: allRoles,
+            roles: operationsRoles,
             inBottomBar: true,
           ),
           NavItem(
@@ -168,7 +190,7 @@ const navSections = <NavSection>[
             label: 'Ürünler',
             shortLabel: 'Ürünler',
             icon: Icons.inventory_2_outlined,
-            roles: allRoles,
+            roles: operationsRoles,
             inBottomBar: true,
           ),
           NavItem(
@@ -176,7 +198,7 @@ const navSections = <NavSection>[
             label: 'Öneri Satış Listesi',
             shortLabel: 'Öneri',
             icon: Icons.local_fire_department_outlined,
-            roles: allRoles,
+            roles: operationsRoles,
             inBottomBar: true,
           ),
           NavItem(
@@ -217,7 +239,7 @@ const navSections = <NavSection>[
             label: 'Hareket Raporu',
             shortLabel: 'Rapor',
             icon: Icons.payments_outlined,
-            roles: allRoles,
+            roles: operationsRoles,
             inBottomBar: true,
           ),
           NavItem(
@@ -225,7 +247,7 @@ const navSections = <NavSection>[
             label: 'Hareket Kayıtları',
             shortLabel: 'Kayıtlar',
             icon: Icons.receipt_long_outlined,
-            roles: allRoles,
+            roles: operationsRoles,
           ),
         ],
       ),
@@ -339,6 +361,14 @@ AppSection landingSectionFor(AppUser? user) {
   final sections = sectionsFor(user);
   return sections.isEmpty ? AppSection.pdks : sections.first.id;
 }
+
+/// PDKS'te personel sayılmayan roller (mağaza hesabı). Mesai/izin tutmaz,
+/// PDKS bildirimleri (izin, takas, vardiya) ona gelmez.
+const nonPersonnelRoles = ['store'];
+
+/// Kullanıcı PDKS bildirimlerini alan bir personel mi?
+bool isPersonnel(AppUser? user) =>
+    user != null && !nonPersonnelRoles.contains(user.role);
 
 List<NavItem> navFor(AppUser? user) {
   if (user == null) return const [];

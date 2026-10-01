@@ -48,6 +48,14 @@ async function requireAuth(req, res, next) {
     });
   }
 
+  // Alan kapısı (varsayılan RED): mağaza hesabı PDKS'e, barista operasyona
+  // giremez. Beyaz liste mantığı burada da geçerli — ileride eklenen bir
+  // operasyon rotası baristaya kendiliğinden açılmaz.
+  if (!areaAllows(req.user.role, req.method, req.originalUrl)) {
+    const area = areaOf(req.method, req.originalUrl);
+    return res.status(403).json({ error: AREA_ERRORS[area], code: 'AREA_FORBIDDEN' });
+  }
+
   // Operasyon alani icin ACIK MESAI sarti. Burada, requireOnShift'i her
   // yonlendiriciye tek tek eklemek yerine: kosul req.user'a ihtiyac duyuyor
   // ve requireAuth her korunan yonlendiricinin BASINDA calisiyor, dolayisiyla
@@ -98,6 +106,9 @@ const ROLES = [
   'regional_manager',
   'store_manager',
   'shift_supervisor',
+  // Mağaza hesabı: bir kişi değil, mağazadaki ortak cihazın hesabı. Stok,
+  // satış ve zayi işlemleri bu hesaptan yapılır; kimseyi yönetmez.
+  'store',
   'barista',
 ];
 
@@ -108,7 +119,66 @@ const ROLE_LABELS = {
   regional_manager: 'Regional Manager',
   store_manager: 'Store Manager',
   shift_supervisor: 'Shift Supervisor',
+  store: 'Mağaza',
   barista: 'Barista',
+};
+
+/// Uygulamanın iki alanı. İstemcideki iki menü bölümüyle birebir aynı:
+///   pdks       -> "PDKS & Kadro" (devam, vardiya, izin, puantaj)
+///   operations -> "Operasyon & Denetim" (ürün, satış, zayi, rapor, yönetim)
+const AREAS = { PDKS: 'pdks', OPERATIONS: 'operations' };
+
+/// Rolün girebildiği alanlar. Listede olmayan rol iki alana da girer.
+///   store   : yalnızca operasyon — kişi olmadığı için mesai/izin tutmaz.
+///   barista : yalnızca PDKS — operasyonu mağaza hesabı yürütür.
+/// (IK ayrıca kendi beyaz listesiyle daha da daraltılır.)
+const ROLE_AREAS = {
+  store: [AREAS.OPERATIONS],
+  barista: [AREAS.PDKS],
+};
+
+/// PDKS'te "personel" sayılmayan roller: çizelge, puantaj, izin ve devam
+/// listelerine girmezler, kendilerine vardiya atanamaz.
+const NON_PERSONNEL_ROLES = ['store'];
+
+/// PDKS personel listeleri için SQL koşulu. Değerler sabit listeden geldiği
+/// için parametre yerine metne gömülmesi güvenli.
+function personnelOnly(alias = 'u') {
+  const col = alias ? `${alias}.role` : 'role';
+  return `AND ${col} NOT IN (${NON_PERSONNEL_ROLES.map((r) => `'${r}'`).join(', ')})`;
+}
+
+function roleAreas(role) {
+  return ROLE_AREAS[role] || [AREAS.PDKS, AREAS.OPERATIONS];
+}
+
+// Her iki alanın da dışında kalan ortak yollar: oturum/profil, giriş ekranı
+// görseli ve mağaza adı listesi (profil ekranı mağaza adını gösteriyor).
+const SHARED_PATHS = [
+  { pattern: /^\/auth(\/|$)/ },
+  { pattern: /^\/branding(\/|$)/ },
+  { pattern: /^\/health$/ },
+  { method: 'GET', pattern: /^\/stores$/ },
+];
+
+/// İsteğin ait olduğu alan; ortak yolsa null.
+function areaOf(method, originalUrl) {
+  const path = normalizePath(originalUrl);
+  if (SHARED_PATHS.some((r) => (!r.method || r.method === method) && r.pattern.test(path))) {
+    return null;
+  }
+  return /^\/pdks(\/|$)/.test(path) ? AREAS.PDKS : AREAS.OPERATIONS;
+}
+
+/// Rol bu isteğin alanına girebilir mi?
+function areaAllows(role, method, originalUrl) {
+  const area = areaOf(method, originalUrl);
+  return area === null || roleAreas(role).includes(area);
+}
+
+const AREA_ERRORS = {
+  pdks: 'Mağaza hesabı PDKS & Kadro bölümünü kullanamaz',
+  operations: 'Bu hesap Operasyon & Denetim bölümünü kullanamaz',
 };
 
 /// Birden fazla magazadan sorumlu olabilen roller; magaza atamasi
@@ -238,7 +308,9 @@ function requirePermission(permission) {
 /// Magaza muduru ve ustu DISARIDA: mudurun vardiya planlamak, onay vermek ve
 /// raporlara bakmak icin mesai baslatmasi gerekmiyor; bolge/operasyon muduru
 /// ve ana yonetici ise bir magazada mesai tutmuyor.
-const ON_SHIFT_ROLES = ['barista', 'shift_supervisor'];
+// Barista artık operasyona hiç girmediği için (ROLE_AREAS) listede yalnızca
+// vardiya sorumlusu kaldı.
+const ON_SHIFT_ROLES = ['shift_supervisor'];
 
 // Mesai sarti ARANMAYAN yollar. Beyaz liste (varsayilan: sart aranir) bilincli
 // secim: ileride eklenen bir operasyon rotasi sarti kendiliginden tasiyor.
@@ -343,6 +415,7 @@ module.exports = {
   ROLES, ROLE_LABELS, MANAGER_ROLES, roleLevel, assignableRoles, isMultiStoreRole,
   HR_ROLE, TIMESHEET_VIEW_ROLES, hrAllows, normalizePath,
   ON_SHIFT_ROLES, shiftExempt, shiftState,
+  AREAS, ROLE_AREAS, NON_PERSONNEL_ROLES, personnelOnly, roleAreas, areaOf, areaAllows,
   accessibleStoreIds, allowsStore, resolveStoreScope, storeFilter,
   ALL_PERMISSIONS, DEFAULT_PERMISSIONS, PERMISSION_LABELS, PERMISSION_ERRORS,
   parsePermissions, permissionsOf, serializePermissions, requirePermission,

@@ -2,7 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute, transaction } = require('../db');
 const {
   requireAuth, requireRole, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
-  hashPassword,
+  hashPassword, NON_PERSONNEL_ROLES, personnelOnly,
 } = require('../auth');
 const { logActivity } = require('../utils');
 const qr = require('../pdks/qr');
@@ -436,13 +436,16 @@ router.put('/assignments/cells', requireManager, async (req, res) => {
   const enGec = tarihler[tarihler.length - 1];
 
   const users = await queryAll(
-    `SELECT u.id, u.full_name, u.store_id, u.active, p.weekly_off_days
+    `SELECT u.id, u.full_name, u.role, u.store_id, u.active, p.weekly_off_days
      FROM users u LEFT JOIN pdks_profiles p ON p.user_id = u.id
      WHERE u.id IN (${userIds.map(() => '?').join(',')})`, ...userIds);
   const userById = new Map(users.map((u) => [Number(u.id), u]));
   for (const id of userIds) {
     const u = userById.get(id);
     if (!u || !u.active) return res.status(404).json({ error: 'Personel bulunamadı' });
+    if (NON_PERSONNEL_ROLES.includes(u.role)) {
+      return res.status(400).json({ error: `${u.full_name}: mağaza hesabına vardiya atanamaz` });
+    }
     if (!allowsStore(req, u.store_id)) {
       return res.status(403).json({ error: `${u.full_name}: bu personele erişim yetkiniz yok` });
     }
@@ -744,7 +747,7 @@ router.get('/profiles', requireManager, async (req, res) => {
     FROM users u
     LEFT JOIN pdks_profiles p ON p.user_id = u.id
     LEFT JOIN stores s ON s.id = u.store_id
-    WHERE u.active = 1 ${f.sql}
+    WHERE u.active = 1 ${personnelOnly()} ${f.sql}
     ORDER BY u.full_name`, ...f.params);
   res.json(rows.map((r) => ({
     ...r,

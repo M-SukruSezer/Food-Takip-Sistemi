@@ -276,6 +276,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   ('all', 'Tümü'),
                   ('barista', 'Barista'),
                   ('shift_supervisor', 'Supervisor'),
+                  ('store', 'Mağaza'),
                   ('passive', 'Pasifler'),
                 ])
                   Padding(

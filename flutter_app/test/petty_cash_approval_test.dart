@@ -228,13 +228,13 @@ void main() {
     });
 
     test('rolüne açık öğesi olmayan grup çizilmez', () {
-      final barista = navGroupsFor(
-        testUser('barista', storeId: 1),
+      final magaza = navGroupsFor(
+        testUser('store', storeId: 1),
         AppSection.operations,
       );
-      // Barista Yonetim grubundaki hicbir ogeye erismiyor.
-      expect(barista.map((g) => g.title), isNot(contains('Yönetim')));
-      final kasa = barista.firstWhere((g) => g.title == 'Kasa ve Raporlar');
+      // Mağaza hesabı Yonetim grubundaki hicbir ogeye erismiyor.
+      expect(magaza.map((g) => g.title), isNot(contains('Yönetim')));
+      final kasa = magaza.firstWhere((g) => g.title == 'Kasa ve Raporlar');
       expect(kasa.items.map((i) => i.path), ['/sales', '/logs']);
 
       final admin = navGroupsFor(

@@ -3,7 +3,7 @@ const { queryAll, queryOne } = require('../db');
 const {
   requireAuth,
   roleLevel, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
-  TIMESHEET_VIEW_ROLES,
+  TIMESHEET_VIEW_ROLES, personnelOnly,
 } = require('../auth');
 const dev = require('../pdks/device');
 const pay = require('../pdks/payroll');
@@ -206,7 +206,7 @@ router.get('/timesheet', async (req, res) => {
     if (!scope.ok) return undefined;
     const f = storeFilter(scope, 'store_id');
     const rows = await queryAll(
-      `SELECT id FROM users WHERE active = 1 ${f.sql} ORDER BY full_name`, ...f.params);
+      `SELECT id FROM users WHERE active = 1 ${personnelOnly('')} ${f.sql} ORDER BY full_name`, ...f.params);
     userIds = rows.map((r) => r.id);
     // Cok personel x uzun aralik cevabi sisirir; sinirlanir.
     if (userIds.length * dateRange(from, to).length > 6000) {
@@ -298,7 +298,7 @@ router.get('/roster', async (req, res) => {
     FROM users u
     LEFT JOIN stores st ON st.id = u.store_id
     LEFT JOIN pdks_profiles p ON p.user_id = u.id
-    WHERE u.active = 1 ${f.sql}`, ...f.params))
+    WHERE u.active = 1 ${personnelOnly()} ${f.sql}`, ...f.params))
     .sort((a, b) => {
       const ka = roleLevel(a.role);
       const kb = roleLevel(b.role);
@@ -424,7 +424,7 @@ router.get('/now', async (req, res) => {
       FROM attendance_logs al WHERE al.user_id = u.id
       ORDER BY al.occurred_at DESC, al.id DESC LIMIT 1
     ) l ON true
-    WHERE u.active = 1 ${f.sql}
+    WHERE u.active = 1 ${personnelOnly()} ${f.sql}
     ORDER BY u.full_name`, ...f.params);
 
   const today = t.localDate();

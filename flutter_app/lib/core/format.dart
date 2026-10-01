@@ -70,6 +70,8 @@ const roleOrder = <String>[
   'regional_manager',
   'store_manager',
   'shift_supervisor',
+  // Mağaza hesabı: mağazadaki ortak cihazın hesabı (kişi değil).
+  'store',
   'barista',
 ];
 
@@ -80,6 +82,7 @@ const roleLabels = <String, String>{
   'regional_manager': 'Regional Manager',
   'store_manager': 'Store Manager',
   'shift_supervisor': 'Shift Supervisor',
+  'store': 'Mağaza',
   'barista': 'Barista',
 };
 

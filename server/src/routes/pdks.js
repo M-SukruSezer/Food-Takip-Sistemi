@@ -1,6 +1,8 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
-const { requireAuth, requireRole, allowsStore, verifyPassword } = require('../auth');
+const {
+  requireAuth, requireRole, allowsStore, verifyPassword, NON_PERSONNEL_ROLES,
+} = require('../auth');
 const { logActivity } = require('../utils');
 const dev = require('../pdks/device');
 const geo = require('../pdks/geo');
@@ -237,9 +239,12 @@ async function punch(req, res, type) {
   // Baskasi adina okutma yolu artik yok.
 
   const target = await queryOne(
-    'SELECT id, full_name, store_id, active FROM users WHERE id = ?', targetUserId
+    'SELECT id, full_name, role, store_id, active FROM users WHERE id = ?', targetUserId
   );
   if (!target || !target.active) return res.status(404).json({ error: 'Personel bulunamadı' });
+  if (NON_PERSONNEL_ROLES.includes(target.role)) {
+    return res.status(400).json({ error: 'Mağaza hesabı için devam kaydı tutulmaz' });
+  }
   if (Number(target.store_id) !== Number(store.id)) {
     return res.status(400).json({ error: 'Personel bu mağazaya kayıtlı değil' });
   }

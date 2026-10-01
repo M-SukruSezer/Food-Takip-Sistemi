@@ -513,10 +513,12 @@ void main() {
   });
 
   group('Menü', () {
-    test('personel ekranı herkeste, yönetim ekranı yöneticide', () {
+    test('personel ekranı tüm personelde, yönetim ekranı yöneticide', () {
       final staff = navItems.firstWhere((i) => i.path == '/pdks');
       expect(staff.label, 'Devam Takibi');
-      expect(staff.roles, allRoles);
+      expect(staff.roles, pdksRoles);
+      // Mağaza hesabı kişi değil: devam kaydı tutmaz.
+      expect(staff.roles, isNot(contains('store')));
 
       final admin = navItems.firstWhere((i) => i.path == '/pdks-admin');
       expect(admin.roles, managerRoles);

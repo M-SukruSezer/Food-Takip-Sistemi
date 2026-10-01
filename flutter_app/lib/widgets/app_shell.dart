@@ -126,7 +126,8 @@ class _AppShellState extends State<AppShell> {
     // degismis olabilir. Sunucu ayni jetonu tekrar yazmiyor, sahibini
     // guncelliyor.
     unawaited(registerDeviceToken());
-    _bildirimler.start();
+    // Mağaza hesabı PDKS'i kullanmaz; bildirim ucu ona 403 döner.
+    if (isPersonnel(session.user)) _bildirimler.start();
   }
 
   @override
@@ -754,7 +755,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          NotificationBell(okunmamis: okunmamis),
+          if (isPersonnel(session.user)) NotificationBell(okunmamis: okunmamis),
           const SizedBox(width: 4),
           IconButton(
             tooltip: 'Çıkış yap',
@@ -910,50 +911,52 @@ class _MobileTopBar extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: compact ? 3 : 6),
-          _HeaderCircle(
-            tooltip: 'Bildirimler',
-            onTap: () => showNotificationSheet(context),
-            child: ValueListenableBuilder<int>(
-              valueListenable: okunmamis,
-              builder: (context, count, _) => Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    Icons.notifications_none_rounded,
-                    color: t.muted,
-                    size: 21,
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: -7,
-                      top: -9,
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 17,
-                          minHeight: 17,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.tokens.danger,
-                          borderRadius: BorderRadius.circular(9),
-                          border: Border.all(color: t.card, width: 1.5),
-                        ),
-                        child: Text(
-                          count > 9 ? '9+' : '$count',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: AppFontSize.micro,
-                            fontWeight: FontWeight.w800,
+          if (isPersonnel(session.user)) ...[
+            SizedBox(width: compact ? 3 : 6),
+            _HeaderCircle(
+              tooltip: 'Bildirimler',
+              onTap: () => showNotificationSheet(context),
+              child: ValueListenableBuilder<int>(
+                valueListenable: okunmamis,
+                builder: (context, count, _) => Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.notifications_none_rounded,
+                      color: t.muted,
+                      size: 21,
+                    ),
+                    if (count > 0)
+                      Positioned(
+                        right: -7,
+                        top: -9,
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minWidth: 17,
+                            minHeight: 17,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: context.tokens.danger,
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: t.card, width: 1.5),
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: AppFontSize.micro,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           SizedBox(width: compact ? 3 : 7),
           _HeaderCircle(
             tooltip: 'Çıkış yap',

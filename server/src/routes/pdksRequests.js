@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute, transaction } = require('../db');
 const {
   requireAuth, requireRole, resolveStoreScope, storeFilter, allowsStore, MANAGER_ROLES,
+  NON_PERSONNEL_ROLES, personnelOnly,
 } = require('../auth');
 const { logActivity } = require('../utils');
 const bal = require('../pdks/balance');
@@ -139,7 +140,7 @@ router.get('/requests/colleagues', async (req, res) => {
   if (!storeId) return res.json([]);
   const rows = await queryAll(`
     SELECT id, full_name FROM users
-    WHERE store_id = ? AND active = 1 AND id <> ?
+    WHERE store_id = ? AND active = 1 AND id <> ? ${personnelOnly('')}
     ORDER BY full_name`, storeId, req.user.id);
   res.json(rows);
 });
@@ -252,8 +253,9 @@ router.post('/requests', async (req, res) => {
         return res.status(400).json({ error: 'Kendinizle takas talebi oluşturamazsınız' });
       }
       const target = await queryOne(
-        'SELECT id, active, store_id FROM users WHERE id = ?', targetId);
-      if (!target || !target.active || Number(target.store_id) !== Number(storeId)) {
+        'SELECT id, active, role, store_id FROM users WHERE id = ?', targetId);
+      if (!target || !target.active || Number(target.store_id) !== Number(storeId)
+        || NON_PERSONNEL_ROLES.includes(target.role)) {
         return res.status(400).json({ error: 'Geçersiz hedef personel' });
       }
       fields.target_user_id = targetId;
@@ -430,8 +432,9 @@ async function decide(req, res, next) {
         return res.status(400).json({ error: 'Devir için bir personel atamalısınız' });
       }
       const target = await queryOne(
-        'SELECT id, active, store_id FROM users WHERE id = ?', assignedTargetId);
-      if (!target || !target.active || Number(target.store_id) !== Number(row.store_id)) {
+        'SELECT id, active, role, store_id FROM users WHERE id = ?', assignedTargetId);
+      if (!target || !target.active || Number(target.store_id) !== Number(row.store_id)
+        || NON_PERSONNEL_ROLES.includes(target.role)) {
         return res.status(400).json({ error: 'Geçersiz hedef personel' });
       }
       if (assignedTargetId === Number(row.user_id)) {
