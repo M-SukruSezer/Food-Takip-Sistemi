@@ -168,7 +168,10 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                   Expanded(
                     child: Text(
                       'Mağazaların haftalık limitlerini buradan belirleyin.',
-                      style: TextStyle(fontSize: 13, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        color: t.muted,
+                      ),
                     ),
                   ),
                   OutlinedButton(
@@ -207,7 +210,7 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                         child: Text(
                           e.description,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -216,7 +219,7 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                       Text(
                         fmtMoney(e.amount),
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           color: t.danger,
                         ),
@@ -249,13 +252,19 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Ret gerekçesi: ${e.decisionNote}',
-                      style: TextStyle(fontSize: 12, color: t.danger),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.danger,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 6),
                   Text(
                     '${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   CardActions(
@@ -327,7 +336,7 @@ class _LimitCard extends StatelessWidget {
                 child: Text(
                   'Bu Hafta',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppFontSize.bodyLarge,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -336,7 +345,7 @@ class _LimitCard extends StatelessWidget {
               Text(
                 '${fmtMoney(status.spentThisWeek)} / ${fmtMoney(status.weeklyLimit)}',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.w700,
                   color: t.muted,
                 ),
@@ -359,7 +368,7 @@ class _LimitCard extends StatelessWidget {
           Text(
             'Kalan: ${fmtMoney(status.remaining)}',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w700,
               color: tight ? t.danger : t.success,
             ),
@@ -369,11 +378,11 @@ class _LimitCard extends StatelessWidget {
             Text(
               '${fmtMoney(status.pendingThisWeek)} onay bekliyor '
               '(${status.pendingCount} kayıt)',
-              style: TextStyle(fontSize: 12, color: t.warning),
+              style: TextStyle(fontSize: AppFontSize.label, color: t.warning),
             ),
           Text(
             'Hafta başlangıcı: ${fmtDate(status.weekStart)}',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
         ],
       ),

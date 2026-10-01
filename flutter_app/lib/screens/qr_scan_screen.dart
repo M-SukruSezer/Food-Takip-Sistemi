@@ -87,7 +87,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                   Text(
                     'QR ile Giriş',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSize.title,
                       fontWeight: FontWeight.w800,
                       color: t.ink,
                       letterSpacing: -0.35,
@@ -110,7 +110,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                       'PDKS',
                       style: TextStyle(
                         color: t.primaryDark,
-                        fontSize: 10,
+                        fontSize: AppFontSize.micro,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -161,7 +161,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                     storeName,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w600,
                       color: t.ink,
                     ),
@@ -172,7 +172,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                 Text(
                   'CANLI (8m)',
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: AppFontSize.micro,
                     fontWeight: FontWeight.w800,
                     color: t.primaryDark,
                     letterSpacing: .3,
@@ -185,6 +185,7 @@ class _QrScanScreenState extends State<QrScanScreen>
         Expanded(
           child: CustomPaint(
             painter: _GridBackgroundPainter(
+              glow: t.primary,
               color: t.border.withValues(alpha: .56),
             ),
             child: LayoutBuilder(
@@ -208,13 +209,16 @@ class _QrScanScreenState extends State<QrScanScreen>
                                 color: t.card,
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
-                                  color: const Color(0xFF8ACFC7),
+                                  color: context.tokens.primary.withValues(
+                                    alpha: .45,
+                                  ),
                                   width: 2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF19B9A5)
-                                        .withValues(alpha: .15),
+                                    color: context.tokens.primary600.withValues(
+                                      alpha: .15,
+                                    ),
                                     blurRadius: 24,
                                     spreadRadius: 3,
                                   ),
@@ -299,8 +303,9 @@ class _QrScanScreenState extends State<QrScanScreen>
                               height: 24,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: const Color(0xFF34D399)
-                                      .withValues(alpha: 0.35),
+                                  color: context.tokens.success.withValues(
+                                    alpha: 0.35,
+                                  ),
                                   width: 1.2,
                                 ),
                                 shape: BoxShape.circle,
@@ -309,8 +314,8 @@ class _QrScanScreenState extends State<QrScanScreen>
                                 child: Container(
                                   width: 4.5,
                                   height: 4.5,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF34D399),
+                                  decoration: BoxDecoration(
+                                    color: context.tokens.success,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -331,16 +336,16 @@ class _QrScanScreenState extends State<QrScanScreen>
                                   child: Container(
                                     height: 2,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
+                                      gradient: LinearGradient(
                                         colors: [
                                           Colors.transparent,
-                                          Color(0xFF34D399),
+                                          context.tokens.success,
                                           Colors.transparent,
                                         ],
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0xFF34D399)
+                                          color: context.tokens.success
                                               .withValues(alpha: 0.8),
                                           blurRadius: 10,
                                           spreadRadius: 1,
@@ -403,7 +408,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                 border: Border.all(color: t.border),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.07),
+                    color: context.tokens.ink.withValues(alpha: 0.07),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -437,7 +442,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                             Text(
                               'Store Manager PIN Onayı',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppFontSize.title,
                                 fontWeight: FontWeight.w700,
                                 color: t.ink,
                               ),
@@ -445,7 +450,10 @@ class _QrScanScreenState extends State<QrScanScreen>
                             SizedBox(height: 2),
                             Text(
                               'Kamera veya QR arızasında mağaza PIN’ini girin',
-                              style: TextStyle(fontSize: 12, color: t.muted),
+                              style: TextStyle(
+                                fontSize: AppFontSize.label,
+                                color: t.muted,
+                              ),
                             ),
                           ],
                         ),
@@ -468,15 +476,15 @@ class _QrScanScreenState extends State<QrScanScreen>
                           Icon(
                             Icons.error_outline,
                             size: 18,
-                            color: t.dangerStrong,
+                            color: t.dangerText,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _error!,
                               style: TextStyle(
-                                color: t.dangerStrong,
-                                fontSize: 12.5,
+                                color: t.dangerText,
+                                fontSize: AppFontSize.label,
                               ),
                             ),
                           ),
@@ -505,7 +513,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                         child: Text(
                           index < pin.length ? pin[index] : '•',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: AppFontSize.headline,
                             fontWeight: FontWeight.w800,
                             color: index < pin.length ? t.primary : t.muted,
                           ),
@@ -580,7 +588,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                     child: const Text(
                       'PIN ile Mesaiyi Onayla',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -654,7 +662,7 @@ class _HeaderPillButton extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w700,
                   color: t.ink,
                 ),
@@ -679,9 +687,9 @@ class _InstructionPill extends StatelessWidget {
         color: t.card,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: t.border),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1A64748B),
+            color: context.tokens.muted.withValues(alpha: .10),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
@@ -695,7 +703,7 @@ class _InstructionPill extends StatelessWidget {
           Text(
             'QR kodu çerçeveye hizalayın',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppFontSize.label,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),
@@ -722,9 +730,9 @@ class _CameraControls extends StatelessWidget {
         color: t.card,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: t.border),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1F475569),
+            color: context.tokens.muted.withValues(alpha: .12),
             blurRadius: 12,
             offset: Offset(0, 5),
           ),
@@ -737,7 +745,7 @@ class _CameraControls extends StatelessWidget {
             valueListenable: controller,
             builder: (context, state, _) => _MiniControl(
               icon: Icons.flashlight_on_outlined,
-              iconColor: const Color(0xFFF59E0B),
+              iconColor: context.tokens.warning,
               label: 'Flaş',
               onTap: controller.toggleTorch,
             ),
@@ -751,7 +759,7 @@ class _CameraControls extends StatelessWidget {
           const _ControlDivider(),
           _MiniControl(
             icon: Icons.pin_outlined,
-            iconColor: const Color(0xFF008C7D),
+            iconColor: context.tokens.primary,
             label: 'PIN',
             onTap: onPin,
           ),
@@ -777,12 +785,14 @@ class _MiniControl extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.iconColor = const Color(0xFF52627A),
+    this.iconColor,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color iconColor;
+
+  /// Verilmezse tema `muted` rengi kullanılır.
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -792,12 +802,12 @@ class _MiniControl extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: iconColor),
+          Icon(icon, size: 14, color: iconColor ?? context.tokens.muted),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: AppFontSize.caption,
               fontWeight: FontWeight.w700,
               color: context.tokens.ink,
             ),
@@ -820,9 +830,9 @@ class _PrivacyCard extends StatelessWidget {
         color: t.card.withValues(alpha: .96),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: t.border),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1464748B),
+            color: context.tokens.muted.withValues(alpha: .08),
             blurRadius: 12,
             offset: Offset(0, 4),
           ),
@@ -839,7 +849,7 @@ class _PrivacyCard extends StatelessWidget {
                 child: Text(
                   'KVKK & Veri Güvenliği',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSize.label,
                     fontWeight: FontWeight.w800,
                     color: t.ink,
                   ),
@@ -859,7 +869,7 @@ class _PrivacyCard extends StatelessWidget {
                     Text(
                       'Yenilenme: 24s',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: AppFontSize.micro,
                         fontWeight: FontWeight.w700,
                         color: t.primaryDark,
                       ),
@@ -872,7 +882,11 @@ class _PrivacyCard extends StatelessWidget {
           const SizedBox(height: 7),
           Text(
             'Görüntü yerel işlenir, sunucuya kaydedilmez. Konum doğrulandı (Hassasiyet: 8m).',
-            style: TextStyle(fontSize: 10.5, height: 1.4, color: t.muted),
+            style: TextStyle(
+              fontSize: AppFontSize.micro,
+              height: 1.4,
+              color: t.muted,
+            ),
           ),
         ],
       ),
@@ -935,12 +949,12 @@ class _BottomItem extends StatelessWidget {
             width: active ? 46 : 30,
             height: active ? 46 : 30,
             decoration: active
-                ? const BoxDecoration(
-                    color: Color(0xFF00897B),
+                ? BoxDecoration(
+                    color: context.tokens.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0x3D00796B),
+                        color: context.tokens.primary.withValues(alpha: .24),
                         blurRadius: 8,
                         offset: Offset(0, 4),
                       ),
@@ -950,7 +964,7 @@ class _BottomItem extends StatelessWidget {
             child: Icon(
               icon,
               size: active ? 24 : 20,
-              color: active ? Colors.white : const Color(0xFF71839C),
+              color: active ? context.tokens.onPrimary : context.tokens.muted,
             ),
           ),
         ),
@@ -959,9 +973,9 @@ class _BottomItem extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: AppFontSize.micro,
               fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-              color: active ? const Color(0xFF006E64) : const Color(0xFF586A83),
+              color: active ? context.tokens.primary : context.tokens.muted,
             ),
           ),
         ),
@@ -971,9 +985,10 @@ class _BottomItem extends StatelessWidget {
 }
 
 class _GridBackgroundPainter extends CustomPainter {
-  const _GridBackgroundPainter({required this.color});
+  const _GridBackgroundPainter({required this.color, required this.glow});
 
   final Color color;
+  final Color glow;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -987,21 +1002,22 @@ class _GridBackgroundPainter extends CustomPainter {
     for (double y = 0; y <= size.height; y += step) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
-    final glow = Paint()
+    final glowPaint = Paint()
       ..shader =
-          const RadialGradient(colors: [Color(0x337DE4D4), Color(0x007DE4D4)])
-              .createShader(
-                Rect.fromCircle(
-                  center: Offset(size.width * .72, size.height * .66),
-                  radius: size.width * .65,
-                ),
-              );
-    canvas.drawRect(Offset.zero & size, glow);
+          RadialGradient(
+            colors: [glow.withValues(alpha: .2), glow.withValues(alpha: 0)],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * .72, size.height * .66),
+              radius: size.width * .65,
+            ),
+          );
+    canvas.drawRect(Offset.zero & size, glowPaint);
   }
 
   @override
   bool shouldRepaint(covariant _GridBackgroundPainter oldDelegate) =>
-      oldDelegate.color != color;
+      oldDelegate.color != color || oldDelegate.glow != glow;
 }
 
 /// Çerçeve köşelerindeki kalın vurgu braketleri
@@ -1090,8 +1106,9 @@ class _PulsingDotState extends State<_PulsingDot>
                 height: 6.0 + (_anim.value * 4.0),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF34D399)
-                      .withValues(alpha: (1.0 - _anim.value).clamp(0.0, 0.6)),
+                  color: context.tokens.success.withValues(
+                    alpha: (1.0 - _anim.value).clamp(0.0, 0.6),
+                  ),
                 ),
               );
             },
@@ -1099,8 +1116,8 @@ class _PulsingDotState extends State<_PulsingDot>
           Container(
             width: 7,
             height: 7,
-            decoration: const BoxDecoration(
-              color: Color(0xFF34D399),
+            decoration: BoxDecoration(
+              color: context.tokens.success,
               shape: BoxShape.circle,
             ),
           ),

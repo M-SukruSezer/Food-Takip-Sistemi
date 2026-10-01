@@ -112,7 +112,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       Text(
                         'Sıralama Seçenekleri',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSize.title,
                           fontWeight: FontWeight.bold,
                           color: t.ink,
                         ),
@@ -154,7 +154,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSize.bodyLarge,
           fontWeight: selected ? FontWeight.bold : FontWeight.normal,
           color: selected ? t.primary : t.ink,
         ),
@@ -217,7 +217,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                             Text(
                               'Otomatik Sipariş Taslağı',
                               style: TextStyle(
-                                fontSize: 17,
+                                fontSize: AppFontSize.title,
                                 fontWeight: FontWeight.bold,
                                 color: context.tokens.ink,
                               ),
@@ -225,7 +225,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                             Text(
                               '${urgentItems.length} kritik ürün tespit edildi',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppFontSize.label,
                                 color: context.tokens.muted,
                               ),
                             ),
@@ -263,7 +263,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                                     Text(
                                       item.name,
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppFontSize.body,
                                         fontWeight: FontWeight.bold,
                                         color: t.ink,
                                       ),
@@ -272,7 +272,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                                     Text(
                                       'Mevcut Donuk: ${item.frozenQty} · Hız: ${item.dailyVelocity.toStringAsFixed(2)}/gün',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: AppFontSize.caption,
                                         color: t.muted,
                                       ),
                                     ),
@@ -291,7 +291,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                                 child: Text(
                                   '+$suggested Kutu',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.bold,
                                     color: t.primary,
                                   ),
@@ -328,7 +328,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     child: const Text(
                       'Siparişi Onayla ve Gönder',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -494,7 +494,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                         child: Center(
                           child: Text(
                             'Bu mağazada aktif stok veya satış kaydı yok.',
-                            style: TextStyle(color: t.muted, fontSize: 13.5),
+                            style: TextStyle(
+                              color: t.muted,
+                              fontSize: AppFontSize.body,
+                            ),
                           ),
                         ),
                       )
@@ -560,7 +563,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                               Text(
                                 'Satış hareketi olmayan ${idle.length} çeşit',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppFontSize.bodyLarge,
                                   fontWeight: FontWeight.w700,
                                   color: t.ink,
                                 ),
@@ -568,7 +571,10 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 'Satış hızı sıfır olduğu için yeterlilik hesaplanamaz.',
-                                style: TextStyle(fontSize: 12, color: t.muted),
+                                style: TextStyle(
+                                  fontSize: AppFontSize.label,
+                                  color: t.muted,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               Wrap(
@@ -657,7 +663,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               child: Text(
                 'Stok Yeterliliği',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: AppFontSize.headline,
                   fontWeight: FontWeight.w700,
                   color: t.ink,
                   letterSpacing: -0.3,
@@ -687,7 +693,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       Text(
                         'Excel',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w700,
                           color: t.primary,
                         ),
@@ -719,7 +725,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           padding: const EdgeInsets.only(left: 4),
           child: Text(
             'Tüketim hızı, donuk depo gün yeterliliği ve kritik sipariş uyarıları',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
         ),
       ],
@@ -745,7 +751,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               color: t.danger.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.warning_rounded, color: t.dangerStrong, size: 20),
+            child: Icon(Icons.warning_rounded, color: t.dangerText, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -755,16 +761,20 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                 Text(
                   '$criticalAlertCount çeşidin donuk deposu 3 günden az yetecek veya tükendi.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.w700,
-                    color: t.dangerStrong,
+                    color: t.dangerText,
                     height: 1.25,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   'Sipariş verilmesi gerekebilir. Kritik stoklar bugün tükenebilir.',
-                  style: TextStyle(fontSize: 12, color: t.muted, height: 1.25),
+                  style: TextStyle(
+                    fontSize: AppFontSize.label,
+                    color: t.muted,
+                    height: 1.25,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
@@ -777,7 +787,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       Text(
                         'Acil Tedarik Listesi Oluştur',
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w700,
                           color: t.primary,
                         ),
@@ -817,7 +827,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               Text(
                 'SATIŞ HIZI PENCERESİ',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w700,
                   color: t.muted,
                   letterSpacing: 0.5,
@@ -838,7 +848,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   Text(
                     'Canlı Hesaplama',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w600,
                       color: t.primary,
                     ),
@@ -875,7 +885,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                       child: Text(
                         '$days gün',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppFontSize.body,
                           fontWeight: selected
                               ? FontWeight.bold
                               : FontWeight.w500,
@@ -891,7 +901,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           const SizedBox(height: 8),
           Text(
             'Son ${_stock.windowDays} günün satış adedinden günlük hız bulunur, donuk depodaki adet buna bölünür.',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
         ],
       ),
@@ -917,10 +927,13 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           child: TextField(
             controller: _search,
             onChanged: (v) => setState(() => _query = v),
-            style: TextStyle(fontSize: 14, color: t.ink),
+            style: TextStyle(fontSize: AppFontSize.bodyLarge, color: t.ink),
             decoration: InputDecoration(
               hintText: 'Ürün veya kategori ara...',
-              hintStyle: TextStyle(fontSize: 14, color: t.muted),
+              hintStyle: TextStyle(
+                fontSize: AppFontSize.bodyLarge,
+                color: t.muted,
+              ),
               prefixIcon: Icon(Icons.search, size: 20, color: t.muted),
               suffixIcon: _query.isNotEmpty
                   ? IconButton(
@@ -989,7 +1002,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.label,
                 fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                 color: selected ? t.onPrimary : t.ink,
               ),
@@ -1026,7 +1039,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           Text(
             'Eşleşen Ürün Bulunamadı',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSize.title,
               fontWeight: FontWeight.bold,
               color: t.ink,
             ),
@@ -1035,7 +1048,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
           Text(
             'Arama terimini veya aktif durum filtrelerini kontrol ederek tekrar deneyebilirsiniz.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12.5, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
           const SizedBox(height: 14),
           OutlinedButton(
@@ -1091,7 +1104,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   Text(
                     'TOPLAM DONUK DEPO DEĞERİ',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: AppFontSize.micro,
                       fontWeight: FontWeight.w700,
                       color: t.muted,
                       letterSpacing: 0.4,
@@ -1101,7 +1114,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                   Text(
                     fmtMoney(totalFrozenValue),
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: AppFontSize.titleLarge,
                       fontWeight: FontWeight.w800,
                       color: t.primary,
                       letterSpacing: -0.3,
@@ -1114,13 +1127,16 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                 children: [
                   Text(
                     'Mevcut Çeşit / Adet',
-                    style: TextStyle(fontSize: 11, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      color: t.muted,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${_stock.items.length} Kalem · $totalFrozenQty Adet',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w700,
                       color: t.ink,
                     ),
@@ -1159,7 +1175,7 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
               label: Text(
                 'Otomatik Sipariş Taslağı Oluştur (${urgentItems.length} Kalem)',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1202,7 +1218,7 @@ class _HeaderAction extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: t.primary,
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1290,7 +1306,7 @@ class _CoverageCard extends StatelessWidget {
     final t = context.tokens;
     // Status label and colors
     final (label, textColor, bgColor, dotColor) = switch (item.risk) {
-      0 => ('Stok yok', t.dangerStrong, t.dangerSoft, t.danger),
+      0 => ('Stok yok', t.dangerText, t.dangerSoft, t.danger),
       1 => ('Kritik', t.warningText, t.warningSoft, t.warning),
       2 => ('Azalıyor', t.warningText, t.warningSoft, t.warning),
       _ => ('Yeterli', t.success, t.successSoft, t.success),
@@ -1341,7 +1357,7 @@ class _CoverageCard extends StatelessWidget {
                     Text(
                       item.name,
                       style: TextStyle(
-                        fontSize: 14.5,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                         letterSpacing: -0.2,
@@ -1350,7 +1366,10 @@ class _CoverageCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${_categoryFor(item.name)} · SKU: ${_skuFor(item)}',
-                      style: TextStyle(fontSize: 11, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -1377,7 +1396,7 @@ class _CoverageCard extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppFontSize.caption,
                         fontWeight: FontWeight.bold,
                         color: textColor,
                       ),
@@ -1403,13 +1422,16 @@ class _CoverageCard extends StatelessWidget {
                     children: [
                       Text(
                         'Donuk depo',
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         fmtInt(item.frozenQty),
                         style: TextStyle(
-                          fontSize: 17,
+                          fontSize: AppFontSize.title,
                           fontWeight: FontWeight.w800,
                           color: item.frozenQty == 0 ? t.danger : t.primary,
                         ),
@@ -1422,13 +1444,16 @@ class _CoverageCard extends StatelessWidget {
                     children: [
                       Text(
                         'Çözülen',
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         fmtInt(item.thawingQty),
                         style: TextStyle(
-                          fontSize: 17,
+                          fontSize: AppFontSize.title,
                           fontWeight: FontWeight.w800,
                           color: t.ink,
                         ),
@@ -1441,13 +1466,16 @@ class _CoverageCard extends StatelessWidget {
                     children: [
                       Text(
                         'Food dolabı',
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         fmtInt(item.cabinetQty),
                         style: TextStyle(
-                          fontSize: 17,
+                          fontSize: AppFontSize.title,
                           fontWeight: FontWeight.w800,
                           color: (item.cabinetQty == 0 && item.risk == 0)
                               ? t.danger
@@ -1471,13 +1499,16 @@ class _CoverageCard extends StatelessWidget {
                   children: [
                     Text(
                       'Satış hızı',
-                      style: TextStyle(fontSize: 11, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${item.dailyVelocity.toStringAsFixed(2)}/gün',
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.bold,
                         color: t.ink,
                       ),
@@ -1491,13 +1522,16 @@ class _CoverageCard extends StatelessWidget {
                   children: [
                     Text(
                       'Yeterlilik',
-                      style: TextStyle(fontSize: 11, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       coverText,
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.w800,
                         color: coverColor,
                       ),
@@ -1511,7 +1545,10 @@ class _CoverageCard extends StatelessWidget {
                   children: [
                     Text(
                       'Biteceği gün',
-                      style: TextStyle(fontSize: 11, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1519,7 +1556,7 @@ class _CoverageCard extends StatelessWidget {
                           ? '-'
                           : fmtDate(item.depletionDate),
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.bold,
                         color: t.ink,
                       ),
@@ -1550,7 +1587,7 @@ class _CoverageCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Donuk depodaki tutar ${fmtMoney(item.frozenValue ?? 0)} · son ${item.soldQty} adet satıldı',
-            style: TextStyle(fontSize: 11, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
           ),
         ],
       ),

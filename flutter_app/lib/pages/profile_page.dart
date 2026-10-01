@@ -124,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Text(
                     'Profil',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: AppFontSize.headlineLarge,
                       fontWeight: FontWeight.w700,
                       color: context.tokens.ink,
                     ),

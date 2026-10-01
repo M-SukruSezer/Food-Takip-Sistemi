@@ -25,6 +25,7 @@ double kontrast(Color a, Color b) {
 }
 
 void main() {
+  tasarimSistemiKontrastlari();
   const temalar = {'açık': AppTokens.light, 'koyu': AppTokens.dark};
 
   group('Dolu dügme metni okunabilir', () {
@@ -110,6 +111,64 @@ void main() {
         reason: '$parlaklik temada dolu dügme metni onPrimary olmali',
       );
       expect(tema.colorScheme.onPrimary, t.onPrimary);
+    }
+  });
+}
+
+/// Tasarım sistemi genişletmesi: kırmızı metin rolü, rol renkli dolgular ve
+/// menü vurgu paleti. Saydam yumuşak zeminler kart üzerine bindirilerek ölçülür.
+void tasarimSistemiKontrastlari() {
+  const temalar = {'açık': AppTokens.light, 'koyu': AppTokens.dark};
+
+  group('dangerText her zeminde okunur', () {
+    for (final e in temalar.entries) {
+      final t = e.value;
+      test('${e.key} tema: kart ve dangerSoft üzerinde', () {
+        final soft = Color.alphaBlend(t.dangerSoft, t.card);
+        expect(kontrast(t.dangerText, t.card), greaterThanOrEqualTo(4.5));
+        expect(kontrast(t.dangerText, soft), greaterThanOrEqualTo(4.5));
+      });
+      test('${e.key} tema: dangerStrong dolgu beyaz metin taşır', () {
+        expect(
+          kontrast(const Color(0xFFFFFFFF), t.dangerStrong),
+          greaterThanOrEqualTo(4.5),
+        );
+      });
+    }
+  });
+
+  group('foregroundOn rol dolgularında AA verir', () {
+    for (final e in temalar.entries) {
+      final t = e.value;
+      for (final fill in [
+        t.primary,
+        t.primary600,
+        t.primaryDark,
+        t.muted,
+        t.success,
+      ]) {
+        test('${e.key} tema: $fill', () {
+          expect(
+            kontrast(t.foregroundOn(fill), fill),
+            greaterThanOrEqualTo(4.5),
+          );
+        });
+      }
+    }
+  });
+
+  group('Menü vurgu paleti', () {
+    for (final b in Brightness.values) {
+      final t = b == Brightness.dark ? AppTokens.dark : AppTokens.light;
+      for (final tone in AccentTone.values) {
+        test('${b.name}: ${tone.name}', () {
+          final c = tone.resolve(t, b);
+          final fill = Color.alphaBlend(c.fill, t.card);
+          // Rozetler metin taşır (4.5), simge kutuları grafik öğedir (3.0).
+          final esik = tone.name.endsWith('Badge') ? 4.5 : 3.0;
+          expect(kontrast(c.foreground, fill), greaterThanOrEqualTo(esik));
+        });
+      }
     }
   });
 }

@@ -187,7 +187,7 @@ class _PdksScreenState extends State<PdksScreen> {
                     child: Text(
                       'Taleplerim',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                       ),
@@ -204,7 +204,7 @@ class _PdksScreenState extends State<PdksScreen> {
               if (_requests.isEmpty)
                 Text(
                   'Henüz talebiniz yok.',
-                  style: TextStyle(fontSize: 13, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
                 )
               else
                 ..._requests.map(
@@ -223,7 +223,7 @@ class _PdksScreenState extends State<PdksScreen> {
                     child: Text(
                       'Vardiya Takvimi',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                       ),
@@ -241,7 +241,7 @@ class _PdksScreenState extends State<PdksScreen> {
                   Text(
                     fmtMonth(_monthKey),
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.body,
                       fontWeight: FontWeight.w700,
                       color: t.ink,
                     ),
@@ -354,7 +354,7 @@ class _PunchCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppFontSize.bodyLarge,
                     fontWeight: FontWeight.w800,
                     color: t.ink,
                   ),
@@ -362,7 +362,10 @@ class _PunchCard extends StatelessWidget {
                 const SizedBox(height: 14),
                 Text(
                   _longDate(status.workDate),
-                  style: TextStyle(fontSize: 14, color: t.muted),
+                  style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    color: t.muted,
+                  ),
                 ),
               ],
             ),
@@ -407,7 +410,7 @@ class _PunchCard extends StatelessWidget {
                           ? 'İş yerindesiniz'
                           : 'İş yerinde değilsiniz',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w600,
                         color: inside ? t.okText : t.muted,
                       ),
@@ -425,7 +428,7 @@ class _PunchCard extends StatelessWidget {
                     Text(
                       'GPS: (${store!.geofenceRadiusM}m)',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w700,
                         color: t.primary,
                       ),
@@ -466,7 +469,7 @@ class _TodayCard extends StatelessWidget {
                 child: Text(
                   'Bugünün Çizelgesi',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppFontSize.titleLarge,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -492,7 +495,7 @@ class _TodayCard extends StatelessWidget {
                               : '${firstShift.name} Vardiyası')
                         : 'Açılış Vardiyası',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w700,
                       color: context.tokens.info,
                     ),
@@ -504,7 +507,7 @@ class _TodayCard extends StatelessWidget {
           if (status.shifts.isEmpty)
             Text(
               'Bugün için vardiya atanmamış.',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             )
           else ...[
             // Vardiya Çizelge Özeti
@@ -531,7 +534,7 @@ class _TodayCard extends StatelessWidget {
                         Text(
                           '${firstShift.startTime} – ${firstShift.endTime}',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppFontSize.body,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -539,7 +542,7 @@ class _TodayCard extends StatelessWidget {
                         Text(
                           '(8 Saat Mesai)',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             color: t.muted,
                             fontWeight: FontWeight.w500,
                           ),
@@ -556,7 +559,7 @@ class _TodayCard extends StatelessWidget {
                           child: Text(
                             status.isInside ? 'Devam Ediyor' : 'Planlandı',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: AppFontSize.micro,
                               fontWeight: FontWeight.w700,
                               color: status.isInside ? t.okText : t.muted,
                             ),
@@ -580,11 +583,17 @@ class _TodayCard extends StatelessWidget {
                       children: [
                         Text(
                           'Başlangıç: ${firstShift.startTime}',
-                          style: TextStyle(fontSize: 10, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.micro,
+                            color: t.muted,
+                          ),
                         ),
                         Text(
                           'Bitiş: ${firstShift.endTime}',
-                          style: TextStyle(fontSize: 10, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.micro,
+                            color: t.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -629,7 +638,7 @@ class _TodayCard extends StatelessWidget {
                         child: Text(
                           'Mola Hakları ve Kullanımı',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppFontSize.body,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -638,7 +647,7 @@ class _TodayCard extends StatelessWidget {
                       Text(
                         'Toplam: $breakTotal dk',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w600,
                           color: t.muted,
                         ),
@@ -710,7 +719,10 @@ class _TodayCard extends StatelessWidget {
                           status.store != null
                               ? 'Mağaza: ${status.store!.name}'
                               : 'Mola takibi aktif',
-                          style: TextStyle(fontSize: 11, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: t.muted,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -719,7 +731,7 @@ class _TodayCard extends StatelessWidget {
                       Text(
                         'Detaylar',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w700,
                           color: t.primary,
                         ),
@@ -734,7 +746,7 @@ class _TodayCard extends StatelessWidget {
           Text(
             'Kayıtlar',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),
@@ -743,7 +755,7 @@ class _TodayCard extends StatelessWidget {
           if (status.logs.isEmpty)
             Text(
               'Bugün kayıt yok.',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             )
           else
             ...status.logs.map(
@@ -760,7 +772,7 @@ class _TodayCard extends StatelessWidget {
                       child: Text(
                         fmtDateTime(l.occurredAt),
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppFontSize.body,
                           fontWeight: FontWeight.w600,
                           color: t.ink,
                         ),
@@ -771,7 +783,10 @@ class _TodayCard extends StatelessWidget {
                           (l.distanceM != null
                               ? ' · ${l.distanceM!.round()} m'
                               : ''),
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -809,7 +824,7 @@ class _BreakMetricBox extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 10, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.micro, color: t.muted),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -817,7 +832,7 @@ class _BreakMetricBox extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w800,
               color: color,
             ),
@@ -855,7 +870,7 @@ class _BreakSlotRow extends StatelessWidget {
             '$title  $duration',
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppFontSize.label,
               fontWeight: FontWeight.w600,
               color: t.ink,
             ),
@@ -865,7 +880,7 @@ class _BreakSlotRow extends StatelessWidget {
         Text(
           status,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppFontSize.caption,
             fontWeight: FontWeight.w600,
             color: iconColor,
           ),
@@ -904,7 +919,7 @@ class _BalanceCard extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 11, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -912,7 +927,7 @@ class _BalanceCard extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSize.title,
                 fontWeight: FontWeight.w800,
                 color: valueColor,
               ),
@@ -920,7 +935,7 @@ class _BalanceCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtext,
-              style: TextStyle(fontSize: 10, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.micro, color: t.muted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -942,7 +957,7 @@ class _BalanceCard extends StatelessWidget {
                     Text(
                       'İzin Durumu',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                       ),
@@ -950,7 +965,10 @@ class _BalanceCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       'İzin yılı: ${fmtDate(balance.leaveYearFrom)} – ${fmtDate(balance.leaveYearTo)}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -1003,13 +1021,16 @@ class _BalanceCard extends StatelessWidget {
             Text(
               'Bu ay ${balance.hourlyUsedHours} saat saatlik izin kullanıldı '
               '(yıllık izin gününden düşülmez).',
-              style: TextStyle(fontSize: 11, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
             ),
           ],
           ...balance.notes.map(
             (n) => Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(n, style: TextStyle(fontSize: 11, color: t.muted)),
+              child: Text(
+                n,
+                style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+              ),
             ),
           ),
         ],
@@ -1049,7 +1070,7 @@ class _RequestRow extends StatelessWidget {
                 child: Text(
                   r.typeLabel,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSize.bodyLarge,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -1069,20 +1090,23 @@ class _RequestRow extends StatelessWidget {
           Text(
             detail,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w500,
               color: t.ink,
             ),
           ),
           if (r.reason.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+            Text(
+              r.reason,
+              style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
+            ),
           ],
           if (r.decisionNote != null) ...[
             const SizedBox(height: 2),
             Text(
               'Karar notu: ${r.decisionNote}',
-              style: TextStyle(fontSize: 12, color: t.danger),
+              style: TextStyle(fontSize: AppFontSize.label, color: t.danger),
             ),
           ],
           if (r.isPending) ...[
@@ -1185,7 +1209,7 @@ class ShiftCalendar extends StatelessWidget {
               Text(
                 '$d',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w700,
                   color: isToday
                       ? t.onPrimary
@@ -1199,7 +1223,7 @@ class ShiftCalendar extends StatelessWidget {
                 Text(
                   holiday.isHalfDay ? '${holiday.name} ½' : holiday.name,
                   style: TextStyle(
-                    fontSize: 8,
+                    fontSize: AppFontSize.micro,
                     fontWeight: FontWeight.w700,
                     color: t.danger,
                   ),
@@ -1207,7 +1231,10 @@ class ShiftCalendar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 )
               else if (dayOff)
-                Text('Tatil', style: TextStyle(fontSize: 10, color: t.muted))
+                Text(
+                  'Tatil',
+                  style: TextStyle(fontSize: AppFontSize.micro, color: t.muted),
+                )
               else
                 ...list
                     .take(2)
@@ -1215,7 +1242,7 @@ class ShiftCalendar extends StatelessWidget {
                       (a) => Text(
                         a.startTime ?? '',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppFontSize.micro,
                           fontWeight: FontWeight.w600,
                           color: isToday ? t.onPrimary : t.primary,
                         ),
@@ -1239,7 +1266,7 @@ class ShiftCalendar extends StatelessWidget {
                     g,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w700,
                       color: t.muted,
                     ),
@@ -1275,7 +1302,7 @@ class ShiftCalendar extends StatelessWidget {
                 child: Text(
                   'Bu Hafta Toplam:',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSize.label,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -1285,7 +1312,7 @@ class ShiftCalendar extends StatelessWidget {
               Text(
                 '$weeklyHours Saat',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSize.title,
                   fontWeight: FontWeight.w800,
                   color: t.primary,
                 ),
@@ -1297,7 +1324,7 @@ class ShiftCalendar extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Bu ay için vardiya atanmamış.',
-            style: TextStyle(fontSize: 13, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
           ),
         ],
         if (holidays.isNotEmpty) ...[
@@ -1305,7 +1332,7 @@ class ShiftCalendar extends StatelessWidget {
           Text(
             'Kırmızı çerçeveli günler resmi tatil; yıllık izin hakkınızdan '
             'düşülmez.',
-            style: TextStyle(fontSize: 11, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
           ),
         ],
       ],
@@ -1347,7 +1374,7 @@ class _ShiftSwapCard extends StatelessWidget {
                 Text(
                   'Vardiya Takası Yap',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSize.bodyLarge,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -1355,7 +1382,10 @@ class _ShiftSwapCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Mesai arkadaşınla gün değişimi talebinde bulun',
-                  style: TextStyle(fontSize: 11, color: t.muted),
+                  style: TextStyle(
+                    fontSize: AppFontSize.caption,
+                    color: t.muted,
+                  ),
                 ),
               ],
             ),
@@ -1374,7 +1404,10 @@ class _ShiftSwapCard extends StatelessWidget {
             onPressed: onSwap,
             child: const Text(
               'Değiştir',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: AppFontSize.label,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

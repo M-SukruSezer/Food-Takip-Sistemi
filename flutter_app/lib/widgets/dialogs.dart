@@ -21,7 +21,7 @@ Future<bool?> confirmDialog(
     builder: (ctx) => StandardDialog(
       title: Text(title),
       icon: icon,
-      iconColor: danger ? ctx.tokens.dangerStrong : null,
+      iconColor: danger ? ctx.tokens.dangerText : null,
       maxWidth: AppLayout.dialogMaxWidth,
       footer: DialogActions(
         confirmLabel: confirmLabel,

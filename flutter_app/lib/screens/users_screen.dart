@@ -257,7 +257,7 @@ class _UsersScreenState extends State<UsersScreen> {
             padding: const EdgeInsets.all(10),
             child: TextField(
               onChanged: (v) => setState(() => _search = v),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
               // Oneri listesindeki arama kutusuyla ayni gorunum: gomulu
               // zemin ve marka renginde ikon.
               decoration: InputDecoration(
@@ -310,14 +310,17 @@ class _UsersScreenState extends State<UsersScreen> {
                               user.fullName,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppFontSize.title,
                                 fontWeight: FontWeight.w700,
                                 color: t.ink,
                               ),
                             ),
                             Text(
                               '@${user.username}',
-                              style: TextStyle(fontSize: 13, color: t.muted),
+                              style: TextStyle(
+                                fontSize: AppFontSize.body,
+                                color: t.muted,
+                              ),
                             ),
                           ],
                         ),
@@ -355,13 +358,19 @@ class _UsersScreenState extends State<UsersScreen> {
                       user.permissions.isEmpty
                           ? 'Ek yetki verilmemiş'
                           : 'Yetkiler: ${user.permissions.map((p) => permissionLabels[p] ?? p).join(', ')}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   if (perm.reason != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       perm.reason!,
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -444,7 +453,7 @@ class _SummaryTile extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: AppFontSize.micro,
             fontWeight: FontWeight.w700,
             color: context.tokens.muted,
           ),
@@ -453,7 +462,7 @@ class _SummaryTile extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: AppFontSize.titleLarge,
             fontWeight: FontWeight.w900,
             color: context.tokens.ink,
           ),
@@ -468,7 +477,7 @@ class _SummaryTile extends StatelessWidget {
           child: Text(
             note,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppFontSize.micro,
               fontWeight: FontWeight.w700,
               color: color,
             ),
@@ -518,7 +527,7 @@ Future<bool?> showUserDialog(
           label: 'Ad Soyad',
           child: TextField(
             controller: fullName,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         if (user == null) ...[
@@ -529,7 +538,7 @@ Future<bool?> showUserDialog(
               child: TextField(
                 controller: username,
                 autocorrect: false,
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: AppFontSize.title),
               ),
             ),
             right: LabeledField(
@@ -538,7 +547,7 @@ Future<bool?> showUserDialog(
               child: TextField(
                 controller: password,
                 obscureText: true,
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: AppFontSize.title),
               ),
             ),
           ),
@@ -585,7 +594,10 @@ Future<bool?> showUserDialog(
                     }
                     rebuild();
                   },
-                  title: Text(store.name, style: const TextStyle(fontSize: 14)),
+                  title: Text(
+                    store.name,
+                    style: const TextStyle(fontSize: AppFontSize.bodyLarge),
+                  ),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
@@ -645,7 +657,7 @@ Future<bool?> showUserDialog(
                         : null,
                     title: Text(
                       permissionLabels[permission] ?? permission,
-                      style: const TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: AppFontSize.bodyLarge),
                     ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
@@ -733,7 +745,7 @@ Future<bool?> showPasswordResetDialog(BuildContext context, ManagedUser user) {
             child: TextField(
               controller: password,
               obscureText: true,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
           right: LabeledField(
@@ -741,7 +753,7 @@ Future<bool?> showPasswordResetDialog(BuildContext context, ManagedUser user) {
             child: TextField(
               controller: repeat,
               obscureText: true,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
         ),
@@ -782,7 +794,7 @@ class _Initials extends StatelessWidget {
       child: Text(
         letters.isEmpty ? '?' : letters,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSize.bodyLarge,
           fontWeight: FontWeight.w700,
           color: t.primaryDark,
         ),

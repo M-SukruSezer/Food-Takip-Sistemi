@@ -89,7 +89,7 @@ class StatCard extends StatelessWidget {
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: narrow ? 12 : 13,
+                    fontSize: narrow ? AppFontSize.label : AppFontSize.body,
                     color: t.muted,
                     fontWeight: FontWeight.w600,
                   ),
@@ -102,7 +102,9 @@ class StatCard extends StatelessWidget {
             value,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: narrow ? 20 : 26,
+              fontSize: narrow
+                  ? AppFontSize.headline
+                  : AppFontSize.headlineLarge,
               fontWeight: FontWeight.w700,
               color: valueColor ?? t.ink,
               letterSpacing: -0.4,
@@ -112,7 +114,10 @@ class StatCard extends StatelessWidget {
             Text(
               sub!,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: narrow ? 11 : 12, color: t.muted),
+              style: TextStyle(
+                fontSize: narrow ? AppFontSize.caption : AppFontSize.label,
+                color: t.muted,
+              ),
             ),
         ],
       ),
@@ -204,7 +209,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 title!,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSize.title,
                   fontWeight: FontWeight.w700,
                   color: t.ink,
                 ),
@@ -214,7 +219,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message,
-              style: TextStyle(fontSize: 14, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.bodyLarge, color: t.muted),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[const SizedBox(height: 16), action!],
@@ -263,7 +268,7 @@ class ErrorState extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSize.title,
                 fontWeight: FontWeight.w700,
                 color: t.ink,
               ),
@@ -272,7 +277,7 @@ class ErrorState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               message,
-              style: TextStyle(fontSize: 14, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.bodyLarge, color: t.muted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

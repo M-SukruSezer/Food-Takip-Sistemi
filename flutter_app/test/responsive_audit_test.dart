@@ -150,27 +150,37 @@ void main() {
   }
 
   group('Tasarım sistemi koruması', () {
-    // Ortak sisteme taşınan dosyalarda opak sabit renk kalmamalı; aksi halde
-    // koyu temada okunmaz metin geri gelir.
-    const tokenOnly = [
-      'lib/widgets/standard_dialog.dart',
-      'lib/widgets/dialogs.dart',
-      'lib/widgets/sell_confirm_bottom_sheet.dart',
-      'lib/screens/batch_dialogs.dart',
-      'lib/screens/petty_cash_dialogs.dart',
-      'lib/screens/batches_screen.dart',
-      'lib/core/logout.dart',
-    ];
-    for (final path in tokenOnly) {
-      test('$path yalnızca tema token\'ı kullanır', () {
-        final src = File(path).readAsStringSync();
-        final literals = RegExp(r'Color\(0x[fF]{2}[0-9A-Fa-f]{6}\)')
-            .allMatches(src)
-            .map((m) => m.group(0))
-            .toList();
-        expect(literals, isEmpty, reason: 'Sabit renkler: $literals');
-      });
-    }
+    Iterable<File> kaynaklar() => Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'));
+
+    // Opak renkler yalnızca tasarım sisteminde tanımlanır; ekranlarda sabit
+    // renk koyu temada okunmaz metni geri getirir.
+    test('opak renk sabitleri yalnızca core/tokens.dart içinde', () {
+      final literal = RegExp(r'Color\(0x[fF]{2}[0-9A-Fa-f]{6}\)');
+      final offenders = [
+        for (final f in kaynaklar())
+          if (!f.path.endsWith('core/tokens.dart') &&
+              literal.hasMatch(f.readAsStringSync()))
+            f.path,
+      ];
+      expect(offenders, isEmpty);
+    });
+
+    // Yazı boyutları AppFontSize ölçeğinden gelir. PDF dışa aktarımları
+    // baskı punto ölçüsü kullandığı için hariçtir.
+    test('sayısal fontSize yalnızca tip ölçeğinde', () {
+      final literal = RegExp(r'fontSize:\s*\d');
+      final offenders = [
+        for (final f in kaynaklar())
+          if (!f.path.endsWith('core/tokens.dart') &&
+              !f.path.endsWith('_export.dart') &&
+              literal.hasMatch(f.readAsStringSync()))
+            f.path,
+      ];
+      expect(offenders, isEmpty);
+    });
 
     test('ekranlarda ham showDialog / AlertDialog kullanılmaz', () {
       final offenders = <String>[];

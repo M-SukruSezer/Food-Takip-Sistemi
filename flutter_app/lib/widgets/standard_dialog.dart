@@ -421,7 +421,7 @@ class InlineError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final fg = Theme.of(context).colorScheme.onErrorContainer;
+    final fg = t.dangerText;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,

@@ -180,7 +180,7 @@ class _ActionCard extends StatelessWidget {
                         title,
                         style: TextStyle(
                           color: t.ink,
-                          fontSize: 14,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           height: 1.3,
                         ),
@@ -190,7 +190,7 @@ class _ActionCard extends StatelessWidget {
                         subtitle,
                         style: TextStyle(
                           color: t.muted,
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           height: 1.3,
                         ),
                       ),
@@ -211,7 +211,7 @@ class _ActionCard extends StatelessWidget {
                     badge,
                     style: TextStyle(
                       color: badgeColor,
-                      fontSize: 10,
+                      fontSize: AppFontSize.micro,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

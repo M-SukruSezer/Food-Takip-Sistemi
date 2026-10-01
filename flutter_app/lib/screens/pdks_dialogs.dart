@@ -156,7 +156,10 @@ class _QrDialogState extends State<_QrDialog> {
             label: 'Kod metni',
             child: SelectableText(
               _token.token,
-              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              style: const TextStyle(
+                fontSize: AppFontSize.label,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ],
@@ -234,7 +237,7 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
                 child: Text(
                   'Kalan hakkınız ${balance.remainingDays} gün. Hafta tatili '
                   'günleri düşülmez, resmi tatiller hesaba katılmaz.',
-                  style: TextStyle(fontSize: 12, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
                 ),
               ),
           ],
@@ -266,7 +269,7 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
             child: TextField(
               controller: reason,
               maxLines: 2,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
         ];
@@ -319,7 +322,7 @@ Future<bool?> showRequestRejectDialog(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               '${request.fullName ?? ''} · ${request.typeLabel}',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             ),
           ),
           LabeledField(
@@ -329,7 +332,7 @@ Future<bool?> showRequestRejectDialog(
               controller: note,
               autofocus: true,
               maxLines: 2,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
         ];
@@ -446,7 +449,7 @@ Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
             'Alanı boş bırakmak tanımı kaldırır. Sıfır yazmak "tanımlı ama '
             'ödenmiyor" demektir. Tutarlar brüt hak ediş hesabında kullanılır; '
             'SGK ve vergi kesintileri hesaplanmaz.',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
         ];
       },

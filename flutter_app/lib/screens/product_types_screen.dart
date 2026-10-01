@@ -183,7 +183,7 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
                           type.name,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppFontSize.title,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -199,7 +199,10 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
                         : 'Açıklama yok',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.body,
+                      color: t.muted,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -273,7 +276,7 @@ Future<bool?> showProductTypeDialog(
           label: 'Ürün Adı',
           child: TextField(
             controller: name,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         // Kisa sayisal alanlar yan yana.
@@ -284,7 +287,7 @@ Future<bool?> showProductTypeDialog(
             child: TextField(
               controller: skt,
               keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
           right: LabeledField(
@@ -297,7 +300,7 @@ Future<bool?> showProductTypeDialog(
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
         ),
@@ -306,7 +309,7 @@ Future<bool?> showProductTypeDialog(
           child: TextField(
             controller: description,
             maxLines: 2,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         if (isSuper)

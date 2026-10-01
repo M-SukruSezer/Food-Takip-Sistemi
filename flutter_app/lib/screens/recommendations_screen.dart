@@ -216,12 +216,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         if (b.hasPrice)
           Text(
             'İkram değeri olarak ${fmtMoney(b.productUnitPrice)} kaydedilir.',
-            style: TextStyle(color: t.muted, fontSize: 13),
+            style: TextStyle(color: t.muted, fontSize: AppFontSize.body),
           )
         else
           Text(
             'Bu çeşit için fiyat tanımlı olmadığı için ikram değeri kaydedilemez.',
-            style: TextStyle(color: t.warning, fontSize: 13),
+            style: TextStyle(color: t.warning, fontSize: AppFontSize.body),
           ),
       ],
     );
@@ -339,7 +339,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'Filtre etkin: ${_items.length} üründen ${shown.length} tanesi listeleniyor.',
-                    style: TextStyle(fontSize: 11, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ],
@@ -494,7 +497,7 @@ class _UrgentExpiredBanner extends StatelessWidget {
                           'ACİL OPERASYONEL',
                           style: TextStyle(
                             color: t.danger,
-                            fontSize: 10,
+                            fontSize: AppFontSize.micro,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                           ),
@@ -503,8 +506,8 @@ class _UrgentExpiredBanner extends StatelessWidget {
                         Text(
                           'Şimdi',
                           style: TextStyle(
-                            color: t.dangerStrong,
-                            fontSize: 10,
+                            color: t.dangerText,
+                            fontSize: AppFontSize.micro,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -513,8 +516,8 @@ class _UrgentExpiredBanner extends StatelessWidget {
                     Text(
                       '$expiredCount adet ürünün SKT\'si doldu!',
                       style: TextStyle(
-                        color: t.dangerStrong,
-                        fontSize: 13,
+                        color: t.dangerText,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -526,7 +529,11 @@ class _UrgentExpiredBanner extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Lütfen vitrinden kaldırarak zayi fişi oluşturun veya satışı durdurun.',
-            style: TextStyle(color: t.dangerStrong, fontSize: 11, height: 1.2),
+            style: TextStyle(
+              color: t.dangerText,
+              fontSize: AppFontSize.caption,
+              height: 1.2,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -559,7 +566,7 @@ class _UrgentExpiredBanner extends StatelessWidget {
               ],
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: t.dangerStrong,
+                  foregroundColor: t.dangerText,
                   side: BorderSide(color: t.danger.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -573,7 +580,10 @@ class _UrgentExpiredBanner extends StatelessWidget {
                 onPressed: onDismiss,
                 child: const Text(
                   'Gizle',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: AppFontSize.label,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -629,7 +639,7 @@ class _CategoryChipsRow extends StatelessWidget {
                     Text(
                       cat,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: isSelected
                             ? FontWeight.w700
                             : FontWeight.w500,
@@ -651,7 +661,7 @@ class _CategoryChipsRow extends StatelessWidget {
                       child: Text(
                         '$count',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppFontSize.micro,
                           fontWeight: FontWeight.w700,
                           color: isSelected ? t.onPrimary : t.muted,
                         ),
@@ -702,7 +712,7 @@ class _SectionHeader extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSize.bodyLarge,
                 fontWeight: FontWeight.w700,
                 color: context.tokens.ink,
               ),
@@ -718,7 +728,7 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               countLabel,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppFontSize.caption,
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
@@ -829,7 +839,7 @@ class _Tier extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppFontSize.caption,
                     color: context.tokens.muted,
                     fontWeight: FontWeight.w600,
                   ),
@@ -841,7 +851,7 @@ class _Tier extends StatelessWidget {
           Text(
             '$value',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: AppFontSize.headline,
               fontWeight: FontWeight.w800,
               color: color,
             ),
@@ -972,7 +982,7 @@ class _RecommendationCard extends StatelessWidget {
                             batch.productName,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: AppFontSize.bodyLarge,
                               color: t.ink,
                               height: 1.25,
                             ),
@@ -991,7 +1001,7 @@ class _RecommendationCard extends StatelessWidget {
                           child: Text(
                             badge.text,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: AppFontSize.micro,
                               fontWeight: FontWeight.w700,
                               color: badge.color,
                             ),
@@ -1006,7 +1016,7 @@ class _RecommendationCard extends StatelessWidget {
                         Text(
                           '${batch.remaining} adet',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w600,
                             color: t.muted,
                           ),
@@ -1014,12 +1024,15 @@ class _RecommendationCard extends StatelessWidget {
                         if (batch.hasPrice) ...[
                           Text(
                             '•',
-                            style: TextStyle(color: t.border, fontSize: 12),
+                            style: TextStyle(
+                              color: t.border,
+                              fontSize: AppFontSize.label,
+                            ),
                           ),
                           Text(
                             fmtMoney(batch.productUnitPrice),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.w600,
                               color: t.primary,
                             ),
@@ -1028,11 +1041,17 @@ class _RecommendationCard extends StatelessWidget {
                         if (showStore && batch.storeName != null) ...[
                           Text(
                             '•',
-                            style: TextStyle(color: t.border, fontSize: 12),
+                            style: TextStyle(
+                              color: t.border,
+                              fontSize: AppFontSize.label,
+                            ),
                           ),
                           Text(
                             batch.storeName!,
-                            style: TextStyle(fontSize: 12, color: t.muted),
+                            style: TextStyle(
+                              fontSize: AppFontSize.label,
+                              color: t.muted,
+                            ),
                           ),
                         ],
                       ],
@@ -1060,7 +1079,7 @@ class _RecommendationCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: AppFontSize.caption,
                               fontWeight:
                                   batch.urgency == 'critical' || batch.isExpired
                                   ? FontWeight.w700

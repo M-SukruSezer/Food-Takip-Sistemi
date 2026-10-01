@@ -124,7 +124,7 @@ class AppCardStore extends StatelessWidget {
                   store.name,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSize.title,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -143,13 +143,13 @@ class AppCardStore extends StatelessWidget {
                 : 'Adres girilmemiş',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 13, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
           ),
           Text(
             store.phone?.isNotEmpty == true
                 ? store.phone!
                 : 'Telefon girilmemiş',
-            style: TextStyle(fontSize: 13, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -201,7 +201,7 @@ Future<bool?> showStoreDialog(BuildContext context, {Store? store}) {
           label: 'Mağaza Adı',
           child: TextField(
             controller: name,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         LabeledField(
@@ -209,7 +209,7 @@ Future<bool?> showStoreDialog(BuildContext context, {Store? store}) {
           child: TextField(
             controller: address,
             maxLines: 2,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         LabeledField(
@@ -217,7 +217,7 @@ Future<bool?> showStoreDialog(BuildContext context, {Store? store}) {
           child: TextField(
             controller: phone,
             keyboardType: TextInputType.phone,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
         // Yeni magaza her zaman aktif acilir; sunucu POST'ta active almaz.

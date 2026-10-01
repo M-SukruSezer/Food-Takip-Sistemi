@@ -314,7 +314,7 @@ class SectionSwitcher extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? t.sidebarBorder.withValues(alpha: 0.45)
-            : const Color(0xFFF1F5F9),
+            : AccentTone.neutral.lightFill,
         borderRadius: BorderRadius.circular(AppTokens.radiusSm + 3),
       ),
       child: Row(
@@ -344,7 +344,7 @@ class SectionSwitcher extends StatelessWidget {
                             ? t.onPrimary
                             : (isDark
                                   ? t.sidebarMuted
-                                  : const Color(0xFF475569)),
+                                  : AccentTone.neutral.lightForeground),
                       ),
                       if (!compact) ...[
                         const SizedBox(width: 7),
@@ -357,13 +357,15 @@ class SectionSwitcher extends StatelessWidget {
                                 Text(
                                   s.label,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.w700,
                                     color: active
                                         ? Colors.white
                                         : (isDark
                                               ? t.sidebarMuted
-                                              : const Color(0xFF475569)),
+                                              : AccentTone
+                                                    .neutral
+                                                    .lightForeground),
                                   ),
                                 ),
                                 Text(
@@ -371,13 +373,15 @@ class SectionSwitcher extends StatelessWidget {
                                       ? ' & Kadro'
                                       : ' & Vitrin',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.w700,
                                     color: active
                                         ? Colors.white
                                         : (isDark
                                               ? t.sidebarMuted
-                                              : const Color(0xFF475569)),
+                                              : AccentTone
+                                                    .neutral
+                                                    .lightForeground),
                                   ),
                                 ),
                               ],
@@ -446,7 +450,7 @@ class _SideNav extends StatelessWidget {
                           style: TextStyle(
                             color: t.sidebarInk,
                             fontWeight: FontWeight.w800,
-                            fontSize: 15,
+                            fontSize: AppFontSize.bodyLarge,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -509,7 +513,7 @@ class _SideNav extends StatelessWidget {
                           style: TextStyle(
                             color: t.sidebarMuted,
                             // React'teki .side-group-title ile ayni taban.
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
                           ),
@@ -558,7 +562,7 @@ class _SideNav extends StatelessWidget {
                                 style: TextStyle(
                                   color: t.sidebarInk,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 14,
+                                  fontSize: AppFontSize.bodyLarge,
                                 ),
                               ),
                               Text(
@@ -566,7 +570,7 @@ class _SideNav extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: t.sidebarMuted,
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.label,
                                 ),
                               ),
                             ],
@@ -631,7 +635,7 @@ class _SideTile extends StatelessWidget {
                     style: TextStyle(
                       color: active ? t.card : t.sidebarMuted,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: AppFontSize.bodyLarge,
                     ),
                   ),
                 ),
@@ -687,7 +691,7 @@ class _TopBar extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: t.ink,
-                  fontSize: 15,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -722,7 +726,9 @@ class _TopBar extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: t.ink,
-                            fontSize: narrow ? 12.5 : 13,
+                            fontSize: narrow
+                                ? AppFontSize.label
+                                : AppFontSize.body,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -734,7 +740,9 @@ class _TopBar extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: t.muted,
-                            fontSize: narrow ? 10.5 : 11,
+                            fontSize: narrow
+                                ? AppFontSize.micro
+                                : AppFontSize.caption,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -813,7 +821,7 @@ class _MobileTopBar extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2CCB9A),
+                        color: context.tokens.success,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -825,7 +833,7 @@ class _MobileTopBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: t.primary,
-                          fontSize: 11.5,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w800,
                           letterSpacing: .15,
                         ),
@@ -836,7 +844,7 @@ class _MobileTopBar extends StatelessWidget {
                         '  · Online',
                         style: TextStyle(
                           color: t.muted,
-                          fontSize: 10.5,
+                          fontSize: AppFontSize.micro,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -849,7 +857,9 @@ class _MobileTopBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: t.ink,
-                    fontSize: compact ? 20 : 24,
+                    fontSize: compact
+                        ? AppFontSize.headline
+                        : AppFontSize.headlineLarge,
                     height: 1,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -.7,
@@ -865,7 +875,9 @@ class _MobileTopBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: t.muted,
-                          fontSize: compact ? 12 : 13.5,
+                          fontSize: compact
+                              ? AppFontSize.label
+                              : AppFontSize.body,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -888,7 +900,7 @@ class _MobileTopBar extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: t.primary,
-                            fontSize: 13.5,
+                            fontSize: AppFontSize.body,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -924,7 +936,7 @@ class _MobileTopBar extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE11D48),
+                          color: context.tokens.danger,
                           borderRadius: BorderRadius.circular(9),
                           border: Border.all(color: t.card, width: 1.5),
                         ),
@@ -932,7 +944,7 @@ class _MobileTopBar extends StatelessWidget {
                           count > 9 ? '9+' : '$count',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: AppFontSize.micro,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -977,7 +989,7 @@ class _MobileTopBar extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981),
+                        color: context.tokens.success,
                         shape: BoxShape.circle,
                         border: Border.all(color: t.card, width: 2),
                       ),
@@ -1295,7 +1307,7 @@ class _NavMenuSheet extends StatelessWidget {
                             height: 4,
                             margin: const EdgeInsets.only(top: 10, bottom: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFCBD5E1),
+                              color: context.tokens.border,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -1314,7 +1326,7 @@ class _NavMenuSheet extends StatelessWidget {
                                       width: 11,
                                       height: 11,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981),
+                                        color: context.tokens.success,
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                           color: Colors.white,
@@ -1336,7 +1348,7 @@ class _NavMenuSheet extends StatelessWidget {
                                       style: TextStyle(
                                         color: t.ink,
                                         fontWeight: FontWeight.w800,
-                                        fontSize: 15,
+                                        fontSize: AppFontSize.bodyLarge,
                                         letterSpacing: -0.2,
                                       ),
                                     ),
@@ -1347,7 +1359,7 @@ class _NavMenuSheet extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         color: t.muted,
-                                        fontSize: 12,
+                                        fontSize: AppFontSize.label,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -1368,7 +1380,7 @@ class _NavMenuSheet extends StatelessWidget {
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               color: t.primary,
-                                              fontSize: 11.5,
+                                              fontSize: AppFontSize.caption,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -1382,7 +1394,7 @@ class _NavMenuSheet extends StatelessWidget {
                                 tooltip: 'Kapat',
                                 onPressed: () => Navigator.pop(context),
                                 icon: const Icon(Icons.close_rounded),
-                                color: const Color(0xFF94A3B8),
+                                color: context.tokens.muted,
                                 constraints: const BoxConstraints(
                                   minWidth: AppTokens.tap,
                                   minHeight: AppTokens.tap,
@@ -1440,9 +1452,9 @@ class _NavMenuSheet extends StatelessWidget {
                                                 : displayGroups[gi].title!
                                                       .toUpperCase(),
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Color(0xFF64748B),
-                                              fontSize: 11,
+                                            style: TextStyle(
+                                              color: context.tokens.muted,
+                                              fontSize: AppFontSize.caption,
                                               fontWeight: FontWeight.w800,
                                               letterSpacing: 0.6,
                                             ),
@@ -1453,7 +1465,7 @@ class _NavMenuSheet extends StatelessWidget {
                                           '${displayGroups[gi].items.length} Aktif Modül',
                                           style: TextStyle(
                                             color: t.primary,
-                                            fontSize: 11,
+                                            fontSize: AppFontSize.caption,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -1494,10 +1506,10 @@ class _NavMenuSheet extends StatelessWidget {
                                     Navigator.pop(context);
                                     confirmSignOut(context);
                                   },
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.logout_rounded,
                                     size: 19,
-                                    color: Color(0xFFDC2626),
+                                    color: context.tokens.dangerText,
                                   ),
                                   label: const Text('Çıkış yap'),
                                   style: OutlinedButton.styleFrom(
@@ -1512,18 +1524,18 @@ class _NavMenuSheet extends StatelessWidget {
                                     ),
                                     minimumSize: const Size.fromHeight(48),
                                     textStyle: const TextStyle(
-                                      fontSize: 14.5,
+                                      fontSize: AppFontSize.bodyLarge,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
+                              Text(
                                 'v2.4.1 (Build 1084)',
                                 style: TextStyle(
-                                  color: Color(0xFF94A3B8),
-                                  fontSize: 11,
+                                  color: context.tokens.muted,
+                                  fontSize: AppFontSize.caption,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1550,11 +1562,9 @@ class _MenuTileData {
     required this.titleSuffix,
     required this.subtitle,
     required this.icon,
-    required this.iconBg,
-    required this.iconColor,
+    required this.accent,
     this.badgeText,
-    this.badgeBg,
-    this.badgeColor,
+    this.badgeTone = AccentTone.successBadge,
   });
 
   final String titlePrefix;
@@ -1562,11 +1572,9 @@ class _MenuTileData {
   final String titleSuffix;
   final String subtitle;
   final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
+  final AccentTone accent;
   final String? badgeText;
-  final Color? badgeBg;
-  final Color? badgeColor;
+  final AccentTone badgeTone;
 }
 
 _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
@@ -1578,11 +1586,9 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Giriş/çıkış, mola süreleri ve QR doğrulama',
         icon: Icons.access_time_filled_rounded,
-        iconBg: Color(0xFF00A86B),
-        iconColor: Colors.white,
+        accent: AccentTone.live,
         badgeText: 'Canlı',
-        badgeBg: Color(0xFFD1FAE5),
-        badgeColor: Color(0xFF065F46),
+        badgeTone: AccentTone.successBadge,
       );
     case '/roster':
       return const _MenuTileData(
@@ -1591,8 +1597,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Haftalık nöbet planı ve çalışma saatleri',
         icon: Icons.calendar_month_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/pdks-admin':
       return const _MenuTileData(
@@ -1601,8 +1606,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Yıllık izin talepleri, mazeret ve onaylar',
         icon: Icons.fact_check_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/timesheet':
       return const _MenuTileData(
@@ -1611,8 +1615,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Aylık personel çalışma ve devam puantajı',
         icon: Icons.assignment_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/recommendations':
       final count = recommendationCount > 0 ? recommendationCount : 7;
@@ -1622,11 +1625,9 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Yaklaşan son kullanma & fire aksiyonları',
         icon: Icons.hourglass_top_rounded,
-        iconBg: const Color(0xFFFEF3C7),
-        iconColor: const Color(0xFFD97706),
+        accent: AccentTone.warning,
         badgeText: '$count Kritik',
-        badgeBg: const Color(0xFFFEE2E2),
-        badgeColor: const Color(0xFFDC2626),
+        badgeTone: AccentTone.dangerBadge,
       );
     case '/batches':
       return const _MenuTileData(
@@ -1635,8 +1636,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: ' & Donuk Depo',
         subtitle: 'Donuk stok sayımı, çözünme ve vitrin',
         icon: Icons.ac_unit_rounded,
-        iconBg: Color(0xFFE0F2FE),
-        iconColor: Color(0xFF0284C7),
+        accent: AccentTone.info,
       );
     case '/product-types':
       return const _MenuTileData(
@@ -1645,8 +1645,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: ' & Raf Ömrü',
         subtitle: 'Reçete, vitrin saati ve porsiyon takibi',
         icon: Icons.cake_outlined,
-        iconBg: Color(0xFFF3E8FF),
-        iconColor: Color(0xFF9333EA),
+        accent: AccentTone.purple,
       );
     case '/petty-cash':
       return const _MenuTileData(
@@ -1655,8 +1654,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: ' & Satış',
         subtitle: 'Günlük ciro, gider fişleri ve kasa teslimi',
         icon: Icons.account_balance_wallet_outlined,
-        iconBg: Color(0xFFDCFCE7),
-        iconColor: Color(0xFF15803D),
+        accent: AccentTone.success,
       );
     case '/profile':
       return const _MenuTileData(
@@ -1665,8 +1663,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: ' & Ayarlar',
         subtitle: 'PIN kodu, bildirimler ve yetki şablonu',
         icon: Icons.manage_accounts_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/dashboard':
       return const _MenuTileData(
@@ -1675,8 +1672,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Günlük operasyon özeti ve durum göstergeleri',
         icon: Icons.home_outlined,
-        iconBg: Color(0xFFE0F2FE),
-        iconColor: Color(0xFF0284C7),
+        accent: AccentTone.info,
       );
     case '/approvals':
       return const _MenuTileData(
@@ -1685,8 +1681,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Bekleyen transfer, zayi ve ürün onayları',
         icon: Icons.rule_outlined,
-        iconBg: Color(0xFFFEF3C7),
-        iconColor: Color(0xFFD97706),
+        accent: AccentTone.warning,
       );
     case '/daily-report':
       return const _MenuTileData(
@@ -1695,8 +1690,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Ciro, satış ve ürün performans grafikleri',
         icon: Icons.assessment_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/stock-coverage':
       return const _MenuTileData(
@@ -1705,8 +1699,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Tahmini stok tükenme süresi ve hız analizi',
         icon: Icons.inventory_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/sales':
       return const _MenuTileData(
@@ -1715,8 +1708,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Günlük ve haftalık satış hareketleri',
         icon: Icons.payments_outlined,
-        iconBg: Color(0xFFDCFCE7),
-        iconColor: Color(0xFF15803D),
+        accent: AccentTone.success,
       );
     case '/logs':
       return const _MenuTileData(
@@ -1725,8 +1717,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Kullanıcı işlem ve denetim logları',
         icon: Icons.receipt_long_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/users':
       return const _MenuTileData(
@@ -1735,8 +1726,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Personel hesapları ve yetki yönetimi',
         icon: Icons.group_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     case '/stores':
       return const _MenuTileData(
@@ -1745,8 +1735,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Şube bilgileri ve mağaza tanımları',
         icon: Icons.store_outlined,
-        iconBg: Color(0xFFF1F5F9),
-        iconColor: Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
     default:
       return _MenuTileData(
@@ -1755,8 +1744,7 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: item.shortLabel,
         icon: item.icon,
-        iconBg: const Color(0xFFF1F5F9),
-        iconColor: const Color(0xFF475569),
+        accent: AccentTone.neutral,
       );
   }
 }
@@ -1778,16 +1766,15 @@ class _MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final d = _menuTileDataFor(item, recommendationCount);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final criticalBadge = d.badgeText?.contains('Kritik') ?? false;
-    final iconBg = dark ? t.primarySoft : d.iconBg;
-    final iconColor = dark ? t.primary : d.iconColor;
-    final badgeBg = dark
-        ? (criticalBadge ? t.dangerSoft : t.successSoft)
-        : d.badgeBg;
-    final badgeColor = dark
-        ? (criticalBadge ? t.danger : t.okText)
-        : d.badgeColor;
+    final brightness = Theme.of(context).brightness;
+    final (fill: iconBg, foreground: iconColor) = d.accent.resolve(
+      t,
+      brightness,
+    );
+    final (fill: badgeBg, foreground: badgeColor) = d.badgeTone.resolve(
+      t,
+      brightness,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -1844,7 +1831,7 @@ class _MenuTile extends StatelessWidget {
                                     style: TextStyle(
                                       color: t.ink,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.bodyLarge,
                                     ),
                                   ),
                                 Flexible(
@@ -1854,7 +1841,7 @@ class _MenuTile extends StatelessWidget {
                                     style: TextStyle(
                                       color: t.ink,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.bodyLarge,
                                     ),
                                   ),
                                 ),
@@ -1866,7 +1853,7 @@ class _MenuTile extends StatelessWidget {
                                       style: TextStyle(
                                         color: t.ink,
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 14,
+                                        fontSize: AppFontSize.bodyLarge,
                                       ),
                                     ),
                                   ),
@@ -1888,7 +1875,7 @@ class _MenuTile extends StatelessWidget {
                                 d.badgeText!,
                                 style: TextStyle(
                                   color: badgeColor,
-                                  fontSize: 10.5,
+                                  fontSize: AppFontSize.micro,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.1,
                                 ),
@@ -1904,7 +1891,7 @@ class _MenuTile extends StatelessWidget {
                         maxLines: 1,
                         style: TextStyle(
                           color: t.muted,
-                          fontSize: 12,
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -1985,7 +1972,7 @@ class _BottomTab extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppFontSize.caption,
                 fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                 color: color,
               ),
@@ -2021,10 +2008,10 @@ class _QrBottomTab extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF115E59),
+                  color: context.tokens.primary,
                   borderRadius: BorderRadius.circular(17),
                   border: Border.all(
-                    color: open ? const Color(0xFF99D5CD) : t.card,
+                    color: open ? t.primarySoft : t.card,
                     width: 3,
                   ),
                   boxShadow: [
@@ -2037,7 +2024,7 @@ class _QrBottomTab extends StatelessWidget {
                 ),
                 child: Icon(
                   open ? Icons.close_rounded : Icons.qr_code_scanner_rounded,
-                  color: Colors.white,
+                  color: t.onPrimary,
                   size: 25,
                 ),
               ),
@@ -2049,7 +2036,7 @@ class _QrBottomTab extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: t.ink,
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -2083,7 +2070,7 @@ class _NavBadge extends StatelessWidget {
         textAlign: TextAlign.center,
         style: const TextStyle(
           // React'teki .nav-badge ile ayni taban.
-          fontSize: 11,
+          fontSize: AppFontSize.caption,
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 1.4,
@@ -2118,7 +2105,7 @@ class _RecommendationTab extends StatelessWidget {
                     width: 54,
                     height: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF115E59),
+                      color: context.tokens.primary,
                       borderRadius: BorderRadius.circular(19),
                       border: Border.all(color: t.card, width: 3),
                       boxShadow: [
@@ -2129,9 +2116,9 @@ class _RecommendationTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.local_fire_department_outlined,
-                      color: Colors.white,
+                      color: t.onPrimary,
                       size: 29,
                     ),
                   ),
@@ -2145,7 +2132,7 @@ class _RecommendationTab extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE91D48),
+                          color: context.tokens.danger,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: t.card, width: 2),
                         ),
@@ -2153,7 +2140,7 @@ class _RecommendationTab extends StatelessWidget {
                           count > 99 ? '99+' : '$count',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -2168,7 +2155,7 @@ class _RecommendationTab extends StatelessWidget {
                 'Öneri/SKT',
                 style: TextStyle(
                   color: t.ink,
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w800,
                 ),
               ),

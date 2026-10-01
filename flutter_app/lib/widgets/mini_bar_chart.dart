@@ -35,7 +35,7 @@ class MiniBarChart extends StatelessWidget {
           label,
           style: TextStyle(
             color: t.muted,
-            fontSize: 12,
+            fontSize: AppFontSize.label,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -60,7 +60,7 @@ class MiniBarChart extends StatelessWidget {
                         // Grafik ekseni: React tarafinda da 11px taban
                         // (10px magazada telefonda okunmuyordu).
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           color: t.muted,
                           fontWeight: FontWeight.w600,
                         ),
@@ -87,7 +87,10 @@ class MiniBarChart extends StatelessWidget {
                             : '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                     ],
                   ),

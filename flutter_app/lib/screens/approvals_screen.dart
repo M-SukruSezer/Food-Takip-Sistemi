@@ -169,7 +169,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                 Text(
                   'Çözünme süresi (8 saat) dolmadan food dolabına alınmak istenen ürünler burada '
                   'onaylanır. Onaylanan ürünün SKT süresi onay anından itibaren başlar.',
-                  style: TextStyle(fontSize: 13, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
                 ),
               ],
             ),
@@ -197,7 +197,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                           item.productName ?? 'Ürün',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppFontSize.title,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -212,7 +212,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                   const SizedBox(height: 6),
                   Text(
                     item.reason.isEmpty ? 'Neden yazılmamış' : item.reason,
-                    style: TextStyle(fontSize: 14, color: t.ink),
+                    style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      color: t.ink,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -233,7 +236,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     '${fmtDateTime(item.requestedAt)} · ${item.requestedByName ?? 'bilinmiyor'} istedi',
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                   if (!item.pending &&
                       (item.decidedByName != null || item.decisionNote != null))
@@ -246,7 +252,10 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                           if (item.decisionNote?.isNotEmpty == true)
                             item.decisionNote!,
                         ].join(' — '),
-                        style: TextStyle(fontSize: 12, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
                       ),
                     ),
                   if (item.pending) ...[
@@ -306,7 +315,7 @@ Future<bool?> showRejectDialog(BuildContext context, TransferApproval item) {
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             '${item.productName ?? 'Ürün'} (${item.remaining} adet) çözülme sürecinde kalacak.',
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: AppFontSize.bodyLarge),
           ),
         ),
         LabeledField(
@@ -314,7 +323,7 @@ Future<bool?> showRejectDialog(BuildContext context, TransferApproval item) {
           child: TextField(
             controller: note,
             maxLines: 2,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
             decoration: const InputDecoration(
               hintText: 'örn: Çözülme tamamlanmadan alınamaz',
             ),

@@ -150,7 +150,7 @@ class ProfileHeaderCard extends StatelessWidget {
               user.name,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: AppFontSize.headlineLarge,
                 fontWeight: FontWeight.w700,
                 color: t.ink,
               ),
@@ -159,7 +159,7 @@ class ProfileHeaderCard extends StatelessWidget {
             Text(
               user.title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSize.bodyLarge,
                 fontWeight: FontWeight.w600,
                 color: t.primary,
               ),
@@ -168,7 +168,11 @@ class ProfileHeaderCard extends StatelessWidget {
             Text(
               user.bio,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, height: 1.45, color: t.muted),
+              style: TextStyle(
+                fontSize: AppFontSize.body,
+                height: 1.45,
+                color: t.muted,
+              ),
             ),
             const SizedBox(height: 20),
             _HeaderActions(onEdit: onEdit, onShare: onShare),
@@ -274,7 +278,7 @@ class ProfileSectionTitle extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 15,
+          fontSize: AppFontSize.bodyLarge,
           fontWeight: FontWeight.w700,
           color: t.ink,
         ),
@@ -355,7 +359,7 @@ class _ProfileSettingTile extends StatelessWidget {
                   Text(
                     setting.title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w600,
                       color: t.ink,
                     ),
@@ -363,7 +367,10 @@ class _ProfileSettingTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     setting.subtitle,
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ),
@@ -414,7 +421,7 @@ class ProfileSignOutCard extends StatelessWidget {
                       Text(
                         'Çıkış Yap',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w600,
                           color: t.danger,
                         ),
@@ -422,7 +429,10 @@ class ProfileSignOutCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Hesabından güvenli bir şekilde çık',
-                        style: TextStyle(fontSize: 12, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
                       ),
                     ],
                   ),

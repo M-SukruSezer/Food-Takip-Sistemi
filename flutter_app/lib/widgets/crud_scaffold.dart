@@ -92,7 +92,7 @@ class CrudScaffold extends StatelessWidget {
                           child: Text(
                             title,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: AppFontSize.titleLarge,
                               fontWeight: FontWeight.w700,
                               color: t.ink,
                             ),
@@ -200,7 +200,7 @@ class Pill extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSize.label,
           fontWeight: FontWeight.w700,
           color: color,
         ),

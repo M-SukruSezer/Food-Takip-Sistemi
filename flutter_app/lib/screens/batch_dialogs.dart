@@ -235,7 +235,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
               Text(
                 'Ürün Çeşidi',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.w600,
                   color: context.tokens.ink,
                 ),
@@ -249,7 +249,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                 child: Text(
                   'Tatlı & Pasta',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppFontSize.micro,
                     fontWeight: FontWeight.w700,
                     color: context.tokens.primary,
                   ),
@@ -294,7 +294,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12.5,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w700,
                             color: context.tokens.ink,
                           ),
@@ -304,7 +304,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               ? 'SKT: Çözünme Sonrası ${selectedProd.sktDays} Gün'
                               : 'Çeşit seçilmedi',
                           style: TextStyle(
-                            fontSize: 10.5,
+                            fontSize: AppFontSize.micro,
                             fontWeight: FontWeight.w600,
                             color: context.tokens.primary,
                           ),
@@ -319,7 +319,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                       Text(
                         'SEÇ',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppFontSize.micro,
                           fontWeight: FontWeight.w700,
                           color: context.tokens.muted,
                         ),
@@ -349,7 +349,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                     Text(
                       'Adet / Kutu',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w600,
                         color: context.tokens.ink,
                       ),
@@ -393,7 +393,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 child: Text(
                                   '-',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: AppFontSize.title,
                                     fontWeight: FontWeight.w700,
                                     color: context.tokens.muted,
                                   ),
@@ -407,7 +407,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 14.5,
+                                fontSize: AppFontSize.bodyLarge,
                                 fontWeight: FontWeight.w800,
                                 color: context.tokens.ink,
                               ),
@@ -445,7 +445,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 child: Text(
                                   '+',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: AppFontSize.title,
                                     fontWeight: FontWeight.w700,
                                     color: context.tokens.onPrimary,
                                   ),
@@ -471,7 +471,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         Text(
                           'Parti Kodu',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w600,
                             color: context.tokens.ink,
                           ),
@@ -479,7 +479,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         Text(
                           'Oto No',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: AppFontSize.micro,
                             color: context.tokens.muted,
                           ),
                         ),
@@ -501,7 +501,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                             child: TextField(
                               controller: _codeController,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppFontSize.label,
                                 fontWeight: FontWeight.w600,
                                 color: context.tokens.ink,
                               ),
@@ -512,7 +512,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 hintText: 'PRT-2026-0929',
                                 hintStyle: TextStyle(
                                   color: context.tokens.muted,
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.label,
                                 ),
                               ),
                             ),
@@ -573,7 +573,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 text: 'Giriş Rafı: ',
                                 style: TextStyle(
                                   color: context.tokens.muted,
-                                  fontSize: 11.5,
+                                  fontSize: AppFontSize.caption,
                                 ),
                               ),
                               TextSpan(
@@ -581,7 +581,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                                 style: TextStyle(
                                   color: context.tokens.ink,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 11.5,
+                                  fontSize: AppFontSize.caption,
                                 ),
                               ),
                             ],
@@ -597,7 +597,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                   _formatEntryTime(),
                   style: TextStyle(
                     color: context.tokens.muted,
-                    fontSize: 11,
+                    fontSize: AppFontSize.caption,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -610,7 +610,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
             Text(
               'Mağaza (Ana Yönetici)',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.label,
                 fontWeight: FontWeight.w600,
                 color: context.tokens.ink,
               ),
@@ -629,14 +629,14 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                   isExpanded: true,
                   hint: const Text(
                     'Çeşidin kendi mağazası',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: AppFontSize.label),
                   ),
                   items: [
                     const DropdownMenuItem<int?>(
                       value: null,
                       child: Text(
                         'Çeşidin kendi mağazası',
-                        style: TextStyle(fontSize: 12),
+                        style: TextStyle(fontSize: AppFontSize.label),
                       ),
                     ),
                     ...widget.stores.map(
@@ -644,7 +644,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                         value: s.id,
                         child: Text(
                           s.name,
-                          style: const TextStyle(fontSize: 12),
+                          style: const TextStyle(fontSize: AppFontSize.label),
                         ),
                       ),
                     ),
@@ -667,7 +667,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                     TextSpan(
                       text: 'Not ',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w600,
                         color: context.tokens.ink,
                       ),
@@ -675,7 +675,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                     TextSpan(
                       text: '(opsiyonel)',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppFontSize.caption,
                         color: context.tokens.muted,
                       ),
                     ),
@@ -684,7 +684,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
               ),
               Text(
                 'Maks. 120 krk',
-                style: TextStyle(fontSize: 10, color: context.tokens.muted),
+                style: TextStyle(
+                  fontSize: AppFontSize.micro,
+                  color: context.tokens.muted,
+                ),
               ),
             ],
           ),
@@ -707,7 +710,10 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                 required isFocused,
                 maxLength,
               }) => null,
-              style: TextStyle(fontSize: 12.5, color: context.tokens.ink),
+              style: TextStyle(
+                fontSize: AppFontSize.label,
+                color: context.tokens.ink,
+              ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
@@ -715,7 +721,7 @@ class _AddBatchSheetState extends State<_AddBatchSheet> {
                 hintText: 'Tedarikçi teslimatı, hasar kontrolü veya saklama talimatı yazabilirsiniz...',
                 hintStyle: TextStyle(
                   color: context.tokens.muted,
-                  fontSize: 11.5,
+                  fontSize: AppFontSize.caption,
                   height: 1.35,
                 ),
               ),
@@ -747,7 +753,7 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
           child: TextField(
             controller: quantity,
             keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
       ],
@@ -941,7 +947,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     final t = context.tokens;
     return StandardDialog(
       icon: Icons.report_gmailerrorred_rounded,
-      iconColor: t.dangerStrong,
+      iconColor: t.dangerText,
       title: const Text('Zayi & İkram Kayıt Formu'),
       subtitle: 'Kritik stok hareketi',
       busy: _saving,
@@ -1018,7 +1024,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     Text(
                       'Zayi Çıkışı',
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.bold,
                         color: isZayi
                             ? context.tokens.danger
@@ -1082,7 +1088,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     Text(
                       'İkram',
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.bold,
                         color: !isZayi
                             ? context.tokens.success
@@ -1132,7 +1138,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               Text(
                 'SEÇİLİ VİTRİN ÜRÜNÜ',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.w700,
                   color: context.tokens.primary,
                   letterSpacing: 0.5,
@@ -1144,7 +1150,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   Text(
                     'Değiştir',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w700,
                       color: context.tokens.primary,
                     ),
@@ -1163,7 +1169,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           Text(
             widget.batch.productName,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSize.title,
               fontWeight: FontWeight.bold,
               color: context.tokens.ink,
             ),
@@ -1173,12 +1179,15 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             children: [
               Text(
                 'Birim: ',
-                style: TextStyle(fontSize: 12, color: context.tokens.muted),
+                style: TextStyle(
+                  fontSize: AppFontSize.label,
+                  color: context.tokens.muted,
+                ),
               ),
               Text(
                 fmtMoney(unitPrice),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.bold,
                   color: context.tokens.ink,
                 ),
@@ -1195,12 +1204,15 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               const SizedBox(width: 6),
               Text(
                 'Mevcut: ',
-                style: TextStyle(fontSize: 12, color: context.tokens.muted),
+                style: TextStyle(
+                  fontSize: AppFontSize.label,
+                  color: context.tokens.muted,
+                ),
               ),
               Text(
                 '${widget.batch.remaining} Adet',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.bold,
                   color: context.tokens.ink,
                 ),
@@ -1233,7 +1245,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   sktText,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppFontSize.caption,
                     fontWeight: FontWeight.w700,
                     color: widget.batch.isExpired
                         ? context.tokens.danger
@@ -1278,7 +1290,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   'ÇIKIŞ MİKTARI',
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: AppFontSize.micro,
                     fontWeight: FontWeight.w700,
                     color: context.tokens.muted,
                     letterSpacing: 0.4,
@@ -1288,7 +1300,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   '$_quantity Adet',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: AppFontSize.titleLarge,
                     fontWeight: FontWeight.w800,
                     color: context.tokens.ink,
                     letterSpacing: -0.3,
@@ -1300,7 +1312,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: AppFontSize.caption,
                     fontWeight: FontWeight.w600,
                     color: isZayi
                         ? context.tokens.danger
@@ -1349,7 +1361,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                     '$_quantity',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: AppFontSize.titleLarge,
                       fontWeight: FontWeight.w800,
                       color: context.tokens.primary,
                     ),
@@ -1399,7 +1411,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   isZayi ? 'Zayi / İptal Nedeni' : 'İkram Nedeni',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.bold,
                     color: context.tokens.ink,
                   ),
@@ -1407,7 +1419,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   ' *',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.bold,
                     color: context.tokens.danger,
                   ),
@@ -1416,7 +1428,10 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             ),
             Text(
               'Zorunlu Seçim',
-              style: TextStyle(fontSize: 11, color: context.tokens.muted),
+              style: TextStyle(
+                fontSize: AppFontSize.caption,
+                color: context.tokens.muted,
+              ),
             ),
           ],
         ),
@@ -1455,7 +1470,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                       child: Text(
                         r.label,
                         style: TextStyle(
-                          fontSize: 13.5,
+                          fontSize: AppFontSize.body,
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.w500,
@@ -1523,7 +1538,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                   Text(
                     'Kamera & Kasa Kaydı',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.body,
                       fontWeight: FontWeight.bold,
                       color: context.tokens.ink,
                     ),
@@ -1539,7 +1554,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 child: Text(
                   'POS-01 ($timeStr)',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppFontSize.caption,
                     fontWeight: FontWeight.bold,
                     color: context.tokens.primary,
                   ),
@@ -1601,7 +1616,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                                 ? 'Fotoğraf / Kanıt Eklendi ✓'
                                 : 'Fotoğraf / Kanıt Ekle',
                             style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.bold,
                               color: _hasPhoto
                                   ? context.tokens.okText
@@ -1613,7 +1628,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                                 ? '1 görsel iliştirildi (kaldırmak için dokunun)'
                                 : 'Tutanak veya ürün görseli (opsiyonel)',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: AppFontSize.caption,
                               color: context.tokens.muted,
                             ),
                           ),
@@ -1637,7 +1652,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
         Text(
           'Operasyonel Açıklama & Not',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppFontSize.body,
             fontWeight: FontWeight.bold,
             color: context.tokens.ink,
           ),
@@ -1652,10 +1667,16 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           child: TextField(
             controller: _notes,
             maxLines: 2,
-            style: TextStyle(fontSize: 13.5, color: context.tokens.ink),
+            style: TextStyle(
+              fontSize: AppFontSize.body,
+              color: context.tokens.ink,
+            ),
             decoration: InputDecoration(
               hintText: 'Örn: Dolap sıcaklık dalgalanması sebebiyle krema formu bozulmuştur.',
-              hintStyle: TextStyle(fontSize: 12.5, color: context.tokens.muted),
+              hintStyle: TextStyle(
+                fontSize: AppFontSize.label,
+                color: context.tokens.muted,
+              ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(12),
             ),
@@ -1686,7 +1707,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             child: Text(
               initials,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppFontSize.caption,
                 fontWeight: FontWeight.bold,
                 color: context.tokens.onPrimary,
               ),
@@ -1700,14 +1721,17 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 Text(
                   fullName,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: AppFontSize.label,
                     fontWeight: FontWeight.bold,
                     color: context.tokens.ink,
                   ),
                 ),
                 Text(
                   '$roleName · ID: $idStr',
-                  style: TextStyle(fontSize: 10.5, color: context.tokens.muted),
+                  style: TextStyle(
+                    fontSize: AppFontSize.micro,
+                    color: context.tokens.muted,
+                  ),
                 ),
               ],
             ),
@@ -1718,7 +1742,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               Text(
                 'E-ONAY DAMGASI',
                 style: TextStyle(
-                  fontSize: 9.5,
+                  fontSize: AppFontSize.micro,
                   fontWeight: FontWeight.w800,
                   color: context.tokens.primary,
                   letterSpacing: 0.5,
@@ -1728,7 +1752,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
               Text(
                 dateStr,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   fontWeight: FontWeight.bold,
                   color: context.tokens.ink,
                 ),
@@ -1774,7 +1798,10 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
                 : const Icon(Icons.check_circle_rounded, size: 20),
             label: Text(
               label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: AppFontSize.bodyLarge,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
@@ -1784,7 +1811,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           child: Text(
             'Vazgeç',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w600,
               color: context.tokens.muted,
             ),
@@ -1814,7 +1841,7 @@ Future<bool?> showStockAddDialog(BuildContext context, Batch batch) {
           child: TextField(
             controller: quantity,
             keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
           ),
         ),
       ],
@@ -1852,7 +1879,7 @@ Future<bool?> showEarlyRequestDialog(BuildContext context, Batch batch) {
           child: TextField(
             controller: reason,
             maxLines: 3,
-            style: const TextStyle(fontSize: 16),
+            style: const TextStyle(fontSize: AppFontSize.title),
             decoration: const InputDecoration(
               hintText: 'örn: Müşteri siparişi için acil ihtiyaç var',
             ),
@@ -1938,7 +1965,11 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
                   child: Text(
                     'Yanlış girilen tarih/saat ve adetleri düzeltir. Ürünün durumu değişmez ve '
                     'yapılan düzeltme hareket kayıtlarına yazılır.',
-                    style: TextStyle(fontSize: 13, color: t.muted, height: 1.5),
+                    style: TextStyle(
+                      fontSize: AppFontSize.body,
+                      color: t.muted,
+                      height: 1.5,
+                    ),
                   ),
                 ),
               ],
@@ -1970,7 +2001,10 @@ Future<bool?> showAdjustDialog(BuildContext context, Batch batch) {
                 Expanded(
                   child: Text(
                     'Kalan adet toplam adetten büyük olamaz.',
-                    style: TextStyle(fontSize: 11, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      color: t.muted,
+                    ),
                   ),
                 ),
               ],
@@ -2116,7 +2150,13 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                 spacing: 4,
                 runSpacing: 3,
                 children: [
-                  Text(label, style: TextStyle(color: t.muted, fontSize: 12)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: t.muted,
+                      fontSize: AppFontSize.label,
+                    ),
+                  ),
                   if (badge != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -2133,7 +2173,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         badge,
                         style: TextStyle(
                           color: trigger ? t.primaryDark : t.muted,
-                          fontSize: 8,
+                          fontSize: AppFontSize.micro,
                         ),
                       ),
                     ),
@@ -2148,7 +2188,7 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                 style: TextStyle(
                   color: trigger ? t.primaryDark : t.ink,
                   fontWeight: FontWeight.w700,
-                  fontSize: 11.5,
+                  fontSize: AppFontSize.caption,
                 ),
               ),
             ),
@@ -2220,14 +2260,17 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                           statusLabels[detail.status] ?? detail.status,
                           style: TextStyle(
                             color: t.ink,
-                            fontSize: 12,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           'Mevcut Stok: ${detail.remaining} / ${detail.quantity} adet',
-                          style: TextStyle(color: t.muted, fontSize: 10.5),
+                          style: TextStyle(
+                            color: t.muted,
+                            fontSize: AppFontSize.micro,
+                          ),
                         ),
                       ],
                     ),
@@ -2248,7 +2291,10 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                         ),
                         child: Text(
                           '${detail.sktDays} Günlük Raf Ömrü',
-                          style: TextStyle(color: t.primaryDark, fontSize: 10),
+                          style: TextStyle(
+                            color: t.primaryDark,
+                            fontSize: AppFontSize.micro,
+                          ),
                         ),
                       ),
                     ),
@@ -2303,14 +2349,14 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                   'Satış Geçmişi',
                   style: TextStyle(
                     color: t.ink,
-                    fontSize: 12,
+                    fontSize: AppFontSize.label,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '${sales.length} İşlem',
-                  style: TextStyle(color: t.muted, fontSize: 10),
+                  style: TextStyle(color: t.muted, fontSize: AppFontSize.micro),
                 ),
               ],
             ),
@@ -2337,19 +2383,25 @@ Future<void> showBatchDetail(BuildContext context, Batch batch) async {
                     Expanded(
                       child: Text(
                         fmtDateTime(sale.soldAt),
-                        style: TextStyle(color: t.muted, fontSize: 11),
+                        style: TextStyle(
+                          color: t.muted,
+                          fontSize: AppFontSize.caption,
+                        ),
                       ),
                     ),
                     Text(
                       '${sale.quantity} adet',
-                      style: TextStyle(color: t.muted, fontSize: 10),
+                      style: TextStyle(
+                        color: t.muted,
+                        fontSize: AppFontSize.micro,
+                      ),
                     ),
                     const SizedBox(width: 9),
                     Text(
                       sale.unitPrice == null ? '—' : fmtMoney(sale.unitPrice),
                       style: TextStyle(
                         color: t.primaryDark,
-                        fontSize: 11,
+                        fontSize: AppFontSize.caption,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -2387,7 +2439,7 @@ Future<bool?> showCorrectThawDialog(BuildContext context, Batch batch) {
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               '${batch.productName} — şu anda ${batch.remaining} adet çözülmede.',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             ),
           ),
           LabeledField(
@@ -2396,7 +2448,7 @@ Future<bool?> showCorrectThawDialog(BuildContext context, Batch batch) {
             child: TextField(
               controller: quantity,
               keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
               onChanged: (_) => rebuild(),
             ),
           ),
@@ -2416,7 +2468,10 @@ Future<bool?> showCorrectThawDialog(BuildContext context, Batch batch) {
                     child: Text(
                       '$back adet donuk depoya geri dönecek. '
                       'Dondurucuya giriş tarihi korunur.',
-                      style: TextStyle(fontSize: 12, color: t.ink),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.ink,
+                      ),
                     ),
                   ),
                 ],
@@ -2488,7 +2543,7 @@ class _QuantityCard extends StatelessWidget {
             label,
             style: TextStyle(
               color: t.ink,
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -2512,7 +2567,7 @@ class _QuantityCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   onChanged: (_) => onChanged(),
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: AppFontSize.headline,
                     fontWeight: FontWeight.w800,
                   ),
                   decoration: const InputDecoration(

@@ -64,14 +64,17 @@ Widget _heading(BuildContext context, String title, String? subtitle) {
             Text(
               title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSize.title,
                 fontWeight: FontWeight.w700,
                 color: t.ink,
               ),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 3),
-              Text(subtitle, style: TextStyle(fontSize: 12, color: t.muted)),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
+              ),
             ],
           ],
         ),
@@ -156,7 +159,7 @@ class _PettyCashCard extends StatelessWidget {
                     ? 'Limit aşıldı: ${fmtMoney(status.spentThisWeek - status.weeklyLimit)} fazla'
                     : '${((pct ?? 0) * 100).toStringAsFixed(0)}% kullanıldı',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.w600,
                   color: status.overLimit ? t.danger : t.muted,
                 ),
@@ -230,7 +233,10 @@ class _PaceCard extends StatelessWidget {
                       children: [
                         Text(
                           'Ay sonu tahmini',
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.muted,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -238,7 +244,7 @@ class _PaceCard extends StatelessWidget {
                               ? fmtMoney(revenue.forecastMonthEnd)
                               : 'Veri girilmedi',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: AppFontSize.headline,
                             fontWeight: FontWeight.w800,
                             color: t.primary,
                           ),
@@ -249,7 +255,10 @@ class _PaceCard extends StatelessWidget {
                   if (hasData)
                     Text(
                       '${revenue.remainingDays} gün kaldı',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                 ],
               ),
@@ -259,7 +268,7 @@ class _PaceCard extends StatelessWidget {
               Text(
                 'Günlük ortalama, rapor girilmiş ${revenue.daysWithData} güne bölünerek '
                 'hesaplanır; eksik günler sıfır sayılmaz.',
-                style: TextStyle(fontSize: 11, color: t.muted),
+                style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
               ),
             ],
             if (hasData && fields.derived.isNotEmpty) ...[
@@ -267,7 +276,7 @@ class _PaceCard extends StatelessWidget {
               Text(
                 'Rapor Paneli — Bu Ay',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppFontSize.body,
                   fontWeight: FontWeight.w700,
                   color: t.ink,
                 ),
@@ -320,12 +329,15 @@ class _Figure extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
+        Text(
+          label,
+          style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+        ),
         const SizedBox(height: 2),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSize.title,
             fontWeight: FontWeight.w800,
             color: color,
           ),
@@ -354,11 +366,14 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label ', style: TextStyle(fontSize: 11, color: t.muted)),
+          Text(
+            '$label ',
+            style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+          ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppFontSize.label,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),

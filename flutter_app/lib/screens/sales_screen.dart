@@ -243,7 +243,7 @@ class _SalesScreenState extends State<SalesScreen> {
                           m.productName ?? 'Ürün',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -252,7 +252,7 @@ class _SalesScreenState extends State<SalesScreen> {
                       Text(
                         m.total == null ? 'Fiyat yok' : fmtMoney(m.total),
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           color: m.total == null
                               ? t.muted
@@ -284,7 +284,10 @@ class _SalesScreenState extends State<SalesScreen> {
                     const SizedBox(height: 6),
                     Text(
                       m.reason!,
-                      style: TextStyle(fontSize: 13, color: t.ink),
+                      style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        color: t.ink,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 6),
@@ -293,7 +296,10 @@ class _SalesScreenState extends State<SalesScreen> {
                       Expanded(
                         child: Text(
                           '${fmtDateTime(m.at)} · ${m.userName ?? 'bilinmiyor'}',
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.muted,
+                          ),
                         ),
                       ),
                       // Geriye donuk adet duzeltmesi ve kayit silme. Sunucu da
@@ -404,7 +410,7 @@ class _FilterCard extends StatelessWidget {
           Text(
             'Tarih',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),
@@ -430,7 +436,7 @@ class _FilterCard extends StatelessWidget {
           Text(
             'Hareket Türü',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),

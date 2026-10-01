@@ -104,7 +104,7 @@ Future<bool?> showDailyReportDialog(
                     decoration: const InputDecoration(),
                     child: Text(
                       fmtDate(existing.date),
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: AppFontSize.title),
                     ),
                   )
                 : DateTimeField(
@@ -126,7 +126,7 @@ Future<bool?> showDailyReportDialog(
                   child: Text(
                     'MANUEL KASA GİRİŞLERİ',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w700,
                       color: t.muted,
                       letterSpacing: 0.4,
@@ -145,7 +145,7 @@ Future<bool?> showDailyReportDialog(
                   child: Text(
                     '• Birimler senkronize',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: AppFontSize.micro,
                       fontWeight: FontWeight.w600,
                       color: t.primary,
                     ),
@@ -166,7 +166,7 @@ Future<bool?> showDailyReportDialog(
                         decimal: !f.isInt,
                       ),
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: AppFontSize.titleLarge,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
@@ -220,7 +220,7 @@ Future<bool?> showDailyReportDialog(
                         child: Text(
                           'SİSTEMDEN GELEN DEĞERLER',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w700,
                             color: t.primary,
                           ),
@@ -238,7 +238,7 @@ Future<bool?> showDailyReportDialog(
                         child: Text(
                           '• Canlı POS',
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: AppFontSize.micro,
                             fontWeight: FontWeight.w700,
                             color: t.okText,
                           ),
@@ -269,7 +269,7 @@ Future<bool?> showDailyReportDialog(
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 9.5,
+                                  fontSize: AppFontSize.micro,
                                   fontWeight: FontWeight.w600,
                                   color: t.muted,
                                 ),
@@ -280,7 +280,7 @@ Future<bool?> showDailyReportDialog(
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: AppFontSize.title,
                                   fontWeight: FontWeight.w800,
                                   color: t.ink,
                                 ),
@@ -314,7 +314,7 @@ Future<bool?> showDailyReportDialog(
                           child: Text(
                             'FOOD alanları o günün pasta satış ve zayi kayıtlarından hesaplanır, elle girilmez. AT, IPT, FOOD MARKOUT %, FOOD UPH, MODIFIERS % ve APP% girilen değerlerden otomatik hesaplanır.',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: AppFontSize.caption,
                               color: t.muted,
                               height: 1.5,
                             ),
@@ -371,13 +371,16 @@ Future<void> showDailyReportDetail(
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 13, color: bold ? t.ink : t.muted),
+            style: TextStyle(
+              fontSize: AppFontSize.body,
+              color: bold ? t.ink : t.muted,
+            ),
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppFontSize.body,
             fontWeight: FontWeight.w700,
             color: bold ? t.primary : t.ink,
           ),
@@ -391,7 +394,7 @@ Future<void> showDailyReportDetail(
     child: Text(
       text,
       style: TextStyle(
-        fontSize: 11,
+        fontSize: AppFontSize.caption,
         fontWeight: FontWeight.w700,
         color: t.muted,
         letterSpacing: .4,
@@ -442,7 +445,10 @@ Future<void> showDailyReportDetail(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       f.formula!,
-                      style: TextStyle(fontSize: 11, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
+                      ),
                     ),
                   ),
               ],

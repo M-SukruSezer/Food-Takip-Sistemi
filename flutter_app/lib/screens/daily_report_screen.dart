@@ -170,7 +170,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                               Text(
                                 'Raporu Dışa Aktar',
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: AppFontSize.headline,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -193,7 +193,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                             'CANLI',
                             style: TextStyle(
                               color: context.tokens.success,
-                              fontSize: 11,
+                              fontSize: AppFontSize.caption,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -402,7 +402,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                 const SizedBox(height: 10),
                 Text(
                   '${fmtDate(_page.from)} – ${fmtDate(_page.to)} · ${summary.days} gün',
-                  style: TextStyle(fontSize: 13, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
                 ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
@@ -432,7 +432,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                         child: Text(
                           fmtDate(item.date),
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w700,
                             color: t.ink,
                           ),
@@ -441,7 +441,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                       Text(
                         fmtMoney(item.values['net_sales']),
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           color: t.success,
                         ),
@@ -452,7 +452,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                     const SizedBox(height: 4),
                     Text(
                       item.storeName!,
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -465,7 +468,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                           '${fmtInt(item.values['adt'])} fiş · '
                           '${fmtInt(item.values['product_qty'])} ürün · '
                           '${item.createdByName ?? 'bilinmiyor'}',
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.muted,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -533,7 +539,10 @@ class _ExportScopeRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 12, color: t.muted)),
+              Text(
+                label,
+                style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
+              ),
               Text(
                 value,
                 style: TextStyle(fontWeight: FontWeight.w800, color: t.ink),
@@ -601,7 +610,10 @@ class _ExportLayer extends StatelessWidget {
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -626,7 +638,7 @@ class _ExportStat extends StatelessWidget {
       Text(
         label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: AppFontSize.micro,
           fontWeight: FontWeight.w700,
           color: context.tokens.muted,
         ),
@@ -670,7 +682,10 @@ class _ExportChoice extends StatelessWidget {
             const SizedBox(height: 10),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 3),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: t.muted)),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+            ),
           ],
         ),
       ),
@@ -721,7 +736,7 @@ class _SummaryCard extends StatelessWidget {
           Text(
             'Dönem Özeti',
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w700,
               color: t.ink,
             ),
@@ -729,7 +744,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Oranlar günlerin ortalaması değil, toplam veriden hesaplanır.',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
           const SizedBox(height: 12),
           ...fields.entry.map(
@@ -776,7 +791,7 @@ class _Row extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppFontSize.body,
                 color: bold ? t.ink : t.muted,
                 fontWeight: bold ? FontWeight.w600 : FontWeight.w500,
               ),
@@ -785,7 +800,7 @@ class _Row extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w700,
               color: bold ? t.primary : t.ink,
             ),

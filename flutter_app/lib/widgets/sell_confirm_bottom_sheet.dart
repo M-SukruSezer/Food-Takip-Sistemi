@@ -87,7 +87,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Text(
                       'FIRIN & TATLI GRUBU',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppFontSize.caption,
                         fontWeight: FontWeight.w600,
                         color: primary,
                         letterSpacing: 0.05,
@@ -118,7 +118,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                             Text(
                               'SON GÜN',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: AppFontSize.caption,
                                 fontWeight: FontWeight.w600,
                                 color: warningText,
                               ),
@@ -132,7 +132,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 Text(
                   batch.productName,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSize.title,
                     fontWeight: FontWeight.w700,
                     color: textMain,
                   ),
@@ -159,7 +159,10 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           'Stok Değişimi:',
-                          style: TextStyle(fontSize: 14, color: textMuted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            color: textMuted,
+                          ),
                         ),
                       ],
                     ),
@@ -179,7 +182,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           child: Text(
                             '${batch.remaining} Adet',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSize.bodyLarge,
                               fontWeight: FontWeight.w600,
                               color: textMuted,
                               fontFeatures: const [
@@ -211,7 +214,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           child: Text(
                             '${batch.remaining - 1} Adet Kalan',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSize.bodyLarge,
                               fontWeight: FontWeight.w600,
                               color: primary,
                               fontFeatures: const [
@@ -262,7 +265,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           Text(
                             'Ciroya Eklenecek Tutar',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSize.body,
                               fontWeight: FontWeight.w600,
                               color: primary,
                             ),
@@ -270,7 +273,10 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             'Birim Fiyat: ${batch.hasPrice ? fmtMoney(batch.productUnitPrice) : '0,00 ₺'}',
-                            style: TextStyle(fontSize: 12, color: textMuted),
+                            style: TextStyle(
+                              fontSize: AppFontSize.label,
+                              color: textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -278,7 +284,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Text(
                       '+${batch.hasPrice ? fmtMoney(batch.productUnitPrice) : '0,00 ₺'}',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: AppFontSize.headlineLarge,
                         fontWeight: FontWeight.w700,
                         color: textMain,
                         letterSpacing: -0.5,
@@ -295,7 +301,10 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Kasa raporuna ve anlık gün sonu cirosuna hemen işlenir.',
-                        style: TextStyle(fontSize: 12, color: textMuted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: textMuted,
+                        ),
                       ),
                     ),
                   ],

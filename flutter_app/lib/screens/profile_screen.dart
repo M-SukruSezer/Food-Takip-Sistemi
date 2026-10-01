@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         'Profil & Sistem Ayarları',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: AppFontSize.headline,
                           fontWeight: FontWeight.w800,
                           color: t.ink,
                           letterSpacing: -0.5,
@@ -166,7 +166,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 3),
                       Text(
                         'Kişisel hesap tercihleri ve uygulama ayarları',
-                        style: TextStyle(fontSize: 12, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -196,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         'Senkronize',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w700,
                           color: t.okText,
                         ),
@@ -264,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           user.fullName.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w800,
                             color: t.ink,
                             letterSpacing: -0.3,
@@ -276,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           roleLabels[user.role] ?? user.role,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w700,
                             color: t.primary,
                           ),
@@ -284,7 +287,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 3),
                         Text(
                           '@${user.username}${user.storeName != null ? ' · ${user.storeName}' : ''}',
-                          style: TextStyle(fontSize: 11, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: t.muted,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -316,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Text(
                                 'Aktif · ${user.canManage ? 'Yönetici' : 'Personel'}',
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: AppFontSize.micro,
                                   fontWeight: FontWeight.w700,
                                   color: t.success,
                                 ),
@@ -359,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Text(
                                   'Sicil No',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: AppFontSize.micro,
                                     color: t.muted,
                                   ),
                                 ),
@@ -367,7 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Text(
                                   '#${user.id.toString().padLeft(4, '0')}',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.w700,
                                     color: t.ink,
                                   ),
@@ -410,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Text(
                                   'Kayıt Tarihi',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: AppFontSize.micro,
                                     color: t.muted,
                                   ),
                                 ),
@@ -418,7 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Text(
                                   '14.06.2025',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.w700,
                                     color: t.ink,
                                   ),
@@ -478,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : 'Fotoğrafı Değiştir',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      fontSize: AppFontSize.body,
                     ),
                   ),
                 ),
@@ -502,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Kaldır',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: AppFontSize.body,
                       ),
                     ),
                   ),
@@ -511,7 +517,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               Text(
                 'Seçtiğiniz fotoğraf otomatik olarak kare şekilde kırpılıp 256×256 boyutuna küçültülür.',
-                style: TextStyle(fontSize: 11, color: t.muted, height: 1.3),
+                style: TextStyle(
+                  fontSize: AppFontSize.caption,
+                  color: t.muted,
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -624,7 +634,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Text(
                         'Şifreniz en az 8 karakter; bir büyük harf ve bir rakam içermelidir.',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           color: context.tokens.info,
                           height: 1.3,
                         ),
@@ -650,7 +660,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: Text(
                     _savingPassword ? 'Kaydediliyor...' : 'Şifreyi Güncelle',
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -707,7 +717,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     'Oturum',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w700,
                       color: t.ink,
                     ),
@@ -716,7 +726,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     'v2.4.1 (Build 1084)',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w500,
                       color: t.muted,
                     ),
@@ -726,7 +736,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 4),
               Text(
                 'Mevcut cihazdaki mağaza müdürlük yetkiniz kapatılır ve pin ekranına yönlendirilirsiniz.',
-                style: TextStyle(fontSize: 11, color: t.muted, height: 1.3),
+                style: TextStyle(
+                  fontSize: AppFontSize.caption,
+                  color: t.muted,
+                  height: 1.3,
+                ),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -744,7 +758,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.logout, size: 18),
                   label: const Text(
                     'Çıkış Yap',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -791,7 +808,7 @@ class _HeaderTitleWithIcon extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.w700,
                   color: t.ink,
                 ),
@@ -799,7 +816,11 @@ class _HeaderTitleWithIcon extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 11, color: t.muted, height: 1.3),
+                style: TextStyle(
+                  fontSize: AppFontSize.caption,
+                  color: t.muted,
+                  height: 1.3,
+                ),
               ),
             ],
           ),
@@ -845,7 +866,7 @@ class _ThemeChoiceTile extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.w700,
                   color: selected ? Colors.white : t.ink,
                 ),
@@ -894,7 +915,7 @@ class _CustomPasswordField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppFontSize.label,
             fontWeight: FontWeight.w600,
             color: t.ink,
           ),
@@ -914,10 +935,16 @@ class _CustomPasswordField extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   obscureText: obscureText,
-                  style: TextStyle(fontSize: 14, color: t.ink),
+                  style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    color: t.ink,
+                  ),
                   decoration: InputDecoration(
                     hintText: hintText,
-                    hintStyle: TextStyle(fontSize: 13, color: t.muted),
+                    hintStyle: TextStyle(
+                      fontSize: AppFontSize.body,
+                      color: t.muted,
+                    ),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
@@ -976,7 +1003,7 @@ class _NotificationPrefRow extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -984,7 +1011,10 @@ class _NotificationPrefRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 11, color: t.muted),
+                  style: TextStyle(
+                    fontSize: AppFontSize.caption,
+                    color: t.muted,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

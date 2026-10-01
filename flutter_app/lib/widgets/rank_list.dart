@@ -44,7 +44,7 @@ class RankList extends StatelessWidget {
             Text(
               title.toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.label,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
                 color: t.muted,
@@ -54,7 +54,10 @@ class RankList extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (rows.isEmpty)
-          Text(emptyText, style: TextStyle(color: t.muted, fontSize: 13))
+          Text(
+            emptyText,
+            style: TextStyle(color: t.muted, fontSize: AppFontSize.body),
+          )
         else
           ...rows.map(
             (r) => Padding(
@@ -65,7 +68,10 @@ class RankList extends StatelessWidget {
                     child: Text(
                       r.name,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13, color: t.ink),
+                      style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        color: t.ink,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -90,7 +96,7 @@ class RankList extends StatelessWidget {
                       '${r.qty}',
                       textAlign: TextAlign.right,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                       ),

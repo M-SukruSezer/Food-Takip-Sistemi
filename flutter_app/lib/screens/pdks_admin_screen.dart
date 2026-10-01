@@ -202,7 +202,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                     child: Text(
                       'Şu an işte: ${_presence.insideCount} kişi',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSize.title,
                         fontWeight: FontWeight.w800,
                         color: t.ink,
                       ),
@@ -210,7 +210,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                   ),
                   Text(
                     '60 sn’de yenilenir',
-                    style: TextStyle(fontSize: 11, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ),
@@ -238,7 +241,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                   Text(
                     'Onaylanan izin günlerine vardiya atanmaz ve o günler '
                     'puantajda izin olarak sayılır.',
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ),
@@ -275,7 +281,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                     Text(
                       '${fmtDuration(_sheet.total.unscheduledMinutes)} çalışma, vardiya '
                       'atanmamış günlerde yapılmış ve sınıflandırılmadı.',
-                      style: TextStyle(fontSize: 12, color: t.warning),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.warning,
+                      ),
                     ),
                   // Aylik puantaj disa aktarma: bordro programina girdi
                   // olacagi icin Excel de sunuluyor.
@@ -316,7 +325,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       'Brüt hak ediş toplamı: '
                       '${fmtMoney(_sheet.wageTotal!.grossTotal ?? 0)}',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppFontSize.body,
                         fontWeight: FontWeight.w800,
                         color: t.ink,
                       ),
@@ -325,7 +334,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       'maaş ${fmtMoney(_sheet.wageTotal!.salaryTotal ?? 0)}'
                       ' · yemek ${fmtMoney(_sheet.wageTotal!.mealPay ?? 0)}'
                       '${(_sheet.wageTotal!.overtimePay ?? 0) > 0 ? ' · fazla mesai ${fmtMoney(_sheet.wageTotal!.overtimePay!)}' : ''}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                   ..._sheet.notes.map(
@@ -333,7 +345,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         n,
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                     ),
                   ),
@@ -405,7 +420,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
           'Saat ücreti girilmişse hak ediş ondan hesaplanır; girilmemişse '
           'aylık maaştan türetilir (aylık ÷ 225 saat). Yemek ücreti günlük '
           'tutar × fiilen çalışılan gün sayısıdır.',
-          style: TextStyle(fontSize: 12, color: t.muted),
+          style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
         ),
       ),
       ..._profiles.map(
@@ -420,7 +435,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                     Text(
                       p.fullName,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: t.ink,
                       ),
@@ -436,7 +451,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                           ? '${fmtMoney(p.effectiveHourlyRate!)} (türetildi)'
                           : '—'}'
                       ' · Yemek ${p.mealDaily == null ? '—' : fmtMoney(p.mealDaily!)}',
-                      style: TextStyle(fontSize: 12, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                   ],
                 ),
@@ -531,7 +549,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       Text(
                         p.fullName,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           color: t.ink,
                         ),
@@ -543,7 +561,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                                   '${fmtDateTime(p.lastAt)}'
                                   '${p.lastMethod != null ? ' · ${p.lastMethod}' : ''}'
                                   '${p.distanceM != null ? ' · ${p.distanceM!.round()} m' : ''}',
-                        style: TextStyle(fontSize: 12, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -591,7 +612,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       child: Text(
                         r.fullName ?? '',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                           color: t.ink,
                         ),
@@ -610,13 +631,19 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '${r.typeLabel} · ${_detail(r)}',
-                  style: TextStyle(fontSize: 13, color: t.ink),
+                  style: TextStyle(fontSize: AppFontSize.body, color: t.ink),
                 ),
-                Text(r.reason, style: TextStyle(fontSize: 12, color: t.muted)),
+                Text(
+                  r.reason,
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
+                ),
                 if (r.decisionNote != null)
                   Text(
                     'Karar notu: ${r.decisionNote}',
-                    style: TextStyle(fontSize: 12, color: t.danger),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.danger,
+                    ),
                   ),
                 if (r.isPending) ...[
                   const SizedBox(height: 10),
@@ -650,7 +677,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
         AppCard(
           child: Text(
             'Kayıt bulunamadı.',
-            style: TextStyle(fontSize: 13, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
           ),
         ),
       ];
@@ -669,7 +696,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                   child: Text(
                     it.fullName,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w700,
                       color: t.ink,
                     ),
@@ -710,7 +737,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
               '${s.absentDays > 0 ? ' · ${s.absentDays} gün devamsız' : ''}'
               '${s.lateMinutes > 0 ? ' · ${s.lateMinutes} dk geç' : ''}'
               '${s.deductedBreakMinutes > 0 ? ' · ${s.deductedBreakMinutes} dk mola' : ''}',
-              style: TextStyle(fontSize: 12, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
             ),
             // Yasal asgari molanin altinda kalinan gunler (m.68). Dusume etki
             // etmez; uyum sorunu oldugu icin yoneticiye bildiriliyor.
@@ -719,7 +746,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
                   '${s.breakShortfallDays} gün yasal asgari mola süresinin altında',
-                  style: TextStyle(fontSize: 12, color: t.warningText),
+                  style: TextStyle(
+                    fontSize: AppFontSize.label,
+                    color: t.warningText,
+                  ),
                 ),
               ),
             // Ucret hak edisi: sunucu yetki yoksa bu alani HIC gondermiyor.
@@ -760,7 +790,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                         width: 76,
                         child: Text(
                           fmtDate(d.workDate),
-                          style: TextStyle(fontSize: 12, color: t.ink),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.ink,
+                          ),
                         ),
                       ),
                       Expanded(
@@ -782,7 +815,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                                     )
                                     .join(', '),
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             color: d.isHoliday ? t.danger : t.muted,
                             fontWeight: d.isHoliday
                                 ? FontWeight.w700
@@ -796,7 +829,10 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                         child: Text(
                           fmtDuration(d.workedMinutes),
                           textAlign: TextAlign.right,
-                          style: TextStyle(fontSize: 12, color: t.ink),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.ink,
+                          ),
                         ),
                       ),
                       SizedBox(
@@ -809,7 +845,7 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                               : '',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.label,
                             fontWeight: FontWeight.w700,
                             color: d.overtimeMinutes > 0 ? t.success : t.danger,
                           ),
@@ -841,12 +877,15 @@ class _Fig extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: t.muted)),
+          Text(
+            label,
+            style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+          ),
           const SizedBox(height: 2),
           Text(
             value,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w800,
               color: color,
             ),
@@ -948,13 +987,16 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                       const Text(
                         'Manuel PDKS Müdahalesi',
                         style: TextStyle(
-                          fontSize: 19,
+                          fontSize: AppFontSize.titleLarge,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       Text(
                         '#CORR-${p.attendanceLogId}',
-                        style: TextStyle(fontSize: 11, color: t.muted),
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: t.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -1005,7 +1047,10 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                             ),
                             Text(
                               '${p.role} • Sicil: #${p.userId}',
-                              style: TextStyle(fontSize: 12, color: t.muted),
+                              style: TextStyle(
+                                fontSize: AppFontSize.label,
+                                color: t.muted,
+                              ),
                             ),
                           ],
                         ),
@@ -1032,7 +1077,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                             'MOLA AŞIM SİNYALİ • Yönetici teyidi bekleniyor',
                             style: TextStyle(
                               color: context.tokens.danger,
-                              fontSize: 12,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -1083,7 +1128,10 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                         ),
                         Text(
                           item.$3,
-                          style: TextStyle(fontSize: 11, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: t.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -1126,7 +1174,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
               ),
               child: const Text(
                 '4857 Sayılı İş Kanunu ve KVKK Uyarısı: Bu ekrandan gerçekleştirilen manuel müdahaleler yönetici kimliği ve zaman damgasıyla denetim kayıtlarına yazılır.',
-                style: TextStyle(fontSize: 11, height: 1.45),
+                style: TextStyle(fontSize: AppFontSize.caption, height: 1.45),
               ),
             ),
             const SizedBox(height: 14),

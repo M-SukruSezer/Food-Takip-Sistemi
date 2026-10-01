@@ -215,7 +215,7 @@ class _LogsScreenState extends State<LogsScreen> {
                         Text(
                           log.action,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppFontSize.body,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.2,
                             color: t.ink,
@@ -224,7 +224,10 @@ class _LogsScreenState extends State<LogsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           log.details ?? '-',
-                          style: TextStyle(fontSize: 14, color: t.ink),
+                          style: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            color: t.ink,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -233,7 +236,10 @@ class _LogsScreenState extends State<LogsScreen> {
                             log.username ?? 'sistem',
                             if (isSuper) log.storeName ?? 'genel',
                           ].join(' · '),
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -274,7 +280,7 @@ class _AuditStat extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: AppFontSize.micro,
                   fontWeight: FontWeight.w800,
                   color: t.muted,
                 ),
@@ -288,7 +294,7 @@ class _AuditStat extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSize.title,
               fontWeight: FontWeight.w800,
               color: t.ink,
             ),
@@ -297,7 +303,7 @@ class _AuditStat extends StatelessWidget {
             note,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 9.5, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.micro, color: t.muted),
           ),
         ],
       ),

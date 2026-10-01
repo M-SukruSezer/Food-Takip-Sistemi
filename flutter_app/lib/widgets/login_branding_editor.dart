@@ -84,14 +84,14 @@ class _LoginBrandingEditorState extends State<LoginBrandingEditor> {
             'Giriş Ekranı Görseli',
             style: TextStyle(
               color: t.ink,
-              fontSize: 17,
+              fontSize: AppFontSize.title,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Tüm kullanıcıların giriş ekranında gösterilir. Yalnızca super admin değiştirebilir.',
-            style: TextStyle(color: t.muted, fontSize: 12),
+            style: TextStyle(color: t.muted, fontSize: AppFontSize.label),
           ),
           const SizedBox(height: 12),
           Container(
@@ -119,7 +119,7 @@ class _LoginBrandingEditorState extends State<LoginBrandingEditor> {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Text(
                 _error!,
-                style: TextStyle(color: t.danger, fontSize: 12),
+                style: TextStyle(color: t.danger, fontSize: AppFontSize.label),
               ),
             ),
           const SizedBox(height: 12),

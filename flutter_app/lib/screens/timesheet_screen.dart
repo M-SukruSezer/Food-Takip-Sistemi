@@ -178,7 +178,7 @@ class _StoreCard extends StatelessWidget {
                     style: TextStyle(
                       color: t.ink,
                       fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                      fontSize: AppFontSize.bodyLarge,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -186,7 +186,7 @@ class _StoreCard extends StatelessWidget {
                     '${store.userCount} personel',
                     style: TextStyle(
                       color: t.muted,
-                      fontSize: 12,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -256,7 +256,7 @@ class _StoreTimesheet extends StatelessWidget {
                         store.name,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSize.title,
                           fontWeight: FontWeight.w800,
                           color: t.ink,
                         ),
@@ -264,7 +264,7 @@ class _StoreTimesheet extends StatelessWidget {
                       Text(
                         monthLabel(month),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w600,
                           color: t.muted,
                         ),
@@ -341,7 +341,10 @@ class _StoreTimesheet extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text(
                             '• $n',
-                            style: TextStyle(color: t.muted, fontSize: 12),
+                            style: TextStyle(
+                              color: t.muted,
+                              fontSize: AppFontSize.label,
+                            ),
                           ),
                         ),
                       )
@@ -396,7 +399,7 @@ class _Figure extends StatelessWidget {
           label,
           style: TextStyle(
             color: t.muted,
-            fontSize: 11,
+            fontSize: AppFontSize.caption,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -405,7 +408,7 @@ class _Figure extends StatelessWidget {
           value,
           style: TextStyle(
             color: t.ink,
-            fontSize: 15,
+            fontSize: AppFontSize.bodyLarge,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -436,7 +439,7 @@ class _PersonRow extends StatelessWidget {
                   style: TextStyle(
                     color: t.ink,
                     fontWeight: FontWeight.w800,
-                    fontSize: 14,
+                    fontSize: AppFontSize.bodyLarge,
                   ),
                 ),
               ),
@@ -444,7 +447,7 @@ class _PersonRow extends StatelessWidget {
                 roleLabels[person.role] ?? '',
                 style: TextStyle(
                   color: t.muted,
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -487,7 +490,7 @@ class _PersonRow extends StatelessWidget {
                       '${s.flaggedDays} günde cihaz uyarısı var',
                       style: TextStyle(
                         color: t.warningText,
-                        fontSize: 12,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

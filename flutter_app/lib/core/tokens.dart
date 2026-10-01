@@ -16,6 +16,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     required this.warning,
     required this.warningSoft,
     required this.warningText,
+    required this.dangerText,
     required this.infoSoft,
     required this.infoText,
     required this.successSoft,
@@ -60,6 +61,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
   /// grafik ogelerde 3.0 esigi gecerli oldugu icin --warning orada kaliyor.
   /// React tarafindaki --warning-text ile ayni deger.
   final Color warningText;
+
+  /// Kırmızı metin rengi. Hem kart hem `dangerSoft` zemininde AA (4.5:1)
+  /// kontrast verir; `dangerStrong` yalnızca dolgu (buton zemini) içindir.
+  final Color dangerText;
 
   // Cizelgedeki vardiya kategorileri (sabah/gunduz/aksam) ve durum
   // etiketleri icin zemin + KUCUK METIN ciftleri. React tarafindaki
@@ -120,6 +125,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     primarySoft: Color(0xFFE6F8F3),
     danger: Color(0xFFDC2626),
     dangerSoft: Color(0xFFFEF2F2),
+    dangerText: Color(0xFFB91C1C),
     warning: Color(0xFFD97706),
     warningSoft: Color(0xFFFFFBEB),
     warningText: Color(0xFFB45309),
@@ -151,6 +157,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     primarySoft: Color(0x245EEAD4),
     danger: Color(0xFFF87171),
     dangerSoft: Color(0x1FF87171),
+    dangerText: Color(0xFFF87171),
     warning: Color(0xFFFBBF24),
     warningSoft: Color(0x1FFBBF24),
     warningText: Color(0xFFFBBF24),
@@ -185,6 +192,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     Color? warning,
     Color? warningSoft,
     Color? warningText,
+    Color? dangerText,
     Color? infoSoft,
     Color? infoText,
     Color? successSoft,
@@ -214,6 +222,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       warning: warning ?? this.warning,
       warningSoft: warningSoft ?? this.warningSoft,
       warningText: warningText ?? this.warningText,
+      dangerText: dangerText ?? this.dangerText,
       infoSoft: infoSoft ?? this.infoSoft,
       infoText: infoText ?? this.infoText,
       successSoft: successSoft ?? this.successSoft,
@@ -248,6 +257,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
       warning: Color.lerp(warning, other.warning, t)!,
       warningSoft: Color.lerp(warningSoft, other.warningSoft, t)!,
       warningText: Color.lerp(warningText, other.warningText, t)!,
+      dangerText: Color.lerp(dangerText, other.dangerText, t)!,
       infoSoft: Color.lerp(infoSoft, other.infoSoft, t)!,
       infoText: Color.lerp(infoText, other.infoText, t)!,
       successSoft: Color.lerp(successSoft, other.successSoft, t)!,
@@ -280,6 +290,24 @@ abstract final class AppSpacing {
 }
 
 /// Standart köşe yuvarlama ölçeği (Border Radius Scale).
+/// Tip ölçeği. Ekranlar sayı yazmak yerine buradaki adımları kullanır;
+/// önceden kodda 27 farklı boyut (6.5, 9.5, 13.5, 14.5 …) vardı. En küçük
+/// adım 10px'tir: daha küçük metin telefonda okunmuyor.
+abstract final class AppFontSize {
+  static const double micro = 10; // rozet, hücre alt etiketi
+  static const double caption = 11; // yardımcı metin, zaman damgası
+  static const double label = 12; // alan etiketi, çip
+  static const double body = 13; // yoğun liste metni
+  static const double bodyLarge = 14; // varsayılan gövde
+  static const double title = 16; // kart / panel başlığı, form girdisi
+  static const double titleLarge = 18;
+  static const double headline = 20;
+  static const double headlineLarge = 24;
+  static const double display = 28; // KPI sayıları
+  static const double displayLarge = 34;
+  static const double hero = 42;
+}
+
 abstract final class AppRadius {
   static const double sm = AppTokens.radiusSm; // 10
   static const double md = AppTokens.radius; // 14
@@ -326,6 +354,66 @@ abstract final class AppLayout {
   }
 }
 
+/// Bildirim (snackbar) zeminleri. Ters yüzey oldukları için iki temada da
+/// aynıdır; hepsi beyaz yazıyla WCAG AA (4.5:1) üstünde ölçüldü.
+abstract final class ToastColors {
+  static const Color success = Color(0xFF166534); // 7.13:1
+  // Amber 800: beyaz yazı ile 7.09 kontrast. Daha açık amber tonları
+  // bu eşiğin altına düşer.
+  static const Color warning = Color(0xFF92400E);
+  static const Color info = Color(0xFF111827); // 17.7:1
+}
+
+/// Modül simgelerinin vurgu paleti (menü kartları, rozetler).
+///
+/// Açık tema değerleri tasarım dosyasındaki menüyle birebir aynıdır. Koyu
+/// temada ayrı bir palet tutmak yerine marka ve durum token'larına iner;
+/// böylece ekranlar `isDark ? … : …` dalı yazmaz.
+enum AccentTone {
+  neutral(Color(0xFFF1F5F9), Color(0xFF475569)),
+  live(Color(0xFF00A86B), Color(0xFFFFFFFF)),
+  // Amber 700: açık zeminde ikon için 3:1 eşiğini geçer (600 tonu 2.9).
+  warning(Color(0xFFFEF3C7), Color(0xFFB45309)),
+  info(Color(0xFFE0F2FE), Color(0xFF0284C7)),
+  purple(Color(0xFFF3E8FF), Color(0xFF9333EA)),
+  success(Color(0xFFDCFCE7), Color(0xFF15803D)),
+  successBadge(Color(0xFFD1FAE5), Color(0xFF065F46)),
+  // Rozet metni küçük yazı: Red 700 ile 4.5:1 üstü (600 tonu 3.95).
+  dangerBadge(Color(0xFFFEE2E2), Color(0xFFB91C1C));
+
+  const AccentTone(this.lightFill, this.lightForeground);
+
+  final Color lightFill;
+  final Color lightForeground;
+
+  ({Color fill, Color foreground}) resolve(AppTokens t, Brightness b) {
+    if (b == Brightness.light) {
+      return (fill: lightFill, foreground: lightForeground);
+    }
+    return switch (this) {
+      AccentTone.dangerBadge => (fill: t.dangerSoft, foreground: t.dangerText),
+      AccentTone.successBadge => (fill: t.successSoft, foreground: t.okText),
+      _ => (fill: t.primarySoft, foreground: t.primary),
+    };
+  }
+}
+
+extension AppTokensContrast on AppTokens {
+  /// Verilen dolgu üzerinde okunur metin/ikon rengi. Avatar ve rozet gibi
+  /// zemini rolden türetilen öğelerde `Colors.white` yerine kullanılır;
+  /// koyu temada açık renkli dolgular üzerinde beyaz metin kaybolmaz.
+  ///
+  /// Parlaklık tahmini yerine iki adayın gerçek kontrastı ölçülür; orta
+  /// tonlarda (ör. #0D9488) tahmin beyazı seçip 3.7:1 veriyordu.
+  Color foregroundOn(Color fill) {
+    const light = Color(0xFFFFFFFF), dark = Color(0xFF0B1220);
+    final l = fill.computeLuminance();
+    final onLight = 1.05 / (l + .05);
+    final onDark = (l + .05) / (dark.computeLuminance() + .05);
+    return onLight >= onDark ? light : dark;
+  }
+}
+
 extension AppTokensContext on BuildContext {
   AppTokens get tokens =>
       Theme.of(this).extension<AppTokens>() ?? AppTokens.light;
@@ -344,10 +432,6 @@ sealed class AppThemeStrategy {
   Color get scrim;
   double get shadowAlpha;
 
-  /// Açık kırmızı zemin (`dangerSoft`) üzerindeki metin rengi. `danger`
-  /// açık temada bu zeminde 4.41:1 kalıyordu (WCAG AA 4.5 altı).
-  Color get onDangerSoft;
-
   ColorScheme buildColorScheme() {
     final t = tokens;
     return ColorScheme.fromSeed(
@@ -365,7 +449,7 @@ sealed class AppThemeStrategy {
       error: t.danger,
       onError: const Color(0xFFFFFFFF),
       errorContainer: t.dangerSoft,
-      onErrorContainer: onDangerSoft,
+      onErrorContainer: t.dangerText,
       surface: t.card,
       onSurface: t.ink,
       surfaceContainerLowest: t.card,
@@ -400,9 +484,6 @@ final class LightThemeStrategy extends AppThemeStrategy {
   Color get scrim => const Color(0x73111B2E);
 
   @override
-  Color get onDangerSoft => const Color(0xFFB91C1C);
-
-  @override
   double get shadowAlpha => .08;
 }
 
@@ -417,9 +498,6 @@ final class DarkThemeStrategy extends AppThemeStrategy {
 
   @override
   Color get scrim => const Color(0xB3020617);
-
-  @override
-  Color get onDangerSoft => AppTokens.dark.danger;
 
   @override
   double get shadowAlpha => .28;

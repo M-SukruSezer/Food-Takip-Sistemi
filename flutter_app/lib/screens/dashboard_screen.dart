@@ -196,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'GÜNLÜK PERFORMANS GÖSTERGELERİ',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w800,
               color: t.muted,
             ),
@@ -207,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'HIZLI İŞLEMLER',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w800,
               color: t.muted,
             ),
@@ -260,7 +260,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   'Son 7 Günlük Satış',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSize.title,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -338,7 +338,7 @@ class _StorePresenceCard extends StatelessWidget {
               Text(
                 'İş yerindesiniz',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.label,
                   fontWeight: FontWeight.w700,
                   color: t.primary,
                 ),
@@ -346,7 +346,7 @@ class _StorePresenceCard extends StatelessWidget {
               const Spacer(),
               Text(
                 'Canlı operasyon',
-                style: TextStyle(fontSize: 12, color: t.muted),
+                style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
               ),
             ],
           ),
@@ -391,7 +391,7 @@ class _QuickAction extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.bodyLarge,
                   fontWeight: FontWeight.w800,
                   color: fg,
                 ),
@@ -402,7 +402,7 @@ class _QuickAction extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppFontSize.caption,
                   color: primary ? Colors.white70 : t.muted,
                 ),
               ),
@@ -624,7 +624,7 @@ class _StatusBreakdown extends StatelessWidget {
     if (slices.isEmpty) {
       return Text(
         'Veri bulunamadı',
-        style: TextStyle(color: t.muted, fontSize: 13),
+        style: TextStyle(color: t.muted, fontSize: AppFontSize.body),
       );
     }
     final max = slices.map((s) => s.quantity).reduce((a, b) => a > b ? a : b);
@@ -651,7 +651,7 @@ class _StatusBreakdown extends StatelessWidget {
           'Durum Dağılımı',
           style: TextStyle(
             color: t.muted,
-            fontSize: 12,
+            fontSize: AppFontSize.label,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -659,7 +659,7 @@ class _StatusBreakdown extends StatelessWidget {
         // Donuk/cozulme/dolap anlik stok; satis, ikram ve zayi ise toplam.
         Text(
           'stok anlık · satış, ikram ve zayi toplam',
-          style: TextStyle(color: t.muted, fontSize: 11),
+          style: TextStyle(color: t.muted, fontSize: AppFontSize.caption),
         ),
         const SizedBox(height: 8),
         ...slices.map(
@@ -672,7 +672,7 @@ class _StatusBreakdown extends StatelessWidget {
                   child: Text(
                     labels[s.status] ?? s.status,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: t.ink),
+                    style: TextStyle(fontSize: AppFontSize.body, color: t.ink),
                   ),
                 ),
                 Expanded(
@@ -694,7 +694,7 @@ class _StatusBreakdown extends StatelessWidget {
                 Text(
                   '${s.quantity}',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -760,7 +760,7 @@ class _PerformanceBlock extends StatelessWidget {
                       ? 'Ürün Performansı — Son 30 Gün'
                       : 'Ürün Performansı — Son 7 Gün',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSize.title,
                     fontWeight: FontWeight.w700,
                     color: t.ink,
                   ),
@@ -801,7 +801,7 @@ class _PerformanceBlock extends StatelessWidget {
           Text(
             'Dönemde ${p.kinds} çeşitten toplam ${p.soldTotal} adet satıldı, ${p.wastedTotal} adet zayi verildi.'
             '${p.kinds > 0 && p.kinds <= 5 ? ' Satılan çeşit sayısı 5 veya altında olduğu için en çok ve en az satan listeleri aynı ürünleri içerir.' : ''}',
-            style: TextStyle(fontSize: 12, color: t.muted),
+            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
           ),
         ],
       ),

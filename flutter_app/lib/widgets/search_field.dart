@@ -32,7 +32,10 @@ class ProductSearchField extends StatelessWidget {
           child: TextField(
             controller: controller,
             onChanged: onChanged,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontSize: AppFontSize.title,
+              fontWeight: FontWeight.w600,
+            ),
             decoration: InputDecoration(
               hintText: hintText,
               fillColor: t.bg,

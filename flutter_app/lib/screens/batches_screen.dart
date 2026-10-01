@@ -228,7 +228,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                       child: Text(
                                         'Ürünler',
                                         style: TextStyle(
-                                          fontSize: 20,
+                                          fontSize: AppFontSize.headline,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: -0.4,
                                           color: t.ink,
@@ -342,7 +342,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                       child: Text(
                                         '$cat ($count)',
                                         style: TextStyle(
-                                          fontSize: 12.5,
+                                          fontSize: AppFontSize.label,
                                           fontWeight: selected
                                               ? FontWeight.w700
                                               : FontWeight.w600,
@@ -394,7 +394,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
                                     : '"$_search" ile eşleşen ürün bulunamadı.',
                                 style: TextStyle(
                                   color: t.muted,
-                                  fontSize: 14,
+                                  fontSize: AppFontSize.bodyLarge,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -629,7 +629,7 @@ class _MetricCard extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: AppFontSize.micro,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                   color: t.muted,
@@ -652,7 +652,7 @@ class _MetricCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 14.5,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w800,
               color: t.ink,
               letterSpacing: -0.3,
@@ -668,7 +668,7 @@ class _MetricCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: AppFontSize.micro,
                     fontWeight: boldFooter ? FontWeight.w700 : FontWeight.w500,
                     color: footerColor,
                   ),
@@ -754,7 +754,7 @@ class _TabBar extends StatelessWidget {
                     tabs[i].label,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppFontSize.label,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                       color: active ? t.onPrimary : t.ink,
                     ),
@@ -774,7 +774,7 @@ class _TabBar extends StatelessWidget {
                     child: Text(
                       '$badge',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: AppFontSize.micro,
                         fontWeight: FontWeight.w700,
                         color: active ? t.onPrimary : t.primary,
                       ),
@@ -843,7 +843,7 @@ class _ProtocolBanner extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                     fontWeight: FontWeight.w700,
                     color: t.info,
                   ),
@@ -852,7 +852,7 @@ class _ProtocolBanner extends StatelessWidget {
                 Text(
                   desc,
                   style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: AppFontSize.caption,
                     height: 1.35,
                     color: t.ink,
                     fontWeight: FontWeight.w400,
@@ -908,12 +908,12 @@ class _BatchCard extends StatelessWidget {
         'expired' => (
           text: 'SKT Geçti',
           bg: t.dangerSoft,
-          textColor: t.dangerStrong,
+          textColor: t.dangerText,
         ),
         'critical' => (
           text: 'SON GÜN',
           bg: t.dangerSoft,
-          textColor: t.dangerStrong,
+          textColor: t.dangerText,
         ),
         'warning' => (
           text: 'Son 2 Gün',
@@ -944,7 +944,10 @@ class _BatchCard extends StatelessWidget {
         icon: const Icon(Icons.ac_unit_rounded, size: 17),
         label: const Text(
           'Çözülmeye Al',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: AppFontSize.body,
+          ),
         ),
         style: FilledButton.styleFrom(
           backgroundColor: t.primary,
@@ -961,7 +964,10 @@ class _BatchCard extends StatelessWidget {
         icon: const Icon(Icons.kitchen_outlined, size: 17),
         label: const Text(
           'Food Dolabına Al',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: AppFontSize.body,
+          ),
         ),
         style: FilledButton.styleFrom(
           backgroundColor: t.primary600,
@@ -987,7 +993,7 @@ class _BatchCard extends StatelessWidget {
           style: TextStyle(
             color: t.warningText,
             fontWeight: FontWeight.w700,
-            fontSize: 13,
+            fontSize: AppFontSize.body,
           ),
         ),
       ),
@@ -1079,7 +1085,7 @@ class _BatchCard extends StatelessWidget {
                   batch.productName.toUpperCase(),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
+                    fontSize: AppFontSize.bodyLarge,
                     letterSpacing: 0.2,
                     color: t.ink,
                   ),
@@ -1098,7 +1104,7 @@ class _BatchCard extends StatelessWidget {
                 child: Text(
                   badge.text,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppFontSize.caption,
                     fontWeight: FontWeight.w700,
                     color: badge.textColor,
                   ),
@@ -1119,12 +1125,15 @@ class _BatchCard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: 'Adet: ',
-                      style: TextStyle(fontSize: 12.5, color: t.muted),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.muted,
+                      ),
                     ),
                     TextSpan(
                       text: '${batch.remaining}/${batch.quantity}',
                       style: TextStyle(
-                        fontSize: 12.5,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w800,
                         color: t.primary,
                       ),
@@ -1135,22 +1144,22 @@ class _BatchCard extends StatelessWidget {
               if (batch.status == 'thawing' && !batch.thawReady)
                 Text(
                   '· Çözünme: ${formatHours(batch.thawRemainingHours)}',
-                  style: TextStyle(fontSize: 12.5, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
                 ),
               if (batch.sktDays != null)
                 Text(
                   '· Dolap: ${batch.sktDays} gün',
-                  style: TextStyle(fontSize: 12.5, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
                 ),
               if (batch.sktEnd != null)
                 Text(
                   '· SKT: ${fmtDateTime(batch.sktEnd)} (${formatHours(batch.remainingHours)})',
-                  style: TextStyle(fontSize: 12.5, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
                 ),
               if (showStore && batch.storeName != null)
                 Text(
                   '· Mağaza: ${batch.storeName}',
-                  style: TextStyle(fontSize: 12.5, color: t.muted),
+                  style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
                 ),
             ],
           ),
@@ -1209,7 +1218,7 @@ class _ActionMenu extends StatelessWidget {
                   child: Text(
                     items[i].label,
                     style: TextStyle(
-                      fontSize: 13.5,
+                      fontSize: AppFontSize.body,
                       fontWeight: FontWeight.w600,
                       color: items[i].danger ? t.danger : t.ink,
                     ),

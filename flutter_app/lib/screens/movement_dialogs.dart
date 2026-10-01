@@ -34,7 +34,7 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
             child: Text(
               '${m.productName ?? 'Ürün'} — ${fmtDateTime(m.at)}\n'
               'Kayıtlı adet: ${m.quantity}',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             ),
           ),
           LabeledField(
@@ -42,7 +42,7 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
             child: TextField(
               controller: quantity,
               keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
               onChanged: (_) => rebuild(),
             ),
           ),
@@ -51,7 +51,7 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
               label: 'Zayi Sebebi',
               child: TextField(
                 controller: reason,
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: AppFontSize.title),
               ),
             ),
           if (delta != null && delta != 0)
@@ -75,7 +75,10 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
                       delta > 0
                           ? '$delta adet stoka geri dönecek.'
                           : '${-delta} adet stoktan düşecek. Yeterli stok yoksa işlem reddedilir.',
-                      style: TextStyle(fontSize: 12, color: t.ink),
+                      style: TextStyle(
+                        fontSize: AppFontSize.label,
+                        color: t.ink,
+                      ),
                     ),
                   ),
                 ],
@@ -86,7 +89,7 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
             child: Text(
               'Rapor panelindeki FOOD rakamları bu kayıtlardan hesaplandığı için '
               'düzeltme o günün raporuna da yansır.',
-              style: TextStyle(fontSize: 11, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
             ),
           ),
         ];

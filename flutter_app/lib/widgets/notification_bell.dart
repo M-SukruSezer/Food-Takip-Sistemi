@@ -50,7 +50,7 @@ class NotificationBell extends StatelessWidget {
                     adet > 99 ? '99+' : '$adet',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: AppFontSize.micro,
                       fontWeight: FontWeight.w800,
                       color: t.onPrimary,
                     ),
@@ -169,7 +169,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                 '${v.unread} Yeni',
                                 style: TextStyle(
                                   color: t.primary,
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.label,
                                 ),
                               ),
                             ),
@@ -188,7 +188,9 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                             _marking
                                 ? 'İşaretleniyor...'
                                 : 'Tümünü okundu işaretle',
-                            style: const TextStyle(fontSize: 11),
+                            style: const TextStyle(
+                              fontSize: AppFontSize.caption,
+                            ),
                           ),
                         ),
                     ],
@@ -280,7 +282,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                           child: Text(
                                             n.title,
                                             style: TextStyle(
-                                              fontSize: 14,
+                                              fontSize: AppFontSize.bodyLarge,
                                               fontWeight: FontWeight.w700,
                                               color: t.ink,
                                             ),
@@ -304,7 +306,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                     Text(
                                       body,
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppFontSize.body,
                                         height: 1.45,
                                         color: n.read ? t.muted : t.ink,
                                       ),
@@ -322,7 +324,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                             .trim()
                                             .replaceFirst(RegExp(r'\.$'), ''),
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: AppFontSize.caption,
                                           color: t.ink,
                                         ),
                                       ),
@@ -330,7 +332,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                     Text(
                                       fmtDateTime(n.createdAt),
                                       style: TextStyle(
-                                        fontSize: 10.5,
+                                        fontSize: AppFontSize.micro,
                                         fontWeight: n.read
                                             ? FontWeight.w400
                                             : FontWeight.w700,

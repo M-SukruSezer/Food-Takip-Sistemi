@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Hoş geldin!',
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: AppFontSize.display,
                               height: 1.1,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.5,
@@ -135,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Lütfen hesabınıza giriş yapın',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSize.bodyLarge,
                               fontWeight: FontWeight.w500,
                               color: t.muted,
                             ),
@@ -236,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             'Beni hatırla',
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              fontSize: 14,
+                                              fontSize: AppFontSize.bodyLarge,
                                               fontWeight: FontWeight.w500,
                                               color: onPanel,
                                             ),
@@ -261,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: const Text(
                                   'Şifremi unuttum?',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.bodyLarge,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -290,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     .textTheme
                                     .labelLarge!
                                     .copyWith(
-                                      fontSize: 16,
+                                      fontSize: AppFontSize.title,
                                       fontWeight: FontWeight.w700,
                                     ),
                               ),
@@ -431,14 +431,14 @@ class _PillFieldState extends State<_PillField> {
               textInputAction: widget.textInputAction,
               onSubmitted: widget.onSubmitted,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSize.title,
                 fontWeight: FontWeight.w600,
                 color: widget.ink,
               ),
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSize.title,
                   fontWeight: FontWeight.w500,
                   color: widget.muted,
                 ),
@@ -492,7 +492,7 @@ class _ErrorPill extends StatelessWidget {
               message,
               style: TextStyle(
                 color: danger,
-                fontSize: 14,
+                fontSize: AppFontSize.bodyLarge,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -105,7 +105,7 @@ class _Overlay extends StatelessWidget {
                     message,
                     style: TextStyle(
                       color: t.ink,
-                      fontSize: 15,
+                      fontSize: AppFontSize.bodyLarge,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

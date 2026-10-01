@@ -301,7 +301,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: AppFontSize.micro,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
                                     color: context.tokens.primary,
@@ -322,7 +322,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                           Text(
                             'Masraf Girişi',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: AppFontSize.titleLarge,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.3,
                               color: context.tokens.ink,
@@ -355,7 +355,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                           Text(
                             'Petty Cash',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: AppFontSize.caption,
                               fontWeight: FontWeight.w700,
                               color: context.tokens.okText,
                             ),
@@ -392,7 +392,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 children: [
                                   Icon(
                                     Icons.error_outline_rounded,
-                                    color: t.dangerStrong,
+                                    color: t.dangerText,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -400,8 +400,8 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     child: Text(
                                       _error!,
                                       style: TextStyle(
-                                        color: t.dangerStrong,
-                                        fontSize: 12.5,
+                                        color: t.dangerText,
+                                        fontSize: AppFontSize.label,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -429,7 +429,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       Text(
                                         'Haftalık Kasa Limiti',
                                         style: TextStyle(
-                                          fontSize: 11.5,
+                                          fontSize: AppFontSize.caption,
                                           fontWeight: FontWeight.w500,
                                           color: context.tokens.muted,
                                         ),
@@ -441,7 +441,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         child: Text(
                                           fmtMoney(totalLimit),
                                           style: TextStyle(
-                                            fontSize: 17,
+                                            fontSize: AppFontSize.title,
                                             fontWeight: FontWeight.w800,
                                             color: context.tokens.ink,
                                             letterSpacing: -0.3,
@@ -459,7 +459,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       Text(
                                         'Mevcut Bakiye',
                                         style: TextStyle(
-                                          fontSize: 11.5,
+                                          fontSize: AppFontSize.caption,
                                           fontWeight: FontWeight.w500,
                                           color: context.tokens.muted,
                                         ),
@@ -471,7 +471,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         child: Text(
                                           fmtMoney(dynamicRemaining),
                                           style: TextStyle(
-                                            fontSize: 17,
+                                            fontSize: AppFontSize.title,
                                             fontWeight: FontWeight.w800,
                                             color: context.tokens.success,
                                             letterSpacing: -0.3,
@@ -531,14 +531,14 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                               TextSpan(
                                                 text: 'Bu Hafta: ',
                                                 style: TextStyle(
-                                                  fontSize: 11,
+                                                  fontSize: AppFontSize.caption,
                                                   color: context.tokens.muted,
                                                 ),
                                               ),
                                               TextSpan(
                                                 text: fmtMoney(dynamicSpent),
                                                 style: TextStyle(
-                                                  fontSize: 11,
+                                                  fontSize: AppFontSize.caption,
                                                   fontWeight: FontWeight.w700,
                                                   color: context.tokens.ink,
                                                 ),
@@ -555,7 +555,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 Text(
                                   'Hafta: ${_weekRange()}',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: AppFontSize.caption,
                                     color: context.tokens.muted,
                                   ),
                                 ),
@@ -587,7 +587,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           'Harcama Tutarı',
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.bodyLarge,
                                             fontWeight: FontWeight.w700,
                                             color: context.tokens.ink,
                                           ),
@@ -600,7 +600,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 Text(
                                   '* Zorunlu',
                                   style: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: AppFontSize.caption,
                                     fontWeight: FontWeight.w600,
                                     color: context.tokens.danger,
                                   ),
@@ -629,7 +629,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       textAlign: TextAlign.center,
                                       onChanged: (_) => setState(() {}),
                                       style: TextStyle(
-                                        fontSize: 30,
+                                        fontSize: AppFontSize.display,
                                         fontWeight: FontWeight.w800,
                                         color: context.tokens.primary,
                                         letterSpacing: -0.5,
@@ -640,7 +640,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         hintText: '0,00',
                                         hintStyle: TextStyle(
                                           color: context.tokens.border,
-                                          fontSize: 30,
+                                          fontSize: AppFontSize.display,
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
@@ -649,7 +649,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   Text(
                                     'TL',
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: AppFontSize.titleLarge,
                                       fontWeight: FontWeight.w800,
                                       color: context.tokens.primary,
                                     ),
@@ -685,7 +685,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           child: Text(
                                             '+$preset TL',
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: AppFontSize.label,
                                               fontWeight: FontWeight.w700,
                                               color: context.tokens.ink,
                                             ),
@@ -723,7 +723,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           'Masraf Kategorisi',
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.bodyLarge,
                                             fontWeight: FontWeight.w700,
                                             color: context.tokens.ink,
                                           ),
@@ -738,7 +738,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     _selectedCategory,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: AppFontSize.label,
                                       fontWeight: FontWeight.w600,
                                       color: context.tokens.muted,
                                     ),
@@ -809,7 +809,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: AppFontSize.label,
                                                   fontWeight: FontWeight.w700,
                                                   color: active
                                                       ? context.tokens.onPrimary
@@ -821,7 +821,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
-                                                  fontSize: 9.5,
+                                                  fontSize: AppFontSize.micro,
                                                   fontWeight: FontWeight.w500,
                                                   color: active
                                                       ? context.tokens.onPrimary
@@ -866,7 +866,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           'Belge & Fiş Bilgileri',
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.bodyLarge,
                                             fontWeight: FontWeight.w700,
                                             color: context.tokens.ink,
                                           ),
@@ -879,7 +879,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 Text(
                                   _formatDateTime(DateTime.now()),
                                   style: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: AppFontSize.caption,
                                     fontWeight: FontWeight.w700,
                                     color: context.tokens.primary,
                                   ),
@@ -933,7 +933,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 11.5,
+                                            fontSize: AppFontSize.caption,
                                             fontWeight: active
                                                 ? FontWeight.w700
                                                 : FontWeight.w500,
@@ -959,7 +959,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       Text(
                                         'Fiş / Belge No',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: AppFontSize.caption,
                                           color: context.tokens.muted,
                                         ),
                                       ),
@@ -979,7 +979,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         child: TextField(
                                           controller: _docNoController,
                                           style: TextStyle(
-                                            fontSize: 13.5,
+                                            fontSize: AppFontSize.body,
                                             color: context.tokens.ink,
                                           ),
                                           decoration: InputDecoration(
@@ -988,7 +988,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                             hintText: 'Örn: 0194',
                                             hintStyle: TextStyle(
                                               color: context.tokens.muted,
-                                              fontSize: 13,
+                                              fontSize: AppFontSize.body,
                                             ),
                                           ),
                                         ),
@@ -1005,7 +1005,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                       Text(
                                         'İşlem Tarihi',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: AppFontSize.caption,
                                           color: context.tokens.muted,
                                         ),
                                       ),
@@ -1054,7 +1054,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                                     ? 'Bugün'
                                                     : '${_spentAt.day.toString().padLeft(2, '0')}.${_spentAt.month.toString().padLeft(2, '0')}.${_spentAt.year}',
                                                 style: TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: AppFontSize.body,
                                                   fontWeight: FontWeight.w600,
                                                   color: context.tokens.ink,
                                                 ),
@@ -1099,7 +1099,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           'Fiş / Fatura Fotoğrafı',
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.bodyLarge,
                                             fontWeight: FontWeight.w700,
                                             color: context.tokens.ink,
                                           ),
@@ -1121,7 +1121,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     Text(
                                       'Mali Denetim',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: AppFontSize.caption,
                                         fontWeight: FontWeight.w700,
                                         color: context.tokens.danger,
                                       ),
@@ -1136,7 +1136,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 _imageError!,
                                 style: TextStyle(
                                   color: context.tokens.danger,
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.label,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -1168,7 +1168,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     Text(
                                       'Mali onay için fiş görseli gereklidir',
                                       style: TextStyle(
-                                        fontSize: 12.5,
+                                        fontSize: AppFontSize.label,
                                         fontWeight: FontWeight.w700,
                                         color: context.tokens.ink,
                                       ),
@@ -1177,7 +1177,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     Text(
                                       'Belgenin net ve okunur olduğundan emin olun',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: AppFontSize.caption,
                                         color: context.tokens.muted,
                                       ),
                                     ),
@@ -1195,7 +1195,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                             label: const Text(
                                               'Kamera ile Çek',
                                               style: TextStyle(
-                                                fontSize: 12,
+                                                fontSize: AppFontSize.label,
                                                 fontWeight: FontWeight.w700,
                                               ),
                                             ),
@@ -1229,7 +1229,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                             label: const Text(
                                               'Galeriden Seç',
                                               style: TextStyle(
-                                                fontSize: 12,
+                                                fontSize: AppFontSize.label,
                                                 fontWeight: FontWeight.w700,
                                               ),
                                             ),
@@ -1281,7 +1281,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           Text(
                                             'fis_${_spentAt.day}${_spentAt.month}${_spentAt.year}.jpg',
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: AppFontSize.label,
                                               fontWeight: FontWeight.w700,
                                               color: context.tokens.ink,
                                             ),
@@ -1289,7 +1289,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                           Text(
                                             'Görsel yüklendi · ${(_receipt!.length / 1024).round()} KB',
                                             style: TextStyle(
-                                              fontSize: 10.5,
+                                              fontSize: AppFontSize.micro,
                                               fontWeight: FontWeight.w600,
                                               color: context.tokens.success,
                                             ),
@@ -1332,7 +1332,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 Text(
                                   'Açıklama & Sorumlu',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.bodyLarge,
                                     fontWeight: FontWeight.w700,
                                     color: context.tokens.ink,
                                   ),
@@ -1354,7 +1354,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                 minLines: 2,
                                 maxLines: 4,
                                 style: TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: AppFontSize.body,
                                   color: context.tokens.ink,
                                 ),
                                 decoration: InputDecoration(
@@ -1363,7 +1363,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                   hintText: 'Harcama nedeni ve satın alınan ürün detayı (örn: Marketten 4 koli acil barista sütü alındı)...',
                                   hintStyle: TextStyle(
                                     color: context.tokens.muted,
-                                    fontSize: 12.5,
+                                    fontSize: AppFontSize.label,
                                     height: 1.3,
                                   ),
                                 ),
@@ -1387,7 +1387,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     child: Text(
                                       _userInitials(userName),
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: AppFontSize.caption,
                                         fontWeight: FontWeight.w800,
                                         color: context.tokens.onPrimary,
                                       ),
@@ -1402,7 +1402,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         Text(
                                           userName,
                                           style: TextStyle(
-                                            fontSize: 12.5,
+                                            fontSize: AppFontSize.label,
                                             fontWeight: FontWeight.w700,
                                             color: context.tokens.ink,
                                           ),
@@ -1410,7 +1410,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                         Text(
                                           userRole,
                                           style: TextStyle(
-                                            fontSize: 10.5,
+                                            fontSize: AppFontSize.micro,
                                             color: context.tokens.muted,
                                           ),
                                         ),
@@ -1475,7 +1475,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     'Kasadan Çıkacak Tutar:',
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 12.5,
+                                      fontSize: AppFontSize.label,
                                       fontWeight: FontWeight.w600,
                                       color: context.tokens.muted,
                                     ),
@@ -1488,7 +1488,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                           Text(
                             fmtMoney(enteredAmount),
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: AppFontSize.bodyLarge,
                               fontWeight: FontWeight.w800,
                               color: context.tokens.danger,
                             ),
@@ -1515,7 +1515,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                               child: Text(
                                 'Vazgeç',
                                 style: TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: AppFontSize.body,
                                   fontWeight: FontWeight.w600,
                                   color: context.tokens.muted,
                                 ),
@@ -1548,7 +1548,7 @@ class _PettyCashExpenseFormSheetState extends State<PettyCashExpenseFormSheet> {
                                     ? 'Kaydediliyor...'
                                     : 'Masrafı Kaydet ve Düş',
                                 style: const TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: AppFontSize.body,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1627,7 +1627,10 @@ Future<bool?> showLimitsDialog(BuildContext context) async {
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             'Her mağazanın haftalık harcama tavanı. Hafta pazartesi başlar.',
-            style: TextStyle(fontSize: 13, color: context.tokens.muted),
+            style: TextStyle(
+              fontSize: AppFontSize.body,
+              color: context.tokens.muted,
+            ),
           ),
         ),
         ...limits.map(
@@ -1638,7 +1641,7 @@ Future<bool?> showLimitsDialog(BuildContext context) async {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
               decoration: const InputDecoration(suffixText: 'TL'),
             ),
           ),
@@ -1685,7 +1688,7 @@ Future<bool?> showPettyCashRejectDialog(
             child: Text(
               '${fmtMoney(expense.amount)} — ${expense.description}\n'
               '${expense.createdByName ?? 'bilinmiyor'} girdi.',
-              style: TextStyle(fontSize: 13, color: t.muted),
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             ),
           ),
           LabeledField(
@@ -1697,7 +1700,7 @@ Future<bool?> showPettyCashRejectDialog(
               controller: note,
               autofocus: true,
               maxLines: 2,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: AppFontSize.title),
             ),
           ),
         ];

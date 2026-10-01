@@ -104,7 +104,6 @@ const _cokMagazaRolleri = {
 ({Color zemin, Color metin, String etiket}) _kategoriStili(
   ShiftCategory k,
   AppTokens t,
-  bool koyu,
 ) => switch (k) {
   ShiftCategory.sabah => (
     zemin: t.infoSoft,
@@ -382,7 +381,10 @@ class _RosterScreenState extends State<RosterScreen> {
                 children: [
                   const Text(
                     'Vardiya Düzenle',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -393,7 +395,10 @@ class _RosterScreenState extends State<RosterScreen> {
               const SizedBox(height: 8),
               const Text(
                 'Düzenlemek istediğiniz personelin tablodaki gün hücresine dokunarak vardiya atayabilir veya tatil tanımlayabilirsiniz.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: AppFontSize.body,
+                  color: Colors.grey,
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -417,7 +422,6 @@ class _RosterScreenState extends State<RosterScreen> {
   Widget build(BuildContext context) {
     final v = _veri;
     final t = context.tokens;
-    final koyu = Theme.of(context).brightness == Brightness.dark;
 
     final weekNum = _isoWeekNumber(_anchor);
     final dateRangeLabel = _haftalik
@@ -460,7 +464,7 @@ class _RosterScreenState extends State<RosterScreen> {
                               ? '$weekNum. HAFTA MATRİSİ • $dateRangeLabel'
                               : dateRangeLabel.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                             color: t.primary,
@@ -486,7 +490,7 @@ class _RosterScreenState extends State<RosterScreen> {
                     v?.storeName ??
                         (session.user?.storeName ?? 'Tüm Mağazalar'),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.caption,
                       fontWeight: FontWeight.w600,
                       color: t.primary,
                     ),
@@ -543,7 +547,7 @@ class _RosterScreenState extends State<RosterScreen> {
                           Text(
                             'Zaman Çizelgesi',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.w600,
                               color: !_haftalik ? t.onPrimary : t.muted,
                             ),
@@ -589,7 +593,7 @@ class _RosterScreenState extends State<RosterScreen> {
                           Text(
                             'Haftalık Matris',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.w600,
                               color: _haftalik ? t.onPrimary : t.muted,
                             ),
@@ -620,7 +624,7 @@ class _RosterScreenState extends State<RosterScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: AppFontSize.body,
                   ),
                 ),
               ),
@@ -645,13 +649,9 @@ class _RosterScreenState extends State<RosterScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                    color: context.tokens.card,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: koyu
-                          ? Colors.transparent
-                          : const Color(0xFFE2E8F0),
-                    ),
+                    border: Border.all(color: context.tokens.border),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.02),
@@ -663,19 +663,17 @@ class _RosterScreenState extends State<RosterScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.groups_rounded,
                         size: 16,
-                        color: Color(0xFF005C55),
+                        color: context.tokens.primary,
                       ),
                       const SizedBox(width: 6),
                       RichText(
                         text: TextSpan(
                           style: TextStyle(
-                            fontSize: 11,
-                            color: koyu
-                                ? Colors.white
-                                : const Color(0xFF0B1C30),
+                            fontSize: AppFontSize.caption,
+                            color: context.tokens.ink,
                           ),
                           children: [
                             const TextSpan(text: 'Kadro: '),
@@ -694,9 +692,7 @@ class _RosterScreenState extends State<RosterScreen> {
                       Icon(
                         Icons.tune_rounded,
                         size: 14,
-                        color: koyu
-                            ? Colors.grey[400]
-                            : const Color(0xFF3E4947),
+                        color: context.tokens.muted,
                       ),
                     ],
                   ),
@@ -711,13 +707,9 @@ class _RosterScreenState extends State<RosterScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      color: context.tokens.card,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: koyu
-                            ? Colors.transparent
-                            : const Color(0xFFE2E8F0),
-                      ),
+                      border: Border.all(color: context.tokens.border),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -732,19 +724,15 @@ class _RosterScreenState extends State<RosterScreen> {
                         Icon(
                           Icons.download_rounded,
                           size: 16,
-                          color: koyu
-                              ? Colors.grey[300]
-                              : const Color(0xFF3E4947),
+                          color: context.tokens.muted,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Dışa Aktar',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w600,
-                            color: koyu
-                                ? Colors.grey[300]
-                                : const Color(0xFF3E4947),
+                            color: context.tokens.muted,
                           ),
                         ),
                       ],
@@ -761,13 +749,9 @@ class _RosterScreenState extends State<RosterScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      color: context.tokens.card,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: koyu
-                            ? Colors.transparent
-                            : const Color(0xFFE2E8F0),
-                      ),
+                      border: Border.all(color: context.tokens.border),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.02),
@@ -782,19 +766,15 @@ class _RosterScreenState extends State<RosterScreen> {
                         Icon(
                           Icons.campaign_rounded,
                           size: 16,
-                          color: koyu
-                              ? Colors.grey[300]
-                              : const Color(0xFF3E4947),
+                          color: context.tokens.muted,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Ekibe Duyur',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w600,
-                            color: koyu
-                                ? Colors.grey[300]
-                                : const Color(0xFF3E4947),
+                            color: context.tokens.muted,
                           ),
                         ),
                       ],
@@ -806,13 +786,9 @@ class _RosterScreenState extends State<RosterScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: koyu ? const Color(0xFF1E293B) : Colors.white,
+                      color: context.tokens.card,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: koyu
-                            ? Colors.transparent
-                            : const Color(0xFFE2E8F0),
-                      ),
+                      border: Border.all(color: context.tokens.border),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
@@ -824,7 +800,7 @@ class _RosterScreenState extends State<RosterScreen> {
                             value: null,
                             child: Text(
                               'Tüm Mağazalar',
-                              style: TextStyle(fontSize: 11),
+                              style: TextStyle(fontSize: AppFontSize.caption),
                             ),
                           ),
                           for (final m in _magazalar)
@@ -832,7 +808,9 @@ class _RosterScreenState extends State<RosterScreen> {
                               value: m.id,
                               child: Text(
                                 m.name,
-                                style: const TextStyle(fontSize: 11),
+                                style: const TextStyle(
+                                  fontSize: AppFontSize.caption,
+                                ),
                               ),
                             ),
                         ],
@@ -881,7 +859,9 @@ class _RosterScreenState extends State<RosterScreen> {
                             child: Text(
                               '${c['full_name']} — ${fmtDate(c['work_date'] as String? ?? '')}'
                               ': ${c['label']}',
-                              style: const TextStyle(fontSize: 13),
+                              style: const TextStyle(
+                                fontSize: AppFontSize.body,
+                              ),
                             ),
                           ),
                           TextButton(
@@ -899,7 +879,10 @@ class _RosterScreenState extends State<RosterScreen> {
                   Text(
                     'Yine de kaydederseniz çakışan atamalar hareket '
                     'kayıtlarına "çakışmaya rağmen atandı" olarak yazılır.',
-                    style: TextStyle(fontSize: 12, color: context.tokens.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: context.tokens.muted,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -993,8 +976,6 @@ class _KpiMetricBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final koyu = Theme.of(context).brightness == Brightness.dark;
-
     final totalHours = (veri.totalPlannedMinutes / 60).toStringAsFixed(0);
     final avgHours = veri.people.isEmpty
         ? '0.0'
@@ -1018,11 +999,9 @@ class _KpiMetricBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: koyu ? const Color(0xFF1E293B) : Colors.white,
+        color: context.tokens.card,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: context.tokens.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1037,45 +1016,43 @@ class _KpiMetricBar extends StatelessWidget {
             child: _KpiCol(
               baslik: 'Toplam',
               deger: '${totalHours}s',
-              degerRenk: const Color(0xFF005C55),
+              degerRenk: context.tokens.primary,
               alt: 'Hedef %100',
-              altRenk: const Color(0xFF005E3F),
+              altRenk: context.tokens.okText,
             ),
           ),
-          _divider(koyu),
+          _divider(context),
           Expanded(
             child: _KpiCol(
               baslik: 'Ortalama',
               deger: '${avgHours}s',
-              degerRenk: koyu ? Colors.white : const Color(0xFF0B1C30),
+              degerRenk: context.tokens.ink,
               alt: 'Kişi başı',
-              altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
+              altRenk: context.tokens.muted,
             ),
           ),
-          _divider(koyu),
+          _divider(context),
           Expanded(
             child: _KpiCol(
               baslik: 'Açık Vardiya',
               deger: '$unassignedCount',
               degerRenk: unassignedCount == 0
-                  ? const Color(0xFF005E3F)
-                  : const Color(0xFFBA1A1A),
+                  ? context.tokens.okText
+                  : context.tokens.danger,
               alt: unassignedCount == 0 ? 'Eksiksiz' : '$unassignedCount Boş',
               altRenk: unassignedCount == 0
-                  ? const Color(0xFF005E3F)
-                  : const Color(0xFFBA1A1A),
+                  ? context.tokens.okText
+                  : context.tokens.danger,
             ),
           ),
-          _divider(koyu),
+          _divider(context),
           Expanded(
             child: _KpiCol(
               baslik: 'Değişim/İzin',
               deger: '$dayOffCount',
-              degerRenk: koyu
-                  ? const Color(0xFF34D399)
-                  : const Color(0xFF15803D),
+              degerRenk: context.tokens.success,
               alt: 'Onaylı',
-              altRenk: koyu ? Colors.grey[400]! : const Color(0xFF3E4947),
+              altRenk: context.tokens.muted,
             ),
           ),
         ],
@@ -1083,11 +1060,8 @@ class _KpiMetricBar extends StatelessWidget {
     );
   }
 
-  Widget _divider(bool koyu) => Container(
-    width: 1,
-    height: 32,
-    color: koyu ? Colors.grey[800] : const Color(0xFFE2E8F0),
-  );
+  Widget _divider(BuildContext context) =>
+      Container(width: 1, height: 32, color: context.tokens.border);
 }
 
 class _KpiCol extends StatelessWidget {
@@ -1112,17 +1086,17 @@ class _KpiCol extends StatelessWidget {
       children: [
         Text(
           baslik,
-          style: const TextStyle(
-            fontSize: 10.5,
+          style: TextStyle(
+            fontSize: AppFontSize.micro,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF3E4947),
+            color: context.tokens.muted,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           deger,
           style: TextStyle(
-            fontSize: 17,
+            fontSize: AppFontSize.title,
             fontWeight: FontWeight.w800,
             color: degerRenk,
             letterSpacing: -0.3,
@@ -1132,7 +1106,7 @@ class _KpiCol extends StatelessWidget {
         Text(
           alt,
           style: TextStyle(
-            fontSize: 9.5,
+            fontSize: AppFontSize.micro,
             fontWeight: FontWeight.w600,
             color: altRenk,
           ),
@@ -1148,12 +1122,12 @@ class _VardiyaGostergeleri extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final koyu = Theme.of(context).brightness == Brightness.dark;
+    final t = context.tokens;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: koyu ? const Color(0xFF1E293B) : const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1161,14 +1135,14 @@ class _VardiyaGostergeleri extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'VARDİYA GÖSTERGELERİ',
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: AppFontSize.micro,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
-                  color: Color(0xFF3E4947),
+                  color: context.tokens.muted,
                 ),
               ),
               Row(
@@ -1176,12 +1150,15 @@ class _VardiyaGostergeleri extends StatelessWidget {
                   Icon(
                     Icons.swipe_outlined,
                     size: 12,
-                    color: Color(0xFF005C55),
+                    color: context.tokens.primary,
                   ),
                   SizedBox(width: 2),
                   Text(
                     'Sağa kaydırarak inceleyin',
-                    style: TextStyle(fontSize: 10, color: Color(0xFF005C55)),
+                    style: TextStyle(
+                      fontSize: AppFontSize.micro,
+                      color: context.tokens.primary,
+                    ),
                   ),
                 ],
               ),
@@ -1192,36 +1169,33 @@ class _VardiyaGostergeleri extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                for (final (kategori, etiket) in const [
+                  (ShiftCategory.sabah, '🌅 Açılış (08-16)'),
+                  (ShiftCategory.gunduz, '🔄 Ara (12-20)'),
+                  (ShiftCategory.kapanis, '🌙 Kapanış (16-01)'),
+                ]) ...[
+                  Builder(
+                    builder: (context) {
+                      final st = _kategoriStili(kategori, t);
+                      return _gostergePill(
+                        zemin: st.zemin,
+                        metin: st.metin,
+                        nokta: st.metin,
+                        etiket: etiket,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 5),
+                ],
                 _gostergePill(
-                  zemin: const Color(0xFFB5EFDA),
-                  metin: const Color(0xFF376E5E),
-                  nokta: const Color(0xFF005C55),
-                  etiket: '🌅 Açılış (08-16)',
-                ),
-                const SizedBox(width: 5),
-                _gostergePill(
-                  zemin: const Color(0xFFDCE9FF),
-                  metin: const Color(0xFF0B1C30),
-                  nokta: const Color(0xFF316858),
-                  etiket: '🔄 Ara (12-20)',
-                ),
-                const SizedBox(width: 5),
-                _gostergePill(
-                  zemin: const Color(0xFF213145),
-                  metin: const Color(0xFFEAF1FF),
-                  nokta: const Color(0xFF80D5CB),
-                  etiket: '🌙 Kapanış (16-01)',
-                ),
-                const SizedBox(width: 5),
-                _gostergePill(
-                  zemin: const Color(0xFF6FFBBE),
-                  metin: const Color(0xFF005236),
+                  zemin: t.primarySoft,
+                  metin: t.primary,
                   etiket: '⚡ Takas',
                 ),
                 const SizedBox(width: 5),
                 _gostergePill(
-                  zemin: const Color(0xFFFFDAD6),
-                  metin: const Color(0xFF93000A),
+                  zemin: t.dangerSoft,
+                  metin: t.dangerText,
                   etiket: '⛱️ İzin/OFF',
                 ),
               ],
@@ -1258,7 +1232,7 @@ class _VardiyaGostergeleri extends StatelessWidget {
           Text(
             etiket,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: AppFontSize.micro,
               fontWeight: FontWeight.w600,
               color: metin,
             ),
@@ -1302,7 +1276,6 @@ class _HaftaTablosu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final koyu = Theme.of(context).brightness == Brightness.dark;
 
     // Gün kolonları + Planlı toplam kolonu
     final colWidths = <int, TableColumnWidth>{0: const FixedColumnWidth(165)};
@@ -1325,7 +1298,7 @@ class _HaftaTablosu extends StatelessWidget {
                   const Text(
                     'Haftalık Personel Matrisi',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSize.title,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                     ),
@@ -1335,38 +1308,38 @@ class _HaftaTablosu extends StatelessWidget {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: koyu
-                          ? const Color(0xFF34D399)
-                          : const Color(0xFF15803D),
+                      color: context.tokens.success,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       '${veri.people.length}',
-                      style: const TextStyle(
-                        fontSize: 11,
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: context.tokens.foregroundOn(
+                          context.tokens.success,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
               Row(
-                children: const [
+                children: [
                   Text(
                     'Görünümü Sabitle',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF005C55),
+                      color: context.tokens.primary,
                     ),
                   ),
                   SizedBox(width: 2),
                   Icon(
                     Icons.push_pin_outlined,
                     size: 14,
-                    color: Color(0xFF005C55),
+                    color: context.tokens.primary,
                   ),
                 ],
               ),
@@ -1378,11 +1351,9 @@ class _HaftaTablosu extends StatelessWidget {
         // Matris Kartı & Yatay Kaydırma
         Container(
           decoration: BoxDecoration(
-            color: koyu ? const Color(0xFF1E293B) : Colors.white,
+            color: context.tokens.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: koyu ? Colors.transparent : const Color(0xFFE2E8F0),
-            ),
+            border: Border.all(color: context.tokens.border),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -1401,13 +1372,9 @@ class _HaftaTablosu extends StatelessWidget {
               children: [
                 // 1. Başlık Satırı
                 TableRow(
-                  decoration: BoxDecoration(
-                    color: koyu
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFEFF4FF),
-                  ),
+                  decoration: BoxDecoration(color: context.tokens.bg),
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(
                         vertical: 10,
                         horizontal: 8,
@@ -1415,9 +1382,9 @@ class _HaftaTablosu extends StatelessWidget {
                       child: Text(
                         'Personel & Rol',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF0B1C30),
+                          color: context.tokens.ink,
                         ),
                       ),
                     ),
@@ -1431,15 +1398,15 @@ class _HaftaTablosu extends StatelessWidget {
                             (veri.dates.length >= 2 &&
                                 d == veri.dates[veri.dates.length - 2]),
                       ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(vertical: 10),
                       child: Text(
                         'Planlı',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF3E4947),
+                          color: context.tokens.muted,
                         ),
                       ),
                     ),
@@ -1452,14 +1419,10 @@ class _HaftaTablosu extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: i.isEven
                           ? Colors.transparent
-                          : (koyu
-                                ? const Color(0xFF0F172A).withValues(alpha: 0.3)
-                                : const Color(0xFFF8FAFC)),
+                          : (context.tokens.bg),
                       border: Border(
                         bottom: BorderSide(
-                          color: koyu
-                              ? Colors.grey[800]!
-                              : const Color(0xFFE2E8F0),
+                          color: context.tokens.border,
                           width: 0.5,
                         ),
                       ),
@@ -1482,9 +1445,11 @@ class _HaftaTablosu extends StatelessWidget {
                               alignment: Alignment.center,
                               child: Text(
                                 _initials(veri.people[i].fullName),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
+                                style: TextStyle(
+                                  color: t.foregroundOn(
+                                    _avatarBg(veri.people[i].role, t),
+                                  ),
+                                  fontSize: AppFontSize.caption,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1498,7 +1463,7 @@ class _HaftaTablosu extends StatelessWidget {
                                   Text(
                                     veri.people[i].fullName,
                                     style: const TextStyle(
-                                      fontSize: 11.5,
+                                      fontSize: AppFontSize.caption,
                                       fontWeight: FontWeight.w700,
                                     ),
                                     maxLines: 1,
@@ -1508,7 +1473,7 @@ class _HaftaTablosu extends StatelessWidget {
                                   Text(
                                     _formatRole(veri.people[i].role),
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: AppFontSize.micro,
                                       color: t.muted,
                                     ),
                                     maxLines: 1,
@@ -1541,7 +1506,7 @@ class _HaftaTablosu extends StatelessWidget {
                           ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -1552,9 +1517,7 @@ class _HaftaTablosu extends StatelessWidget {
                 // 3. Alt Kadro Gücü / Çalışan Sayısı Satırı
                 TableRow(
                   decoration: BoxDecoration(
-                    color: koyu
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFDCE9FF).withValues(alpha: 0.6),
+                    color: context.tokens.border.withValues(alpha: 0.6),
                   ),
                   children: [
                     Padding(
@@ -1578,7 +1541,7 @@ class _HaftaTablosu extends StatelessWidget {
                                 Text(
                                   'Kadro Gücü',
                                   style: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: AppFontSize.caption,
                                     fontWeight: FontWeight.w800,
                                     color: t.ink,
                                   ),
@@ -1586,7 +1549,7 @@ class _HaftaTablosu extends StatelessWidget {
                                 Text(
                                   'Çalışan sayısı',
                                   style: TextStyle(
-                                    fontSize: 9.5,
+                                    fontSize: AppFontSize.micro,
                                     fontWeight: FontWeight.w600,
                                     color: t.primary,
                                   ),
@@ -1609,9 +1572,7 @@ class _HaftaTablosu extends StatelessWidget {
                             horizontal: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: koyu
-                                ? const Color(0xFF1E293B)
-                                : Colors.white,
+                            color: context.tokens.card,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Column(
@@ -1620,10 +1581,10 @@ class _HaftaTablosu extends StatelessWidget {
                               Text(
                                 '${veri.gunToplam(d).working} Kişi',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 11,
+                                style: TextStyle(
+                                  fontSize: AppFontSize.caption,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF005C55),
+                                  color: context.tokens.primary,
                                 ),
                               ),
                               const SizedBox(height: 1),
@@ -1634,10 +1595,10 @@ class _HaftaTablosu extends StatelessWidget {
                                           ? 'Min. Kadro'
                                           : 'Dengeli'),
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 9,
+                                style: TextStyle(
+                                  fontSize: AppFontSize.micro,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF005E3F),
+                                  color: context.tokens.okText,
                                 ),
                               ),
                             ],
@@ -1649,10 +1610,10 @@ class _HaftaTablosu extends StatelessWidget {
                       child: Text(
                         fmtDuration(veri.totalPlannedMinutes),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF005C55),
+                          color: context.tokens.primary,
                         ),
                       ),
                     ),
@@ -1693,7 +1654,7 @@ class _TarihBasligi extends StatelessWidget {
           Text(
             gunAdi,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: AppFontSize.caption,
               fontWeight: FontWeight.w700,
               color: tatil ? t.danger : (haftaSonu ? primaryColor : t.ink),
             ),
@@ -1702,7 +1663,7 @@ class _TarihBasligi extends StatelessWidget {
           Text(
             tarih,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppFontSize.micro,
               fontWeight: haftaSonu ? FontWeight.w600 : FontWeight.w400,
               color: tatil ? t.danger : (haftaSonu ? primaryColor : t.muted),
             ),
@@ -1724,7 +1685,6 @@ class _Hucre extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final koyu = Theme.of(context).brightness == Brightness.dark;
     final tamTatil = tatil != null && !tatil!.isHalfDay;
 
     final gosterilen = bekleyen == null
@@ -1756,7 +1716,7 @@ class _Hucre extends StatelessWidget {
       govde = Container(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         decoration: BoxDecoration(
-          color: koyu ? const Color(0xFF3B1E1E) : const Color(0xFFFFDAD6),
+          color: context.tokens.dangerSoft,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1766,18 +1726,21 @@ class _Hucre extends StatelessWidget {
               'RT',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.label,
                 fontWeight: FontWeight.w800,
                 color: t.danger,
               ),
             ),
-            Text(
-              'Tatil',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w600,
-                color: t.danger,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Tatil',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: AppFontSize.micro,
+                  fontWeight: FontWeight.w600,
+                  color: t.danger,
+                ),
               ),
             ),
           ],
@@ -1790,7 +1753,7 @@ class _Hucre extends StatelessWidget {
           onTap != null ? '+' : '-',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSize.bodyLarge,
             fontWeight: FontWeight.w700,
             color: t.borderStrong,
           ),
@@ -1800,31 +1763,32 @@ class _Hucre extends StatelessWidget {
       govde = Container(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         decoration: BoxDecoration(
-          color: koyu
-              ? const Color(0xFF3B1E1E)
-              : const Color(0xFFFFDAD6).withValues(alpha: 0.7),
+          color: context.tokens.dangerSoft.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Text(
               'OFF',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppFontSize.caption,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF93000A),
+                color: context.tokens.dangerText,
               ),
             ),
             SizedBox(height: 1),
-            Text(
-              'Hafta Tatili',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF93000A),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Hafta Tatili',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: AppFontSize.micro,
+                  fontWeight: FontWeight.w600,
+                  color: context.tokens.dangerText,
+                ),
               ),
             ),
           ],
@@ -1833,9 +1797,7 @@ class _Hucre extends StatelessWidget {
     } else {
       govde = Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final c in gosterilen) _VardiyaEtiketi(hucre: c, koyu: koyu),
-        ],
+        children: [for (final c in gosterilen) _VardiyaEtiketi(hucre: c)],
       );
     }
 
@@ -1849,7 +1811,7 @@ class _Hucre extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               height: 1,
-              fontSize: 15,
+              fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w900,
               color: t.primary600,
             ),
@@ -1861,7 +1823,7 @@ class _Hucre extends StatelessWidget {
               uyarilar.first.etiket,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppFontSize.micro,
                 fontWeight: FontWeight.w800,
                 color: t.danger,
               ),
@@ -1907,21 +1869,20 @@ class _Hucre extends StatelessWidget {
 
 /// Tek vardiya etiketi: saat + kategori adı, modern renkler ile.
 class _VardiyaEtiketi extends StatelessWidget {
-  const _VardiyaEtiketi({required this.hucre, required this.koyu});
+  const _VardiyaEtiketi({required this.hucre});
 
   final RosterCell hucre;
-  final bool koyu;
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final st = _kategoriStili(hucre.category, t, koyu);
+    final st = _kategoriStili(hucre.category, t);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       decoration: BoxDecoration(
-        color: hucre.crossesMidnight ? const Color(0xFF213145) : st.zemin,
+        color: hucre.crossesMidnight ? context.tokens.ink : st.zemin,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
@@ -1931,9 +1892,9 @@ class _VardiyaEtiketi extends StatelessWidget {
             hucre.saatAraligi,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: AppFontSize.micro,
               fontWeight: FontWeight.w700,
-              color: hucre.crossesMidnight ? const Color(0xFFEAF1FF) : st.metin,
+              color: hucre.crossesMidnight ? context.tokens.card : st.metin,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -1943,10 +1904,10 @@ class _VardiyaEtiketi extends StatelessWidget {
               st.etiket,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 9.5,
+                fontSize: AppFontSize.micro,
                 fontWeight: FontWeight.w700,
                 color: hucre.crossesMidnight
-                    ? const Color(0xFFEAF1FF).withValues(alpha: 0.85)
+                    ? context.tokens.card.withValues(alpha: 0.85)
                     : st.metin,
               ),
             ),
@@ -1965,17 +1926,14 @@ class _UygunlukBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final koyu = Theme.of(context).brightness == Brightness.dark;
     final weekNum = _isoWeekNumber(anchor);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: koyu ? const Color(0xFF1E293B) : const Color(0xFFEFF4FF),
+        color: context.tokens.bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: koyu ? Colors.transparent : const Color(0xFFDCE9FF),
-        ),
+        border: Border.all(color: context.tokens.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1983,14 +1941,14 @@ class _UygunlukBanner extends StatelessWidget {
           Container(
             width: 38,
             height: 38,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB5EFDA),
+            decoration: BoxDecoration(
+              color: context.tokens.successSoft,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.verified_rounded,
               size: 22,
-              color: Color(0xFF005C55),
+              color: context.tokens.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -2003,10 +1961,10 @@ class _UygunlukBanner extends StatelessWidget {
                   children: [
                     Text(
                       '$weekNum. Hafta Uygunluğu',
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0B1C30),
+                        color: context.tokens.ink,
                       ),
                     ),
                     Container(
@@ -2015,26 +1973,26 @@ class _UygunlukBanner extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFB5EFDA),
+                        color: context.tokens.successSoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Kusursuz',
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: AppFontSize.micro,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF005E3F),
+                          color: context.tokens.okText,
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 3),
-                const Text(
+                Text(
                   'Vardiyalar yasal dinlenme sürelerine ve mağaza asgari kadro hedeflerine tam uygundur.',
                   style: TextStyle(
-                    fontSize: 11.5,
-                    color: Color(0xFF3E4947),
+                    fontSize: AppFontSize.caption,
+                    color: context.tokens.muted,
                     height: 1.3,
                   ),
                 ),
@@ -2067,8 +2025,6 @@ class _BottomActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final koyu = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       children: [
         // Whatsapp ile paylaş
@@ -2082,7 +2038,7 @@ class _BottomActions extends StatelessWidget {
                   ? Icons.hourglass_top
                   : Icons.chat_bubble_outline_rounded,
               size: 20,
-              color: Colors.white,
+              color: context.tokens.onPrimary,
             ),
             label: Text(
               paylasiyor
@@ -2090,10 +2046,10 @@ class _BottomActions extends StatelessWidget {
                   : bekleyenVar
                   ? 'Önce değişiklikleri kaydedin'
                   : 'Whatsapp ile paylaş',
-              style: const TextStyle(
-                fontSize: 14,
+              style: TextStyle(
+                fontSize: AppFontSize.bodyLarge,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: context.tokens.onPrimary,
               ),
             ),
             style: ElevatedButton.styleFrom(
@@ -2115,28 +2071,22 @@ class _BottomActions extends StatelessWidget {
                 height: 44,
                 child: OutlinedButton.icon(
                   onPressed: canEdit ? onVardiyaDuzenle : null,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_calendar_outlined,
                     size: 18,
-                    color: Color(0xFF005C55),
+                    color: context.tokens.primary,
                   ),
-                  label: const Text(
+                  label: Text(
                     '+ Vardiya Düzenle',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF005C55),
+                      color: context.tokens.primary,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: koyu
-                        ? const Color(0xFF1E293B)
-                        : Colors.white,
-                    side: BorderSide(
-                      color: koyu
-                          ? Colors.transparent
-                          : const Color(0xFFE2E8F0),
-                    ),
+                    backgroundColor: context.tokens.card,
+                    side: BorderSide(color: context.tokens.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -2153,25 +2103,19 @@ class _BottomActions extends StatelessWidget {
                   icon: Icon(
                     Icons.table_view_outlined,
                     size: 18,
-                    color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                    color: context.tokens.muted,
                   ),
                   label: Text(
                     'Excel İndir (.xlsx)',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppFontSize.label,
                       fontWeight: FontWeight.w700,
-                      color: koyu ? Colors.grey[300] : const Color(0xFF3E4947),
+                      color: context.tokens.muted,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: koyu
-                        ? const Color(0xFF1E293B)
-                        : Colors.white,
-                    side: BorderSide(
-                      color: koyu
-                          ? Colors.transparent
-                          : const Color(0xFFE2E8F0),
-                    ),
+                    backgroundColor: context.tokens.card,
+                    side: BorderSide(color: context.tokens.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -2257,9 +2201,9 @@ class _GunListesi extends StatelessWidget {
                       alignment: Alignment.center,
                       child: Text(
                         _initials(p.fullName),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                        style: TextStyle(
+                          color: t.foregroundOn(_avatarBg(p.role, t)),
+                          fontSize: AppFontSize.label,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -2277,7 +2221,10 @@ class _GunListesi extends StatelessWidget {
                           Text(
                             '${c.shiftName ?? '-'} · ${c.saatAraligi}'
                             '${c.breakDurationMinutes > 0 ? ' · ${c.breakDurationMinutes} dk mola' : ''}',
-                            style: TextStyle(fontSize: 12, color: t.muted),
+                            style: TextStyle(
+                              fontSize: AppFontSize.label,
+                              color: t.muted,
+                            ),
                           ),
                         ],
                       ),
@@ -2302,13 +2249,19 @@ class _GunListesi extends StatelessWidget {
                 if (tatilde.isNotEmpty)
                   Text(
                     'Hafta tatili: ${tatilde.map((p) => p.fullName).join(', ')}',
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                 if (bos.isNotEmpty) ...[
                   if (tatilde.isNotEmpty) const SizedBox(height: 4),
                   Text(
                     'Vardiya atanmamış: ${bos.map((p) => p.fullName).join(', ')}',
-                    style: TextStyle(fontSize: 12, color: t.muted),
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ],
@@ -2331,7 +2284,10 @@ class _Sayi extends StatelessWidget {
     final t = context.tokens;
     return Column(
       children: [
-        Text(etiket, style: TextStyle(fontSize: 11, color: t.muted)),
+        Text(
+          etiket,
+          style: TextStyle(fontSize: AppFontSize.caption, color: t.muted),
+        ),
         const SizedBox(height: 2),
         Text(deger, style: const TextStyle(fontWeight: FontWeight.w800)),
       ],
@@ -2414,14 +2370,17 @@ Future<CellChoice?> showRosterCellDialog(
                         const SizedBox(height: 2),
                         Text(
                           alt,
-                          style: TextStyle(fontSize: 12, color: t.muted),
+                          style: TextStyle(
+                            fontSize: AppFontSize.label,
+                            color: t.muted,
+                          ),
                         ),
                         if (uyari != null) ...[
                           const SizedBox(height: 2),
                           Text(
                             uyari,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.label,
                               fontWeight: FontWeight.w700,
                               color: t.danger,
                             ),
