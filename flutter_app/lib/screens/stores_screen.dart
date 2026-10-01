@@ -191,7 +191,7 @@ Future<bool?> showStoreDialog(BuildContext context, {Store? store}) {
   final phone = TextEditingController(text: store?.phone ?? '');
   var active = store?.active ?? true;
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: store == null ? 'Yeni Mağaza' : 'Mağazayı Düzenle',

@@ -6,6 +6,7 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/batch.dart';
+import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
 import '../widgets/search_field.dart';
 import '../widgets/sell_confirm_bottom_sheet.dart';
@@ -231,29 +232,13 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     required String confirmLabel,
     required bool danger,
     required Widget body,
-  }) {
-    final t = context.tokens;
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: body,
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Vazgeç'),
-          ),
-          FilledButton(
-            style: danger
-                ? FilledButton.styleFrom(backgroundColor: t.danger)
-                : null,
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(confirmLabel),
-          ),
-        ],
-      ),
-    );
-  }
+  }) => confirmDialog(
+    context,
+    title: title,
+    confirmLabel: confirmLabel,
+    danger: danger,
+    body: body,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -401,11 +386,11 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
               ),
             ],
             if (shownUpcoming.isNotEmpty) ...[
-              const _SectionHeader(
+              _SectionHeader(
                 title: 'Son 2–3 Gün Kalanlar',
                 countLabel: 'İkram & Kampanya',
                 icon: Icons.hourglass_bottom_rounded,
-                color: Color(0xFF2563EB),
+                color: context.tokens.info,
               ),
               ...shownUpcoming.map(
                 (b) => Padding(
@@ -716,10 +701,10 @@ class _SectionHeader extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF0F172A),
+                color: context.tokens.ink,
               ),
             ),
           ),
@@ -843,9 +828,9 @@ class _Tier extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF64748B),
+                    color: context.tokens.muted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

@@ -380,7 +380,7 @@ class _PunchCard extends StatelessWidget {
                   color: onBreak
                       ? t.warningSoft
                       : inside
-                      ? const Color(0xFFB7F3DF)
+                      ? context.tokens.successSoft
                       : t.bg,
                   borderRadius: BorderRadius.circular(22),
                 ),
@@ -491,10 +491,10 @@ class _TodayCard extends StatelessWidget {
                               ? firstShift.name
                               : '${firstShift.name} Vardiyası')
                         : 'Açılış Vardiyası',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2563EB),
+                      color: context.tokens.info,
                     ),
                   ),
                 ),
@@ -1334,7 +1334,7 @@ class _ShiftSwapCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFB7F3DF),
+              color: context.tokens.successSoft,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.swap_horiz_rounded, color: t.primary, size: 22),

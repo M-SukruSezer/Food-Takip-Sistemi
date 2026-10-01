@@ -344,6 +344,10 @@ sealed class AppThemeStrategy {
   Color get scrim;
   double get shadowAlpha;
 
+  /// Açık kırmızı zemin (`dangerSoft`) üzerindeki metin rengi. `danger`
+  /// açık temada bu zeminde 4.41:1 kalıyordu (WCAG AA 4.5 altı).
+  Color get onDangerSoft;
+
   ColorScheme buildColorScheme() {
     final t = tokens;
     return ColorScheme.fromSeed(
@@ -361,7 +365,7 @@ sealed class AppThemeStrategy {
       error: t.danger,
       onError: const Color(0xFFFFFFFF),
       errorContainer: t.dangerSoft,
-      onErrorContainer: t.danger,
+      onErrorContainer: onDangerSoft,
       surface: t.card,
       onSurface: t.ink,
       surfaceContainerLowest: t.card,
@@ -396,6 +400,9 @@ final class LightThemeStrategy extends AppThemeStrategy {
   Color get scrim => const Color(0x73111B2E);
 
   @override
+  Color get onDangerSoft => const Color(0xFFB91C1C);
+
+  @override
   double get shadowAlpha => .08;
 }
 
@@ -410,6 +417,9 @@ final class DarkThemeStrategy extends AppThemeStrategy {
 
   @override
   Color get scrim => const Color(0xB3020617);
+
+  @override
+  Color get onDangerSoft => AppTokens.dark.danger;
 
   @override
   double get shadowAlpha => .28;
@@ -519,6 +529,9 @@ ThemeData buildAppTheme(Brightness brightness) {
       modalBackgroundColor: t.card,
       modalElevation: 8,
       showDragHandle: true,
+      dragHandleColor: t.border,
+      // Geniş ekranda panel kenardan kenara uzamaz (M3 önerisi 640px).
+      constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),

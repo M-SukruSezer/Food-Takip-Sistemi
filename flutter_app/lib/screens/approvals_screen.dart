@@ -296,7 +296,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
 /// Red penceresi. Not opsiyonel; girilirse hareket kaydina yazilir.
 Future<bool?> showRejectDialog(BuildContext context, TransferApproval item) {
   final note = TextEditingController();
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: 'İsteği Reddet',

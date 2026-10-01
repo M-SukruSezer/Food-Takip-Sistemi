@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 
 /// React tarafindaki .card karsiligi.
 class AppCard extends StatelessWidget {
@@ -20,7 +21,7 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = context.isCompact;
     final content = Ink(
       width: double.infinity,
       padding:
@@ -69,7 +70,7 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = context.isCompact;
     final card = AppCard(
       padding: EdgeInsets.all(narrow ? 11 : AppSpacing.lg),
       onTap: onTap,

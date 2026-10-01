@@ -11,8 +11,6 @@ import 'package:foodtakip/widgets/dialogs.dart';
 
 import 'support/fake_api.dart';
 
-import 'package:foodtakip/widgets/mobile_sheet.dart';
-
 /// Cep ekraninda formlarin sigdigini dogrular.
 ///
 /// Olculen sorun: 375x667 telefonda gunluk rapor formu 1011px icerik uretip
@@ -42,14 +40,14 @@ void main() {
   measure(WidgetTester tester) {
     final scroll = find
         .descendant(
-          of: find.byType(MobileSheet),
+          of: find.byType(StandardDialog),
           matching: find.byType(Scrollable),
         )
         .first;
     final pos = tester.state<ScrollableState>(scroll).position;
     final mat = find
         .descendant(
-          of: find.byType(MobileSheet),
+          of: find.byType(StandardDialog),
           matching: find.byType(Material),
         )
         .first;
@@ -173,7 +171,7 @@ void main() {
       );
 
       final rows = find.descendant(
-        of: find.byType(MobileSheet),
+        of: find.byType(StandardDialog),
         matching: find.byType(FormRow),
       );
       expect(rows, findsNWidgets(3));

@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 import '../models/batch.dart';
 import '../models/dashboard.dart';
 import '../widgets/dialogs.dart';
@@ -180,7 +181,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final t = context.tokens;
     final isSuper = session.user?.isSuperAdmin ?? false;
     final mobile = AppShellScope.isMobile(context);
-    final sidePadding = MediaQuery.sizeOf(context).width < 390 ? 4.0 : 8.0;
+    final sidePadding = context.isNarrowPhone ? 4.0 : 8.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -401,7 +402,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
                           ),
                         )
                       else ...[
-                        if (MediaQuery.sizeOf(context).width < 641)
+                        if (context.isCompact)
                           SliverPadding(
                             padding: EdgeInsets.symmetric(
                               horizontal: sidePadding,
@@ -513,7 +514,7 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = context.isCompact;
     final t = context.tokens;
     final frozenQty = counts?.frozenQty ?? (counts?.frozen ?? 0);
     final frozenCount = counts?.frozen ?? 0;
@@ -535,9 +536,9 @@ class _StatsGrid extends StatelessWidget {
           footerIcon: Icons.access_time_rounded,
           footerText: 'Anlık depo durumu',
           icon: Icons.ac_unit_rounded,
-          iconBg: const Color(0xFFE0F2FE),
-          iconColor: const Color(0xFF0284C7),
-          footerColor: const Color(0xFF64748B),
+          iconBg: context.tokens.infoSoft,
+          iconColor: context.tokens.info,
+          footerColor: context.tokens.muted,
         ),
         _MetricCard(
           title: 'ÇÖZÜNMEDE',
@@ -555,9 +556,9 @@ class _StatsGrid extends StatelessWidget {
           footerIcon: Icons.verified_user_outlined,
           footerText: 'Dolap stoğu',
           icon: Icons.storefront_rounded,
-          iconBg: const Color(0xFFDCFCE7),
-          iconColor: const Color(0xFF16A34A),
-          footerColor: const Color(0xFF16A34A),
+          iconBg: context.tokens.successSoft,
+          iconColor: context.tokens.success,
+          footerColor: context.tokens.success,
           boldFooter: true,
         ),
         _MetricCard(
@@ -566,11 +567,11 @@ class _StatsGrid extends StatelessWidget {
           footerIcon: Icons.error_outline_rounded,
           footerText: criticalQty > 0 ? '! Sipariş verilmeli' : 'Stok güvenli',
           icon: Icons.warning_amber_rounded,
-          iconBg: const Color(0xFFFFE4E6),
-          iconColor: const Color(0xFFE11D48),
+          iconBg: context.tokens.dangerSoft,
+          iconColor: context.tokens.danger,
           footerColor: criticalQty > 0
-              ? const Color(0xFFE11D48)
-              : const Color(0xFF16A34A),
+              ? context.tokens.danger
+              : context.tokens.success,
           boldFooter: true,
         ),
       ],
@@ -704,7 +705,7 @@ class _TabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = context.isCompact;
     return GridView.count(
       crossAxisCount: narrow ? 2 : 4,
       shrinkWrap: true,

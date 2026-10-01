@@ -397,10 +397,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_outlined,
                             size: 18,
-                            color: Color(0xFF2563EB),
+                            color: context.tokens.info,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -611,13 +611,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: t.info.withValues(alpha: .35)),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: Color(0xFF2563EB),
+                      color: context.tokens.info,
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -625,7 +625,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         'Şifreniz en az 8 karakter; bir büyük harf ve bir rakam içermelidir.',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF1E40AF),
+                          color: context.tokens.info,
                           height: 1.3,
                         ),
                       ),
@@ -733,7 +733,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 48,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFDC2626),
+                    backgroundColor: context.tokens.danger,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -859,10 +859,7 @@ class _ThemeChoiceTile extends StatelessWidget {
                   height: 18,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFCBD5E1),
-                      width: 2,
-                    ),
+                    border: Border.all(color: context.tokens.border, width: 2),
                   ),
                 ),
             ],

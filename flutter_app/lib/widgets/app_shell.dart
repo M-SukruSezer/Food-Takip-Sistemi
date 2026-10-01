@@ -11,6 +11,7 @@ import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 import '../models/user.dart';
 import '../models/pdks.dart';
 import '../core/api_client.dart';
@@ -239,11 +240,13 @@ class _AppShellState extends State<AppShell> {
                               alignment: Alignment.topCenter,
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: width < 360
-                                      ? 8
-                                      : (width < 641
-                                            ? 10
-                                            : (width < 900 ? 16 : 18)),
+                                  horizontal: switch (Breakpoints.of(width)) {
+                                    _ when width < Breakpoints.narrowPhone =>
+                                      AppSpacing.sm,
+                                    WindowSize.compact => 10,
+                                    WindowSize.medium => AppSpacing.lg,
+                                    _ => 18,
+                                  },
                                   // Mobil içerik üst bar ile alt menü arasındaki
                                   // alanı tam kullanır. Dikey dış boşluk yalnızca
                                   // masaüstü yerleşiminde gerekir.
@@ -655,7 +658,8 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final user = session.user;
-    final narrow = MediaQuery.sizeOf(context).width < 561;
+    // Başlıktaki arama/menü öğeleri 560px altında simgeye indirgenir.
+    final narrow = context.screenWidth < 561;
     if (sectionLabel != null) {
       return _MobileTopBar(
         user: user,
@@ -778,7 +782,7 @@ class _MobileTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final compact = MediaQuery.sizeOf(context).width < 380;
+    final compact = context.screenWidth < 380;
     final storeName = (user?.storeName?.trim().isNotEmpty ?? false)
         ? user!.storeName!.toUpperCase()
         : 'MERKEZ ŞUBE';

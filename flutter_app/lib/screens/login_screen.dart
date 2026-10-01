@@ -275,8 +275,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 52,
                             child: FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFF115E59),
-                                foregroundColor: Colors.white,
+                                backgroundColor: t.primary,
+                                foregroundColor: t.onPrimary,
                                 disabledBackgroundColor: t.ink.withValues(
                                   alpha: 0.55,
                                 ),

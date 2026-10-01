@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/format.dart';
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 
 /// 7 gunluk cubuk grafik. fl_chart yerine elle cizildi: yalnizca yedi cubuk
 /// gerektigi icin ek paket yuku ve tema uyumu derdi olmuyor.
@@ -24,7 +25,7 @@ class MiniBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final narrow = MediaQuery.sizeOf(context).width < 641;
+    final narrow = context.isCompact;
     final max = values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b);
     final safeMax = max <= 0 ? 1 : max;
     return Column(

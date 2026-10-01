@@ -6,7 +6,6 @@ import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/daily_report.dart';
 import '../widgets/dialogs.dart';
-import '../widgets/mobile_sheet.dart';
 
 /// Rapor degerlerini tipine gore bicimler. Payda sifirsa "-" gosterilir.
 String formatReportValue(num? value, String type) {
@@ -86,7 +85,6 @@ Future<bool?> showDailyReportDialog(
   return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
-      mobileSheet: true,
       title: editing ? 'Günlük Raporu Düzenle' : 'Günlük Rapor',
       headerIcon: Icons.receipt_long_rounded,
       subtitle: '• Kasa Kapanış & Vardiya Girişi',
@@ -401,63 +399,57 @@ Future<void> showDailyReportDetail(
     ),
   );
 
-  return showDialog<void>(
+  return showAppSheet<void>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => StandardDialog(
       title: Text(fmtDate(report.date)),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...fields.entry.map(
-                (f) => row(
-                  f.label,
-                  formatReportValue(report.values[f.key], f.type),
-                ),
-              ),
-              if (fields.system.isNotEmpty) ...[
-                heading('SİSTEMDEN'),
-                ...fields.system.map(
-                  (f) => row(
-                    f.label,
-                    formatReportValue(report.values[f.key], f.type),
-                  ),
-                ),
-              ],
-              const Divider(height: 20),
-              ...fields.derived.map(
-                (f) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    row(
-                      f.label,
-                      formatReportValue(report.metrics[f.key], f.type),
-                      bold: true,
-                    ),
-                    if (f.formula != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          f.formula!,
-                          style: TextStyle(fontSize: 11, color: t.muted),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        FilledButton(
+      icon: Icons.insights_outlined,
+      maxWidth: AppLayout.dialogMaxWidth,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: FilledButton(
           onPressed: () => Navigator.pop(ctx),
           child: const Text('Kapat'),
         ),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...fields.entry.map(
+            (f) =>
+                row(f.label, formatReportValue(report.values[f.key], f.type)),
+          ),
+          if (fields.system.isNotEmpty) ...[
+            heading('SİSTEMDEN'),
+            ...fields.system.map(
+              (f) =>
+                  row(f.label, formatReportValue(report.values[f.key], f.type)),
+            ),
+          ],
+          const Divider(height: 20),
+          ...fields.derived.map(
+            (f) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                row(
+                  f.label,
+                  formatReportValue(report.metrics[f.key], f.type),
+                  bold: true,
+                ),
+                if (f.formula != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      f.formula!,
+                      style: TextStyle(fontSize: 11, color: t.muted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

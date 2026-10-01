@@ -20,7 +20,7 @@ Future<void> showQrDialog(
   required Future<QrToken> Function() onRefresh,
   String? note,
 }) {
-  return showDialog<void>(
+  return showAppSheet<void>(
     context: context,
     builder: (ctx) => _QrDialog(
       title: title,
@@ -98,70 +98,69 @@ class _QrDialogState extends State<_QrDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final narrow = MediaQuery.sizeOf(context).width < 600;
-    return AlertDialog(
+    final text = Theme.of(context).textTheme;
+    return StandardDialog(
       title: Text(widget.title),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: narrow ? 14 : 40,
-        vertical: 24,
-      ),
-      content: SizedBox(
-        width: narrow
-            ? MediaQuery.sizeOf(context).width - 2 * 14 - 2 * 24
-            : 360,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              QrView(
-                data: _token.token,
-                size: narrow ? 200 : 240,
-                label: _token.isStatic
-                    ? 'Sabit kod — yazdırıp iş yerine asabilirsiniz'
-                    : _left > 0
-                    ? '$_left saniye geçerli'
-                    : 'Süresi doldu, yenileniyor...',
+      icon: Icons.qr_code_2_rounded,
+      maxWidth: AppLayout.dialogMaxWidth,
+      footer: Row(
+        children: [
+          if (!_token.isStatic) ...[
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _refresh,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Yenile'),
               ),
-              if (widget.note != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  widget.note!,
-                  style: TextStyle(fontSize: 12, color: t.muted),
-                ),
-              ],
-              if (_token.isStatic) ...[
-                const SizedBox(height: 10),
-                Text(
-                  'Sabit kod yalnızca iş yeri yarıçapı içindeyken geçerlidir.',
-                  style: TextStyle(fontSize: 12, color: t.warning),
-                ),
-              ],
-              const SizedBox(height: 10),
-              // Kamerasi calismayan cihazda elle girilebilsin.
-              LabeledField(
-                label: 'Kod metni',
-                child: SelectableText(
-                  _token.token,
-                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                ),
-              ),
-            ],
+            ),
+            const SizedBox(width: AppSpacing.md),
+          ],
+          Expanded(
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Kapat'),
+            ),
           ),
-        ),
+        ],
       ),
-      actions: [
-        if (!_token.isStatic)
-          OutlinedButton.icon(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Yenile'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // QR boyutu sabit değil, kullanılabilir genişliğe göre ölçeklenir.
+          LayoutBuilder(
+            builder: (context, c) => QrView(
+              data: _token.token,
+              size: (c.maxWidth - AppSpacing.xxl).clamp(160.0, 240.0),
+              label: _token.isStatic
+                  ? 'Sabit kod — yazdırıp iş yerine asabilirsiniz'
+                  : _left > 0
+                  ? '$_left saniye geçerli'
+                  : 'Süresi doldu, yenileniyor...',
+            ),
           ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Kapat'),
-        ),
-      ],
+          if (widget.note != null) ...[
+            const SizedBox(height: 10),
+            Text(widget.note!, style: text.bodySmall!.copyWith(color: t.muted)),
+          ],
+          if (_token.isStatic) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Sabit kod yalnızca iş yeri yarıçapı içindeyken geçerlidir.',
+              style: text.bodySmall!.copyWith(color: t.warningText),
+            ),
+          ],
+          const SizedBox(height: 10),
+          // Kamerasi calismayan cihazda elle girilebilsin.
+          LabeledField(
+            label: 'Kod metni',
+            child: SelectableText(
+              _token.token,
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -180,7 +179,7 @@ Future<bool?> showRequestDialog(BuildContext context, {PdksBalance? balance}) {
       '-${v.month.toString().padLeft(2, '0')}'
       '-${v.day.toString().padLeft(2, '0')}';
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: 'Yeni Talep',
@@ -308,7 +307,7 @@ Future<bool?> showRequestRejectDialog(
   PersonnelRequest request,
 ) {
   final note = TextEditingController();
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: 'Talebi Reddet',
@@ -368,7 +367,7 @@ Future<bool?> showProfileDialog(BuildContext context, PdksProfile p) {
     text: p.mealDaily == null ? '' : _n(p.mealDaily!),
   );
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: '${p.fullName} — Tanımlar',

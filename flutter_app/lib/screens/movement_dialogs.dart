@@ -17,7 +17,7 @@ Future<bool?> showMovementCorrectDialog(BuildContext context, Movement m) {
   final reason = TextEditingController(text: m.reason ?? '');
   final isDiscard = m.kind == 'discard';
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: '${m.kindLabel} Adedini Düzelt',

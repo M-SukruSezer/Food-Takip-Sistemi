@@ -263,7 +263,7 @@ Future<bool?> showProductTypeDialog(
   int? storeId = type?.storeId;
   final isSuper = session.user?.isSuperAdmin ?? false;
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: type == null ? 'Yeni Pasta Çeşidi' : 'Çeşidi Düzenle',

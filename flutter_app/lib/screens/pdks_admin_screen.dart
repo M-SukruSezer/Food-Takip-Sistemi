@@ -468,7 +468,6 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     final result = await showModalBottomSheet<_ManualAdjustmentResult>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) =>
           _ManualAdjustmentSheet(person: p, initialTime: initialTime),
     );
@@ -979,7 +978,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                     children: [
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: const Color(0xFFB7F3DF),
+                        backgroundColor: context.tokens.successSoft,
                         child: Text(
                           p.fullName
                               .split(' ')
@@ -1011,7 +1010,7 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                           ],
                         ),
                       ),
-                      const Pill(text: 'Tam Zamanlı', color: Color(0xFF059669)),
+                      Pill(text: 'Tam Zamanlı', color: context.tokens.success),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1021,15 +1020,18 @@ class _ManualAdjustmentSheetState extends State<_ManualAdjustmentSheet> {
                       color: context.tokens.dangerSoft,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.warning_rounded, color: Color(0xFFDC2626)),
+                        Icon(
+                          Icons.warning_rounded,
+                          color: context.tokens.danger,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'MOLA AŞIM SİNYALİ • Yönetici teyidi bekleniyor',
                             style: TextStyle(
-                              color: Color(0xFFB91C1C),
+                              color: context.tokens.danger,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
                             ),

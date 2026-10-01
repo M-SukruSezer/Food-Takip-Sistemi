@@ -74,10 +74,10 @@ class QrActionMenu extends StatelessWidget {
                       title: "Vardiya Giriş / Çıkış",
                       subtitle: "Mesai başlangıcı veya sonu",
                       icon: Icons.login_rounded,
-                      accent: const Color(0xFF00A781),
+                      accent: context.tokens.success,
                       iconBackground: dark
                           ? t.primarySoft
-                          : const Color(0xFFECFDF5),
+                          : context.tokens.successSoft,
                       badge: s == null
                           ? "…"
                           : s.isInside
@@ -85,8 +85,8 @@ class QrActionMenu extends StatelessWidget {
                           : "GİRİŞ",
                       badgeBackground: dark
                           ? t.primarySoft
-                          : const Color(0xFFD1FAE5),
-                      badgeColor: dark ? t.primary : const Color(0xFF047857),
+                          : context.tokens.successSoft,
+                      badgeColor: dark ? t.primary : context.tokens.success,
                       onTap: s == null ? null : onShift,
                     ),
                     const SizedBox(height: 12),
@@ -94,8 +94,8 @@ class QrActionMenu extends StatelessWidget {
                       title: "Mola Giriş / Çıkış",
                       subtitle: "Kahve ve dinlenme molası",
                       icon: Icons.coffee_outlined,
-                      accent: const Color(0xFFD97706),
-                      iconBackground: dark ? t.bg : const Color(0xFFFFFBEB),
+                      accent: context.tokens.warning,
+                      iconBackground: dark ? t.bg : context.tokens.warningSoft,
                       badge: s == null
                           ? "…"
                           : s.onBreak

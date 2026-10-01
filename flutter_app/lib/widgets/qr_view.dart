@@ -47,7 +47,7 @@ class QrView extends StatelessWidget {
               label!,
               textAlign: TextAlign.center,
               // Beyaz zemin uzerinde temadan bagimsiz koyu gri.
-              style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+              style: TextStyle(fontSize: 12, color: context.tokens.muted),
             ),
           ],
         ],

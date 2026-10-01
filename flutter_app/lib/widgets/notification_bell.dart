@@ -5,7 +5,7 @@ import '../core/format.dart';
 import '../core/push.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
-import 'mobile_sheet.dart';
+import 'standard_dialog.dart';
 
 /// Ust cubuktaki bildirim zili ve listesi.
 ///
@@ -122,7 +122,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
     final v = _veri;
     return Material(
       color: t.card,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+      borderRadius: StandardDialog.radiusOf(context),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
@@ -145,11 +145,11 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                         children: [
                           Text(
                             'Bildirimler',
-                            style: TextStyle(
-                              color: t.ink,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 19,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium!
+                                .copyWith(
+                                  color: t.ink,
+                                  fontWeight: FontWeight.w800,
+                                ),
                           ),
                           if (v != null && v.unread > 0) ...[
                             const SizedBox(width: 8),
@@ -246,9 +246,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                 ? t.card
                                 : t.primarySoft.withValues(alpha: .4),
                             border: Border.all(
-                              color: n.read
-                                  ? t.border
-                                  : const Color(0xFF2AC69B),
+                              color: n.read ? t.border : context.tokens.success,
                               width: n.read ? 1 : 1.5,
                             ),
                             borderRadius: BorderRadius.circular(18),
@@ -260,9 +258,7 @@ class _NotificationSheetState extends State<_NotificationSheet> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: n.read
-                                      ? t.bg
-                                      : const Color(0xFF059669),
+                                  color: n.read ? t.bg : context.tokens.success,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(

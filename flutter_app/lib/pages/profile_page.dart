@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../widgets/dialogs.dart';
 import 'profile_page_models.dart';
 import 'profile_page_widgets.dart';
 
@@ -98,25 +99,12 @@ class _ProfilePageState extends State<ProfilePage> {
       widget.onSignOut!();
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Çıkış yap?'),
-        content: const Text('Hesabından çıkış yapmak istediğine emin misin?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Vazgeç'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: context.tokens.danger,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Çıkış yap?',
+      icon: Icons.logout_rounded,
+      confirmLabel: 'Çıkış Yap',
+      body: const Text('Hesabından çıkış yapmak istediğine emin misin?'),
     );
     if (!mounted || confirmed != true) return;
     _demo('Çıkış yapıldı (önizleme)');

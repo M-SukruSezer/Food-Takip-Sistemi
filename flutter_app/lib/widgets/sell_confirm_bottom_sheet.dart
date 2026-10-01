@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../core/format.dart';
 import '../core/tokens.dart';
+import 'standard_dialog.dart';
 import '../models/batch.dart';
 
 Future<bool?> showSellConfirmBottomSheet(BuildContext context, Batch b) {
-  return showModalBottomSheet<bool>(
+  return showAppSheet<bool>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (ctx) => _SellConfirmBottomSheet(batch: b),
   );
 }
@@ -32,104 +31,38 @@ class _SellConfirmBottomSheet extends StatelessWidget {
     final Color successBg = t.successSoft;
     final Color successText = t.success;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    return StandardDialog(
+      icon: Icons.point_of_sale,
+      maxWidth: AppLayout.dialogMaxWidth,
+      title: Wrap(
+        spacing: AppSpacing.sm,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text('Satışı Onayla'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: successBg,
+              borderRadius: BorderRadius.circular(AppRadius.sm / 2),
+            ),
+            child: Text(
+              'KASA İŞLEMİ',
+              style: Theme.of(context).textTheme.labelSmall!
+                  .copyWith(fontWeight: FontWeight.w700, color: successText),
+            ),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 32),
+      subtitle: 'Stok düşümü ve ciro güncelleme',
+      footer: DialogActions(
+        confirmLabel: '1 Adet Satışı Yap',
+        confirmIcon: Icons.check_circle,
+        onConfirm: () => Navigator.pop(context, true),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: outline,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Header Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: successBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.point_of_sale, color: primary, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Satışı Onayla',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: textMain,
-                            letterSpacing: -0.01,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: successBg,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'KASA İŞLEMİ',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: successText,
-                              letterSpacing: 0.05,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Stok düşümü ve ciro güncelleme',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context, false),
-                icon: Icon(Icons.close, color: textMuted),
-                style: IconButton.styleFrom(
-                  backgroundColor: t.bg,
-                  shape: const CircleBorder(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
           // Product Details Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -154,7 +87,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Text(
                       'FIRIN & TATLI GRUBU',
                       style: TextStyle(
-                        fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: primary,
@@ -186,7 +118,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                             Text(
                               'SON GÜN',
                               style: TextStyle(
-                                fontFamily: 'Inter',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: warningText,
@@ -201,7 +132,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 Text(
                   batch.productName,
                   style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: textMain,
@@ -210,74 +140,87 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Divider(height: 1, color: outline),
                 const SizedBox(height: 16),
-                Row(
+                // Dar ekranda etiket ve adet çipleri alt satıra kayar;
+                // önceki Row + Spacer 360px altında 160px taşıyordu.
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
                   children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 18,
-                      color: textMuted,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Stok Değişimi:',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        color: textMuted,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: surface,
-                        border: Border.all(color: outline),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${batch.remaining} Adet',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 18,
                           color: textMuted,
-                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Stok Değişimi:',
+                          style: TextStyle(fontSize: 14, color: textMuted),
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        size: 16,
-                        color: primary,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: successBg,
-                        border: Border.all(
-                          color: t.success.withValues(alpha: .45),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: surface,
+                            border: Border.all(color: outline),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${batch.remaining} Adet',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textMuted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${batch.remaining - 1} Adet Kalan',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: primary,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            size: 16,
+                            color: primary,
+                          ),
                         ),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: successBg,
+                            border: Border.all(
+                              color: t.success.withValues(alpha: .45),
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${batch.remaining - 1} Adet Kalan',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: primary,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -319,7 +262,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           Text(
                             'Ciroya Eklenecek Tutar',
                             style: TextStyle(
-                              fontFamily: 'Inter',
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: primary,
@@ -328,11 +270,7 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             'Birim Fiyat: ${batch.hasPrice ? fmtMoney(batch.productUnitPrice) : '0,00 ₺'}',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12,
-                              color: textMuted,
-                            ),
+                            style: TextStyle(fontSize: 12, color: textMuted),
                           ),
                         ],
                       ),
@@ -340,7 +278,6 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Text(
                       '+${batch.hasPrice ? fmtMoney(batch.productUnitPrice) : '0,00 ₺'}',
                       style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: textMain,
@@ -358,69 +295,13 @@ class _SellConfirmBottomSheet extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Kasa raporuna ve anlık gün sonu cirosuna hemen işlenir.',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 12,
-                          color: textMuted,
-                        ),
+                        style: TextStyle(fontSize: 12, color: textMuted),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 32),
-
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(color: outline, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    foregroundColor: textMain,
-                  ),
-                  child: const Text(
-                    'Vazgeç',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(context, true),
-                  icon: const Icon(Icons.check_circle, size: 20),
-                  label: const Text(
-                    '1 Adet Satışı Yap',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: primary,
-                    foregroundColor: onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),

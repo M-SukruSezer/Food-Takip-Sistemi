@@ -4,6 +4,7 @@ import '../core/api_client.dart';
 import '../core/format.dart';
 import '../core/repository.dart';
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 import '../models/manager_overview.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/panels.dart';
@@ -91,9 +92,6 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
     final t = context.tokens;
     showModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
         return SafeArea(
           child: Padding(
@@ -173,9 +171,6 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (ctx) {
         return DraggableScrollableSheet(
           initialChildSize: 0.65,
@@ -510,9 +505,14 @@ class _StockCoverageScreenState extends State<StockCoverageScreen> {
                     else ...[
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          final isWide = constraints.maxWidth >= 641;
+                          final isWide = Breakpoints.of(constraints.maxWidth)
+                              .isAtLeastMedium;
                           if (isWide) {
-                            final cols = constraints.maxWidth >= 1000 ? 3 : 2;
+                            final cols =
+                                Breakpoints.of(constraints.maxWidth)
+                                    .isAtLeastExpanded
+                                ? 3
+                                : 2;
                             final gap = 12.0;
                             final cardWidth =
                                 (constraints.maxWidth - gap * (cols - 1)) /

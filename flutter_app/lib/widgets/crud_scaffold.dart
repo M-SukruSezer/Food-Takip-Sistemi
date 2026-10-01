@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
+import '../core/responsive.dart';
 import 'panels.dart';
 import 'shell_scope.dart';
 
 /// Kart izgarasinin kolon sayisi. Esikler CSS'teki kirilma noktalariyla ayni:
 /// 640 telefon, 900 tablet, 1200 genis masaustu. Tablet dikeyde (768) iki kolon
 /// kullanilir; uc kolonda kart basina ~225px kaliyor ve etiketler siksiyor.
-int gridColumnsFor(double width) {
-  if (width < 641) return 1;
-  if (width < 900) return 2;
-  if (width < 1200) return 3;
-  return 4;
-}
+int gridColumnsFor(double width) => Breakpoints.gridColumns(width);
 
 /// Uc CRUD ekrani (Cesitler, Magazalar, Kullanicilar) ayni iskeleti paylasir:
 /// baslik + ekle dugmesi, opsiyonel uyari, hata cikisi, kart listesi.

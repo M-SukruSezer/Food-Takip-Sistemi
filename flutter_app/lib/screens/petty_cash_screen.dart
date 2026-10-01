@@ -125,31 +125,15 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
       return;
     }
     if (!mounted || data == null) return;
-    await showDialog<void>(
+    await showAppSheet<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Text(
-                '${fmtMoney(e.amount)} — ${e.description}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            Flexible(
-              child: InteractiveViewer(child: Image.memory(_decode(data!))),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Kapat'),
-              ),
-            ),
-          ],
+      builder: (ctx) => StandardDialog(
+        title: const Text('Fiş'),
+        subtitle: '${fmtMoney(e.amount)} — ${e.description}',
+        icon: Icons.receipt_long_outlined,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: InteractiveViewer(child: Image.memory(_decode(data!))),
         ),
       ),
     );

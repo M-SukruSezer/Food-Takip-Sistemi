@@ -136,57 +136,50 @@ class _UsersScreenState extends State<UsersScreen> {
       toastError('Önce bir mağaza seçmelisiniz');
       return;
     }
-    final ok = await showDialog<bool>(
+    final ok = await showAppSheet<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
+        builder: (ctx, setLocal) => StandardDialog(
           title: const Text('Rol ve Yetki Şablonu'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Şablon adı'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: role,
-                  decoration: const InputDecoration(labelText: 'Rol'),
-                  items: assignableRoles(session.user)
-                      .map(
-                        (r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(roleLabels[r] ?? r),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setLocal(() => role = v ?? role),
-                ),
-                const SizedBox(height: 8),
-                for (final p in grantablePermissions(session.user))
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(permissionLabels[p] ?? p),
-                    value: selected.contains(p),
-                    onChanged: (v) => setLocal(
-                      () => v == true ? selected.add(p) : selected.remove(p),
-                    ),
-                  ),
-              ],
-            ),
+          icon: Icons.admin_panel_settings_outlined,
+          footer: DialogActions(
+            confirmLabel: 'Kaydet',
+            onConfirm: () => Navigator.pop(ctx, true),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Kaydet'),
-            ),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Şablon adı'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: role,
+                decoration: const InputDecoration(labelText: 'Rol'),
+                items: assignableRoles(session.user)
+                    .map(
+                      (r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(roleLabels[r] ?? r),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setLocal(() => role = v ?? role),
+              ),
+              const SizedBox(height: 8),
+              for (final p in grantablePermissions(session.user))
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(permissionLabels[p] ?? p),
+                  value: selected.contains(p),
+                  onChanged: (v) => setLocal(
+                    () => v == true ? selected.add(p) : selected.remove(p),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -515,7 +508,7 @@ Future<bool?> showUserDialog(
   final isSuper = current?.isSuperAdmin ?? false;
   final lockRole = user != null && roleLocked(current, user);
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: user == null ? 'Yeni Kullanıcı' : 'Kullanıcıyı Düzenle',
@@ -727,7 +720,7 @@ Future<bool?> showPasswordResetDialog(BuildContext context, ManagedUser user) {
   final password = TextEditingController();
   final repeat = TextEditingController();
 
-  return showDialog<bool>(
+  return showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: '${user.fullName} — Şifre Belirle',

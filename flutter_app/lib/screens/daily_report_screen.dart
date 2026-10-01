@@ -132,7 +132,6 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
     final run = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) {
           final t = ctx.tokens;
@@ -187,13 +186,13 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFB7F3DF),
+                            color: context.tokens.successSoft,
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Text(
+                          child: Text(
                             'CANLI',
                             style: TextStyle(
-                              color: Color(0xFF047857),
+                              color: context.tokens.success,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
@@ -208,7 +207,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Row(
+                    Row(
                       children: [
                         Expanded(
                           child: Text(
@@ -219,7 +218,7 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                         Text(
                           'Tek seçim zorunludur',
                           style: TextStyle(
-                            color: Color(0xFF0F766E),
+                            color: context.tokens.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),

@@ -370,9 +370,6 @@ class _RosterScreenState extends State<RosterScreen> {
     if (v == null || !v.canEdit || v.people.isEmpty) return;
     showModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -2364,7 +2361,7 @@ Future<CellChoice?> showRosterCellDialog(
       : (tatilVar ? -1 : mevcutId);
 
   CellChoice? sonuc;
-  final onaylandi = await showDialog<bool>(
+  final onaylandi = await showAppSheet<bool>(
     context: context,
     builder: (ctx) => FormDialog(
       title: '${kisi.fullName} — ${fmtDate(gun)} ${_gunAdi(gun, uzun: true)}',
