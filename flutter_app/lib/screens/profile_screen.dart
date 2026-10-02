@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/api_client.dart';
+import '../core/auth_repository.dart';
 import '../core/avatar_image.dart';
 import '../core/busy.dart';
 import '../core/format.dart';
@@ -14,6 +14,7 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/theme_mode.dart';
 import '../core/tokens.dart';
+import '../widgets/app_version.dart';
 import '../widgets/avatar.dart';
 import '../widgets/panels.dart';
 import '../widgets/login_branding_editor.dart';
@@ -44,6 +45,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifySkt = true;
   bool _notifyShift = true;
   bool _notifyReport = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshUser();
+  }
+
+  /// Kullanici bilgisi (ise giris tarihi gibi) oturum acildiktan sonra
+  /// degismis olabilir: profil her acildiginda sunucudan tazelenir.
+  Future<void> _refreshUser() async {
+    try {
+      final fresh = await RemoteAuthRepository(api).restoreUser();
+      if (!mounted) return;
+      session.updateUser(fresh);
+      // Ekran oturumu dinlemiyor; tazelenen bilgi icin yeniden cizilir.
+      setState(() {});
+    } catch (_) {
+      // Tazeleme ikincil: hata olursa eldeki bilgi gosterilir.
+    }
+  }
 
   @override
   void dispose() {
@@ -728,17 +749,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Spacer(),
                   // Sürüm ve build numarası uygulama paketinden okunur
                   // (pubspec.yaml "version"); elle yazılmış değer yok.
-                  FutureBuilder<PackageInfo>(
-                    future: PackageInfo.fromPlatform(),
-                    builder: (context, snap) => Text(
-                      snap.hasData
-                          ? 'v${snap.data!.version} (Build ${snap.data!.buildNumber})'
-                          : '',
-                      style: TextStyle(
-                        fontSize: AppFontSize.caption,
-                        fontWeight: FontWeight.w500,
-                        color: t.muted,
-                      ),
+                  AppVersionText(
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w500,
+                      color: t.muted,
                     ),
                   ),
                 ],
@@ -924,48 +939,26 @@ class _CustomPasswordField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          height: 46,
-          decoration: BoxDecoration(
-            color: context.tokens.bg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: context.tokens.border),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  obscureText: obscureText,
-                  style: TextStyle(
-                    fontSize: AppFontSize.bodyLarge,
-                    color: t.ink,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: hintText,
-                    hintStyle: TextStyle(
-                      fontSize: AppFontSize.body,
-                      color: t.muted,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+        // Tek kutu: temanin standart giris alani. Eskiden cerceveli bir
+        // kutunun icine temanin cerceveli alani konuyordu, iki kutu ic ice
+        // gorunuyordu.
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          style: TextStyle(fontSize: AppFontSize.bodyLarge, color: t.ink),
+          decoration: InputDecoration(
+            hintText: hintText,
+            suffixIcon: IconButton(
+              tooltip: obscureText ? 'Göster' : 'Gizle',
+              onPressed: onToggleVisibility,
+              icon: Icon(
+                obscureText
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                size: 20,
+                color: t.muted,
               ),
-              IconButton(
-                onPressed: onToggleVisibility,
-                icon: Icon(
-                  obscureText
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 18,
-                  color: t.muted,
-                ),
-                splashRadius: 20,
-              ),
-            ],
+            ),
           ),
         ),
       ],

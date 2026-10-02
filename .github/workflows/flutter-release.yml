@@ -42,7 +42,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --dart-define=API_URL=$API_URL
+      - run: flutter build web --release --dart-define=API_URL=$API_URL --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: web
@@ -64,7 +64,7 @@ jobs:
       - run: flutter pub get
       # Imzasiz APK: kurulum icin "bilinmeyen kaynak" izni gerekir.
       # Magaza yuklemesi icin release imzasi eklenmelidir.
-      - run: flutter build apk --release --dart-define=API_URL=$API_URL
+      - run: flutter build apk --release --dart-define=API_URL=$API_URL --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
@@ -82,7 +82,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build linux --release --dart-define=API_URL=$API_URL
+      - run: flutter build linux --release --dart-define=API_URL=$API_URL --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: linux-bundle
@@ -98,7 +98,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - run: flutter build windows --release --dart-define=API_URL=${env:API_URL}
+      - run: flutter build windows --release --dart-define=API_URL=${env:API_URL} --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows-bundle
@@ -116,7 +116,7 @@ jobs:
       - run: flutter pub get
       # Imzasiz derleme: App Store / TestFlight icin Apple Developer hesabi ve
       # sertifika gerekir, o adim bu akista yok.
-      - run: flutter build ios --release --no-codesign --dart-define=API_URL=$API_URL
+      - run: flutter build ios --release --no-codesign --dart-define=API_URL=$API_URL --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: ios-app

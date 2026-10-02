@@ -19,6 +19,7 @@ import '../core/api_client.dart';
 import '../core/notify.dart';
 import 'pdks_qr_action.dart';
 import 'qr_action_menu.dart';
+import 'app_version.dart';
 import 'avatar.dart';
 import 'notification_bell.dart';
 import 'scrim.dart';
@@ -1513,8 +1514,8 @@ class _NavMenuSheet extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                'v2.4.1 (Build 1084)',
+                              // Kurulu paketin gercek surum ve derleme bilgisi.
+                              AppVersionText(
                                 style: TextStyle(
                                   color: context.tokens.muted,
                                   fontSize: AppFontSize.caption,

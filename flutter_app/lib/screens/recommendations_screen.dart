@@ -27,7 +27,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   final _searchController = TextEditingController();
   List<Batch> _items = const [];
   String _search = '';
-  String _selectedCategory = 'Tümü';
   bool _hideExpiredBanner = false;
   String? _error;
   bool _loaded = false;
@@ -62,50 +61,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     }
   }
 
-  String _categorize(Batch b) {
-    final n = b.productName.toLowerCase();
-    if (n.contains('pasta') ||
-        n.contains('kek') ||
-        n.contains('cheesecake') ||
-        n.contains('brownie') ||
-        n.contains('tatlı') ||
-        n.contains('tatli')) {
-      return 'Pastalar';
-    }
-    if (n.contains('kahve') ||
-        n.contains('çay') ||
-        n.contains('cay') ||
-        n.contains('latte') ||
-        n.contains('içecek') ||
-        n.contains('icecek') ||
-        n.contains('su')) {
-      return 'İçecekler';
-    }
-    return 'Atıştırmalık';
-  }
-
-  Map<String, int> get _categoryCounts {
-    final counts = <String, int>{
-      'Tümü': _items.length,
-      'Pastalar': 0,
-      'Atıştırmalık': 0,
-      'İçecekler': 0,
-    };
-    for (final b in _items) {
-      final cat = _categorize(b);
-      counts[cat] = (counts[cat] ?? 0) + 1;
-    }
-    return counts;
-  }
-
   List<Batch> get _shown {
     final q = normalizeSearch(_search.trim());
-    var list = _items;
-    if (_selectedCategory != 'Tümü') {
-      list = list.where((b) => _categorize(b) == _selectedCategory).toList();
-    }
-    if (q.isEmpty) return list;
-    return list
+    if (q.isEmpty) return _items;
+    return _items
         .where(
           (b) =>
               normalizeSearch(b.productName).contains(q) ||
@@ -210,7 +169,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         .toList();
     final warning = shown.where((b) => b.urgency == 'warning').toList();
     final normal = shown.where((b) => b.urgency == 'normal').toList();
-    final filtering = _search.trim().isNotEmpty || _selectedCategory != 'Tümü';
 
     final shownExpired = shown.where((b) => b.isExpired).toList();
     final shownCritical = shown
@@ -223,7 +181,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     return RefreshIndicator(
       onRefresh: () => _load(silent: true),
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        // Yatay bosluk uygulama kabugundan gelir; burada tekrar verilirse
+        // liste iki kat iceriden baslar ve kenarlardan sikismis gorunur.
+        padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           if (expired.isNotEmpty && !_hideExpiredBanner) ...[
             _UrgentExpiredBanner(
@@ -235,59 +195,23 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             ),
             const SizedBox(height: 8),
           ],
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: context.tokens.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: context.tokens.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _TierRow(
-                  critical: _sum(critical),
-                  criticalCount: critical.length,
-                  warning: _sum(warning),
-                  warningCount: warning.length,
-                  normal: _sum(normal),
-                  normalCount: normal.length,
-                ),
-                const SizedBox(height: 8),
-                ProductSearchField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _search = v),
-                  onClear: () {
-                    _searchController.clear();
-                    setState(() => _search = '');
-                  },
-                  filtering: _search.trim().isNotEmpty,
-                ),
-                const SizedBox(height: 8),
-                _CategoryChipsRow(
-                  selected: _selectedCategory,
-                  counts: _categoryCounts,
-                  onSelected: (cat) => setState(() => _selectedCategory = cat),
-                ),
-                if (filtering) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Filtre etkin: ${_items.length} üründen ${shown.length} tanesi listeleniyor.',
-                    style: TextStyle(
-                      fontSize: AppFontSize.caption,
-                      color: t.muted,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          _TierRow(
+            critical: _sum(critical),
+            criticalCount: critical.length,
+            warning: _sum(warning),
+            warningCount: warning.length,
+            normal: _sum(normal),
+            normalCount: normal.length,
+          ),
+          const SizedBox(height: 8),
+          ProductSearchField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _search = v),
+            onClear: () {
+              _searchController.clear();
+              setState(() => _search = '');
+            },
+            filtering: _search.trim().isNotEmpty,
           ),
           const SizedBox(height: 8),
           if (_items.isEmpty)
@@ -530,90 +454,6 @@ class _UrgentExpiredBanner extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CategoryChipsRow extends StatelessWidget {
-  const _CategoryChipsRow({
-    required this.selected,
-    required this.counts,
-    required this.onSelected,
-  });
-
-  final String selected;
-  final Map<String, int> counts;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final categories = ['Tümü', 'Pastalar', 'Atıştırmalık', 'İçecekler'];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: categories.map((cat) {
-          final isSelected = selected == cat;
-          final count = counts[cat] ?? 0;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => onSelected(cat),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? t.primary : t.card,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: isSelected ? t.primary : t.border),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      cat,
-                      style: TextStyle(
-                        fontSize: AppFontSize.label,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: isSelected ? t.onPrimary : t.ink,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white.withValues(alpha: 0.25)
-                            : t.border,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$count',
-                        style: TextStyle(
-                          fontSize: AppFontSize.micro,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? t.onPrimary : t.muted,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }

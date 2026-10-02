@@ -8,6 +8,7 @@ import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/daily_report.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
@@ -372,8 +373,22 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      addLabel: 'Gün Ekle',
-      onAdd: _canEnter ? _enter : null,
+      // Gun Ekle ve Disa Aktar sag altta yuzen dugmeler.
+      floatingActions: [
+        if (_canEnter)
+          FloatingActionButton.extended(
+            heroTag: null,
+            onPressed: _enter,
+            icon: const Icon(Icons.add),
+            label: const Text('Gün Ekle'),
+          ),
+        FloatingActionButton.extended(
+          heroTag: null,
+          onPressed: _showExportSheet,
+          icon: const Icon(Icons.drive_folder_upload_outlined),
+          label: const Text('Dışa Aktar'),
+        ),
+      ],
       emptyText: 'Bu dönemde rapor kaydı yok.',
       banner: Column(
         children: [
@@ -404,12 +419,6 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
                   '${fmtDate(_page.from)} – ${fmtDate(_page.to)} · ${summary.days} gün',
                   style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
                 ),
-                const SizedBox(height: 10),
-                FilledButton.icon(
-                  onPressed: _showExportSheet,
-                  icon: const Icon(Icons.drive_folder_upload_outlined),
-                  label: const Text('Raporu Dışa Aktar'),
-                ),
               ],
             ),
           ),
@@ -421,86 +430,90 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
       ),
       children: _page.items
           .map(
-            (item) => AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          fmtDate(item.date),
+            // Girisi yapan roller kendi kayitlarini duzeltebilir: satir
+            // soldan saga kaydirilinca Duzenle / Sil acilir.
+            (item) => SwipeActions(
+              actions: [
+                if (_canEnter) ...[
+                  SwipeAction(
+                    label: 'Düzenle',
+                    icon: Icons.edit_outlined,
+                    color: t.primary,
+                    onTap: () => _edit(item),
+                  ),
+                  SwipeAction(
+                    label: 'Sil',
+                    icon: Icons.delete_outline,
+                    color: t.danger,
+                    onTap: () => _delete(item),
+                  ),
+                ],
+              ],
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            fmtDate(item.date),
+                            style: TextStyle(
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          fmtMoney(item.values['net_sales']),
                           style: TextStyle(
                             fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w700,
-                            color: t.ink,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        fmtMoney(item.values['net_sales']),
-                        style: TextStyle(
-                          fontSize: AppFontSize.bodyLarge,
-                          fontWeight: FontWeight.w700,
-                          color: t.success,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_showStore && item.storeName != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      item.storeName!,
-                      style: TextStyle(
-                        fontSize: AppFontSize.label,
-                        color: t.muted,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _MetricWrap(fields: _fields, report: item),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${fmtInt(item.values['adt'])} fiş · '
-                          '${fmtInt(item.values['product_qty'])} ürün · '
-                          '${item.createdByName ?? 'bilinmiyor'}',
-                          style: TextStyle(
-                            fontSize: AppFontSize.label,
-                            color: t.muted,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            showDailyReportDetail(context, item, _fields),
-                        child: const Text('Detay'),
-                      ),
-                      // Girisi yapan roller kendi kayitlarini duzeltebilir.
-                      if (_canEnter) ...[
-                        IconButton(
-                          tooltip: 'Düzenle',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => _edit(item),
-                          icon: const Icon(Icons.edit_outlined, size: 19),
-                        ),
-                        IconButton(
-                          tooltip: 'Sil',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => _delete(item),
-                          icon: Icon(
-                            Icons.delete_outline,
-                            size: 19,
-                            color: t.danger,
+                            color: t.success,
                           ),
                         ),
                       ],
+                    ),
+                    if (_showStore && item.storeName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.storeName!,
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
+                      ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    _MetricWrap(fields: _fields, report: item),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${fmtInt(item.values['adt'])} fiş · '
+                            '${fmtInt(item.values['product_qty'])} ürün · '
+                            '${item.createdByName ?? 'bilinmiyor'}',
+                            style: TextStyle(
+                              fontSize: AppFontSize.label,
+                              color: t.muted,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              showDailyReportDetail(context, item, _fields),
+                          child: const Text('Detay'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           )

@@ -14,6 +14,7 @@ import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import 'petty_cash_dialogs.dart';
 import '../widgets/panels.dart';
+import '../widgets/swipe_actions.dart';
 
 /// Petty Cash: magaza kasasindan yapilan kucuk masraflar.
 ///
@@ -69,6 +70,23 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
       await _load(silent: true);
     }
   }
+
+  Future<void> _edit(PettyCashExpense e) async {
+    final ok = await showExpenseDialog(
+      context,
+      status: _page.status,
+      expense: e,
+    );
+    if (ok == true) {
+      toastSaved('Masraf güncellendi');
+      await _load(silent: true);
+    }
+  }
+
+  /// Bekleyen kaydi giren kisi; karar tasiyan kaydi yalnizca Ana Yonetici
+  /// duzenler/siler (sunucudaki kuralin aynisi).
+  bool _canModify(PettyCashExpense e) =>
+      _isSuper || (e.isPending && e.createdBy == session.user?.id);
 
   Future<void> _approve(PettyCashExpense e) async {
     final ok = await confirmDialog(
@@ -153,8 +171,15 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      addLabel: 'Masraf Ekle',
-      onAdd: _canSpend ? _add : null,
+      floatingActions: [
+        if (_canSpend)
+          FloatingActionButton.extended(
+            heroTag: null,
+            onPressed: _add,
+            icon: const Icon(Icons.add),
+            label: const Text('Masraf Ekle'),
+          ),
+      ],
       emptyText: 'Bu hafta masraf kaydı yok.',
       banner: Column(
         children: [
@@ -199,107 +224,124 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
       ),
       children: _page.items
           .map(
-            (e) => AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          e.description,
+            (e) => SwipeActions(
+              actions: [
+                if (_canModify(e))
+                  SwipeAction(
+                    label: 'Düzenle',
+                    icon: Icons.edit_outlined,
+                    color: t.primary,
+                    onTap: () => _edit(e),
+                  ),
+                if (_canModify(e))
+                  SwipeAction(
+                    label: 'Sil',
+                    icon: Icons.delete_outline,
+                    color: t.danger,
+                    onTap: () => _delete(e),
+                  ),
+              ],
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            splitExpenseDescription(e.description).text,
+                            style: TextStyle(
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          fmtMoney(e.amount),
                           style: TextStyle(
                             fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w700,
-                            color: t.ink,
+                            color: t.danger,
                           ),
                         ),
-                      ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        // Vardiya muduru girisi magaza muduru onayina takilir.
+                        Pill(
+                          text: e.statusLabel,
+                          color: e.isPending
+                              ? t.warning
+                              : e.isRejected
+                              ? t.danger
+                              : t.success,
+                        ),
+                        if (splitExpenseDescription(e.description).category
+                            case final c?)
+                          Pill(text: c, color: t.primary),
+                        if (e.hasReceipt)
+                          Pill(text: 'fişli', color: t.success)
+                        else
+                          Pill(text: 'fiş yok', color: t.muted),
+                        if (_isSuper && e.storeName != null)
+                          Pill(text: e.storeName!, color: t.primary),
+                      ],
+                    ),
+                    if (e.isRejected && e.decisionNote != null) ...[
+                      const SizedBox(height: 6),
                       Text(
-                        fmtMoney(e.amount),
+                        'Ret gerekçesi: ${e.decisionNote}',
                         style: TextStyle(
-                          fontSize: AppFontSize.bodyLarge,
-                          fontWeight: FontWeight.w700,
+                          fontSize: AppFontSize.label,
                           color: t.danger,
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      // Vardiya muduru girisi magaza muduru onayina takilir.
-                      Pill(
-                        text: e.statusLabel,
-                        color: e.isPending
-                            ? t.warning
-                            : e.isRejected
-                            ? t.danger
-                            : t.success,
-                      ),
-                      if (e.hasReceipt)
-                        Pill(text: 'fişli', color: t.success)
-                      else
-                        Pill(text: 'fiş yok', color: t.muted),
-                      if (_isSuper && e.storeName != null)
-                        Pill(text: e.storeName!, color: t.primary),
-                    ],
-                  ),
-                  if (e.isRejected && e.decisionNote != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Ret gerekçesi: ${e.decisionNote}',
+                      '${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
                       style: TextStyle(
                         fontSize: AppFontSize.label,
-                        color: t.danger,
+                        color: t.muted,
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    CardActions(
+                      children: [
+                        OutlinedButton(
+                          onPressed: e.hasReceipt
+                              ? () => _showReceipt(e)
+                              : null,
+                          child: const Text('Fişi Gör'),
+                        ),
+                        if (e.isPending &&
+                            (_page.status?.canApprove ?? false)) ...[
+                          FilledButton(
+                            onPressed: () => _approve(e),
+                            child: const Text('Onayla'),
+                          ),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: t.danger,
+                              side: BorderSide(color: t.danger),
+                            ),
+                            onPressed: () => _reject(e),
+                            child: const Text('Reddet'),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 6),
-                  Text(
-                    '${fmtDateTime(e.spentAt)} · ${e.createdByName ?? 'bilinmiyor'}',
-                    style: TextStyle(
-                      fontSize: AppFontSize.label,
-                      color: t.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  CardActions(
-                    children: [
-                      OutlinedButton(
-                        onPressed: e.hasReceipt ? () => _showReceipt(e) : null,
-                        child: const Text('Fişi Gör'),
-                      ),
-                      if (e.isPending &&
-                          (_page.status?.canApprove ?? false)) ...[
-                        FilledButton(
-                          onPressed: () => _approve(e),
-                          child: const Text('Onayla'),
-                        ),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: t.danger,
-                            side: BorderSide(color: t.danger),
-                          ),
-                          onPressed: () => _reject(e),
-                          child: const Text('Reddet'),
-                        ),
-                      ],
-                      if (_isSuper || (e.isPending && _canSpend))
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: t.danger,
-                            side: BorderSide(color: t.danger),
-                          ),
-                          onPressed: () => _delete(e),
-                          child: const Text('Sil'),
-                        ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           )
@@ -308,11 +350,21 @@ class _PettyCashScreenState extends State<PettyCashScreen> {
   }
 }
 
-/// Haftalik limit durumu: harcanan / limit ve kalan.
+/// Haftalık kasa limiti ve bakiye: limit, kalan bakiye, harcanan/kalan
+/// oranını gösteren iki renkli çubuk ve haftanın tarih aralığı.
 class _LimitCard extends StatelessWidget {
   const _LimitCard({required this.status});
 
   final PettyCashStatus status;
+
+  String _weekRange() {
+    final start = DateTime.tryParse(status.weekStart)?.toLocal();
+    if (start == null) return '';
+    final end = start.add(const Duration(days: 6));
+    String d(DateTime v) =>
+        '${v.day.toString().padLeft(2, '0')}.${v.month.toString().padLeft(2, '0')}';
+    return '${d(start)} – ${d(end)}.${end.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -324,8 +376,18 @@ class _LimitCard extends StatelessWidget {
             'Masraf girilebilmesi için Ana Yöneticinin limit belirlemesi gerekir.',
       );
     }
-    // Limitin %85'ini gecince uyari rengine doner.
-    final tight = status.usedRatio >= 0.85;
+    final ratio = status.usedRatio.clamp(0.0, 1.0);
+    TextStyle small() => TextStyle(
+      fontSize: AppFontSize.caption,
+      fontWeight: FontWeight.w500,
+      color: t.muted,
+    );
+    TextStyle big(Color c) => TextStyle(
+      fontSize: AppFontSize.title,
+      fontWeight: FontWeight.w800,
+      color: c,
+      letterSpacing: -0.3,
+    );
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -333,57 +395,106 @@ class _LimitCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'Bu Hafta',
-                  style: TextStyle(
-                    fontSize: AppFontSize.bodyLarge,
-                    fontWeight: FontWeight.w700,
-                    color: t.ink,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Haftalık Kasa Limiti', style: small()),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        fmtMoney(status.weeklyLimit),
+                        style: big(t.ink),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${fmtMoney(status.spentThisWeek)} / ${fmtMoney(status.weeklyLimit)}',
-                style: TextStyle(
-                  fontSize: AppFontSize.bodyLarge,
-                  fontWeight: FontWeight.w700,
-                  color: t.muted,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Mevcut Bakiye', style: small()),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        fmtMoney(status.remaining),
+                        style: big(ratio >= 0.85 ? t.danger : t.success),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          // Iki renkli cubuk: kirmizi harcanan, yesil kalan.
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: status.usedRatio,
-              minHeight: 10,
-              backgroundColor: t.bg,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                tight ? t.danger : t.primary,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (ratio > 0)
+                    Expanded(
+                      flex: (ratio * 1000).round(),
+                      child: ColoredBox(color: t.danger),
+                    ),
+                  if (ratio < 1)
+                    Expanded(
+                      flex: ((1 - ratio) * 1000).round(),
+                      child: ColoredBox(color: t.success),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Kalan: ${fmtMoney(status.remaining)}',
-            style: TextStyle(
-              fontSize: AppFontSize.bodyLarge,
-              fontWeight: FontWeight.w700,
-              color: tight ? t.danger : t.success,
-            ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: t.danger,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: 'Bu Hafta: ', style: small()),
+                      TextSpan(
+                        text: fmtMoney(status.spentThisWeek),
+                        style: small().copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: t.ink,
+                        ),
+                      ),
+                    ],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text('Hafta: ${_weekRange()}', style: small()),
+            ],
           ),
           // Bekleyen masraf da limitten dusuyor: para kasadan cikti.
-          if (status.pendingThisWeek > 0)
+          if (status.pendingThisWeek > 0) ...[
+            const SizedBox(height: 6),
             Text(
               '${fmtMoney(status.pendingThisWeek)} onay bekliyor '
               '(${status.pendingCount} kayıt)',
               style: TextStyle(fontSize: AppFontSize.label, color: t.warning),
             ),
-          Text(
-            'Hafta başlangıcı: ${fmtDate(status.weekStart)}',
-            style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
-          ),
+          ],
         ],
       ),
     );

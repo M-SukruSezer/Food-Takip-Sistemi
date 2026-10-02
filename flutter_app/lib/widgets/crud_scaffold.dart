@@ -27,6 +27,7 @@ class CrudScaffold extends StatelessWidget {
     this.emptyText,
     this.grid = false,
     this.showHeader = true,
+    this.floatingActions = const [],
   });
 
   final String title;
@@ -43,6 +44,10 @@ class CrudScaffold extends StatelessWidget {
   /// Kart izgarasi (Cesitler, Magazalar) ya da tek kolon liste (Kullanicilar).
   final bool grid;
   final bool showHeader;
+
+  /// Sağ altta yüzen düğmeler (alttan üste dizilir: ilk eleman en altta).
+  /// Liste sonuna, son kart düğmelerin altında kalmasın diye boşluk eklenir.
+  final List<Widget> floatingActions;
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +80,14 @@ class CrudScaffold extends StatelessWidget {
       );
     }
 
-    return RefreshIndicator(
+    final list = RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
-        padding: EdgeInsets.zero,
+        padding: EdgeInsets.only(
+          bottom: floatingActions.isEmpty
+              ? 0
+              : 16 + 64.0 * floatingActions.length,
+        ),
         children: [
           if (displayHeader || displayHeaderActions)
             AppCard(
@@ -178,6 +187,27 @@ class CrudScaffold extends StatelessWidget {
             ),
         ],
       ),
+    );
+    if (floatingActions.isEmpty) return list;
+    return Stack(
+      children: [
+        Positioned.fill(child: list),
+        Positioned(
+          right: 4,
+          bottom: 12,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final f in floatingActions.reversed) ...[
+                f,
+                if (!identical(f, floatingActions.first))
+                  const SizedBox(height: 12),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

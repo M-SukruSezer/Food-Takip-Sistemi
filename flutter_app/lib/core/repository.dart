@@ -1087,6 +1087,26 @@ class Repository {
     );
   }
 
+  /// Masraf duzenleme. [receipt] verilmezse fis oldugu gibi kalir.
+  Future<void> updatePettyCash(
+    int id, {
+    required num amount,
+    required String description,
+    String? receipt,
+    DateTime? spentAt,
+  }) async {
+    await _client.dio.put(
+      '/petty-cash/$id',
+      data: {
+        'amount': amount,
+        'description': description,
+        'receipt': ?receipt,
+        'spent_at': ?spentAt?.toUtc().toIso8601String(),
+      },
+      options: apiOptions(noToast: true, busyMessage: 'Masraf güncelleniyor...'),
+    );
+  }
+
   Future<void> deletePettyCash(PettyCashExpense expense) async {
     await _client.dio.delete(
       '/petty-cash/${expense.id}',

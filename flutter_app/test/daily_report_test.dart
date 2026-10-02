@@ -189,7 +189,7 @@ void main() {
 
       await tester.pumpWidget(host(const DailyReportScreen()));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Raporu Dışa Aktar'));
+      await tester.tap(find.text('Dışa Aktar'));
       await tester.pumpAndSettle();
 
       expect(find.text('Excel Tablosu'), findsOneWidget);
@@ -407,7 +407,10 @@ void main() {
 
       await tester.pumpWidget(host(const DailyReportScreen()));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.edit_outlined).first);
+      // Islemler satir soldan saga kaydirilinca acilir.
+      await tester.drag(find.text('Detay').first, const Offset(300, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Düzenle').first);
       await tester.pumpAndSettle();
 
       expect(find.text('Günlük Raporu Düzenle'), findsOneWidget);
@@ -434,7 +437,9 @@ void main() {
 
       await tester.pumpWidget(host(const DailyReportScreen()));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.drag(find.text('Detay').first, const Offset(300, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sil').first);
       await tester.pumpAndSettle();
 
       expect(find.text('Raporu Sil'), findsOneWidget);

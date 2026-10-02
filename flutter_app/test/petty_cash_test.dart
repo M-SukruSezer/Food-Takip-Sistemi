@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodtakip/core/tokens.dart';
 import 'package:foodtakip/core/api_client.dart';
 import 'package:foodtakip/core/avatar_image.dart';
 import 'package:foodtakip/core/nav.dart';
@@ -84,9 +85,12 @@ void main() {
       await tester.pumpWidget(host(const PettyCashScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bu Hafta'), findsOneWidget);
-      expect(find.text('120,50 TL / 500,00 TL'), findsOneWidget);
-      expect(find.text('Kalan: 379,50 TL'), findsOneWidget);
+      // Formdan sayfaya tasinan kasa limiti karti.
+      expect(find.text('Haftalık Kasa Limiti'), findsOneWidget);
+      expect(find.text('500,00 TL'), findsOneWidget);
+      expect(find.text('Mevcut Bakiye'), findsOneWidget);
+      expect(find.text('379,50 TL'), findsOneWidget);
+      expect(find.textContaining('120,50 TL', findRichText: true), findsWidgets);
       expect(find.text('Temizlik malzemesi'), findsOneWidget);
       expect(find.text('fişli'), findsOneWidget);
     });
@@ -127,9 +131,10 @@ void main() {
       await tester.pumpWidget(host(const PettyCashScreen()));
       await tester.pumpAndSettle();
 
-      final bar = tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
-      expect(bar.value, closeTo(0.9, 0.001));
-      expect(find.text('Kalan: 10,00 TL'), findsOneWidget);
+      // Kalan bakiye %85 ustunde tehlike renginde.
+      final kalan = tester.widget<Text>(find.text('10,00 TL'));
+      final ctx = tester.element(find.text('10,00 TL'));
+      expect(kalan.style?.color, ctx.tokens.danger);
     });
   });
 

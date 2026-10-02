@@ -16,6 +16,7 @@ class PettyCashExpense {
     required this.spentAt,
     required this.hasReceipt,
     this.status = 'approved',
+    this.createdBy,
     this.createdByName,
     this.createdByRole,
     this.storeName,
@@ -39,6 +40,8 @@ class PettyCashExpense {
   /// verene kadar oyle kalir. Magaza mudurunun kendi girisi dogrudan onayli.
   final String status;
 
+  /// Kaydi giren kullanicinin kimligi: bekleyen kaydi yalnizca o duzenler/siler.
+  final int? createdBy;
   final String? createdByName;
   final String? createdByRole;
   final String? storeName;
@@ -65,6 +68,7 @@ class PettyCashExpense {
     spentAt: j['spent_at'] as String? ?? '',
     hasReceipt: j['has_receipt'] == true,
     status: j['status'] as String? ?? 'approved',
+    createdBy: j['created_by'] == null ? null : _int(j['created_by']),
     createdByName: j['created_by_name'] as String?,
     createdByRole: j['created_by_role'] as String?,
     storeName: j['store_name'] as String?,

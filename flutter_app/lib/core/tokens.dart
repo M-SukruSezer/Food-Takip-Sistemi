@@ -692,6 +692,13 @@ ThemeData buildAppTheme(Brightness brightness) {
       ),
     ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: t.primary),
+    // Yuzen eylem dugmeleri (Masraf Ekle, Gun Ekle...) marka renginde.
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: t.primary,
+      foregroundColor: t.onPrimary,
+      elevation: 3,
+      highlightElevation: 5,
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: t.card,

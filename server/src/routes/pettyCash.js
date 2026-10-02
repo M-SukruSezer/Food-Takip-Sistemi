@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
   // her acilista megabaytlarca veri iner.
   const items = await queryAll(`
     SELECT e.id, e.store_id, e.amount, e.description, e.spent_at, e.created_at,
-           e.status, e.decided_at, e.decision_note,
+           e.status, e.decided_at, e.decision_note, e.created_by,
            (e.receipt IS NOT NULL) AS has_receipt,
            u.full_name AS created_by_name, s.name AS store_name,
            d.full_name AS decided_by_name
@@ -182,6 +182,70 @@ router.post('/', requireSpender, async (req, res) => {
   });
 });
 
+/// Kaydi duzenleme/silme yetkisi: bekleyen kaydi giren kisi; karar tasiyan
+/// (onayli/reddedilmis) kaydi yalnizca Ana Yonetici. Hata metni ya da null.
+function degistirmeEngeli(req, row, eylem) {
+  if (req.user.role === 'super_admin') return null;
+  const [yapabilir, yapilamaz] = eylem === 'sil'
+    ? ['silebilirsiniz', 'silinemez'] : ['düzenleyebilirsiniz', 'düzenlenemez'];
+  if (row.created_by !== req.user.id) {
+    return { status: 403, error: `Yalnızca kendi girdiğiniz masrafı ${yapabilir}` };
+  }
+  if (row.status !== 'pending') {
+    return {
+      status: 400,
+      error: `${row.status === 'approved' ? 'Onaylanmış' : 'Reddedilmiş'} masraf ${yapilamaz}`,
+    };
+  }
+  return null;
+}
+
+/// Masraf duzenleme. Kurallar silme ile ayni; limit, kaydin kendi tutari
+/// geri eklenerek yeniden kontrol edilir.
+router.put('/:id', async (req, res) => {
+  const row = await queryOne('SELECT * FROM petty_cash_expenses WHERE id = ?', Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Masraf bulunamadı' });
+  if (!allowsStore(req, row.store_id)) return res.status(403).json({ error: 'Bu masrafa erişim yetkiniz yok' });
+  const engel = degistirmeEngeli(req, row, 'duzenle');
+  if (engel) return res.status(engel.status).json({ error: engel.error });
+
+  const { amount, description, receipt, spent_at } = req.body || {};
+  const value = amount === undefined ? Number(row.amount) : Number(amount);
+  if (!Number.isFinite(value) || value <= 0) {
+    return res.status(400).json({ error: 'Tutar 0’dan büyük bir sayı olmalıdır' });
+  }
+  const text = description === undefined ? row.description : String(description).trim();
+  if (!text) return res.status(400).json({ error: 'Açıklama zorunludur' });
+  // receipt: undefined -> oldugu gibi kalir, null -> kaldirilir.
+  let yeniFis = row.receipt;
+  if (receipt === null) yeniFis = null;
+  else if (receipt !== undefined) {
+    if (typeof receipt !== 'string' || !RECEIPT_PATTERN.test(receipt)) {
+      return res.status(400).json({ error: 'Fiş görseli geçersiz' });
+    }
+    if (receipt.length > RECEIPT_MAX_CHARS) {
+      return res.status(400).json({ error: 'Fiş görseli çok büyük' });
+    }
+    yeniFis = receipt;
+  }
+  const yeniTarih = spent_at || row.spent_at;
+
+  // Kayit bu haftanin harcamasina dahilse kendi tutari geri eklenir.
+  const limit = await limitFor(row.store_id);
+  const spent = await spentThisWeek(row.store_id);
+  const haftada = row.status !== 'rejected' && String(row.spent_at) >= weekStart();
+  const kalan = limit - spent.total + (haftada ? Number(row.amount) : 0);
+  if (String(yeniTarih) >= weekStart() && value > kalan) {
+    return res.status(400).json({ error: `Haftalık limit aşılıyor. Kalan: ${kalan.toFixed(2)} TL` });
+  }
+
+  await execute(`UPDATE petty_cash_expenses SET amount = ?, description = ?, receipt = ?, spent_at = ?
+    WHERE id = ?`, value, text, yeniFis, yeniTarih, row.id);
+  await logActivity(req.user, 'PETTY_CASH_DUZENLE', 'petty_cash', row.id,
+    `${row.amount} TL → ${value} TL masraf düzenlendi: ${text}`, row.store_id);
+  res.json({ ok: true });
+});
+
 /// Masraf silme.
 ///
 /// Bekleyen kaydi giren kisi geri alabilir. Onaylanmis ya da reddedilmis kayit
@@ -191,18 +255,8 @@ router.delete('/:id', async (req, res) => {
   const row = await queryOne('SELECT * FROM petty_cash_expenses WHERE id = ?', Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Masraf bulunamadı' });
   if (!allowsStore(req, row.store_id)) return res.status(403).json({ error: 'Bu masrafa erişim yetkiniz yok' });
-  if (req.user.role !== 'super_admin') {
-    if (row.created_by !== req.user.id) {
-      return res.status(403).json({ error: 'Yalnızca kendi girdiğiniz masrafı silebilirsiniz' });
-    }
-    if (row.status !== 'pending') {
-      return res.status(400).json({
-        error: row.status === 'approved'
-          ? 'Onaylanmış masraf silinemez'
-          : 'Reddedilmiş masraf silinemez',
-      });
-    }
-  }
+  const engel = degistirmeEngeli(req, row, 'sil');
+  if (engel) return res.status(engel.status).json({ error: engel.error });
   await execute('DELETE FROM petty_cash_expenses WHERE id = ?', row.id);
   await logActivity(req.user, 'PETTY_CASH_SIL', 'petty_cash', row.id,
     `${row.amount} TL masraf silindi`, row.store_id);
