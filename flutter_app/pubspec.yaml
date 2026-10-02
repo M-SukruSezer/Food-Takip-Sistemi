@@ -45,6 +45,8 @@ dependencies:
   intl: ^0.20.3
   fl_chart: ^1.2.0
   image_picker: ^1.2.3
+  # Profilde gerçek sürüm/build numarası (pubspec version alanı).
+  package_info_plus: ^10.2.1
   image: ^4.10.1
   file_selector: ^1.1.0
   flutter_localizations:

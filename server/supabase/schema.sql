@@ -504,10 +504,16 @@ CREATE TABLE IF NOT EXISTS personnel_requests (
 ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS target_user_id BIGINT REFERENCES users(id);
 ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS shift_date TEXT;
 ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS target_confirmed_at TEXT;
+-- Takasta karsi tarafin vardiya gunu (bos = ayni gun); haftalik OFF
+-- talebinde yerine verilecek mevcut OFF gunu.
+ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS target_shift_date TEXT;
+-- Rapor gorseli (data URL). Listede tasinmaz, ayri uctan okunur.
+ALTER TABLE personnel_requests ADD COLUMN IF NOT EXISTS attachment TEXT;
 
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_type_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_type_check
-  CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR'));
+  CHECK (type IN ('IZIN', 'SAATLIK_IZIN', 'AVANS', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR',
+                  'HAFTALIK_OFF', 'RAPOR'));
 -- NOT: 'AVANS' kisitta BIRAKILDI. Avans ozelligi kaldirildi ama tur listesini
 -- daraltmak, veritabaninda tek bir eski avans talebi kalmissa bu semayi ve
 -- dolayisiyla tum API'yi dusururdu. API artik AVANS talebi olusturmuyor.
@@ -523,10 +529,15 @@ ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_shape_check
     OR (type IN ('IZIN', 'SAATLIK_IZIN') AND start_at IS NOT NULL AND end_at IS NOT NULL)
     OR (type = 'VARDIYA_TAKAS' AND shift_date IS NOT NULL AND target_user_id IS NOT NULL)
     OR (type = 'VARDIYA_DEVIR' AND shift_date IS NOT NULL)
+    OR (type = 'HAFTALIK_OFF' AND shift_date IS NOT NULL)
+    OR (type = 'RAPOR' AND start_at IS NOT NULL AND end_at IS NOT NULL AND attachment IS NOT NULL)
   );
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_shift_date_format_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_shift_date_format_check
   CHECK (shift_date IS NULL OR shift_date ~ '^\d{4}-\d{2}-\d{2}$');
+ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_target_shift_date_format_check;
+ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_target_shift_date_format_check
+  CHECK (target_shift_date IS NULL OR target_shift_date ~ '^\d{4}-\d{2}-\d{2}$');
 -- Karar verilmis talepte karar veren ve zamani bulunmali.
 ALTER TABLE personnel_requests DROP CONSTRAINT IF EXISTS personnel_requests_decision_check;
 ALTER TABLE personnel_requests ADD CONSTRAINT personnel_requests_decision_check

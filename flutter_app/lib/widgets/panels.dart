@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../core/tokens.dart';
@@ -98,21 +100,27 @@ class StatCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: narrow
-                  ? AppFontSize.headline
-                  : AppFontSize.headlineLarge,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? t.ink,
-              letterSpacing: -0.4,
+          // Uzun değer (ör. "1.250 adet") dar kutuda taşmaz, küçülerek sığar.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: narrow
+                    ? AppFontSize.headline
+                    : AppFontSize.headlineLarge,
+                fontWeight: FontWeight.w700,
+                color: valueColor ?? t.ink,
+                letterSpacing: -0.4,
+              ),
             ),
           ),
           if (sub != null)
             Text(
               sub!,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: narrow ? AppFontSize.caption : AppFontSize.label,
@@ -289,6 +297,78 @@ class ErrorState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Eşit boyutlu, responsive kutucuk ızgarası.
+///
+/// Önceki ızgaralar kutu yüksekliğini en-boy oranıyla (1.45, 1.55, 1.8…)
+/// hesaplıyordu: kutular ekran genişledikçe büyüyor, bölümler arasında
+/// farklı boyutlarda kalıyordu. Burada yükseklik SABİT ([tileHeight]),
+/// sütun sayısı ise kullanılabilir genişlikten hesaplanır: her kutu en az
+/// [minTileWidth] genişlikte olur, en fazla [maxColumns] sütun açılır.
+/// Böylece ana sayfa ve diğer ekranlardaki tüm kutular aynı boyuttadır.
+class EqualTileGrid extends StatelessWidget {
+  const EqualTileGrid({
+    super.key,
+    required this.children,
+    this.minTileWidth = 150,
+    this.maxColumns = 6,
+    this.minColumns = 2,
+    this.tileHeight = EqualTileGrid.defaultHeight,
+    this.spacing = AppTokens.gap,
+  });
+
+  /// Tüm uygulamada kutucuk yüksekliği.
+  static const double defaultHeight = 112;
+
+  final List<Widget> children;
+  final double minTileWidth;
+  final int maxColumns;
+  final int minColumns;
+  final double tileHeight;
+  final double spacing;
+
+  /// Verilen genişlikte kaç sütun açılacağı (test edilebilir saf hesap).
+  static int columnsFor(
+    double width, {
+    double minTileWidth = 150,
+    int maxColumns = 6,
+    int minColumns = 2,
+    double spacing = AppTokens.gap,
+  }) {
+    final fit = ((width + spacing) / (minTileWidth + spacing)).floor();
+    return fit.clamp(minColumns, maxColumns);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final cols = math.min(
+          columnsFor(
+            c.maxWidth,
+            minTileWidth: minTileWidth,
+            maxColumns: maxColumns,
+            minColumns: minColumns,
+            spacing: spacing,
+          ),
+          math.max(children.length, 1),
+        );
+        return GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: spacing,
+            crossAxisSpacing: spacing,
+            mainAxisExtent: tileHeight,
+          ),
+          children: children,
+        );
+      },
     );
   }
 }

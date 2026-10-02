@@ -1369,30 +1369,6 @@ class _NavMenuSheet extends StatelessWidget {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.location_on,
-                                          size: 13,
-                                          color: t.primary,
-                                        ),
-                                        const SizedBox(width: 3),
-                                        Flexible(
-                                          child: Text(
-                                            user?.storeName != null
-                                                ? 'Colombia Coffee Co. · ${user!.storeName}'
-                                                : 'Colombia Coffee Co.',
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: t.primary,
-                                              fontSize: AppFontSize.caption,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ],
                                 ),
                               ),
@@ -1612,6 +1588,24 @@ _MenuTileData _menuTileDataFor(NavItem item, int recommendationCount) {
         titleSuffix: '',
         subtitle: 'Yıllık izin talepleri, mazeret ve onaylar',
         icon: Icons.fact_check_outlined,
+        accent: AccentTone.neutral,
+      );
+    case '/requests':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'Taleplerim',
+        titleSuffix: '',
+        subtitle: 'İzin, vardiya takası, OFF günü ve rapor talepleri',
+        icon: Icons.assignment_turned_in_outlined,
+        accent: AccentTone.neutral,
+      );
+    case '/pin':
+      return const _MenuTileData(
+        titlePrefix: '',
+        titleMain: 'PIN Doğrulama',
+        titleSuffix: '',
+        subtitle: 'QR okutamayan partner için 60 sn geçerli kod',
+        icon: Icons.pin_outlined,
         accent: AccentTone.neutral,
       );
     case '/timesheet':

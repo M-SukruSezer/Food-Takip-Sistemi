@@ -143,3 +143,7 @@ String normalizeSearch(String? value) {
 
 bool isUrgent(String? urgency) =>
     urgency == 'expired' || urgency == 'critical' || urgency == 'warning';
+
+/// Yerel saat, SS:dd biçiminde (ör. 14:05).
+String fmtClock(DateTime d) =>
+    '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';

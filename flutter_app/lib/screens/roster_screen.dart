@@ -42,15 +42,6 @@ String _gunAdi(String tarih, {bool uzun = false}) {
 DateTime _haftaBasi(DateTime d) =>
     DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
 
-/// ISO 8601 hafta numarası (Örn: 40. Hafta).
-int _isoWeekNumber(DateTime date) {
-  final d = DateTime.utc(date.year, date.month, date.day);
-  final dayOfWeek = d.weekday;
-  final thursday = d.add(Duration(days: 4 - dayOfWeek));
-  final yearStart = DateTime.utc(thursday.year, 1, 1);
-  return ((thursday.difference(yearStart).inDays) / 7).floor() + 1;
-}
-
 /// İsimden 2 harfli baş harfler üretir (Örn: "Sena Üstünel" -> "SÜ").
 String _initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
@@ -418,12 +409,14 @@ class _RosterScreenState extends State<RosterScreen> {
     );
   }
 
+  /// Paylaşım, düzenleme ve dışa aktarma yalnızca mağaza müdürüne açık.
+  bool get _magazaMuduru => session.user?.role == 'store_manager';
+
   @override
   Widget build(BuildContext context) {
     final v = _veri;
     final t = context.tokens;
 
-    final weekNum = _isoWeekNumber(_anchor);
     final dateRangeLabel = _haftalik
         ? '${fmtDate(_from)} - ${fmtDate(_to)}'
         : '${fmtDate(_gun)} ${_gunAdi(_gun, uzun: true)}';
@@ -435,72 +428,15 @@ class _RosterScreenState extends State<RosterScreen> {
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
       emptyText: '',
-      addLabel: v != null && v.canEdit && _haftalik ? 'PDF' : null,
-      onAdd: v != null && v.canEdit && _haftalik && !_disa ? _pdf : null,
+      addLabel: v != null && v.canEdit && _magazaMuduru && _haftalik
+          ? 'PDF'
+          : null,
+      onAdd: v != null && v.canEdit && _magazaMuduru && _haftalik && !_disa
+          ? _pdf
+          : null,
       banner: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Subheader: Hafta başlığı, tarih ve mağaza etiketi
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: t.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _haftalik
-                              ? '$weekNum. HAFTA MATRİSİ • $dateRangeLabel'
-                              : dateRangeLabel.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                            color: t.primary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.primarySoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    v?.storeName ??
-                        (session.user?.storeName ?? 'Tüm Mağazalar'),
-                    style: TextStyle(
-                      fontSize: AppFontSize.caption,
-                      fontWeight: FontWeight.w600,
-                      color: t.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-
           // 2. Segmented Toggle Control: Zaman Çizelgesi vs Haftalık Matris
           Container(
             padding: const EdgeInsets.all(4),
@@ -739,48 +675,52 @@ class _RosterScreenState extends State<RosterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                InkWell(
-                  onTap: (_paylasiyor || _bekleyen.isNotEmpty) ? null : _paylas,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.tokens.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: context.tokens.border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.campaign_rounded,
-                          size: 16,
-                          color: context.tokens.muted,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Ekibe Duyur',
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            fontWeight: FontWeight.w600,
+                if (_magazaMuduru) ...[
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: (_paylasiyor || _bekleyen.isNotEmpty)
+                        ? null
+                        : _paylas,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.tokens.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: context.tokens.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.campaign_rounded,
+                            size: 16,
                             color: context.tokens.muted,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ekibe Duyur',
+                            style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              fontWeight: FontWeight.w600,
+                              color: context.tokens.muted,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
                 if (_cokMagaza && _magazalar.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Container(
@@ -830,10 +770,6 @@ class _RosterScreenState extends State<RosterScreen> {
           // 4. Quick KPI Metric Bar: Toplam, Ortalama, Açık Vardiya, Değişim/İzin
           if (v != null) _KpiMetricBar(veri: v),
           const SizedBox(height: 10),
-
-          // 5. Vardiya Göstergeleri (Legend)
-          const _VardiyaGostergeleri(),
-          const SizedBox(height: 8),
 
           // Çakışma paneli
           if (_cakismalar.isNotEmpty) ...[
@@ -924,19 +860,16 @@ class _RosterScreenState extends State<RosterScreen> {
 
           const SizedBox(height: 12),
 
-          // 7. Detail Insights & Approval Banner
-          _UygunlukBanner(anchor: _anchor),
-          const SizedBox(height: 12),
-
           // 8. Bottom Action Buttons: "Whatsapp ile paylaş", "+ Vardiya Düzenle", "Excel İndir (.xlsx)"
-          _BottomActions(
-            canEdit: v.canEdit,
-            paylasiyor: _paylasiyor,
-            bekleyenVar: _bekleyen.isNotEmpty,
-            onPaylas: _paylas,
-            onVardiyaDuzenle: _vardiyaDuzenleSheet,
-            onExcelIndir: _pdf,
-          ),
+          if (_magazaMuduru)
+            _BottomActions(
+              canEdit: v.canEdit,
+              paylasiyor: _paylasiyor,
+              bekleyenVar: _bekleyen.isNotEmpty,
+              onPaylas: _paylas,
+              onVardiyaDuzenle: _vardiyaDuzenleSheet,
+              onExcelIndir: _pdf,
+            ),
           const SizedBox(height: 8),
         ],
 
@@ -1116,133 +1049,6 @@ class _KpiCol extends StatelessWidget {
   }
 }
 
-/// Vardiya Göstergeleri (Legend)
-class _VardiyaGostergeleri extends StatelessWidget {
-  const _VardiyaGostergeleri();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: context.tokens.bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'VARDİYA GÖSTERGELERİ',
-                style: TextStyle(
-                  fontSize: AppFontSize.micro,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: context.tokens.muted,
-                ),
-              ),
-              Row(
-                children: [
-                  Icon(
-                    Icons.swipe_outlined,
-                    size: 12,
-                    color: context.tokens.primary,
-                  ),
-                  SizedBox(width: 2),
-                  Text(
-                    'Sağa kaydırarak inceleyin',
-                    style: TextStyle(
-                      fontSize: AppFontSize.micro,
-                      color: context.tokens.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final (kategori, etiket) in const [
-                  (ShiftCategory.sabah, '🌅 Açılış (08-16)'),
-                  (ShiftCategory.gunduz, '🔄 Ara (12-20)'),
-                  (ShiftCategory.kapanis, '🌙 Kapanış (16-01)'),
-                ]) ...[
-                  Builder(
-                    builder: (context) {
-                      final st = _kategoriStili(kategori, t);
-                      return _gostergePill(
-                        zemin: st.zemin,
-                        metin: st.metin,
-                        nokta: st.metin,
-                        etiket: etiket,
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 5),
-                ],
-                _gostergePill(
-                  zemin: t.primarySoft,
-                  metin: t.primary,
-                  etiket: '⚡ Takas',
-                ),
-                const SizedBox(width: 5),
-                _gostergePill(
-                  zemin: t.dangerSoft,
-                  metin: t.dangerText,
-                  etiket: '⛱️ İzin/OFF',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _gostergePill({
-    required Color zemin,
-    required Color metin,
-    required String etiket,
-    Color? nokta,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: zemin,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (nokta != null) ...[
-            Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(color: nokta, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            etiket,
-            style: TextStyle(
-              fontSize: AppFontSize.micro,
-              fontWeight: FontWeight.w600,
-              color: metin,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Kisinin planli NET suresi; bekleyen degisiklikler DAHIL.
 int _planliSure(
   RosterPerson kisi,
@@ -1261,7 +1067,6 @@ int _planliSure(
   return toplam;
 }
 
-/// Haftalık Personel Matrisi (Tablo)
 class _HaftaTablosu extends StatelessWidget {
   const _HaftaTablosu({
     required this.veri,
@@ -1760,6 +1565,7 @@ class _Hucre extends StatelessWidget {
         ),
       );
     } else if (gosterilen.any((c) => c.isDayOff)) {
+      final rapor = gosterilen.any((c) => c.isRapor);
       govde = Container(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         decoration: BoxDecoration(
@@ -1770,7 +1576,7 @@ class _Hucre extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'OFF',
+              rapor ? 'RAPOR' : 'OFF',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: AppFontSize.caption,
@@ -1782,7 +1588,7 @@ class _Hucre extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                'Hafta Tatili',
+                rapor ? 'Raporlu' : 'Hafta Tatili',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: AppFontSize.micro,
@@ -1918,94 +1724,6 @@ class _VardiyaEtiketi extends StatelessWidget {
   }
 }
 
-/// 7. Detail Insights & Approval Banner
-class _UygunlukBanner extends StatelessWidget {
-  const _UygunlukBanner({required this.anchor});
-
-  final DateTime anchor;
-
-  @override
-  Widget build(BuildContext context) {
-    final weekNum = _isoWeekNumber(anchor);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.tokens.bg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.tokens.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: context.tokens.successSoft,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.verified_rounded,
-              size: 22,
-              color: context.tokens.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$weekNum. Hafta Uygunluğu',
-                      style: TextStyle(
-                        fontSize: AppFontSize.bodyLarge,
-                        fontWeight: FontWeight.w800,
-                        color: context.tokens.ink,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.tokens.successSoft,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Kusursuz',
-                        style: TextStyle(
-                          fontSize: AppFontSize.micro,
-                          fontWeight: FontWeight.w800,
-                          color: context.tokens.okText,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Vardiyalar yasal dinlenme sürelerine ve mağaza asgari kadro hedeflerine tam uygundur.',
-                  style: TextStyle(
-                    fontSize: AppFontSize.caption,
-                    color: context.tokens.muted,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 8. Bottom Action Buttons: Whatsapp ile paylaş, + Vardiya Düzenle, Excel İndir (.xlsx)
 class _BottomActions extends StatelessWidget {
   const _BottomActions({
     required this.canEdit,

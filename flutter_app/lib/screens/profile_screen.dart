@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/api_client.dart';
 import '../core/avatar_image.dart';
@@ -336,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              // 2 Bilgi Kutusu: Sicil No & Kayıt Tarihi
+              // 2 Bilgi Kutusu: Sicil No & İşe Giriş Tarihi
               Row(
                 children: [
                   Expanded(
@@ -414,7 +415,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Kayıt Tarihi',
+                                  'İşe Giriş Tarihi',
                                   style: TextStyle(
                                     fontSize: AppFontSize.micro,
                                     color: t.muted,
@@ -422,7 +423,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 1),
                                 Text(
-                                  '14.06.2025',
+                                  (session.user?.hiredAt ?? '').isEmpty
+                                      ? 'Tanımlı değil'
+                                      : fmtDate(session.user!.hiredAt!),
                                   style: TextStyle(
                                     fontSize: AppFontSize.body,
                                     fontWeight: FontWeight.w700,
@@ -537,7 +540,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const _HeaderTitleWithIcon(
                 icon: Icons.palette_outlined,
                 title: 'Görünüm & Tema',
-                subtitle: 'Ekran renk modunu özelleştirin.\nSeçiminiz bu cihazda saklanır ve giriş ekranı dahil tüm ekranlarda geçerli olur.',
+                subtitle: null,
               ),
               const SizedBox(height: 14),
               AnimatedBuilder(
@@ -723,24 +726,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    'v2.4.1 (Build 1084)',
-                    style: TextStyle(
-                      fontSize: AppFontSize.caption,
-                      fontWeight: FontWeight.w500,
-                      color: t.muted,
+                  // Sürüm ve build numarası uygulama paketinden okunur
+                  // (pubspec.yaml "version"); elle yazılmış değer yok.
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snap) => Text(
+                      snap.hasData
+                          ? 'v${snap.data!.version} (Build ${snap.data!.buildNumber})'
+                          : '',
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        fontWeight: FontWeight.w500,
+                        color: t.muted,
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Mevcut cihazdaki mağaza müdürlük yetkiniz kapatılır ve pin ekranına yönlendirilirsiniz.',
-                style: TextStyle(
-                  fontSize: AppFontSize.caption,
-                  color: t.muted,
-                  height: 1.3,
-                ),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -777,12 +778,12 @@ class _HeaderTitleWithIcon extends StatelessWidget {
   const _HeaderTitleWithIcon({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -813,15 +814,17 @@ class _HeaderTitleWithIcon extends StatelessWidget {
                   color: t.ink,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: AppFontSize.caption,
-                  color: t.muted,
-                  height: 1.3,
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: AppFontSize.caption,
+                    color: t.muted,
+                    height: 1.3,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

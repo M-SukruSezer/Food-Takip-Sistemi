@@ -8,10 +8,12 @@ import '../screens/dashboard_screen.dart';
 import '../screens/logs_screen.dart';
 import '../screens/pdks_admin_screen.dart';
 import '../screens/pdks_screen.dart';
+import '../screens/pin_screen.dart';
 import '../screens/petty_cash_screen.dart';
 import '../screens/product_types_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/recommendations_screen.dart';
+import '../screens/requests_screen.dart';
 import '../screens/roster_screen.dart';
 import '../screens/sales_screen.dart';
 import '../screens/stock_coverage_screen.dart';
@@ -49,6 +51,8 @@ abstract final class AppScreenFactory {
       shiftRequired: state.uri.queryParameters['shift'] == '1',
     ),
     '/pdks-admin': (_) => const PdksAdminScreen(),
+    '/requests': (_) => const RequestsScreen(),
+    '/pin': (_) => const PinScreen(),
     '/timesheet': (_) => const TimesheetScreen(),
     '/profile': (_) => const ProfileScreen(),
   };

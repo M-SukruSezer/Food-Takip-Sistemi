@@ -53,7 +53,10 @@ router.get('/me', requireAuth, async (req, res) => {
   const user = await queryOne('SELECT * FROM users WHERE id = ?',req.user.id);
   if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
   const store = user.store_id ? await queryOne('SELECT name FROM stores WHERE id = ?',user.store_id) : null;
+  // İşe giriş tarihi personel tanımından (PDKS profili); tanımlı değilse null.
+  const profile = await queryOne('SELECT hired_at FROM pdks_profiles WHERE user_id = ?', user.id);
   res.json({
+    hired_at: profile ? profile.hired_at || null : null,
     id: user.id,
     username: user.username,
     full_name: user.full_name,

@@ -8,6 +8,7 @@ const { logActivity } = require('../utils');
 const bal = require('../pdks/balance');
 const t = require('../pdks/time');
 const notify = require('../pdks/notify');
+const roster = require('../pdks/rosterChanges');
 
 const router = express.Router();
 
@@ -21,6 +22,8 @@ const TUR_ADI = {
   SAATLIK_IZIN: 'Saatlik izin',
   VARDIYA_TAKAS: 'Vardiya takas talebi',
   VARDIYA_DEVIR: 'Vardiya devir talebi',
+  HAFTALIK_OFF: 'Haftalık OFF talebi',
+  RAPOR: 'Rapor bildirimi',
 };
 const turAdi = (tip) => TUR_ADI[tip] || tip;
 
@@ -30,8 +33,21 @@ function talepOzet(row) {
     return `${row.start_at} – ${row.end_at}, ${row.days} gün`;
   }
   if (row.type === 'SAATLIK_IZIN') return `${row.hours} saat`;
-  if (row.type === 'VARDIYA_TAKAS' || row.type === 'VARDIYA_DEVIR') {
-    return `${row.shift_date} tarihli vardiya`;
+  if (row.type === 'VARDIYA_TAKAS') {
+    return row.target_shift_date && row.target_shift_date !== row.shift_date
+      ? `${row.shift_date} ↔ ${row.target_shift_date} vardiyaları`
+      : `${row.shift_date} tarihli vardiya`;
+  }
+  if (row.type === 'VARDIYA_DEVIR') return `${row.shift_date} tarihli vardiya`;
+  if (row.type === 'HAFTALIK_OFF') {
+    return row.target_shift_date
+      ? `OFF günü ${row.target_shift_date} → ${row.shift_date}`
+      : `${row.shift_date} OFF günü`;
+  }
+  if (row.type === 'RAPOR') {
+    return row.start_at === row.end_at
+      ? `${row.start_at}, 1 gün`
+      : `${row.start_at} – ${row.end_at}, ${row.days} gün`;
   }
   return '';
 }
@@ -59,8 +75,23 @@ async function kararVericiler(storeId, haricUserId) {
     ...MANAGER_ROLES, storeId, ...UST_ROLLER, haricUserId);
   return rows.map((r) => Number(r.id));
 }
-const TYPES = ['IZIN', 'SAATLIK_IZIN', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR'];
+const TYPES = ['IZIN', 'SAATLIK_IZIN', 'VARDIYA_TAKAS', 'VARDIYA_DEVIR', 'HAFTALIK_OFF', 'RAPOR'];
 const SHIFT_TYPES = ['VARDIYA_TAKAS', 'VARDIYA_DEVIR'];
+/// Onayla birlikte haftalik cizelgeyi degistiren turler.
+const ROSTER_TYPES = [...SHIFT_TYPES, 'HAFTALIK_OFF', 'RAPOR'];
+
+/// Rapor gorseli: kameradan ya da galeriden, istemcide kucultulmus veri URL'si.
+const RAPOR_GORSEL = /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/;
+const RAPOR_GORSEL_MAX = 3 * 1024 * 1024;
+const RAPOR_MAX_GUN = 31;
+const TARIH = /^\d{4}-\d{2}-\d{2}$/;
+
+/// Liste sorgusunda rapor gorseli TASINMAZ (satir basina megabaytlar);
+/// yalnizca var olup olmadigi doner, gorsel ayri uctan istenir.
+const LISTE_KOLONLARI = `r.id, r.user_id, r.store_id, r.type, r.start_at, r.end_at, r.days,
+  r.hours, r.amount, r.reason, r.status, r.manager_id, r.decided_at, r.decision_note,
+  r.created_at, r.target_user_id, r.shift_date, r.target_confirmed_at, r.target_shift_date,
+  (r.attachment IS NOT NULL) AS has_attachment`;
 
 /// Bir tarih araligindaki resmi tatiller.
 ///
@@ -194,7 +225,7 @@ router.get('/requests', async (req, res) => {
   }
 
   const rows = await queryAll(`
-    SELECT r.*, u.full_name, m.full_name AS manager_name, s.name AS store_name,
+    SELECT ${LISTE_KOLONLARI}, u.full_name, m.full_name AS manager_name, s.name AS store_name,
       tu.full_name AS target_name
     FROM personnel_requests r
     JOIN users u ON u.id = r.user_id
@@ -217,24 +248,46 @@ router.post('/requests', async (req, res) => {
   const storeId = req.user.store_id;
   if (!storeId) return res.status(403).json({ error: 'Size mağaza atanmamış' });
   const reason = String(body.reason || '').trim();
-  if (!reason) return res.status(400).json({ error: 'Gerekçe zorunludur' });
   if (reason.length > 500) return res.status(400).json({ error: 'Gerekçe en fazla 500 karakter' });
 
   // amount kolonu semada duruyor (eski kayitlar icin) ama artik hep null.
   const fields = {
     start_at: null, end_at: null, days: null, hours: null, amount: null,
-    target_user_id: null, shift_date: null,
+    target_user_id: null, shift_date: null, target_shift_date: null,
   };
 
+  /// Karar vericilere (ve takasta karsi tarafa) haber verip 201 doner.
+  async function bildirVeDon(id, extra = {}) {
+    const detail = talepOzet({ type, ...fields });
+    const alicilar = await kararVericiler(storeId, req.user.id);
+    // Takasta karsi tarafa da haber verilir; onayi o baslatir.
+    if (type === 'VARDIYA_TAKAS') alicilar.push(fields.target_user_id);
+    for (const aliciId of alicilar) {
+      await notify.requestCreated({
+        managerId: aliciId,
+        requesterName: req.user.full_name,
+        typeLabel: turAdi(type),
+        detail,
+        requestId: id,
+      });
+    }
+    await logActivity(req.user, 'TALEP_OLUSTUR', 'personnel_request', id,
+      `${type}: ${detail}`, storeId);
+    return res.status(201).json({ id, ...fields, ...extra, type, status: 'PENDING' });
+  }
+
+  const bugun = t.localDate();
+
   if (SHIFT_TYPES.includes(type)) {
+    if (!reason) return res.status(400).json({ error: 'Gerekçe zorunludur' });
     const shiftDate = String(body.shift_date || '');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(shiftDate)) {
+    if (!TARIH.test(shiftDate)) {
       return res.status(400).json({ error: 'Vardiya tarihi YYYY-AA-GG biçiminde olmalıdır' });
     }
-    const myShift = await queryOne(`
-      SELECT id FROM user_shifts
-      WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL`, req.user.id, shiftDate);
-    if (!myShift) {
+    if (shiftDate < bugun) {
+      return res.status(400).json({ error: 'Geçmiş tarihli vardiya için talep oluşturulamaz' });
+    }
+    if (!await roster.vardiyasiVar(req.user.id, shiftDate)) {
       return res.status(400).json({ error: 'Bu tarihte size ait bir vardiya bulunamadı' });
     }
     const openRequest = await queryOne(`
@@ -259,39 +312,127 @@ router.post('/requests', async (req, res) => {
         return res.status(400).json({ error: 'Geçersiz hedef personel' });
       }
       fields.target_user_id = targetId;
+      // Karsi tarafin vardiyasi baska gundeyse (Pazartesi benim, Sali onun)
+      // iki gun de takasa girer; ayni gunse o gunun vardiyalari degisir.
+      const targetDate = body.target_shift_date ? String(body.target_shift_date) : shiftDate;
+      if (!TARIH.test(targetDate) || targetDate < bugun) {
+        return res.status(400).json({ error: 'Karşı tarafın vardiya tarihi geçersiz' });
+      }
+      if (targetDate !== shiftDate) {
+        if (!await roster.vardiyasiVar(targetId, targetDate)) {
+          return res.status(400).json({
+            error: 'Seçtiğiniz personelin bu tarihte bir vardiyası bulunamadı',
+          });
+        }
+        fields.target_shift_date = targetDate;
+      }
     }
 
     const r = await execute(`
       INSERT INTO personnel_requests
-        (user_id, store_id, type, target_user_id, shift_date, reason)
-      VALUES (?,?,?,?,?,?) RETURNING id`,
-      req.user.id, storeId, type, fields.target_user_id, fields.shift_date, reason);
-
-    for (const yoneticiId of await kararVericiler(storeId, req.user.id)) {
-      await notify.requestCreated({
-        managerId: yoneticiId,
-        requesterName: req.user.full_name,
-        typeLabel: turAdi(type),
-        detail: talepOzet({ type, ...fields }),
-        requestId: Number(r.lastInsertRowid),
-      });
-    }
-    // Takasta karsi tarafa da haber verilir; onayi o baslatir.
-    if (type === 'VARDIYA_TAKAS') {
-      await notify.requestCreated({
-        managerId: fields.target_user_id,
-        requesterName: req.user.full_name,
-        typeLabel: turAdi(type),
-        detail: talepOzet({ type, ...fields }),
-        requestId: Number(r.lastInsertRowid),
-      });
-    }
-
-    await logActivity(req.user, 'TALEP_OLUSTUR', 'personnel_request', r.lastInsertRowid,
-      `${type}: ${fields.shift_date}`, storeId);
-
-    return res.status(201).json({ id: Number(r.lastInsertRowid), ...fields, type, status: 'PENDING' });
+        (user_id, store_id, type, target_user_id, shift_date, target_shift_date, reason)
+      VALUES (?,?,?,?,?,?,?) RETURNING id`,
+      req.user.id, storeId, type, fields.target_user_id, fields.shift_date,
+      fields.target_shift_date, reason);
+    return bildirVeDon(Number(r.lastInsertRowid));
   }
+
+  if (type === 'HAFTALIK_OFF') {
+    const offDate = String(body.shift_date || '');
+    if (!TARIH.test(offDate)) {
+      return res.status(400).json({ error: 'OFF günü YYYY-AA-GG biçiminde olmalıdır' });
+    }
+    if (offDate < bugun) {
+      return res.status(400).json({ error: 'Geçmiş bir gün için OFF talebi oluşturulamaz' });
+    }
+    const satirlar = await roster.gunSatirlari(req.user.id, offDate);
+    if (satirlar.some((s) => Number(s.is_day_off) === 1)) {
+      return res.status(400).json({ error: 'Bu gün zaten OFF gününüz' });
+    }
+    // Istege bagli: ayni haftadaki mevcut OFF gunu. Verilirse iki gun yer
+    // degistirir, haftalik OFF sayisi degismez.
+    if (body.target_shift_date) {
+      const eskiOff = String(body.target_shift_date);
+      if (!TARIH.test(eskiOff) || eskiOff === offDate) {
+        return res.status(400).json({ error: 'Değiştirilecek OFF günü geçersiz' });
+      }
+      if (roster.haftaBasi(eskiOff) !== roster.haftaBasi(offDate)) {
+        return res.status(400).json({ error: 'OFF günü yalnızca aynı hafta içinde değiştirilebilir' });
+      }
+      if (eskiOff < bugun) {
+        return res.status(400).json({ error: 'Geçmiş bir OFF günü değiştirilemez' });
+      }
+      const eski = await roster.gunSatirlari(req.user.id, eskiOff);
+      if (!eski.some((s) => Number(s.is_day_off) === 1)) {
+        return res.status(400).json({ error: 'Seçtiğiniz gün çizelgede OFF olarak görünmüyor' });
+      }
+      fields.target_shift_date = eskiOff;
+    }
+    const acik = await queryOne(`
+      SELECT id FROM personnel_requests
+      WHERE user_id = ? AND type = 'HAFTALIK_OFF' AND status = 'PENDING'
+        AND (shift_date IN (?, ?) OR target_shift_date IN (?, ?)) LIMIT 1`,
+    req.user.id, offDate, fields.target_shift_date || offDate,
+    offDate, fields.target_shift_date || offDate);
+    if (acik) return res.status(400).json({ error: 'Bu gün için zaten bekleyen bir OFF talebiniz var' });
+    fields.shift_date = offDate;
+
+    const r = await execute(`
+      INSERT INTO personnel_requests
+        (user_id, store_id, type, shift_date, target_shift_date, reason)
+      VALUES (?,?,?,?,?,?) RETURNING id`,
+      req.user.id, storeId, type, fields.shift_date, fields.target_shift_date,
+      reason || 'Haftalık OFF günü talebi');
+    return bildirVeDon(Number(r.lastInsertRowid));
+  }
+
+  if (type === 'RAPOR') {
+    const from = String(body.start_at || '');
+    const to = String(body.end_at || from);
+    if (!TARIH.test(from) || !TARIH.test(to)) {
+      return res.status(400).json({ error: 'Rapor tarihleri YYYY-AA-GG biçiminde olmalıdır' });
+    }
+    if (to < from) return res.status(400).json({ error: 'Bitiş tarihi başlangıçtan önce olamaz' });
+    const gunSayisi = roster.gunler(from, to).length;
+    if (gunSayisi === 0 || gunSayisi > RAPOR_MAX_GUN) {
+      return res.status(400).json({ error: `Rapor en fazla ${RAPOR_MAX_GUN} gün olabilir` });
+    }
+    const enEski = t.localDate(new Date(Date.now() - 30 * 864e5).toISOString());
+    if (from < enEski) {
+      return res.status(400).json({ error: 'Rapor başlangıcı en fazla 30 gün öncesi olabilir' });
+    }
+    const gorsel = body.attachment;
+    if (typeof gorsel !== 'string' || !gorsel) {
+      return res.status(400).json({ error: 'Rapor görseli zorunludur' });
+    }
+    if (!RAPOR_GORSEL.test(gorsel)) {
+      return res.status(400).json({ error: 'Geçersiz görsel biçimi. PNG, JPEG veya WEBP olmalıdır.' });
+    }
+    if (gorsel.length > RAPOR_GORSEL_MAX) {
+      return res.status(400).json({ error: 'Görsel çok büyük. Lütfen daha küçük bir fotoğraf seçin.' });
+    }
+    const clash = await queryOne(`
+      SELECT id, start_at, end_at FROM personnel_requests
+      WHERE user_id = ? AND type = 'RAPOR' AND status IN ('PENDING','APPROVED')
+        AND start_at <= ? AND end_at >= ? LIMIT 1`, req.user.id, to, from);
+    if (clash) {
+      return res.status(400).json({
+        error: `${clash.start_at} - ${clash.end_at} tarihlerinde zaten bir rapor kaydınız var`,
+      });
+    }
+    fields.start_at = from;
+    fields.end_at = to;
+    fields.days = gunSayisi;
+
+    const r = await execute(`
+      INSERT INTO personnel_requests
+        (user_id, store_id, type, start_at, end_at, days, attachment, reason)
+      VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
+      req.user.id, storeId, type, from, to, gunSayisi, gorsel, reason || 'Rahatsızlık raporu');
+    return bildirVeDon(Number(r.lastInsertRowid), { has_attachment: true });
+  }
+
+  if (!reason) return res.status(400).json({ error: 'Gerekçe zorunludur' });
 
   const balances = await balancesOf(req.user.id);
   const profile = await profileOf(req.user.id);
@@ -381,6 +522,62 @@ router.post('/requests', async (req, res) => {
   res.status(201).json({ id: Number(r.lastInsertRowid), ...fields, type, status: 'PENDING' });
 });
 
+/// Onaylanan talebin haftalik cizelgeye yansimasi (transaction icinde).
+async function cizelgeyeYansit(client, row, assignedTargetId, managerId) {
+  const kayip = (msg) => Object.assign(new Error('roster-changed'), { userMessage: msg });
+  const vardiyasiVar = async (userId, date) => !!(await queryOne(`
+    SELECT id FROM user_shifts
+    WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL LIMIT 1`,
+  userId, date, client));
+
+  if (row.type === 'VARDIYA_DEVIR') {
+    const shift = await queryOne(`
+      SELECT id FROM user_shifts
+      WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL`,
+    row.user_id, row.shift_date, client);
+    if (!shift) throw kayip('Bu vardiya artık çizelgede bulunmuyor; talep onaylanamadı');
+    await execute('UPDATE user_shifts SET user_id = ? WHERE id = ?',
+      [assignedTargetId, shift.id], client);
+    return;
+  }
+  if (row.type === 'VARDIYA_TAKAS') {
+    // Talepten bu yana cizelge degistiyse takasin anlami kalmamis olabilir.
+    if (!await vardiyasiVar(row.user_id, row.shift_date)) {
+      throw kayip('Talep eden personelin vardiyası artık çizelgede yok; talep onaylanamadı');
+    }
+    if (row.target_shift_date && !await vardiyasiVar(row.target_user_id, row.target_shift_date)) {
+      throw kayip('Karşı tarafın vardiyası artık çizelgede yok; talep onaylanamadı');
+    }
+    await roster.vardiyaTakas(client, {
+      aId: Number(row.user_id),
+      bId: Number(row.target_user_id),
+      dates: [row.shift_date, row.target_shift_date || row.shift_date],
+    });
+    return;
+  }
+  if (row.type === 'HAFTALIK_OFF') {
+    if (row.target_shift_date) {
+      const eski = await queryOne(`
+        SELECT id FROM user_shifts
+        WHERE user_id = ? AND work_date = ? AND is_day_off = 1`,
+      row.user_id, row.target_shift_date, client);
+      if (!eski) throw kayip('Değiştirilecek OFF günü artık çizelgede yok; talep onaylanamadı');
+    }
+    await roster.haftalikOff(client, {
+      userId: Number(row.user_id),
+      offDate: row.shift_date,
+      swapDate: row.target_shift_date || null,
+      assignedBy: managerId,
+    });
+    return;
+  }
+  if (row.type === 'RAPOR') {
+    await roster.raporIsle(client, {
+      userId: Number(row.user_id), from: row.start_at, to: row.end_at, assignedBy: managerId,
+    });
+  }
+}
+
 /// Onay / ret. Karar verilmis talep tekrar karara acilmaz.
 async function decide(req, res, next) {
   const approve = next === 'APPROVED';
@@ -443,23 +640,13 @@ async function decide(req, res, next) {
     }
   }
 
-  if (approve && SHIFT_TYPES.includes(row.type)) {
-    // Vardiya, onayla birlikte yeni personele devredilir; ayni islemde
-    // talep de onaylanir ki yari yolda kalmis (vardiya devretti ama talep
-    // hala bekliyor) bir durum olusmasin.
+  if (approve && ROSTER_TYPES.includes(row.type)) {
+    // Cizelge onayla birlikte degisir; ayni islemde talep de onaylanir ki
+    // yari yolda kalmis (vardiya tasindi ama talep hala bekliyor) bir durum
+    // olusmasin.
     try {
       await transaction(async (client) => {
-        const shift = await queryOne(`
-          SELECT id FROM user_shifts
-          WHERE user_id = ? AND work_date = ? AND shift_id IS NOT NULL`,
-          row.user_id, row.shift_date, client);
-        if (!shift) {
-          throw Object.assign(new Error('shift-gone'), {
-            userMessage: 'Bu vardiya artık çizelgede bulunmuyor; talep onaylanamadı',
-          });
-        }
-        await execute('UPDATE user_shifts SET user_id = ? WHERE id = ?',
-          [assignedTargetId, shift.id], client);
+        await cizelgeyeYansit(client, row, assignedTargetId, req.user.id);
         await execute(`
           UPDATE personnel_requests SET status=?, manager_id=?, decision_note=?,
             target_user_id=?,
@@ -470,7 +657,7 @@ async function decide(req, res, next) {
       if (e.userMessage) return res.status(400).json({ error: e.userMessage });
       if (e.code === '23505') {
         return res.status(400).json({
-          error: 'Hedef personelin o tarihte zaten bir vardiyası var; önce onu düzenleyin',
+          error: 'Çizelgede çakışan bir vardiya var (aynı gün aynı vardiya); önce onu düzenleyin',
         });
       }
       throw e;
@@ -538,6 +725,20 @@ router.post('/requests/:id/confirm', async (req, res) => {
     'Vardiya takas talebine karşı taraf onayı verildi', row.store_id);
 
   res.json({ ok: true });
+});
+
+/// Rapor gorseli. Talep sahibi ve talebin magazasini goren yonetici acabilir.
+router.get('/requests/:id/attachment', async (req, res) => {
+  const row = await queryOne(
+    'SELECT user_id, store_id, attachment FROM personnel_requests WHERE id = ?',
+    Number(req.params.id));
+  if (!row || !row.attachment) return res.status(404).json({ error: 'Görsel bulunamadı' });
+  const isOwner = Number(row.user_id) === Number(req.user.id);
+  if (!isOwner && !(MANAGER_ROLES.includes(req.user.role) && allowsStore(req, row.store_id))) {
+    return res.status(403).json({ error: 'Bu görsele erişim yetkiniz yok' });
+  }
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ data_url: row.attachment });
 });
 
 /// Personel bekleyen kendi talebini geri alabilir.

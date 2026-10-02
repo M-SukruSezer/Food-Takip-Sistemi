@@ -13,8 +13,7 @@ import '../core/tokens.dart';
 /// - Mağaza konum doğrulama rozeti (Geo-Fence badge: "Düzce Merkez Colombia Coffee 📍")
 /// - Işıltılı zümrüt yeşili hedef çerçevesi ve köşe braketleri
 /// - Animasyonlu yeşil tarama lazeri
-/// - Flaş aç/kapat ve PIN girişi hızlı aksiyon hap butonları
-/// - Güvenlik & gizlilik bilgilendirme alt metni
+/// QR okutulamazsa üst bardaki "PIN ile Giriş" ile 6 haneli PIN girilir.
 class QrScanScreen extends StatefulWidget {
   const QrScanScreen({super.key, required this.title});
 
@@ -133,7 +132,6 @@ class _QrScanScreenState extends State<QrScanScreen>
         ),
       ),
       body: _typing ? _manualEntry(t) : _camera(t),
-      bottomNavigationBar: _typing ? null : const _QrBottomBar(),
     );
   }
 
@@ -356,22 +354,9 @@ class _QrScanScreenState extends State<QrScanScreen>
                                 );
                               },
                             ),
-                            Positioned(
-                              bottom: -58,
-                              child: _CameraControls(
-                                controller: _controller,
-                                onPin: () => setState(() => _typing = true),
-                              ),
-                            ),
                           ],
                         ),
                       ),
-                    ),
-                    const Positioned(
-                      left: 22,
-                      right: 22,
-                      bottom: 20,
-                      child: _PrivacyCard(),
                     ),
                   ],
                 );
@@ -440,7 +425,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Store Manager PIN Onayı',
+                              'PIN Doğrulama',
                               style: TextStyle(
                                 fontSize: AppFontSize.title,
                                 fontWeight: FontWeight.w700,
@@ -449,7 +434,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Kamera veya QR arızasında mağaza PIN’ini girin',
+                              'Mağaza müdürü veya vardiya sorumlusunun ekranındaki 60 sn’lik kodu girin',
                               style: TextStyle(
                                 fontSize: AppFontSize.label,
                                 color: t.muted,
@@ -712,276 +697,6 @@ class _InstructionPill extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CameraControls extends StatelessWidget {
-  const _CameraControls({required this.controller, required this.onPin});
-
-  final MobileScannerController controller;
-  final VoidCallback onPin;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Container(
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: t.card,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: t.border),
-        boxShadow: [
-          BoxShadow(
-            color: context.tokens.muted.withValues(alpha: .12),
-            blurRadius: 12,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ValueListenableBuilder<MobileScannerState>(
-            valueListenable: controller,
-            builder: (context, state, _) => _MiniControl(
-              icon: Icons.flashlight_on_outlined,
-              iconColor: context.tokens.warning,
-              label: 'Flaş',
-              onTap: controller.toggleTorch,
-            ),
-          ),
-          const _ControlDivider(),
-          _MiniControl(
-            icon: Icons.cameraswitch_outlined,
-            label: 'Çevir',
-            onTap: controller.switchCamera,
-          ),
-          const _ControlDivider(),
-          _MiniControl(
-            icon: Icons.pin_outlined,
-            iconColor: context.tokens.primary,
-            label: 'PIN',
-            onTap: onPin,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ControlDivider extends StatelessWidget {
-  const _ControlDivider();
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 16,
-    margin: const EdgeInsets.symmetric(horizontal: 11),
-    color: context.tokens.border,
-  );
-}
-
-class _MiniControl extends StatelessWidget {
-  const _MiniControl({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  /// Verilmezse tema `muted` rengi kullanılır.
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: iconColor ?? context.tokens.muted),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppFontSize.caption,
-              fontWeight: FontWeight.w700,
-              color: context.tokens.ink,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _PrivacyCard extends StatelessWidget {
-  const _PrivacyCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: t.card.withValues(alpha: .96),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: t.border),
-        boxShadow: [
-          BoxShadow(
-            color: context.tokens.muted.withValues(alpha: .08),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.verified_user_outlined, size: 17, color: t.primary),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  'KVKK & Veri Güvenliği',
-                  style: TextStyle(
-                    fontSize: AppFontSize.label,
-                    fontWeight: FontWeight.w800,
-                    color: t.ink,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: t.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: t.primary.withValues(alpha: .45)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.timer_outlined, size: 13, color: t.primary),
-                    SizedBox(width: 4),
-                    Text(
-                      'Yenilenme: 24s',
-                      style: TextStyle(
-                        fontSize: AppFontSize.micro,
-                        fontWeight: FontWeight.w700,
-                        color: t.primaryDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          Text(
-            'Görüntü yerel işlenir, sunucuya kaydedilmez. Konum doğrulandı (Hassasiyet: 8m).',
-            style: TextStyle(
-              fontSize: AppFontSize.micro,
-              height: 1.4,
-              color: t.muted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QrBottomBar extends StatelessWidget {
-  const _QrBottomBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 76,
-        decoration: BoxDecoration(
-          color: t.card,
-          border: Border(top: BorderSide(color: t.border)),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _BottomItem(icon: Icons.schedule_rounded, label: 'Devam'),
-            _BottomItem(icon: Icons.calendar_month_outlined, label: 'Çizelge'),
-            _BottomItem(
-              icon: Icons.qr_code_scanner_rounded,
-              label: 'QR Okut',
-              active: true,
-            ),
-            _BottomItem(icon: Icons.checklist_rounded, label: 'Yönetim'),
-            _BottomItem(icon: Icons.menu_rounded, label: 'Menü'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomItem extends StatelessWidget {
-  const _BottomItem({
-    required this.icon,
-    required this.label,
-    this.active = false,
-  });
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 62,
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Transform.translate(
-          offset: Offset(0, active ? -11 : 0),
-          child: Container(
-            width: active ? 46 : 30,
-            height: active ? 46 : 30,
-            decoration: active
-                ? BoxDecoration(
-                    color: context.tokens.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.tokens.primary.withValues(alpha: .24),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  )
-                : null,
-            child: Icon(
-              icon,
-              size: active ? 24 : 20,
-              color: active ? context.tokens.onPrimary : context.tokens.muted,
-            ),
-          ),
-        ),
-        Transform.translate(
-          offset: Offset(0, active ? -8 : 0),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: AppFontSize.micro,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-              color: active ? context.tokens.primary : context.tokens.muted,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _GridBackgroundPainter extends CustomPainter {

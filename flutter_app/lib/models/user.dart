@@ -30,6 +30,7 @@ class AppUser {
     this.avatar,
     this.permissions = const [],
     this.storeIds = const [],
+    this.hiredAt,
   });
 
   final int id;
@@ -46,6 +47,9 @@ class AppUser {
 
   /// Cok magazali rollerde sorumlu olunan magazalar.
   final List<int> storeIds;
+
+  /// İşe giriş tarihi (YYYY-AA-GG), personel tanımından. Tanımsızsa null.
+  final String? hiredAt;
 
   bool get isSuperAdmin => role == 'super_admin';
 
@@ -77,6 +81,7 @@ class AppUser {
     storeIds: (json['store_ids'] as List<dynamic>? ?? const [])
         .map((e) => (e as num).toInt())
         .toList(),
+    hiredAt: json['hired_at'] as String?,
   );
 
   AppUser copyWith({String? avatar, bool clearAvatar = false}) => AppUser(
@@ -89,5 +94,6 @@ class AppUser {
     avatar: clearAvatar ? null : (avatar ?? this.avatar),
     permissions: permissions,
     storeIds: storeIds,
+    hiredAt: hiredAt,
   );
 }

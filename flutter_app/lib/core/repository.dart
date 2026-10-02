@@ -890,6 +890,47 @@ class Repository {
     );
   }
 
+  /// Takas icin secilebilecek ayni magazadaki personel.
+  Future<List<Colleague>> pdksColleagues() async {
+    final r = await _client.dio.get<List<dynamic>>(
+      '/pdks/requests/colleagues',
+      options: apiOptions(silent: true),
+    );
+    return (r.data ?? [])
+        .map((e) => Colleague.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Takas talebinde karsi tarafin onayi.
+  Future<void> pdksConfirmRequest(int id) async {
+    await _client.dio.post(
+      '/pdks/requests/$id/confirm',
+      options: apiOptions(
+        successMessage: 'Takas onaylandı, müdür onayına gönderildi',
+        busyMessage: 'Onaylanıyor...',
+      ),
+    );
+  }
+
+  /// Rapor gorseli (data URL).
+  Future<String?> pdksRequestAttachment(int id) async {
+    final r = await _client.dio.get<Map<String, dynamic>>(
+      '/pdks/requests/$id/attachment',
+      options: apiOptions(busyMessage: 'Rapor yükleniyor...'),
+    );
+    return r.data?['data_url'] as String?;
+  }
+
+  /// PIN Dogrulama: 60 sn'de bir degisen 6 haneli kod.
+  Future<RotatingPin> pdksCurrentPin({int? storeId}) async {
+    final r = await _client.dio.get<Map<String, dynamic>>(
+      '/pdks/pin/current',
+      queryParameters: {'storeId': ?storeId?.toString()},
+      options: apiOptions(noToast: true),
+    );
+    return RotatingPin.fromJson(r.data ?? const {});
+  }
+
   Future<void> pdksCancelRequest(int id) async {
     await _client.dio.post(
       '/pdks/requests/$id/cancel',

@@ -135,17 +135,25 @@ async function buildEntry({ req, store, body, atIso }) {
     qr_token_hash: null,
   };
 
-  // 1. etken: QR token ya da magazaya ozel yonetici PIN'i. PIN yalnizca
-  // kamera arizasi gibi durumlar icin alternatif kimlik dogrulamasidir;
-  // konum ve cihaz butunlugu kontrollerini gevsetmez.
+  // 1. etken: QR token ya da PIN. PIN yalnizca kamera arizasi gibi
+  // durumlar icin alternatif kimlik dogrulamasidir; konum ve cihaz
+  // butunlugu kontrollerini gevsetmez.
+  //   - Donen PIN: mudurun / vardiya sorumlusunun "PIN Doğrulama"
+  //     ekranindaki, 60 sn'de bir degisen 6 haneli kod (qr.verifyPin).
+  //   - Sabit magaza PIN'i (tanimliysa): eski yontem, geriye uyumluluk icin.
   let mode;
   if (body.manager_pin !== undefined) {
     const pin = String(body.manager_pin || '');
-    if (!/^\d{6}$/.test(pin)) return { error: 'Mağaza PIN’i 6 haneli olmalıdır' };
-    if (!store.pdks_pin_hash || !verifyPassword(pin, store.pdks_pin_hash)) {
-      return { error: 'Mağaza PIN’i hatalı' };
+    if (!/^\d{6}$/.test(pin)) return { error: 'PIN 6 haneli olmalıdır' };
+    const v = qr.verifyPin(pin, store, new Date(atIso).getTime());
+    if (v.ok) {
+      entry.qr_token_hash = v.tokenHash;
+      mode = 'rotating_pin';
+    } else if (store.pdks_pin_hash && verifyPassword(pin, store.pdks_pin_hash)) {
+      mode = 'manager_pin';
+    } else {
+      return { error: 'PIN hatalı ya da süresi doldu; yöneticinizin ekranındaki güncel kodu girin' };
     }
-    mode = 'manager_pin';
   } else {
     const v = qr.verifyToken(body.qr_token, store, new Date(atIso).getTime());
     if (!v.ok) return { error: v.reason };
@@ -313,7 +321,11 @@ async function punch(req, res, type) {
   } catch (e) {
     // Tekil indeks: ayni personel ayni token'i ikinci kez okutmus.
     if (String(e.message).includes('idx_attendance_qr_token_user')) {
-      return res.status(400).json({ error: 'Bu QR kod zaten kullanıldı, yeni kodu okutun' });
+      return res.status(400).json({
+        error: built.mode === 'rotating_pin'
+          ? 'Bu PIN zaten kullanıldı, yeni kodu bekleyin'
+          : 'Bu QR kod zaten kullanıldı, yeni kodu okutun',
+      });
     }
     throw e;
   }
@@ -401,6 +413,22 @@ router.get('/me', async (req, res) => {
     })),
     logs,
   });
+});
+
+/// PIN Dogrulama: QR okutamayan personelin girecegi 60 sn'lik 6 haneli kod.
+/// Yalnizca magaza muduru ve vardiya sorumlusu (ve ust yonetim) gorur.
+router.get('/pin/current', requireRole(...KIOSK_ROLES), async (req, res) => {
+  const storeId = req.query.storeId ? Number(req.query.storeId) : req.user.store_id;
+  if (!storeId) return res.status(400).json({ error: 'Mağaza belirtilmeli' });
+  if (!allowsStore(req, storeId)) {
+    return res.status(403).json({ error: 'Bu mağazaya erişim yetkiniz yok' });
+  }
+  const store = await getStore(storeId);
+  if (!store) return res.status(404).json({ error: 'Mağaza bulunamadı' });
+  if (!store.pdks_enabled) return res.status(400).json({ error: 'Bu mağazada PDKS etkin değil' });
+  if (!store.qr_secret) return res.status(400).json({ error: 'Bu mağazada QR/PIN ile giriş tanımlı değil' });
+  res.set('Cache-Control', 'no-store');
+  res.json({ store: { id: store.id, name: store.name }, ...qr.issuePin(store) });
 });
 
 /// Magazanin gosterecegi QR kod.

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 num? _numOrNull(dynamic v) {
   if (v == null) return null;
   if (v is num) return v;
@@ -414,6 +416,7 @@ class PersonnelRequest {
     required this.type,
     required this.status,
     required this.reason,
+    this.userId,
     this.fullName,
     this.startAt,
     this.endAt,
@@ -422,12 +425,20 @@ class PersonnelRequest {
     this.amount,
     this.managerName,
     this.decisionNote,
+    this.targetUserId,
+    this.targetName,
+    this.shiftDate,
+    this.targetShiftDate,
+    this.targetConfirmedAt,
+    this.hasAttachment = false,
+    this.createdAt,
   });
 
   final int id;
   final String type;
   final String status;
   final String reason;
+  final int? userId;
   final String? fullName;
   final String? startAt;
   final String? endAt;
@@ -437,16 +448,33 @@ class PersonnelRequest {
   final String? managerName;
   final String? decisionNote;
 
+  /// Takasta karsi taraf, devirde atanan personel.
+  final int? targetUserId;
+  final String? targetName;
+
+  /// Takasta talep edenin vardiya gunu; haftalik OFF'ta istenen OFF gunu.
+  final String? shiftDate;
+
+  /// Takasta karsi tarafin vardiya gunu (bos = ayni gun); haftalik OFF'ta
+  /// yerine verilecek mevcut OFF gunu.
+  final String? targetShiftDate;
+  final String? targetConfirmedAt;
+
+  /// Rapor gorseli var mi (gorselin kendisi ayri uctan gelir).
+  final bool hasAttachment;
+  final String? createdAt;
+
   bool get isPending => status == 'PENDING';
 
-  String get typeLabel => switch (type) {
-    'IZIN' => 'Yıllık İzin',
-    'SAATLIK_IZIN' => 'Saatlik İzin',
-    _ => type,
-  };
+  /// Takasta karsi tarafin onayi bekleniyor mu?
+  bool get awaitsTarget =>
+      type == 'VARDIYA_TAKAS' && isPending && targetConfirmedAt == null;
+
+  String get typeLabel => requestTypeLabel(type);
 
   String get statusLabel => switch (status) {
-    'PENDING' => 'Bekliyor',
+    'PENDING' when awaitsTarget => 'Karşı Taraf Onayı',
+    'PENDING' => 'Müdür Onayında',
     'APPROVED' => 'Onaylandı',
     'REJECTED' => 'Reddedildi',
     _ => 'İptal',
@@ -457,6 +485,7 @@ class PersonnelRequest {
     type: j['type'] as String? ?? '',
     status: j['status'] as String? ?? 'PENDING',
     reason: j['reason'] as String? ?? '',
+    userId: j['user_id'] == null ? null : _int(j['user_id']),
     fullName: j['full_name'] as String?,
     startAt: j['start_at'] as String?,
     endAt: j['end_at'] as String?,
@@ -465,6 +494,59 @@ class PersonnelRequest {
     amount: _numOrNull(j['amount']),
     managerName: j['manager_name'] as String?,
     decisionNote: j['decision_note'] as String?,
+    targetUserId: j['target_user_id'] == null
+        ? null
+        : _int(j['target_user_id']),
+    targetName: j['target_name'] as String?,
+    shiftDate: j['shift_date'] as String?,
+    targetShiftDate: j['target_shift_date'] as String?,
+    targetConfirmedAt: j['target_confirmed_at'] as String?,
+    hasAttachment: j['has_attachment'] == true,
+    createdAt: j['created_at'] as String?,
+  );
+}
+
+/// Talep turlerinin ekranda gorunen adlari.
+String requestTypeLabel(String type) => switch (type) {
+  'IZIN' => 'Yıllık İzin',
+  'SAATLIK_IZIN' => 'Saatlik İzin',
+  'VARDIYA_TAKAS' => 'Vardiya Takası',
+  'VARDIYA_DEVIR' => 'Vardiya Devri',
+  'HAFTALIK_OFF' => 'Haftalık OFF',
+  'RAPOR' => 'Rapor',
+  _ => type,
+};
+
+/// Ayni magazadaki meslektas (takas icin secilir).
+class Colleague {
+  const Colleague({required this.id, required this.fullName});
+
+  final int id;
+  final String fullName;
+
+  factory Colleague.fromJson(Map<String, dynamic> j) =>
+      Colleague(id: _int(j['id']), fullName: j['full_name'] as String? ?? '');
+}
+
+/// PIN Dogrulama ekranindaki 60 sn'lik kod.
+class RotatingPin {
+  const RotatingPin({
+    required this.pin,
+    required this.expiresIn,
+    required this.windowSeconds,
+    this.storeName,
+  });
+
+  final String pin;
+  final int expiresIn;
+  final int windowSeconds;
+  final String? storeName;
+
+  factory RotatingPin.fromJson(Map<String, dynamic> j) => RotatingPin(
+    pin: j['pin'] as String? ?? '',
+    expiresIn: _int(j['expires_in']),
+    windowSeconds: _int(j['window_seconds'] ?? 60),
+    storeName: (j['store'] as Map<String, dynamic>?)?['name'] as String?,
   );
 }
 
@@ -1046,6 +1128,7 @@ class RosterCell {
     this.endTime,
     this.breakDurationMinutes = 0,
     this.isDayOff = false,
+    this.note,
     this.crossesMidnight = false,
     this.minutes = 0,
     this.spanMinutes = 0,
@@ -1062,6 +1145,11 @@ class RosterCell {
   final String? endTime;
   final int breakDurationMinutes;
   final bool isDayOff;
+
+  /// 'RAPOR': mudurun onayladigi rapor gunu (tatil satiri olarak tutulur).
+  final String? note;
+
+  bool get isRapor => isDayOff && note == 'RAPOR';
 
   /// 22:00-06:00 gibi gece vardiyasi; cizelgede ertesi gune sarkar.
   final bool crossesMidnight;
@@ -1092,6 +1180,7 @@ class RosterCell {
     endTime: j['end_time'] as String?,
     breakDurationMinutes: _int(j['break_duration_minutes']),
     isDayOff: j['is_day_off'] == true,
+    note: j['note'] as String?,
     crossesMidnight: j['crosses_midnight'] == true,
     minutes: _int(j['minutes']),
     spanMinutes: _int(j['span_minutes']),
@@ -1256,4 +1345,63 @@ enum PdksPunch {
 
   /// Basarili islem bildirimi.
   final String mesaj;
+}
+
+/// Bugünün tek bir molası: MOLA_BASLA ile MOLA_BITIR arası. [end] null ise
+/// mola hâlâ sürüyor.
+class BreakSegment {
+  const BreakSegment({required this.start, this.end});
+
+  final DateTime start;
+  final DateTime? end;
+
+  bool get ongoing => end == null;
+
+  int minutesAt(DateTime now) =>
+      math.max(0, (end ?? now).difference(start).inMinutes);
+}
+
+/// Günün devam kayıtlarından gerçek molaları çıkarır (demo veri yok).
+/// Kayıtlar sırasız gelebilir; zamana göre sıralanır. Bitişi olmayan son
+/// mola sürüyor sayılır.
+List<BreakSegment> breakSegmentsOf(List<AttendanceLog> logs) {
+  final sorted = [...logs]
+    ..sort((a, b) => a.occurredAt.compareTo(b.occurredAt));
+  final out = <BreakSegment>[];
+  DateTime? acik;
+  for (final l in sorted) {
+    final at = DateTime.tryParse(l.occurredAt)?.toLocal();
+    if (at == null) continue;
+    if (l.type == 'MOLA_BASLA') {
+      acik = at;
+    } else if (l.type == 'MOLA_BITIR' && acik != null) {
+      out.add(BreakSegment(start: acik, end: at));
+      acik = null;
+    } else if (l.type == 'CIKIS' && acik != null) {
+      // Moladan çıkış yapılmadan mesai kapandıysa mola orada biter.
+      out.add(BreakSegment(start: acik, end: at));
+      acik = null;
+    }
+  }
+  if (acik != null) out.add(BreakSegment(start: acik));
+  return out;
+}
+
+/// Vardiyanın şu ana kadar geçen oranı (0..1). Gece yarısını geçen
+/// vardiyalar desteklenir; saatler okunamazsa null.
+double? shiftProgress(String start, String end, DateTime now) {
+  int? dk(String hhmm) {
+    final p = hhmm.split(':');
+    if (p.length < 2) return null;
+    final h = int.tryParse(p[0]), m = int.tryParse(p[1]);
+    return h == null || m == null ? null : h * 60 + m;
+  }
+
+  final s = dk(start), e = dk(end);
+  if (s == null || e == null) return null;
+  final uzunluk = e > s ? e - s : e + 1440 - s;
+  if (uzunluk <= 0) return null;
+  var simdi = now.hour * 60 + now.minute;
+  if (simdi < s && e < s) simdi += 1440; // gece yarısını geçmiş vardiya
+  return ((simdi - s) / uzunluk).clamp(0.0, 1.0);
 }

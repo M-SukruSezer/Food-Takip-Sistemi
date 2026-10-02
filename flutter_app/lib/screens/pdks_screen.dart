@@ -8,9 +8,8 @@ import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/pdks.dart';
 import '../widgets/crud_scaffold.dart';
-import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
-import 'pdks_dialogs.dart';
+import 'requests_screen.dart';
 import '../widgets/pdks_qr_action.dart';
 
 /// Personel devam takibi ekrani.
@@ -110,25 +109,13 @@ class _PdksScreenState extends State<PdksScreen> {
         .onError((Object _, StackTrace _) {});
   }
 
-  Future<void> _newRequest() async {
-    final ok = await showRequestDialog(context, balance: _balance);
-    if (ok == true) await _load(silent: true);
-  }
-
-  Future<void> _cancel(PersonnelRequest r) async {
-    final ok = await confirmDialog(
+  Future<void> _newRequest({String initialType = 'IZIN'}) async {
+    final ok = await showNewRequestDialog(
       context,
-      title: 'Talebi Geri Al',
-      confirmLabel: 'Geri Al',
-      body: Text('${r.typeLabel} talebiniz geri alınacak.'),
+      balance: _balance,
+      initialType: initialType,
     );
-    if (ok != true) return;
-    try {
-      await repo.pdksCancelRequest(r.id);
-    } catch (_) {
-      // Bildirim API katmanindan gelir.
-    }
-    await _load(silent: true);
+    if (ok == true) await _load(silent: true);
   }
 
   @override
@@ -196,7 +183,7 @@ class _PdksScreenState extends State<PdksScreen> {
                   FilledButton.icon(
                     onPressed: _newRequest,
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Yeni İzin'),
+                    label: const Text('Yeni Talep'),
                   ),
                 ],
               ),
@@ -208,7 +195,10 @@ class _PdksScreenState extends State<PdksScreen> {
                 )
               else
                 ..._requests.map(
-                  (r) => _RequestRow(request: r, onCancel: () => _cancel(r)),
+                  (r) => RequestCard(
+                    request: r,
+                    onChanged: () => _load(silent: true),
+                  ),
                 ),
             ],
           ),
@@ -266,7 +256,7 @@ class _PdksScreenState extends State<PdksScreen> {
             ],
           ),
         ),
-        _ShiftSwapCard(onSwap: _newRequest),
+        _ShiftSwapCard(onSwap: () => _newRequest(initialType: 'VARDIYA_TAKAS')),
       ],
     );
   }
@@ -453,11 +443,16 @@ class _TodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final firstShift = status.shifts.isNotEmpty ? status.shifts.first : null;
-    final breakTotal = firstShift != null && firstShift.breakMinutes > 0
-        ? firstShift.breakMinutes
-        : 60;
-    final breakUsed = status.breakMinutesToday;
+    // Mola verisi CANLI: hak vardiya tanımından, kullanım bugünün devam
+    // kayıtlarından (MOLA_BASLA / MOLA_BITIR) gelir.
+    final now = DateTime.now();
+    final breaks = breakSegmentsOf(status.logs);
+    final breakTotal = firstShift?.breakMinutes ?? 0;
+    final breakUsed = breaks.fold<int>(0, (a, b) => a + b.minutesAt(now));
     final breakRemaining = math.max(0, breakTotal - breakUsed);
+    final progress = firstShift == null
+        ? null
+        : shiftProgress(firstShift.startTime, firstShift.endTime, now);
 
     return AppCard(
       child: Column(
@@ -539,39 +534,13 @@ class _TodayCard extends StatelessWidget {
                             color: t.ink,
                           ),
                         ),
-                        Text(
-                          '(8 Saat Mesai)',
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            color: t.muted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: status.isInside ? t.successSoft : t.border,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            status.isInside ? 'Devam Ediyor' : 'Planlandı',
-                            style: TextStyle(
-                              fontSize: AppFontSize.micro,
-                              fontWeight: FontWeight.w700,
-                              color: status.isInside ? t.okText : t.muted,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
-                        value: status.isInside ? 0.55 : 0.0,
+                        value: status.isInside ? (progress ?? 0) : 0,
                         minHeight: 6,
                         backgroundColor: t.border,
                         valueColor: AlwaysStoppedAnimation<Color>(t.primary),
@@ -645,7 +614,9 @@ class _TodayCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Toplam: $breakTotal dk',
+                        breakTotal > 0
+                            ? 'Toplam: $breakTotal dk'
+                            : 'Hak tanımsız',
                         style: TextStyle(
                           fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w600,
@@ -660,7 +631,7 @@ class _TodayCard extends StatelessWidget {
                       Expanded(
                         child: _BreakMetricBox(
                           label: 'Toplam Hak',
-                          value: '$breakTotal dk',
+                          value: breakTotal > 0 ? '$breakTotal dk' : '—',
                           color: t.ink,
                         ),
                       ),
@@ -676,7 +647,7 @@ class _TodayCard extends StatelessWidget {
                       Expanded(
                         child: _BreakMetricBox(
                           label: 'Kalan Mola',
-                          value: '$breakRemaining dk',
+                          value: breakTotal > 0 ? '$breakRemaining dk' : '—',
                           color: t.warningText,
                         ),
                       ),
@@ -685,59 +656,29 @@ class _TodayCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Divider(height: 1, color: t.border),
                   const SizedBox(height: 8),
-                  _BreakSlotRow(
-                    title: '1. Çay Molası',
-                    duration: '15 dk',
-                    status: 'Tamamlandı',
-                    icon: Icons.check_circle,
-                    iconColor: t.success,
-                  ),
-                  const SizedBox(height: 6),
-                  _BreakSlotRow(
-                    title: 'Yemek Molası',
-                    duration: '30 dk',
-                    status: status.onBreak ? 'Kullanılıyor' : 'Kullanıldı',
-                    icon: Icons.access_time_rounded,
-                    iconColor: t.primary,
-                  ),
-                  const SizedBox(height: 6),
-                  _BreakSlotRow(
-                    title: '2. Çay Molası',
-                    duration: '15 dk',
-                    status: 'Planlandı',
-                    icon: Icons.hourglass_empty_rounded,
-                    iconColor: t.muted,
-                  ),
-                  const SizedBox(height: 8),
-                  Divider(height: 1, color: t.border),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          status.store != null
-                              ? 'Mağaza: ${status.store!.name}'
-                              : 'Mola takibi aktif',
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            color: t.muted,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  if (breaks.isEmpty)
+                    Text(
+                      'Bugün henüz mola kullanılmadı.',
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: t.muted,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Detaylar',
-                        style: TextStyle(
-                          fontSize: AppFontSize.caption,
-                          fontWeight: FontWeight.w700,
-                          color: t.primary,
-                        ),
+                    )
+                  else
+                    for (final (i, m) in breaks.indexed) ...[
+                      if (i > 0) const SizedBox(height: 6),
+                      _BreakSlotRow(
+                        title:
+                            '${i + 1}. Mola · ${fmtClock(m.start)}'
+                            '${m.end != null ? ' – ${fmtClock(m.end!)}' : ''}',
+                        duration: '${m.minutesAt(now)} dk',
+                        status: m.ongoing ? 'Sürüyor' : 'Tamamlandı',
+                        icon: m.ongoing
+                            ? Icons.access_time_rounded
+                            : Icons.check_circle,
+                        iconColor: m.ongoing ? t.primary : t.success,
                       ),
                     ],
-                  ),
                 ],
               ),
             ),
@@ -1033,104 +974,6 @@ class _BalanceCard extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RequestRow extends StatelessWidget {
-  const _RequestRow({required this.request, required this.onCancel});
-
-  final PersonnelRequest request;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final r = request;
-    final detail = r.type == 'IZIN'
-        ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
-        : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.tokens.bg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.tokens.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  r.typeLabel,
-                  style: TextStyle(
-                    fontSize: AppFontSize.bodyLarge,
-                    fontWeight: FontWeight.w700,
-                    color: t.ink,
-                  ),
-                ),
-              ),
-              Pill(
-                text: r.statusLabel,
-                color: r.isPending
-                    ? t.warning
-                    : r.status == 'APPROVED'
-                    ? t.success
-                    : t.danger,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            detail,
-            style: TextStyle(
-              fontSize: AppFontSize.body,
-              fontWeight: FontWeight.w500,
-              color: t.ink,
-            ),
-          ),
-          if (r.reason.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(
-              r.reason,
-              style: TextStyle(fontSize: AppFontSize.label, color: t.muted),
-            ),
-          ],
-          if (r.decisionNote != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              'Karar notu: ${r.decisionNote}',
-              style: TextStyle(fontSize: AppFontSize.label, color: t.danger),
-            ),
-          ],
-          if (r.isPending) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: t.danger,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: onCancel,
-                child: const Text(
-                  'İptal',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );

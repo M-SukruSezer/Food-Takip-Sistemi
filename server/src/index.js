@@ -11,8 +11,9 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
-// Profil fotosu base64 veri URL'si olarak gelir; varsayilan 100kb yetmez.
-app.use(express.json({ limit: '1mb' }));
+// Profil fotosu ve rapor gorseli base64 veri URL'si olarak gelir; varsayilan
+// 100kb yetmez. Vercel'in istek siniri 4,5 MB, bu yuzden onun altinda.
+app.use(express.json({ limit: '4mb' }));
 
 // Saglik ucu. push alani YALNIZCA boolean: anahtarin tanimli olup olmadigini
 // soyluyor, degerinden hicbir sey sizdirmiyor. Dagitimdan sonra push'un

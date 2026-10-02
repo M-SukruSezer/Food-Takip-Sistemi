@@ -507,29 +507,6 @@ class _TotalsGrid extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) {
-    final columns = narrow ? 2 : 4;
-    return Column(
-      children: [
-        for (var start = 0; start < children.length; start += columns) ...[
-          if (start > 0) const SizedBox(height: AppTokens.gap),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var col = 0; col < columns; col++) ...[
-                  if (col > 0) const SizedBox(width: AppTokens.gap),
-                  Expanded(
-                    child: start + col < children.length
-                        ? children[start + col]
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      EqualTileGrid(maxColumns: 4, children: children);
 }

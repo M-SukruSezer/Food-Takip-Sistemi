@@ -377,7 +377,6 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final narrow = context.isCompact;
     final t = context.tokens;
     final frozenQty = counts?.frozenQty ?? (counts?.frozen ?? 0);
     final frozenCount = counts?.frozen ?? 0;
@@ -385,13 +384,8 @@ class _StatsGrid extends StatelessWidget {
     final cabinetQty = counts?.cabinetQty ?? (counts?.cabinet ?? 0);
     final criticalQty = counts?.expiringCount ?? 0;
 
-    return GridView.count(
-      crossAxisCount: narrow ? 2 : 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: narrow ? 1.45 : 1.7,
+    return EqualTileGrid(
+      maxColumns: 4,
       children: [
         _MetricCard(
           title: 'DONUK DEPO',

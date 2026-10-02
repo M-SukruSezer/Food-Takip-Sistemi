@@ -142,7 +142,55 @@ function verifyToken(raw, store, at = Date.now()) {
   return { ok: false, reason: 'Tanınmayan QR kod' };
 }
 
+// ---- PIN dogrulama ----
+//
+// QR okutulamadiginda (kamera arizasi, kirik ekran) personel, magaza
+// mudurunun / vardiya sorumlusunun ekranindaki 6 haneli kodu girer. Kod donen
+// QR ile ayni sirdan, ayni 60 sn pencereyle uretilir (TOTP benzeri): sir
+// istemciye gitmez, fotograflanan/soylenen kod pencere kapaninca gecersizdir.
+
+const PIN_PREFIX = 'PDKSPIN';
+
+/// Pencereye ait 6 haneli kod (RFC 4226 dinamik kesme).
+function pinFor(secret, storeId, w) {
+  const mac = crypto.createHmac('sha256', secret).update(`${PIN_PREFIX}:${storeId}:${w}`).digest();
+  const off = mac[mac.length - 1] & 0x0f;
+  const bin = ((mac[off] & 0x7f) << 24) | (mac[off + 1] << 16) | (mac[off + 2] << 8) | mac[off + 3];
+  return String(bin % 1000000).padStart(6, '0');
+}
+
+/// Yoneticinin ekraninda gosterilecek guncel PIN.
+function issuePin(store, at = Date.now()) {
+  if (!store.qr_secret) throw new Error('Mağazanın QR sırrı tanımlanmamış');
+  const w = windowIndex(at);
+  return {
+    pin: pinFor(store.qr_secret, store.id, w),
+    expires_in: WINDOW_SECONDS - Math.floor((at / 1000) % WINDOW_SECONDS),
+    window_seconds: WINDOW_SECONDS,
+  };
+}
+
+/// PIN'i dogrular. Saat kaymasi ve yazma gecikmesi icin bir onceki pencere
+/// de kabul edilir (sonraki degil: henuz gosterilmemis kod tahmin edilemez).
+/// Doner: { ok, tokenHash } — tokenHash ayni kodun ikinci kez kullanilmasini
+/// QR'daki tekil indeksle engeller.
+function verifyPin(raw, store, at = Date.now()) {
+  if (!store.qr_secret || typeof raw !== 'string' || !/^\d{6}$/.test(raw)) return { ok: false };
+  const now = windowIndex(at);
+  for (const w of [now, now - WINDOW_TOLERANCE]) {
+    if (safeEqual(raw, pinFor(store.qr_secret, store.id, w))) {
+      return {
+        ok: true,
+        tokenHash: crypto.createHash('sha256').update(`${PIN_PREFIX}:${store.id}:${w}`).digest('hex'),
+      };
+    }
+  }
+  return { ok: false };
+}
+
 module.exports = {
+  issuePin,
+  verifyPin,
   generateSecret,
   issueRotatingToken,
   issueStaticToken,

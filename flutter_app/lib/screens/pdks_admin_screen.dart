@@ -12,6 +12,7 @@ import '../models/pdks.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
+import 'requests_screen.dart';
 import 'pdks_dialogs.dart';
 
 /// Yonetici devam takibi ekrani: anlik durum, talep onayi, puantaj.
@@ -122,7 +123,8 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
       confirmLabel: 'Onayla',
       body: Text(
         '${r.fullName ?? ''} · ${r.typeLabel}\n'
-        '${_detail(r)}\n\n${r.reason}',
+        '${_detail(r)}\n\n${r.reason}'
+        '${_changesRoster(r) ? '\n\nOnayla birlikte haftalık vardiya çizelgesi otomatik güncellenir.' : ''}',
       ),
     );
     if (ok != true) return;
@@ -144,9 +146,20 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
     }
   }
 
-  static String _detail(PersonnelRequest r) => r.type == 'IZIN'
-      ? '${fmtDate(r.startAt)} – ${fmtDate(r.endAt)} (${r.days} gün)'
-      : '${fmtDateTime(r.startAt)} · ${r.hours} saat';
+  static String _detail(PersonnelRequest r) {
+    final ozet = requestSummary(r);
+    return r.type == 'VARDIYA_TAKAS' && r.targetName != null
+        ? '$ozet · ${r.targetName} ile'
+        : ozet;
+  }
+
+  /// Onayla birlikte haftalik cizelgeyi degistiren turler.
+  static bool _changesRoster(PersonnelRequest r) => const [
+    'VARDIYA_TAKAS',
+    'VARDIYA_DEVIR',
+    'HAFTALIK_OFF',
+    'RAPOR',
+  ].contains(r.type);
 
   @override
   Widget build(BuildContext context) {
@@ -645,12 +658,29 @@ class _PdksAdminScreenState extends State<PdksAdminScreen> {
                       color: t.danger,
                     ),
                   ),
+                if (r.awaitsTarget)
+                  Text(
+                    'Takas partnerinin onayı bekleniyor.',
+                    style: TextStyle(
+                      fontSize: AppFontSize.label,
+                      color: t.warning,
+                    ),
+                  ),
+                if (r.hasAttachment)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => showRequestAttachment(context, r),
+                      icon: const Icon(Icons.image_outlined, size: 18),
+                      label: const Text('Raporu Gör'),
+                    ),
+                  ),
                 if (r.isPending) ...[
                   const SizedBox(height: 10),
                   CardActions(
                     children: [
                       FilledButton(
-                        onPressed: () => _approve(r),
+                        onPressed: r.awaitsTarget ? null : () => _approve(r),
                         child: const Text('Onayla'),
                       ),
                       OutlinedButton(

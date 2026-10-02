@@ -145,6 +145,17 @@ const navSections = <NavSection>[
             roles: pdksRoles,
             inBottomBar: true,
           ),
+          // Baristanin tum talepleri (izin, takas, OFF, rapor) tek yerde.
+          // Alt barda QR dugmesinin hemen sagina duser: ilk iki kisayol
+          // (Devam, Cizelge) QR'in solunda, bu ucuncu oge saginda.
+          NavItem(
+            path: '/requests',
+            label: 'Taleplerim',
+            shortLabel: 'Taleplerim',
+            icon: Icons.assignment_turned_in_outlined,
+            roles: ['barista'],
+            inBottomBar: true,
+          ),
           NavItem(
             path: '/pdks-admin',
             label: 'Devam Yönetimi',
@@ -152,6 +163,14 @@ const navSections = <NavSection>[
             icon: Icons.fact_check_outlined,
             roles: managerRoles,
             inBottomBar: true,
+          ),
+          // QR okutamayan partner icin 60 sn'lik 6 haneli kod.
+          NavItem(
+            path: '/pin',
+            label: 'PIN Doğrulama',
+            shortLabel: 'PIN',
+            icon: Icons.pin_outlined,
+            roles: ['store_manager', 'shift_supervisor'],
           ),
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden

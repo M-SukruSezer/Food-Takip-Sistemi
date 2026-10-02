@@ -315,7 +315,7 @@ router.get('/roster', async (req, res) => {
   const ph = ids.map(() => '?').join(',');
 
   const rows = await queryAll(`
-    SELECT us.id AS assignment_id, us.user_id, us.work_date, us.is_day_off,
+    SELECT us.id AS assignment_id, us.user_id, us.work_date, us.is_day_off, us.note,
            s.id AS shift_id, s.name AS shift_name, s.start_time, s.end_time,
            s.break_duration_minutes
     FROM user_shifts us LEFT JOIN shifts s ON s.id = us.shift_id
@@ -344,6 +344,8 @@ router.get('/roster', async (req, res) => {
       end_time: r.end_time,
       break_duration_minutes: r.break_duration_minutes,
       is_day_off: !!r.is_day_off,
+      // 'RAPOR': onaylanan rapor gunu; cizelgede "Rapor" olarak gorunur.
+      note: r.note || null,
       // Gece vardiyasi isaretlenir: 22:00-06:00 cizelgede ertesi gune sarkar.
       crosses_midnight: calisma ? t.crossesMidnight(r.start_time, r.end_time) : false,
       // minutes NET calisma: ara dinlenmesi DUSULMUS. Cizelgede "planlanan
