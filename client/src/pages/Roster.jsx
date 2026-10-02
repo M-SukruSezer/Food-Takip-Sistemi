@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Save, Send,
-  MessageCircle, RotateCcw, CheckCircle2,
+  CalendarRange, ChevronLeft, ChevronRight, FileText, Users, Coffee, Save,
+  RotateCcw, CheckCircle2, Pencil, Trash2, StickyNote, Plus,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Modal, toast } from '../components/ui';
-import { errorMessage, fmtDate } from '../format';
+import { Modal, Confirm, toast } from '../components/ui';
+import { SwipeRow } from '../components/actions';
+import { errorMessage, fmtDate, fmtDateTime } from '../format';
 import { PDF_FONT, pdfFontKur } from '../pdfFont';
 
 // Toplu vardiya cizelgesi: magazanin TUM ekibi bir arada, haftalik ya da
@@ -86,7 +87,10 @@ export default function Roster() {
   const [bekleyen, setBekleyen] = useState({});
   const [kaydediyor, setKaydediyor] = useState(false);
   const [cakisma, setCakisma] = useState(null);
-  const [whatsapp, setWhatsapp] = useState(false);
+  // Plan notlari: magaza basina, haftalar arasinda sabit kalir.
+  const [notlar, setNotlar] = useState([]);
+  const [notForm, setNotForm] = useState(null); // { not? }
+  const [notSil, setNotSil] = useState(null);
   const bekleyenSayi = Object.keys(bekleyen).length;
 
   // Paylasim, duzenleme ve disa aktarma yalnizca magaza mudurune acik.
@@ -114,6 +118,16 @@ export default function Roster() {
   }, [from, to, storeId]);
 
   useEffect(() => { yukle(); }, [yukle]);
+
+  // Notlarin magazasi: secili magaza ya da kullanicinin kendi magazasi.
+  const notMagaza = storeId || user.store_id || null;
+  const notlariYukle = useCallback(() => {
+    if (!notMagaza) { setNotlar([]); return; }
+    api.get(`/pdks/roster/notes?storeId=${notMagaza}`, { silent: true })
+      .then((r) => setNotlar(r.data))
+      .catch(() => {});
+  }, [notMagaza]);
+  useEffect(() => { notlariYukle(); }, [notlariYukle]);
 
   // Kaydedilmemis degisiklik varken sekmeyi kapatmak plani kaybettirir.
   useEffect(() => {
@@ -214,6 +228,9 @@ export default function Roster() {
     }
   }
 
+  /// Haftalik plan PDF'i: ekrandaki tablonun aynisi (Personel & Rol, gun
+  /// sutunlari saat + kategori, OFF / RAPOR / RT, Planli, Kadro Gucu) ve
+  /// altinda plan notlari.
   async function pdfAktar() {
     if (!veri || veri.people.length === 0) { toast('Dışa aktarılacak kayıt yok'); return; }
     setDisa(true);
@@ -235,64 +252,89 @@ export default function Roster() {
       const magazaAdi = veri.store || (magazalar.find((m) => String(m.id) === String(storeId)) || {}).name || '';
       doc.text(`${magazaAdi}${magazaAdi ? ' · ' : ''}${fmtDate(veri.from)} – ${fmtDate(veri.to)}`, 14, 20);
 
-      // Basili cizelgenin sutun duzeni: calisma sekli ve gorev de yaziyor.
       const basliklar = [
-        'ÇALIŞMA ŞEKLİ', 'GÖREV', 'AD SOYAD',
-        ...veri.dates.map((d) => `${gunAdi(d, true).toLocaleUpperCase('tr')}\n${d.slice(8)}.${d.slice(5, 7)}.${d.slice(0, 4)}`),
-        'PLANLI',
+        'Personel & Rol',
+        ...veri.dates.map((d) => `${gunAdi(d)}\n${d.slice(8)}.${d.slice(5, 7)}`),
+        'Planlı',
       ];
-      const satirlar = veri.people.map((p) => [
-        p.user.employment_type === 'PART_TIME' ? 'PART TIME' : 'FULL TIME',
-        p.user.duty || '',
-        p.user.full_name,
-        ...veri.dates.map((d) => hucreMetin(p.cells[d], veri.holidays[d])),
+      const hucreler = veri.people.map((p) => veri.dates.map((d) => pdfHucre(p.cells[d], veri.holidays[d])));
+      const satirlar = veri.people.map((p, i) => [
+        `${p.user.full_name}\n${rolEtiketi(p.user.role)}`,
+        ...hucreler[i].map((h) => h.metin),
         saat(p.planned_minutes),
       ]);
-      const toplam = ['', '', 'TOPLAM',
-        ...veri.dates.map((d) => `${veri.totals[d].working} kişi`),
-        saat(veri.people.reduce((a, p) => a + p.planned_minutes, 0))];
-
-      // Gun sutunlari isim sutunlarindan SONRA basliyor; renk eslemesi bu
-      // kaymayi kullaniyor.
-      const ILK_GUN = 3;
+      const kadro = [
+        'Kadro Gücü\nÇalışan sayısı',
+        ...veri.dates.map((d) => `${veri.totals[d].working} Kişi\n${kadroEtiketi(veri.totals[d].working)}`),
+        saat(veri.people.reduce((a, p) => a + p.planned_minutes, 0)),
+      ];
 
       autoTable(doc, {
         head: [basliklar],
-        body: [...satirlar, toplam],
+        body: [...satirlar, kadro],
         startY: 25,
-        styles: { font: f, fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center' },
-        headStyles: { font: f, fontStyle: 'bold', fontSize: 7, fillColor: [166, 166, 166], textColor: 20 },
-        columnStyles: {
-          0: { cellWidth: 22 },
-          1: { cellWidth: 16 },
-          2: { cellWidth: 44, halign: 'left', fontStyle: 'italic' },
+        theme: 'grid',
+        styles: {
+          font: f, fontSize: 7, cellPadding: 2, valign: 'middle', halign: 'center',
+          lineColor: [226, 232, 240], lineWidth: 0.2, textColor: [15, 23, 42],
         },
+        headStyles: { font: f, fontStyle: 'bold', fontSize: 8, fillColor: [248, 250, 252], textColor: [15, 23, 42] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: { 0: { cellWidth: 46, halign: 'left' } },
         didParseCell: (data) => {
-          const sonSatir = data.row.index === satirlar.length;
-          if (sonSatir) { data.cell.styles.fontStyle = 'bold'; return; }
+          if (data.section === 'head') {
+            const i = data.column.index - 1;
+            const d = veri.dates[i];
+            if (d && veri.holidays[d]) {
+              data.cell.styles.fillColor = PDF_RENK.RT.zemin;
+              data.cell.styles.textColor = PDF_RENK.RT.metin;
+            }
+            return;
+          }
           if (data.section !== 'body') return;
+          const kadroSatiri = data.row.index === satirlar.length;
+          if (kadroSatiri) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [226, 232, 240];
+            if (data.column.index > 0) data.cell.styles.textColor = [15, 118, 110];
+            return;
+          }
+          if (data.column.index === 0 || data.column.index === basliklar.length - 1) {
+            data.cell.styles.fontStyle = 'bold';
+            return;
+          }
           // Ekrandaki renklendirmenin aynisi ciktida da olsun.
-          const i = data.column.index - ILK_GUN;
-          if (i < 0 || i >= veri.dates.length) return;
-          const kisi = veri.people[data.row.index];
-          const renk = hucreRenk(kisi.cells[veri.dates[i]], veri.holidays[veri.dates[i]]);
-          if (renk) {
-            data.cell.styles.fillColor = renk.zemin;
-            data.cell.styles.textColor = renk.metin;
+          const h = hucreler[data.row.index][data.column.index - 1];
+          if (h && h.renk) {
+            data.cell.styles.fillColor = h.renk.zemin;
+            data.cell.styles.textColor = h.renk.metin;
             data.cell.styles.fontStyle = 'bold';
           }
         },
       });
 
+      let y = doc.lastAutoTable.finalY + 8;
+      if (notlar.length > 0) {
+        doc.setFont(f, 'bold');
+        doc.setFontSize(10);
+        doc.text('Plan Notları', 14, y);
+        doc.setFont(f, 'normal');
+        doc.setFontSize(8);
+        y += 5;
+        for (const n of notlar) {
+          const satir = doc.splitTextToSize(`• ${n.body}`, 268);
+          if (y + satir.length * 4 > 200) { doc.addPage(); y = 16; }
+          doc.text(satir, 14, y);
+          y += satir.length * 4 + 1;
+        }
+        y += 3;
+      }
       doc.setFontSize(7);
+      if (y > 200) { doc.addPage(); y = 16; }
       doc.text(
-        'Hafta tatili "OFF", resmi tatil "RT" olarak işaretlenir. Hücre rengi vardiya kategorisini gösterir '
-        + '(sabah, gündüz, akşam, kapanış).',
-        14, doc.lastAutoTable.finalY + 6,
-      );
-      doc.text(
-        'Planlı süreler NET çalışmadır: ara dinlenmesi (4857 m.68) düşülmüştür.',
-        14, doc.lastAutoTable.finalY + 10,
+        'Hafta tatili "OFF", raporlu gün "RAPOR", resmi tatil "RT" olarak işaretlenir. '
+        + 'Planlı süreler NET çalışmadır: ara dinlenmesi (4857 m.68) düşülmüştür.',
+        14, y,
       );
       doc.save(`vardiya-plani-${veri.from}.pdf`);
     } catch (e) {
@@ -311,25 +353,6 @@ export default function Roster() {
             <button className={mod === 'hafta' ? 'active' : ''} onClick={() => setMod('hafta')}>Haftalık</button>
             <button className={mod === 'gun' ? 'active' : ''} onClick={() => setMod('gun')}>Günlük</button>
           </div>
-          {veri && veri.can_edit && magazaMuduru && mod === 'hafta' && (
-            <>
-              {/* Paylasim KAYDETMEDEN ayri bir adim: yonetici hafta boyunca
-                  duzenleyip kaydedebilir, plan kesinlestiginde bir kez
-                  paylasir. Bekleyen degisiklik varken kapali: paylasilan plan
-                  ekranda gorulenle ayni olmali. */}
-              <button className="btn btn-secondary" disabled={paylasiyor || bekleyenSayi > 0}
-                title={bekleyenSayi > 0 ? 'Önce değişiklikleri kaydedin' : 'Haftalık planı ekibe bildir'}
-                onClick={paylas}>
-                <Send size={16} /> {paylasiyor ? 'Paylaşılıyor...' : 'Tüm Ekiple Paylaş'}
-              </button>
-              <button className="btn btn-secondary" disabled={disa} onClick={pdfAktar}>
-                <FileText size={16} /> PDF
-              </button>
-              <button className="btn btn-secondary" onClick={() => setWhatsapp(true)}>
-                <MessageCircle size={16} /> WhatsApp
-              </button>
-            </>
-          )}
         </div>
       </div>
 
@@ -430,6 +453,34 @@ export default function Roster() {
           : <GunListesi veri={veri} gun={gun} />
       )}
 
+      {veri && veri.people.length > 0 && mod === 'hafta' && (
+        <NotlarKarti
+          notlar={notlar}
+          magazaSecili={!!notMagaza}
+          duzenlenebilir={!!veri.can_edit}
+          onEkle={() => setNotForm({})}
+          onDuzenle={(n) => setNotForm({ not: n })}
+          onSil={(n) => setNotSil(n)}
+        />
+      )}
+
+      {/* Ekiple Paylas + PDF Indir (yalnizca magaza muduru). Paylasim
+          KAYDETMEDEN ayri bir adim; bekleyen degisiklik varken kapali:
+          paylasilan plan ekranda gorulenle ayni olmali. */}
+      {veri && veri.people.length > 0 && magazaMuduru && mod === 'hafta' && (
+        <div className="roster-bottom">
+          <div className="roster-bottom-row">
+            <button className="btn btn-primary" disabled={paylasiyor || bekleyenSayi > 0} onClick={paylas}>
+              <Users size={18} /> {paylasiyor ? 'Paylaşılıyor...' : 'Ekiple Paylaş'}
+            </button>
+            <button className="btn btn-secondary" disabled={disa} onClick={pdfAktar}>
+              <FileText size={18} /> {disa ? 'Hazırlanıyor...' : 'PDF İndir'}
+            </button>
+          </div>
+          {bekleyenSayi > 0 && <p className="muted">Paylaşmadan önce değişiklikleri kaydedin.</p>}
+        </div>
+      )}
+
       {hucre && (
         <HucreModal
           kisi={hucre.kisi}
@@ -465,121 +516,34 @@ export default function Roster() {
         />
       )}
 
-      {whatsapp && veri && (
-        <WhatsAppModal veri={veri} onClose={() => setWhatsapp(false)} />
+      {notForm && (
+        <NotModal
+          not={notForm.not}
+          storeId={notMagaza}
+          from={from}
+          onClose={() => setNotForm(null)}
+          onDone={() => { setNotForm(null); notlariYukle(); }}
+        />
+      )}
+
+      {notSil && (
+        <Confirm
+          title="Notu Sil"
+          confirmLabel="Sil"
+          message={notSil.body}
+          onCancel={() => setNotSil(null)}
+          onConfirm={async () => {
+            try {
+              await api.delete(`/pdks/roster/notes/${notSil.id}`, { successMessage: 'Not silindi' });
+            } catch {
+              // Bildirim API katmaninda gosterilir.
+            }
+            setNotSil(null);
+            notlariYukle();
+          }}
+        />
       )}
     </div>
-  );
-}
-
-/// Varsayilan WhatsApp mesaj sablonu. {hafta}/{sube}/{personel_sayisi}/{notlar}
-/// yer tutucularini gercek degerlerle doldurur.
-function varsayilanMesaj(veri) {
-  const sube = veri.store || 'Şube';
-  const satirlar = veri.people
-    .filter((p) => p.shift_days > 0)
-    .slice(0, 8)
-    .map((p) => {
-      const ilkGun = veri.dates.find((d) => p.cells[d].some((c) => !c.is_day_off));
-      const hucre = ilkGun ? p.cells[ilkGun].find((c) => !c.is_day_off) : null;
-      return hucre
-        ? `🔹 ${p.user.full_name}: ${hucre.start_time}–${hucre.end_time} (${gunAdi(ilkGun, true)} itibarıyla)`
-        : `🔹 ${p.user.full_name}`;
-    });
-  return `☕ *${sube.toUpperCase()} - VARDİYA PLANI*
-📅 Tarih: ${fmtDate(veri.from)} – ${fmtDate(veri.to)}
-
-Değerli Ekip Arkadaşlarımız, yeni haftanın vardiya çizelgesi onaylanmıştır.
-
-👥 ÇALIŞMA SAATLERİ:
-${satirlar.join('\n')}
-
-⚠️ Lütfen çalışma saatlerinizi kontrol edip giriş-çıkışlarda QR okutmayı unutmayınız.`;
-}
-
-/// Vardiya planini WhatsApp'tan ekibe gonderme ekrani.
-///
-/// GERCEK API ENTEGRASYONU YOK: WhatsApp Business API kimlik bilgisi bu
-/// ortamda tanimli degil. Bu yuzden gonderim OTOMATIK degil — her personel
-/// icin ayri bir wa.me linki acilir, mesaji gonderen kisi kendi WhatsApp'indan
-/// tek tek onaylar. Toplu/otomatik gonderim gerekirse WhatsApp Business API
-/// (ör. Cloud API) baglanmasi gerekir.
-function WhatsAppModal({ veri, onClose }) {
-  const [mesaj, setMesaj] = useState(() => varsayilanMesaj(veri));
-  const [gonderildi, setGonderildi] = useState({});
-
-  const alicilar = veri.people.filter((p) => p.shift_days > 0);
-  const telefonlu = alicilar.filter((p) => p.user.phone);
-  const telefonsuz = alicilar.filter((p) => !p.user.phone);
-
-  function waLinki(phone) {
-    const digits = String(phone).replace(/\D/g, '');
-    // Turkiye numaralari 0 ile basliyor; wa.me ulke koduyla (90) bekliyor.
-    const uluslararasi = digits.startsWith('0') ? `90${digits.slice(1)}` : digits;
-    return `https://wa.me/${uluslararasi}?text=${encodeURIComponent(mesaj)}`;
-  }
-
-  function gonder(userId) {
-    setGonderildi((g) => ({ ...g, [userId]: true }));
-  }
-
-  return (
-    <Modal title="WhatsApp ile Ekibe Gönder" onClose={onClose}>
-      <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
-        {fmtDate(veri.from)} – {fmtDate(veri.to)} haftasının çizelgesi. Gerçek WhatsApp
-        API bağlantısı olmadığı için gönderim otomatik değildir: her personel için
-        WhatsApp açılır, mesajı siz gönderirsiniz.
-      </p>
-
-      <div className="field">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <label style={{ margin: 0 }}>Mesaj Metni</label>
-          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setMesaj(varsayilanMesaj(veri))}>
-            <RotateCcw size={13} /> Varsayılana Sıfırla
-          </button>
-        </div>
-        <textarea rows={8} value={mesaj} onChange={(e) => setMesaj(e.target.value)} style={{ marginTop: 6 }} />
-        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>{mesaj.length} karakter</p>
-      </div>
-
-      <div className="field">
-        <label>Alıcılar ({telefonlu.length}/{alicilar.length} telefon numarası kayıtlı)</label>
-        {telefonlu.length === 0 ? (
-          <p className="empty">Bu haftanın çalışanlarından hiçbirinin telefon numarası kayıtlı değil. Kullanıcılar ekranından ekleyin.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: 6 }}>
-            {telefonlu.map((p) => (
-              <div key={p.user.id} className="surface-panel" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 10,
-              }}>
-                <span>
-                  <strong>{p.user.full_name}</strong>{' '}
-                  <span className="muted" style={{ fontSize: 'var(--fs-label)' }}>{p.user.phone}</span>
-                </span>
-                <a
-                  className={`btn btn-sm ${gonderildi[p.user.id] ? 'btn-secondary' : 'btn-primary'}`}
-                  href={waLinki(p.user.phone)}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => gonder(p.user.id)}
-                >
-                  {gonderildi[p.user.id] ? <><CheckCircle2 size={14} /> Gönderildi</> : <><MessageCircle size={14} /> Gönder</>}
-                </a>
-              </div>
-            ))}
-          </div>
-        )}
-        {telefonsuz.length > 0 && (
-          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0' }}>
-            Telefonu kayıtlı olmayan {telefonsuz.length} kişi: {telefonsuz.map((p) => p.user.full_name).join(', ')}
-          </p>
-        )}
-      </div>
-
-      <div className="form-actions">
-        <button type="button" className="btn btn-secondary" onClick={onClose}>Kapat</button>
-      </div>
-    </Modal>
   );
 }
 
@@ -699,18 +663,6 @@ function netDakika(v) {
   return Math.max(0, sure - (tanimli > 0 ? Math.min(tanimli, yasal) : 0));
 }
 
-/// Hucrenin metin karsiligi. PDF ve tablo ayni gosterimi kullansin diye
-/// tek fonksiyon.
-function hucreMetin(hucreler, tatil) {
-  if (tatil && tatil.half !== true) return 'RT';
-  if (!hucreler || hucreler.length === 0) return '-';
-  if (hucreler.some((c) => c.is_day_off && c.note === 'RAPOR')) return 'RAPOR';
-  if (hucreler.some((c) => c.is_day_off)) return 'OFF';
-  return hucreler
-    .map((c) => `${(c.start_time || '').slice(0, 5)}-${(c.end_time || '').slice(0, 5)}`)
-    .join(' / ');
-}
-
 /// PDF hucre rengi. Ekrandaki kategori renkleriyle AYNI aile; jsPDF CSS
 /// degiskeni okuyamadigi icin RGB olarak burada duruyor. Degerler acik tema
 /// tonlari: cikti beyaz kagida basiliyor, koyu tema tonlari orada okunmaz.
@@ -722,14 +674,12 @@ const PDF_RENK = {
   gunduz: { zemin: [220, 252, 231], metin: [22, 101, 52] },
   aksam: { zemin: [254, 243, 199], metin: [146, 64, 14] },
   kapanis: { zemin: [237, 233, 254], metin: [91, 33, 182] },
-  // Isletmenin kendi cizelgesindeki macenta OFF hucresi. Metin SIYAH:
-  // olculdu, beyaz metin bu zeminde 3.14 kontrast veriyor ve kucuk metin
-  // esigi olan 4.5'in altinda kaliyor; siyah 6.70.
-  OFF: { zemin: [255, 0, 255], metin: [0, 0, 0] },
+  // OFF / RAPOR: ekrandaki ve uygulamadaki gibi kirmizi tonlu rozet.
+  OFF: { zemin: [255, 218, 214], metin: [147, 0, 10] },
   RT: { zemin: [254, 226, 226], metin: [153, 27, 27] },
 };
 
-/// Hucrenin PDF renk anahtari; hucreMetin ile AYNI onceligi izliyor ki
+/// Hucrenin PDF renk anahtari; pdfHucre ile AYNI onceligi izliyor ki
 /// metin "RT" derken renk baska seyi anlatmasin.
 function hucreRenk(hucreler, tatil) {
   if (tatil && tatil.half !== true) return PDF_RENK.RT;
@@ -951,4 +901,121 @@ function GunListesi({ veri, gun }) {
       )}
     </>
   );
+}
+
+/// Plan notlari karti: herkes okur, yonetici ekler; kayit soldan saga
+/// kaydirilinca Duzenle / Sil acilir. Notlar magaza basina tutulur ve
+/// haftalar arasinda gezinirken sabit kalir.
+function NotlarKarti({ notlar, magazaSecili, duzenlenebilir, onEkle, onDuzenle, onSil }) {
+  return (
+    <section className="surface-panel roster-notes">
+      <div className="roster-notes-head">
+        <h3><StickyNote size={18} /> Plan Notları</h3>
+        {duzenlenebilir && magazaSecili && (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={onEkle}>
+            <Plus size={16} /> Not Ekle
+          </button>
+        )}
+      </div>
+      {!magazaSecili ? (
+        <p className="muted">Notları görmek için bir mağaza seçin.</p>
+      ) : notlar.length === 0 ? (
+        <p className="muted">Henüz plan notu yok.</p>
+      ) : (
+        <div className="swipe-list">
+          {notlar.map((n) => (
+            <SwipeRow
+              key={n.id}
+              actions={duzenlenebilir ? [
+                { label: 'Düzenle', icon: Pencil, tone: 'primary', onClick: () => onDuzenle(n) },
+                { label: 'Sil', icon: Trash2, tone: 'danger', onClick: () => onSil(n) },
+              ] : []}
+            >
+              <div className="card roster-note">
+                <p className="roster-note-body">{n.body}</p>
+                <p className="muted roster-note-meta">
+                  {[fmtDateTime(n.updated_at || n.created_at), n.created_by_name || 'bilinmiyor',
+                    n.updated_at ? 'düzenlendi' : null].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            </SwipeRow>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NotModal({ not, storeId, from, onClose, onDone }) {
+  const [body, setBody] = useState(not?.body || '');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function submit(e) {
+    e.preventDefault();
+    const text = body.trim();
+    if (!text) { setErr('Not boş olamaz'); return; }
+    setBusy(true);
+    try {
+      if (not) {
+        await api.put(`/pdks/roster/notes/${not.id}`, { body: text }, { noToast: true });
+        toast('Not güncellendi');
+      } else {
+        await api.post('/pdks/roster/notes', { body: text, from, storeId }, { noToast: true });
+        toast('Not eklendi');
+      }
+      onDone();
+    } catch (er) {
+      setErr(errorMessage(er));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal title={not ? 'Notu Düzenle' : 'Plan Notu Ekle'} onClose={onClose} busy={busy}>
+      <form onSubmit={submit}>
+        {err && <div className="alert error">{err}</div>}
+        <div className="field">
+          <label>Not</label>
+          <textarea rows="4" maxLength={1000} value={body} onChange={(e) => setBody(e.target.value)} autoFocus />
+          <p className="login-hint">Not silinene kadar her haftanın planı altında görünür ve PDF&apos;e eklenir.</p>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>Kaydet</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/// Rol etiketi; ekran ve PDF ortak (uygulamadaki rosterRoleLabel).
+function rolEtiketi(rol) {
+  const r = String(rol || '').toLowerCase();
+  return {
+    store_manager: 'Müdür', shift_supervisor: 'Supervisor', supervisor: 'Supervisor',
+    senior_barista: 'Kıdemli Barista', barista: 'Barista', kitchen: 'Mutfak', service: 'Servis', '': 'Personel',
+  }[r] || (r.charAt(0).toLocaleUpperCase('tr') + r.slice(1));
+}
+
+/// Kadro gucu etiketi (gunluk calisan sayisina gore).
+function kadroEtiketi(calisan) {
+  if (calisan >= 4) return 'Yeterli';
+  if (calisan >= 3) return 'Min. Kadro';
+  return 'Dengeli';
+}
+
+/// PDF hucresinin iki satiri ve renkleri: ekrandaki rozetin aynisi.
+function pdfHucre(hucreler, tatil) {
+  if (tatil && tatil.half !== true) return { metin: 'RT\nTatil', renk: PDF_RENK.RT };
+  if (!hucreler || hucreler.length === 0) return { metin: '-', renk: null };
+  if (hucreler.some((c) => c.is_day_off)) {
+    const rapor = hucreler.some((c) => c.is_day_off && c.note === 'RAPOR');
+    return { metin: rapor ? 'RAPOR\nRaporlu' : 'OFF\nHafta Tatili', renk: PDF_RENK.OFF };
+  }
+  const metin = hucreler.map((c) => {
+    const araligi = `${(c.start_time || '').slice(0, 5)}-${(c.end_time || '').slice(0, 5)}`;
+    const k = KATEGORI[c.category];
+    return k ? `${araligi}\n${k.etiket}` : araligi;
+  }).join('\n');
+  return { metin, renk: hucreRenk(hucreler, tatil) };
 }

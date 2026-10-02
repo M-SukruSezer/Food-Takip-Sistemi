@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Users as UsersIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Users as UsersIcon, Pencil, KeyRound, UserX, UserCheck, UserPlus, Trash2, Smartphone, SmartphoneNfc, Lock,
+} from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
+import { Fab, SearchField, SwipeRow } from '../components/actions';
 import {
-  ROLE_LABELS, errorMessage, fmtDate, fmtDateTime, ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions, rolesBelow, MULTI_STORE_ROLES,
+  ROLE_LABELS, errorMessage, fmtDateTime, normalizeSearch, ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions, rolesBelow, MULTI_STORE_ROLES,
 } from '../format';
+
+function initials(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toLocaleUpperCase('tr-TR');
+}
 
 export default function Users() {
   const { user } = useAuth();
@@ -16,6 +23,8 @@ export default function Users() {
   const [edit, setEdit] = useState(null);
   const [reset, setReset] = useState(null);
   const [del, setDel] = useState(null);
+  const [toggle, setToggle] = useState(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(() => {
     api.get('/users').then((r) => setUsers(r.data)).catch(() => {});
@@ -25,6 +34,11 @@ export default function Users() {
   useEffect(() => { load(); }, [load, reload]);
 
   const isSuper = user.role === 'super_admin';
+  const shown = useMemo(() => {
+    const q = normalizeSearch(search.trim());
+    if (!q) return users;
+    return users.filter((u) => normalizeSearch(u.full_name).includes(q) || normalizeSearch(u.username).includes(q));
+  }, [users, search]);
 
   async function toggleActive(target) {
     try {
@@ -60,78 +74,123 @@ export default function Users() {
     <div className="page-shell">
       <div className="page-head">
         <h2><UsersIcon size={20} /> Kullanıcılar</h2>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Kullanıcı Ekle</button>
       </div>
 
-      <div className="card table-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-wrap">
-          <table className="responsive users-table">
-            <thead>
-              <tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Telefon</th><th>Rol</th><th>Mağaza</th><th>Yetkiler</th><th>Telefon Eşleşmesi</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td data-label="Kullanıcı"><strong>{u.username}</strong></td>
-                  <td data-label="Ad Soyad">{u.full_name}</td>
-                  <td data-label="Telefon" className="muted">{u.phone || '-'}</td>
-                  <td data-label="Rol">{ROLE_LABELS[u.role]}</td>
-                  <td data-label="Mağaza">
-                    {MULTI_STORE_ROLES.includes(u.role)
-                      ? `${(u.store_ids || []).length} mağaza sorumlusu`
-                      : (u.store_name || (u.role === 'super_admin' ? '—' : '-'))}
-                  </td>
-                  <td data-label="Yetkiler" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                    {u.role === 'super_admin'
-                      ? 'Tümü (rol gereği)'
-                      : ((u.permissions && u.permissions.length > 0)
-                          ? u.permissions.map((p) => PERMISSION_LABELS[p] || p).join(', ')
-                          : 'Ek yetki yok')}
-                  </td>
-                  <td data-label="Telefon Eşleşmesi" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                    {!cihazli(u) ? '—' : (u.device_bound ? (u.device_name || 'Kayıtlı') : 'Eşleşmedi')}
-                    {u.device_blocked && (
-                      <div className="text-danger" style={{ marginTop: 2 }}>
-                        Başka telefondan denendi{u.blocked_device_name ? ` (${u.blocked_device_name})` : ''}
-                        {u.device_blocked_at ? ` · ${fmtDateTime(u.device_blocked_at)}` : ''}
-                      </div>
-                    )}
-                  </td>
-                  <td data-label="Durum">
-                    {u.device_blocked
-                      ? <span className="badge discarded">Bloke</span>
-                      : (u.active ? <span className="badge sold">Aktif</span> : <span className="badge discarded">Pasif</span>)}
-                  </td>
-                  <td data-label="Kayıt" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDate(u.created_at)}</td>
-                  <td data-label="İşlemler">
-                    <div className="actions">
-                      <button className="btn btn-sm btn-secondary" onClick={() => setEdit(u)}>Düzenle</button>
-                      <button className="btn btn-sm btn-secondary" onClick={() => setReset(u)}>Şifre</button>
-                      {u.id !== user.id && (
-                        <>
-                          <button
-                            className={`btn btn-sm ${u.active ? 'btn-outline-danger' : 'btn-success'}`}
-                            onClick={() => toggleActive(u)}
-                          >
-                            {u.active ? 'Pasife Al' : 'Aktifleştir'}
-                          </button>
-                          {u.device_blocked && (
-                            <button className="btn btn-sm btn-success" onClick={() => setCihaz({ user: u, kind: 'unblock' })}>Blokeyi Kaldır</button>
-                          )}
-                          {cihazli(u) && u.device_bound && (
-                            <button className="btn btn-sm btn-secondary" onClick={() => setCihaz({ user: u, kind: 'reset' })}>Cihazı Sıfırla</button>
-                          )}
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => setDel(u)}>Sil</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="summary-row">
+        <div className="summary-tile">
+          <span>TOPLAM</span>
+          <strong>{users.length} Kişi</strong>
+          <em className="tone-success">Tam Kadro</em>
+        </div>
+        <div className="summary-tile">
+          <span>GÖREVDE</span>
+          <strong>{users.filter((u) => u.active).length} Kişi</strong>
+          <em className="tone-info">{users.filter((u) => u.role === 'shift_supervisor').length} Şef</em>
+        </div>
+        <div className="summary-tile">
+          <span>YETKİ</span>
+          <strong>{users.filter((u) => (u.permissions || []).length > 0).length} Kişi</strong>
+          <em className="tone-primary">Güncel</em>
         </div>
       </div>
+
+      {/* Oneri Satis Listesi'ndeki arama kutusunun aynisi. */}
+      <SearchField value={search} onChange={setSearch} placeholder="Personel veya kullanıcı adı ara..." />
+
+      {shown.length === 0 ? (
+        <div className="card">
+          <p className="empty">{search.trim() ? 'Aramanıza uyan kullanıcı yok.' : 'Kullanıcı bulunamadı.'}</p>
+        </div>
+      ) : (
+        <div className="swipe-list">
+          {shown.map((u) => {
+            const self = u.id === user.id;
+            const cihazSifirla = cihazli(u) && u.device_bound;
+            // Duzenle, Sifre, Pasife Al, Cihaz ve Sil kart soldan saga
+            // kaydirilinca acilir.
+            const actions = [
+              { label: 'Düzenle', icon: Pencil, tone: 'primary', onClick: () => setEdit(u) },
+              { label: 'Şifre', icon: KeyRound, tone: 'info', onClick: () => setReset(u) },
+              ...(!self ? [{
+                label: u.active ? 'Pasife Al' : 'Aktifleştir',
+                icon: u.active ? UserX : UserCheck,
+                tone: 'warning',
+                onClick: () => setToggle(u),
+              }] : []),
+              ...(!self && cihazSifirla ? [{ label: 'Cihaz', icon: SmartphoneNfc, tone: 'ink', onClick: () => setCihaz({ user: u, kind: 'reset' }) }] : []),
+              ...(!self ? [{ label: 'Sil', icon: Trash2, tone: 'danger', onClick: () => setDel(u) }] : []),
+            ];
+            return (
+              <SwipeRow key={u.id} actions={actions} actionWidth={actions.length > 4 ? 64 : 72}>
+                <article className="card user-card">
+                  <div className="user-card-head">
+                    <span className="user-initials">{initials(u.full_name)}</span>
+                    <div className="user-card-name">
+                      <strong>{u.full_name}</strong>
+                      <span className="muted">@{u.username}</span>
+                    </div>
+                    {u.device_blocked
+                      ? <span className="badge critical">bloke</span>
+                      : (u.active ? <span className="badge sold">aktif</span> : <span className="badge critical">pasif</span>)}
+                  </div>
+                  <div className="chip-row" style={{ gap: 6, marginTop: 10 }}>
+                    <span className="badge info">{ROLE_LABELS[u.role] || u.role}</span>
+                    <span className="badge warning">
+                      {MULTI_STORE_ROLES.includes(u.role)
+                        ? `${(u.store_ids || []).length} mağaza sorumlusu`
+                        : (u.store_name || (u.role === 'super_admin' ? 'Tüm mağazalar' : 'Mağaza atanmamış'))}
+                    </span>
+                  </div>
+                  {u.role !== 'super_admin' && (
+                    <p className="muted user-card-line">
+                      {(u.permissions || []).length > 0
+                        ? `Yetkiler: ${u.permissions.map((p) => PERMISSION_LABELS[p] || p).join(', ')}`
+                        : 'Ek yetki verilmemiş'}
+                    </p>
+                  )}
+                  {cihazli(u) && (
+                    <p className="muted user-card-line">
+                      {u.device_bound ? <Smartphone size={14} /> : <SmartphoneNfc size={14} />}
+                      {u.device_bound ? ` Telefon: ${u.device_name || 'kayıtlı'}` : ' Telefon eşleşmedi'}
+                    </p>
+                  )}
+                  {u.device_blocked && (
+                    <div className="user-blocked">
+                      <p>
+                        <Lock size={16} /> Hesap bloke: başka bir telefondan
+                        {u.blocked_device_name ? ` (${u.blocked_device_name})` : ''} açılmaya çalışıldı
+                        {u.device_blocked_at ? ` · ${fmtDateTime(u.device_blocked_at)}` : ''}.
+                      </p>
+                      <div className="petty-presets two">
+                        <button type="button" className="btn btn-sm btn-secondary" onClick={() => setCihaz({ user: u, kind: 'reset' })}>Cihazı Sıfırla</button>
+                        <button type="button" className="btn btn-sm btn-primary" onClick={() => setCihaz({ user: u, kind: 'unblock' })}>Blokeyi Kaldır</button>
+                      </div>
+                    </div>
+                  )}
+                  {self && (
+                    <p className="muted user-card-line">Kendi hesabınızı pasife alamaz veya silemezsiniz</p>
+                  )}
+                </article>
+              </SwipeRow>
+            );
+          })}
+        </div>
+      )}
+
+      <Fab icon={UserPlus} label="Yeni Kullanıcı" onClick={() => setShowAdd(true)} />
+
+      {toggle && (
+        <Confirm
+          title={toggle.active ? 'Kullanıcıyı Pasife Al' : 'Kullanıcıyı Aktifleştir'}
+          message={toggle.active
+            ? `${toggle.full_name} artık sisteme giriş yapamayacak.`
+            : `${toggle.full_name} yeniden giriş yapabilecek.`}
+          confirmLabel={toggle.active ? 'Pasife Al' : 'Aktifleştir'}
+          danger={!!toggle.active}
+          onCancel={() => setToggle(null)}
+          onConfirm={async () => { const t = toggle; setToggle(null); await toggleActive(t); }}
+        />
+      )}
 
       {showAdd && (
         <UserModal

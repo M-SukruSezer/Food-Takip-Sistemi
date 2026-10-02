@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, FileSpreadsheet, FileText, Pencil, Sparkles, Trash2 } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, FileText, FolderUp, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Modal, toast } from '../components/ui';
+import { Modal, Confirm, toast } from '../components/ui';
+import { ExpandableFab, SwipeRow } from '../components/actions';
 import { fmtDate, fmtMoney, errorMessage } from '../format';
 
 const ENTRY_ROLES = ['store_manager', 'shift_supervisor'];
@@ -61,6 +62,8 @@ export default function DailyReport() {
   const [editing, setEditing] = useState(null);
   const [reload, setReload] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [removing, setRemoving] = useState(null);
 
   const canEnter = ENTRY_ROLES.includes(user.role);
   const showStore = !user.store_id;
@@ -135,28 +138,12 @@ export default function DailyReport() {
     }
   }
 
-  async function remove(item) {
-    const ok = window.confirm(
-      `${fmtDate(item.report_date)} — ${fmtMoney(item.net_sales)}\n\nBu günün raporu silinecek.`
-    );
-    if (!ok) return;
-    try {
-      await api.delete(`/daily-reports/${item.id}`, { successMessage: 'Rapor silindi' });
-      setReload((n) => n + 1);
-    } catch {
-      // Bildirim api katmanindan gelir.
-    }
-  }
-
   const summary = page && page.summary;
 
   return (
     <div className="page-shell">
       <div className="page-head">
         <h2><BarChart3 size={20} /> Rapor Paneli</h2>
-        {canEnter && (
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Gün Ekle</button>
-        )}
       </div>
 
       <div className="surface-panel">
@@ -165,18 +152,10 @@ export default function DailyReport() {
           <button type="button" className={`chip ${period === 'month' ? 'chip-on' : ''}`} onClick={() => setPeriod('month')}>Aylık</button>
         </div>
         {page && (
-          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '0 0 12px' }}>
+          <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: 0 }}>
             {fmtDate(page.from)} – {fmtDate(page.to)} · {summary.days} gün
           </p>
         )}
-        <div className="actions">
-          <button className="btn btn-secondary" onClick={exportExcel} disabled={exporting}>
-            <FileSpreadsheet size={16} /> Excel
-          </button>
-          <button className="btn btn-secondary" onClick={exportPdf} disabled={exporting}>
-            <FileText size={16} /> PDF
-          </button>
-        </div>
       </div>
 
       {summary && summary.days > 0 && (
@@ -202,52 +181,80 @@ export default function DailyReport() {
         </div>
       )}
 
-      <div className="card table-card">
-        <div className="table-wrap">
-          <table className="responsive">
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                {showStore && <th>Mağaza</th>}
-                <th>NET SALES</th><th>ADT</th><th>AT</th><th>IPT</th>
-                <th>FOOD MARKOUT %</th><th>APP%</th><th>İşlem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(!page || page.items.length === 0) && (
-                <tr><td data-label="" colSpan={showStore ? 10 : 9}><p className="empty">Bu dönemde rapor kaydı yok.</p></td></tr>
-              )}
-              {page && page.items.map((item) => (
-                <tr key={item.id}>
-                  <td data-label="Tarih"><strong>{fmtDate(item.report_date)}</strong></td>
-                  {showStore && <td data-label="Mağaza">{item.store_name}</td>}
-                  <td data-label="NET SALES">{formatValue(item.net_sales, 'money')}</td>
-                  <td data-label="ADT">{formatValue(item.adt, 'int')}</td>
-                  <td data-label="AT">{formatValue(item.metrics.at, 'money')}</td>
-                  <td data-label="IPT">{formatValue(item.metrics.ipt, 'number')}</td>
-                  <td data-label="FOOD MARKOUT %">{formatValue(item.metrics.food_markout_pct, 'percent')}</td>
-                  <td data-label="APP%">{formatValue(item.metrics.app_pct, 'percent')}</td>
-                  <td data-label="İşlem">
-                    <div className="row-actions">
-                      <button className="btn btn-sm btn-secondary" onClick={() => setDetail(item)}>Detay</button>
-                      {canEnter && (
-                        <>
-                          <button className="btn btn-sm btn-secondary" title="Düzenle" onClick={() => setEditing(item)}>
-                            <Pencil size={14} />
-                          </button>
-                          <button className="btn btn-sm btn-danger" title="Sil" onClick={() => remove(item)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {(!page || page.items.length === 0) ? (
+        <div className="card"><p className="empty">Bu dönemde rapor kaydı yok.</p></div>
+      ) : (
+        <div className="swipe-list">
+          {page.items.map((item) => (
+            <SwipeRow
+              key={item.id}
+              actions={canEnter ? [
+                { label: 'Düzenle', icon: Pencil, tone: 'primary', onClick: () => setEditing(item) },
+                { label: 'Sil', icon: Trash2, tone: 'danger', onClick: () => setRemoving(item) },
+              ] : []}
+            >
+              <article className="card report-item">
+                <div className="report-item-head">
+                  <strong>{fmtDate(item.report_date)}</strong>
+                  <span className="report-item-sales">{formatValue(item.net_sales, 'money')}</span>
+                </div>
+                {showStore && item.store_name && <p className="muted report-item-store">{item.store_name}</p>}
+                <div className="report-metrics">
+                  <span>AT <strong>{formatValue(item.metrics.at, 'money')}</strong></span>
+                  <span>IPT <strong>{formatValue(item.metrics.ipt, 'number')}</strong></span>
+                  <span>FOOD MARKOUT <strong>{formatValue(item.metrics.food_markout_pct, 'percent')}</strong></span>
+                  <span>APP <strong>{formatValue(item.metrics.app_pct, 'percent')}</strong></span>
+                </div>
+                <div className="report-item-foot">
+                  <span className="muted">
+                    {formatValue(item.adt, 'int')} fiş · {formatValue(item.product_qty, 'int')} ürün · {item.created_by_name || 'bilinmiyor'}
+                  </span>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setDetail(item)}>Detay</button>
+                </div>
+              </article>
+            </SwipeRow>
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* Gun Ekle ve Disa Aktar tek yuzen dugmede: dokununca acilir. */}
+      <ExpandableFab
+        actions={[
+          { label: 'Dışa Aktar', icon: FolderUp, onClick: () => setShowExport(true) },
+          ...(canEnter ? [{ label: 'Gün Ekle', icon: Plus, onClick: () => setShowAdd(true) }] : []),
+        ]}
+      />
+
+      {showExport && (
+        <ExportModal
+          page={page}
+          storeLabel={user.store_name || 'Tüm Şubeler'}
+          busy={exporting}
+          onClose={() => setShowExport(false)}
+          onExport={async (pdf) => {
+            await (pdf ? exportPdf() : exportExcel());
+            setShowExport(false);
+          }}
+        />
+      )}
+
+      {removing && (
+        <Confirm
+          title="Raporu Sil"
+          confirmLabel="Sil"
+          message={`${fmtDate(removing.report_date)} — ${fmtMoney(removing.net_sales)}. Bu günün raporu silinecek.`}
+          onCancel={() => setRemoving(null)}
+          onConfirm={async () => {
+            try {
+              await api.delete(`/daily-reports/${removing.id}`, { successMessage: 'Rapor silindi' });
+            } catch {
+              // Bildirim api katmanindan gelir.
+            }
+            setRemoving(null);
+            setReload((n) => n + 1);
+          }}
+        />
+      )}
 
       {showAdd && (
         <EntryModal
@@ -408,6 +415,46 @@ function EntryModal({ fields, existing, onClose, onDone }) {
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? (editing ? 'Güncelleniyor...' : 'Kaydediliyor...') : (editing ? 'Güncelle' : 'Kaydet')}
           </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/**
+ * Raporu disa aktar (standart form): dosya bicimi secilir, kapsam bilgi
+ * olarak gosterilir.
+ */
+function ExportModal({ page, storeLabel, busy, onClose, onExport }) {
+  const [pdf, setPdf] = useState(false);
+  return (
+    <Modal title="Raporu Dışa Aktar" onClose={onClose} busy={busy}>
+      <form onSubmit={(e) => { e.preventDefault(); onExport(pdf); }}>
+        <div className="field">
+          <label>Dosya biçimi</label>
+          <div className="export-choices">
+            <button type="button" className={`export-choice${!pdf ? ' on' : ''}`} aria-pressed={!pdf} onClick={() => setPdf(false)}>
+              <FileSpreadsheet size={22} />
+              <strong>Excel</strong>
+              <span>.xlsx tablo</span>
+            </button>
+            <button type="button" className={`export-choice${pdf ? ' on' : ''}`} aria-pressed={pdf} onClick={() => setPdf(true)}>
+              <FileText size={22} />
+              <strong>PDF</strong>
+              <span>.pdf A4 döküm</span>
+            </button>
+          </div>
+        </div>
+        <div className="field">
+          <label>Kapsam</label>
+          <div className="export-scope">
+            <span>Mağaza <strong>{storeLabel}</strong></span>
+            <span>Tarih aralığı <strong>{page ? `${fmtDate(page.from)} — ${fmtDate(page.to)} (${page.items.length} kayıt)` : '-'}</strong></span>
+          </div>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Vazgeç</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Hazırlanıyor...' : 'Dışa Aktar'}</button>
         </div>
       </form>
     </Modal>

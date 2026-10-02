@@ -3737,3 +3737,215 @@ table.responsive tr { background: var(--card); }
   border-top: 1px solid var(--border);
 }
 .mola-haklari .grid.stats { margin: 8px 0; }
+
+/* ---------- Yüzen düğmeler (uygulamadaki FAB'ların karşılığı) ---------- */
+.fab-spacer { height: 76px; }
+.fab-stack {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 44;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+@media (max-width: 899px) {
+  /* Alt menünün üstünde dursun. */
+  .fab-stack { bottom: calc(84px + env(safe-area-inset-bottom)); right: 14px; }
+}
+.fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-lg);
+  font: inherit;
+  font-weight: 750;
+  font-size: var(--fs-body-lg);
+  transition: transform .15s ease, background .15s ease;
+}
+.fab:hover:not(:disabled) { background: var(--primary-strong); }
+.fab:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 3px; }
+.fab:disabled { opacity: .5; cursor: not-allowed; }
+.fab-extended { min-height: 56px; padding: 0 22px; border-radius: 18px; }
+.fab-round { width: 56px; height: 56px; border-radius: 18px; }
+.fab-round svg { transition: transform .18s ease; }
+.fab-open svg { transform: rotate(45deg); }
+.fab-secondary { background: var(--card); color: var(--primary); border: 1px solid var(--border-strong); }
+.fab-secondary:hover:not(:disabled) { background: var(--primary-soft); }
+.fab-pop { animation: fab-pop .16s ease-out; transform-origin: bottom right; }
+@keyframes fab-pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+
+/* ---------- Kaydırmalı satır ---------- */
+.swipe-row { position: relative; border-radius: var(--radius); }
+.swipe-row.swipe-open { overflow: hidden; }
+.swipe-actions {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  border-radius: var(--radius) 0 0 var(--radius);
+  overflow: hidden;
+}
+.swipe-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  color: #fff;
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  cursor: pointer;
+}
+.swipe-action.tone-primary { background: var(--primary); color: #fff; }
+.swipe-action.tone-info { background: var(--info); color: #fff; }
+.swipe-action.tone-warning { background: var(--warning); color: #fff; }
+.swipe-action.tone-danger { background: var(--danger-strong); color: #fff; }
+.swipe-action.tone-ink { background: var(--ink); color: var(--card); }
+.swipe-content {
+  position: relative;
+  transition: transform .18s ease-out;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+.swipe-open .swipe-content { background: var(--card); }
+.swipe-content > .card, .swipe-content > article { margin-bottom: 0; }
+.swipe-hint {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+}
+.swipe-hint:hover { color: var(--ink); border-color: var(--border-strong); }
+/* Fareli cihazlarda kaydırmayı bilmeyen kullanıcı için "…" düğmesi. */
+@media (hover: hover) and (pointer: fine) {
+  .swipe-hint { display: inline-flex; }
+}
+.swipe-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- Petty Cash (uygulamadaki limit kartı ve kayıt kartları) ---------- */
+.badge.info { background: var(--info-soft); color: var(--info-text); }
+.petty-limit { display: flex; flex-direction: column; gap: 12px; }
+.petty-limit-top { display: flex; justify-content: space-between; gap: 8px; }
+.petty-limit-label { display: block; font-size: var(--fs-caption); color: var(--muted); font-weight: 500; }
+.petty-limit-value { display: block; font-size: var(--fs-title-lg); font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.petty-limit-value.ok { color: var(--success); }
+.petty-limit-value.danger { color: var(--danger); }
+.petty-bar { display: flex; height: 10px; border-radius: var(--radius-full); overflow: hidden; background: var(--progress-track); }
+.petty-bar .spent { background: var(--danger); }
+.petty-bar .left { background: var(--success); }
+.petty-limit-foot { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-caption); color: var(--muted); }
+.petty-limit-foot strong { color: var(--ink); }
+.petty-limit-foot .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); margin-right: 4px; }
+.petty-admin { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; }
+.petty-item { padding: 12px 14px; }
+.petty-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; padding-right: 40px; }
+.petty-item-head strong { font-size: var(--fs-body-lg); }
+.petty-amount { font-weight: 750; color: var(--danger); white-space: nowrap; }
+.petty-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: -4px 0 12px; }
+.petty-presets.two { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.form-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
+@media (max-width: 380px) { .form-two { grid-template-columns: 1fr; } }
+@media not ((hover: hover) and (pointer: fine)) { .petty-item-head { padding-right: 0; } }
+
+/* ---------- Rapor Paneli kayıt kartları ve dışa aktar formu ---------- */
+.report-item { padding: 12px 14px; }
+.report-item-head { display: flex; justify-content: space-between; gap: 10px; padding-right: 40px; }
+.report-item-head strong { font-size: var(--fs-body-lg); }
+.report-item-sales { font-weight: 750; color: var(--success); white-space: nowrap; }
+.report-item-store { font-size: var(--fs-label); margin: 4px 0 0; }
+.report-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.report-metrics span { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 4px 8px; font-size: var(--fs-caption); color: var(--muted); }
+.report-metrics strong { color: var(--ink); margin-left: 4px; }
+.report-item-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: var(--fs-label); }
+@media not ((hover: hover) and (pointer: fine)) { .report-item-head { padding-right: 0; } }
+.export-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.export-choice {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 14px; border-radius: var(--radius); border: 1.5px solid var(--border-strong);
+  background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.export-choice span { font-size: var(--fs-label); color: var(--muted); }
+.export-choice svg { color: var(--muted); }
+.export-choice.on { border-color: var(--primary); background: var(--primary-soft); }
+.export-choice.on svg { color: var(--primary); }
+.export-scope { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-sm); background: var(--bg); font-size: var(--fs-body); }
+.export-scope span { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); }
+.export-scope strong { color: var(--ink); text-align: right; }
+
+/* ---------- Pasta çeşidi kartı ---------- */
+.type-card { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+.type-card-head { display: flex; align-items: center; gap: 8px; padding-right: 40px; }
+.type-card-head strong { font-size: var(--fs-title); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.type-card-desc { font-size: var(--fs-body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.grid.products > .swipe-row > .swipe-content { height: 100%; }
+@media not ((hover: hover) and (pointer: fine)) { .type-card-head { padding-right: 0; } }
+
+/* ---------- Kullanıcılar ---------- */
+.summary-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.summary-tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.summary-tile span { font-size: var(--fs-caption); color: var(--muted); font-weight: 700; letter-spacing: .02em; }
+.summary-tile strong { font-size: var(--fs-title-lg); letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary-tile em { font-style: normal; font-size: var(--fs-caption); font-weight: 700; padding: 2px 8px; border-radius: var(--radius-xs); align-self: flex-start; }
+.summary-tile .tone-success { background: var(--success-soft); color: var(--ok-text); }
+.summary-tile .tone-info { background: var(--info-soft); color: var(--info-text); }
+.summary-tile .tone-primary { background: var(--primary-soft); color: var(--primary); }
+.user-card { padding: 12px 14px; }
+.user-card-head { display: flex; align-items: center; gap: 10px; padding-right: 40px; }
+.user-initials { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-weight: 750; }
+.user-card-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.user-card-name strong { font-size: var(--fs-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-card-name .muted { font-size: var(--fs-body); }
+.user-card-line { font-size: var(--fs-label); margin: 6px 0 0; display: flex; align-items: center; gap: 4px; }
+.user-blocked { margin-top: 10px; padding: 12px; border-radius: var(--radius-sm); background: var(--danger-soft); border: 1px solid var(--danger); }
+.user-blocked p { margin: 0 0 10px; color: var(--danger-text); font-size: var(--fs-label); font-weight: 600; display: flex; gap: 6px; align-items: flex-start; }
+.user-blocked p svg { flex: 0 0 auto; margin-top: 1px; }
+@media not ((hover: hover) and (pointer: fine)) { .user-card-head { padding-right: 0; } }
+.nav-menu-version { margin: 8px 0 0; text-align: center; font-size: var(--fs-caption); color: var(--muted); }
+.side-version { margin: 8px 0 0; font-size: var(--fs-caption); color: var(--sidebar-muted); text-align: center; }
+
+/* ---------- Vardiya çizelgesi: plan notları ve alt düğmeler ---------- */
+.roster-notes-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.roster-notes-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: var(--fs-title); }
+.roster-notes > .muted { margin: 0; font-size: var(--fs-body); }
+.roster-note { padding: 10px 14px; }
+.roster-note-body { margin: 0; white-space: pre-wrap; padding-right: 40px; }
+.roster-note-meta { margin: 6px 0 0; font-size: var(--fs-caption); }
+@media not ((hover: hover) and (pointer: fine)) { .roster-note-body { padding-right: 0; } }
+.roster-bottom { display: flex; flex-direction: column; gap: 6px; }
+.roster-bottom-row { display: grid; grid-template-columns: 3fr 2fr; gap: 8px; }
+.roster-bottom-row .btn { min-height: 48px; }
+.roster-bottom > .muted { margin: 0; text-align: center; font-size: var(--fs-label); }
+
+/* ---------- Canlı mağaza uzaklığı ---------- */
+.text-success { color: var(--ok-text); }
+.live-distance { display: inline-flex; align-items: center; gap: 5px; font-size: var(--fs-label); font-weight: 600; }
+.live-distance.small { font-size: var(--fs-caption); }
+.live-distance.muted { color: var(--muted); }
+.qr-store-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; font-size: var(--fs-caption); color: var(--muted); font-weight: 600; }
+.qr-store-bar svg { color: var(--primary); }
+
+/* Telefonda tablolar karta dönüşüyor ve kaydırma kutusu kapanıyor; çizelge
+   tablosu kart olmuyor, sayfayı yana taşırmasın diye kendi içinde kayar. */
+@media (max-width: 640px) {
+  .card.table-card .table-wrap:has(> table.roster) { overflow-x: auto; }
+}

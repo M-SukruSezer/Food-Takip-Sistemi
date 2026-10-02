@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Cake, Search, Layers } from 'lucide-react';
+import { Cake, Pencil, Trash2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
+import { Fab, SearchField, SwipeRow } from '../components/actions';
 import { errorMessage, fmtMoney, hasPrice, can, normalizeSearch } from '../format';
 
 export default function ProductTypes() {
@@ -30,48 +31,15 @@ export default function ProductTypes() {
     if (!q) return types;
     return types.filter((t) => normalizeSearch(t.name).includes(q));
   }, [types, search]);
-  const activeCount = types.filter((t) => t.active === 1).length;
-  const stdSkt = types.length === 0 ? '-'
-    : (types.every((t) => t.skt_days === types[0].skt_days) ? types[0].skt_days : '—');
 
   return (
     <div className="page-shell">
       <div className="page-head">
         <h2><Cake size={20} /> Pasta Çeşitleri ve SKT Süreleri</h2>
-        {canManage && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Yeni Çeşit</button>}
       </div>
 
-      <div className="surface-panel">
-        <div className="grid stats" style={{ marginBottom: 12 }}>
-          <div className="stat stat-card">
-            <span className="icon-chip primary"><Layers size={16} /></span>
-            <div className="label"><span>Kayıtlı Çeşit</span></div>
-            <div className="value">{types.length}</div>
-            <div className="sub">ürün</div>
-          </div>
-          <div className="stat stat-card">
-            <span className="icon-chip info"><Cake size={16} /></span>
-            <div className="label"><span>Standart SKT</span></div>
-            <div className="value">{stdSkt}</div>
-            <div className="sub">gün</div>
-          </div>
-          <div className="stat stat-card">
-            <span className="icon-chip success"><Cake size={16} /></span>
-            <div className="label"><span>Aktif Çeşit</span></div>
-            <div className="value">{activeCount}</div>
-            <div className="sub">vitrinde tanımlı</div>
-          </div>
-        </div>
-        <div className="input-wrap search">
-          <span className="in-ico"><Search size={17} /></span>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Çeşit ara..."
-            aria-label="Pasta çeşidi ara"
-          />
-        </div>
-      </div>
+      {/* Oneri Satis Listesi'ndeki arama kutusunun aynisi. */}
+      <SearchField value={search} onChange={setSearch} placeholder="Pasta çeşidi ara..." />
 
       {canManage && missingPrice.length > 0 && (
         <div className="alert warning">
@@ -90,32 +58,35 @@ export default function ProductTypes() {
 
       <div className="grid products">
         {shown.map((t) => (
-          <div className="card" key={t.id} style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <strong style={{ fontSize: 'var(--fs-title)' }}>{t.name}</strong>
-                {!t.active && <span className="pill r" style={{ marginLeft: 6 }}>pasif</span>}
-                <div className="muted" style={{ fontSize: 'var(--fs-body)' }}>{t.description || 'Açıklama yok'}</div>
+          // Duzenle / Sil kart soldan saga kaydirilinca acilir.
+          <SwipeRow
+            key={t.id}
+            actions={canManage ? [
+              { label: 'Düzenle', icon: Pencil, tone: 'primary', onClick: () => setEdit(t) },
+              { label: 'Sil', icon: Trash2, tone: 'danger', onClick: () => setDel(t) },
+            ] : []}
+          >
+            <div className="card type-card">
+              <div className="type-card-head">
+                <strong>{t.name}</strong>
+                {!t.active && <span className="badge critical">pasif</span>}
+              </div>
+              <div className="muted type-card-desc">{t.description || 'Açıklama yok'}</div>
+              <div className="chip-row" style={{ gap: 6 }}>
+                <span className="badge warning">SKT: {t.skt_days} gün</span>
+                {hasPrice(t.unit_price)
+                  ? <span className="badge sold">{fmtMoney(t.unit_price)}</span>
+                  : <span className="badge critical">Fiyat yok</span>}
+                {!t.store_id
+                  ? <span className="badge info">Genel</span>
+                  : (canManage && t.store_name && <span className="badge info">{t.store_name}</span>)}
               </div>
             </div>
-            <div>
-              <span className={`pill ${t.skt_days === 3 ? 'o' : 'g'}`}>SKT: {t.skt_days} gün</span>
-              {hasPrice(t.unit_price)
-                ? <span className="pill g">{fmtMoney(t.unit_price)}</span>
-                : <span className="pill r">Fiyat yok</span>}
-              {!t.store_id
-                ? <span className="pill g">Genel</span>
-                : (user.role === 'super_admin' && <span className="pill g">{t.store_name}</span>)}
-            </div>
-            {canManage && (
-              <div className="actions" style={{ marginTop: 'auto' }}>
-                <button className="btn btn-sm btn-secondary" onClick={() => setEdit(t)}>Düzenle</button>
-                <button className="btn btn-sm btn-outline-danger" onClick={() => setDel(t)}>Sil</button>
-              </div>
-            )}
-          </div>
+          </SwipeRow>
         ))}
       </div>
+
+      {canManage && <Fab label="Yeni Çeşit" onClick={() => setShowAdd(true)} />}
 
       {types.length === 0 && <div className="card"><p className="empty">Henüz ürün çeşidi eklenmemiş.</p></div>}
       {types.length > 0 && shown.length === 0 && (

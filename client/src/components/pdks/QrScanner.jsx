@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Keyboard, Hash, ScanLine } from 'lucide-react';
+import { X, Keyboard, Hash, ScanLine, MapPin } from 'lucide-react';
+import { LiveDistanceLabel } from './LiveDistance';
 
 // Kamera ile QR okuyucu.
 //
@@ -8,7 +9,28 @@ import { X, Keyboard, Hash, ScanLine } from 'lucide-react';
 //
 // QR okutulamazsa "PIN ile Giriş": magaza muduru / vardiya sorumlusunun
 // PIN Dogrulama ekranindaki 60 sn'lik 6 haneli kod girilir.
-export default function QrScanner({ onResult, onClose }) {
+/// Ust bar: magaza ve magazaya CANLI uzaklik (uygulamadaki QR ekrani gibi).
+function MagazaSeridi({ store }) {
+  if (!store) return null;
+  return (
+    <div className="qr-store-bar">
+      <MapPin size={14} />
+      <span>{store.name || 'Mağaza'}</span>
+      {store.has_location && (
+        <LiveDistanceLabel
+          latitude={store.latitude}
+          longitude={store.longitude}
+          radiusM={store.geofence_radius_m}
+          prefix="· "
+          showRadius={false}
+          small
+        />
+      )}
+    </div>
+  );
+}
+
+export default function QrScanner({ onResult, onClose, store = null }) {
   const [pinMode, setPinMode] = useState(false);
   const [pin, setPin] = useState('');
   const videoRef = useRef(null);
@@ -80,6 +102,7 @@ export default function QrScanner({ onResult, onClose }) {
   if (pinMode) {
     return (
       <div className="qr-scanner">
+        <MagazaSeridi store={store} />
         <div className="field">
           <label>PIN Doğrulama</label>
           <input
@@ -110,6 +133,7 @@ export default function QrScanner({ onResult, onClose }) {
 
   return (
     <div className="qr-scanner">
+      <MagazaSeridi store={store} />
       {!manual && (
         <>
           <div className="qr-viewport">

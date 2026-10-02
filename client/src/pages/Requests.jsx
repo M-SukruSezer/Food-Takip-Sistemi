@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ClipboardCheck, Plus } from 'lucide-react';
+import { ClipboardCheck } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { TalepModal, TalepListesi, karsiTarafBekliyor } from '../components/pdks/Talepler';
 import { errorMessage } from '../format';
+import { Fab } from '../components/actions';
 
 // Taleplerim (yalnizca barista): izin, vardiya takasi, haftalik OFF ve rapor
 // taleplerinin olusturuldugu ve durumlarinin izlendigi modul. Takasta karsi
@@ -37,22 +38,18 @@ export default function Requests() {
     <div className="page-shell">
       <div className="page-head">
         <h2><ClipboardCheck size={20} /> Taleplerim</h2>
-        <div className="actions">
-          <button className="btn btn-primary" onClick={() => setForm(true)}>
-            <Plus size={16} /> Yeni Talep
-          </button>
-        </div>
       </div>
 
       {hata && <div className="alert error">{hata}</div>}
 
-      <div className="grid stats">
-        <div className="stat stat-card"><div className="label">Bekleyen</div><div className="value">{bekleyen}</div></div>
-        <div className="stat stat-card">
-          <div className="label">Kalan İzin</div>
-          <div className="value">{bakiye ? `${bakiye.leave.remaining_days} gün` : '—'}</div>
+      {/* Uc kutu telefonda da tek sirada yan yana. */}
+      <div className="summary-row">
+        <div className="summary-tile"><span>Bekleyen</span><strong>{bekleyen}</strong></div>
+        <div className="summary-tile">
+          <span>Kalan İzin</span>
+          <strong>{bakiye ? `${bakiye.leave.remaining_days} gün` : '—'}</strong>
         </div>
-        <div className="stat stat-card"><div className="label">Onayımı Bekleyen</div><div className="value">{onayimda}</div></div>
+        <div className="summary-tile"><span>Onayımda</span><strong>{onayimda}</strong></div>
       </div>
 
       <section className="surface-panel">
@@ -66,6 +63,9 @@ export default function Requests() {
           <TalepListesi talepler={gorunen} user={user} onChange={() => setReload((n) => n + 1)} />
         )}
       </section>
+
+      {/* Tek talep olusturma noktasi: sag altta yuzen dugme. */}
+      <Fab label="Talep Oluştur" onClick={() => setForm(true)} />
 
       {form && (
         <TalepModal

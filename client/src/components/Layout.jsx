@@ -298,6 +298,7 @@ export default function Layout() {
           >
             <LogOut size={16} /> <span className="side-label">Çıkış Yap</span>
           </button>
+          <p className="side-version side-label">v{__APP_VERSION__} (Build {__APP_BUILD__})</p>
         </div>
       </aside>
 
@@ -436,6 +437,8 @@ export default function Layout() {
             >
               <LogOut size={16} /> Çıkış yap
             </button>
+            {/* Yayindaki surum ve derleme bilgisi (uygulamadaki menu altbilgisi). */}
+            <p className="nav-menu-version">v{__APP_VERSION__} (Build {__APP_BUILD__})</p>
           </div>
         </>
       )}

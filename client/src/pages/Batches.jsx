@@ -350,9 +350,11 @@ function AddBatchModal({ types, onClose, onDone }) {
   );
 }
 
-function DiscardModal({ batch, onClose, onDone }) {
+// fixedQuantity: Oneri listesinden zayi tek adettir (uygulamadaki gibi);
+// adet alani kilitli gosterilir.
+export function DiscardModal({ batch, onClose, onDone, fixedQuantity = null }) {
   const [reason, setReason] = useState('');
-  const [quantity, setQuantity] = useState(batch.remaining);
+  const [quantity, setQuantity] = useState(fixedQuantity ?? batch.remaining);
   const [err, setErr] = useState('');
   async function submit(e) {
     e.preventDefault();
@@ -372,8 +374,16 @@ function DiscardModal({ batch, onClose, onDone }) {
         {err && <div className="alert error">{err}</div>}
         <div className="field">
           <label>Zayi Adedi</label>
-          <input type="number" min="1" max={batch.remaining} value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
-          <p className="login-hint">Tümüne zayi girmek için {batch.remaining} yaz. Azına girilirse kalan stokta durur.</p>
+          <input
+            type="number" min="1" max={batch.remaining} value={quantity}
+            onChange={(e) => setQuantity(e.target.value)} required
+            readOnly={fixedQuantity != null}
+          />
+          <p className="login-hint">
+            {fixedQuantity != null
+              ? 'Öneri listesinden zayi tek adettir.'
+              : `Tümüne zayi girmek için ${batch.remaining} yaz. Azına girilirse kalan stokta durur.`}
+          </p>
         </div>
         <div className="field">
           <label>Zayi Sebebi</label>

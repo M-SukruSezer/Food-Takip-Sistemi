@@ -6,6 +6,7 @@ import {
 import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
+import { LiveDistanceLabel } from '../components/pdks/LiveDistance';
 import QrScanner from '../components/pdks/QrScanner';
 import { TalepModal, TalepListesi } from '../components/pdks/Talepler';
 import { fmtDate, fmtDateTime, errorMessage } from '../format';
@@ -264,6 +265,16 @@ const ADIM = {
             Giriş/çıkış yapılamaz, yöneticinizle görüşün.
           </div>
         )}
+        {/* Canli: cihaz konumundan magazaya anlik uzaklik. */}
+        {pdksAcik && magaza.has_location && (
+          <div style={{ marginTop: 10 }}>
+            <LiveDistanceLabel
+              latitude={magaza.latitude}
+              longitude={magaza.longitude}
+              radiusM={magaza.geofence_radius_m}
+            />
+          </div>
+        )}
         <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '8px 0 0', display: 'flex', gap: 6 }}>
           <ScanLine size={14} />
           Giriş, çıkış ve mola işlemleri iş yerindeki QR kod okutularak yapılır.
@@ -368,7 +379,7 @@ const ADIM = {
 
       {okuyucu && (
         <Modal title={`QR ile ${okuyucu === 'GIRIS' ? 'Giriş' : 'Çıkış'}`} onClose={() => setOkuyucu(null)}>
-          <QrScanner onResult={(token) => qrIslem(okuyucu, token)} onClose={() => setOkuyucu(null)} />
+          <QrScanner store={magaza} onResult={(token) => qrIslem(okuyucu, token)} onClose={() => setOkuyucu(null)} />
         </Modal>
       )}
 

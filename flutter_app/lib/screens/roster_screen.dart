@@ -1714,7 +1714,7 @@ class _NotlarKarti extends StatelessWidget {
             )
           else if (notlar.isEmpty)
             Text(
-              'Bu hafta için not yok.',
+              'Henüz plan notu yok.',
               style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
             )
           else

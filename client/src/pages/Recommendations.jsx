@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flame, Search, TriangleAlert, Clock3, CheckCircle2 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
-import { Confirm, SellConfirmModal } from '../components/ui';
+import { SellConfirmModal } from '../components/ui';
+import { DiscardModal } from './Batches';
 import { fmtDateTime, normalizeSearch, can } from '../format';
 
 export default function Recommendations() {
@@ -190,22 +191,11 @@ export default function Recommendations() {
       )}
 
       {confirmDiscard && (
-        <Confirm
-          title="Zayi Gir"
-          message={`${confirmDiscard.product_name} (${confirmDiscard.remaining} adet) için zayi girilecek. Onaylıyor musunuz?`}
-          confirmLabel="Zayi Gir"
-          onCancel={() => setConfirmDiscard(null)}
-          onConfirm={async () => {
-            try {
-              await api.post(`/batches/${confirmDiscard.id}/discard`, { reason: 'SKT süresi doldu' }, {
-                successMessage: 'Zayi kaydedildi',
-              });
-            } catch {
-              // Bildirim API katmaninda gosterilir.
-            }
-            setConfirmDiscard(null);
-            setReload((n) => n + 1);
-          }}
+        <DiscardModal
+          batch={confirmDiscard}
+          fixedQuantity={1}
+          onClose={() => setConfirmDiscard(null)}
+          onDone={() => { setConfirmDiscard(null); setReload((n) => n + 1); }}
         />
       )}
     </div>
