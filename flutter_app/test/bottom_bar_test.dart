@@ -20,6 +20,7 @@ import 'support/fake_api.dart';
 Widget _shell({
   String at = '/dashboard',
   Brightness brightness = Brightness.light,
+  Widget page = const SizedBox.expand(),
 }) {
   final router = GoRouter(
     initialLocation: at,
@@ -28,7 +29,7 @@ Widget _shell({
         builder: (c, s, child) => AppShell(child: child),
         routes: [
           for (final i in navItems)
-            GoRoute(path: i.path, builder: (c, s) => const SizedBox.expand()),
+            GoRoute(path: i.path, builder: (c, s) => page),
         ],
       ),
     ],
@@ -292,20 +293,47 @@ void main() {
       await _teardown(tester);
     });
 
-    testWidgets('menudeki ekran secici PDKS ekranina gecirir', (tester) async {
-      await phone(tester);
-      await tester.tap(find.byKey(bottomMenuButtonKey));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'menudeki ekran secici sayfaya gitmez, yalnizca alt menuleri degistirir',
+      (tester) async {
+        await phone(tester);
+        String yol() =>
+            GoRouter.of(tester.element(find.byKey(bottomBarKey)))
+                .routeInformationProvider
+                .value
+                .uri
+                .path;
 
-      expect(find.byType(SectionSwitcher), findsOneWidget);
-      await tester.tap(find.text('PDKS').last);
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(bottomMenuButtonKey));
+        await tester.pumpAndSettle();
+        expect(find.byType(SectionSwitcher), findsOneWidget);
+        expect(find.text('Devam Takibi'), findsNothing);
 
-      // Menu kapandi ve PDKS ekranina gecildi.
-      expect(find.byKey(bottomMenuSheetKey), findsNothing);
-      expect(find.text('Devam'), findsWidgets);
-      await _teardown(tester);
-    });
+        await tester.tap(find.text('PDKS').last);
+        await tester.pumpAndSettle();
+
+        // Menu acik kaldi, sayfa degismedi; PDKS alt menuleri listelendi.
+        expect(find.byKey(bottomMenuSheetKey), findsOneWidget);
+        expect(yol(), '/dashboard');
+        expect(find.text('Devam Takibi'), findsOneWidget);
+
+        // Geri Operasyon'a donmek de sayfaya gitmez.
+        await tester.tap(find.text('Operasyon').last);
+        await tester.pumpAndSettle();
+        expect(find.byKey(bottomMenuSheetKey), findsOneWidget);
+        expect(yol(), '/dashboard');
+        expect(find.text('Devam Takibi'), findsNothing);
+
+        // Sayfaya gecis ancak bir alt menu secilince olur.
+        await tester.tap(find.text('PDKS').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Devam Takibi'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(bottomMenuSheetKey), findsNothing);
+        expect(yol(), '/pdks');
+        await _teardown(tester);
+      },
+    );
 
     testWidgets('menuden oge secmek menuyu kapatir ve gider', (tester) async {
       await phone(tester);
@@ -326,6 +354,40 @@ void main() {
       await _teardown(tester);
     });
   });
+
+  testWidgets(
+    'sistem cubugu boslugu sayfaya ikinci kez iletilmez, icerik nefes alir',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 780);
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.padding = const FakeViewPadding(top: 32, bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 24);
+      addTearDown(tester.view.reset);
+      installFakeApi({'GET /recommendations': _recs(const [])});
+      EdgeInsets? padding;
+      const icerik = Key('icerik');
+      await tester.pumpWidget(
+        _shell(
+          page: Builder(
+            builder: (c) {
+              padding = MediaQuery.paddingOf(c);
+              return const SizedBox.expand(key: icerik);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Ust bar durum cubugunu, alt menu sistem cubugunu zaten karsiliyor;
+      // sayfaya iletilse GridView/ListView onu bir daha ekliyordu.
+      expect(padding, EdgeInsets.zero);
+      // Icerik ust bar ve alt menuye yapismiyor.
+      final alan = tester.getRect(find.byKey(icerik));
+      final alt = tester.getRect(find.byKey(bottomBarKey));
+      expect(alt.top - alan.bottom, greaterThanOrEqualTo(AppSpacing.md));
+      await _teardown(tester);
+    },
+  );
 
   group('IK rolu', () {
     testWidgets('tek ekran: ekran secici cizilmez', (tester) async {

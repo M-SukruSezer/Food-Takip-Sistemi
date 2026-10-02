@@ -8,6 +8,9 @@ num _num(dynamic v) {
 
 int _int(dynamic v) => _num(v).toInt();
 
+/// Sunucu kimi uclarda bool, kimilerinde 0/1 gonderiyor; ikisi de kabul.
+bool _aktif(dynamic v) => v is bool ? v : _int(v) == 1;
+
 class Store {
   const Store({
     required this.id,
@@ -35,7 +38,7 @@ class Store {
   factory Store.fromJson(Map<String, dynamic> j) => Store(
     id: _int(j['id']),
     name: j['name'] as String? ?? '',
-    active: _int(j['active']) == 1,
+    active: _aktif(j['active']),
     address: j['address'] as String?,
     phone: j['phone'] as String?,
     userCount: _int(j['user_count']),
@@ -80,7 +83,7 @@ class ManagedUser {
     username: j['username'] as String? ?? '',
     fullName: j['full_name'] as String? ?? '',
     role: j['role'] as String? ?? 'barista',
-    active: _int(j['active']) == 1,
+    active: _aktif(j['active']),
     storeId: j['store_id'] == null ? null : _int(j['store_id']),
     storeName: j['store_name'] as String?,
     permissions: parsePermissions(j['permissions']),

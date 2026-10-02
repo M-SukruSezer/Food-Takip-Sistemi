@@ -146,6 +146,27 @@ void main() {
     });
   });
 
+  group('ShiftDef aktiflik', () {
+    ShiftDef parse(Object? active) => ShiftDef.fromJson({
+      'id': 1,
+      'name': 'Sabah',
+      'start_time': '08:00',
+      'end_time': '16:30',
+      'active': active,
+    });
+
+    test('sunucunun bool degeri dogru okunur', () {
+      expect(parse(true).active, isTrue);
+      expect(parse(false).active, isFalse);
+    });
+
+    test('eski 0/1 kayitlar ve eksik alan', () {
+      expect(parse(1).active, isTrue);
+      expect(parse(0).active, isFalse);
+      expect(parse(null).active, isTrue);
+    });
+  });
+
   group('ShiftDef net sure ve uyari', () {
     ShiftDef v(String b, String e, int mola) => ShiftDef(
       id: 1,

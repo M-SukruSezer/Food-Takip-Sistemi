@@ -225,7 +225,14 @@ class ShiftDef {
     breakMinutes: _int(j['break_duration_minutes']),
     storeId: j['store_id'] == null ? null : _int(j['store_id']),
     storeName: j['store_name'] as String?,
-    active: j['active'] == null ? true : _int(j['active']) == 1,
+    // Sunucu bool gonderiyor (eski kayitlarda 0/1). Yalnizca 0/1 okunursa
+    // true -> 0 sayilip tum vardiyalar pasif goruluyor, hucre duzenlemede
+    // vardiya secenegi hic cikmiyordu.
+    active: switch (j['active']) {
+      null => true,
+      final bool b => b,
+      final v => _int(v) == 1,
+    },
   );
 }
 

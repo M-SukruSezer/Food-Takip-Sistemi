@@ -281,17 +281,27 @@ class _AppShellState extends State<AppShell> {
                                                 AppSpacing.lg,
                                               _ => 18,
                                             },
-                                            // Mobil içerik üst bar ile alt menü arasındaki
-                                            // alanı tam kullanır. Dikey dış boşluk yalnızca
-                                            // masaüstü yerleşiminde gerekir.
-                                            vertical: wide ? 18 : 0,
+                                            // Içerik üst bar ve alt menüye yapışmasın:
+                                            // mobilde de iki yanda nefes payı bırakılır.
+                                            vertical: wide ? 18 : AppSpacing.md,
                                           ),
                                           child: ConstrainedBox(
                                             constraints: const BoxConstraints(
                                               maxWidth: 1440,
                                             ),
-                                            child: SizedBox.expand(
-                                              child: widget.child,
+                                            // Sistem çubuklarının boşluğunu üst bar ve
+                                            // alt menü zaten karşılıyor. Sayfalara da
+                                            // iletilirse kaydırma alanları (GridView,
+                                            // ListView) onu ikinci kez ekliyor ve
+                                            // cihazda içerik üst bardan kopuk
+                                            // başlıyordu.
+                                            child: MediaQuery.removePadding(
+                                              context: context,
+                                              removeTop: true,
+                                              removeBottom: true,
+                                              child: SizedBox.expand(
+                                                child: widget.child,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -1096,7 +1106,6 @@ class _BottomBarState extends State<_BottomBar> {
           sections: widget.sections,
           section: widget.section,
           location: widget.location,
-          onSection: widget.onSection,
           recommendationCount: widget.recommendationCount,
         ),
       );
@@ -1216,8 +1225,54 @@ class _BottomBarState extends State<_BottomBar> {
 /// Yan cekmece yerine buradan aciliyor: parmak alt cubuktayken menunun karsi
 /// kenardan gelmesi hedefi kaybettiriyordu. Icerik aynidir — aktif ekranin
 /// tum menu agaci, ekran secici, profil ve cikis.
-class _NavMenuSheet extends StatelessWidget {
+///
+/// Ustteki PDKS / Operasyon secicisi sayfaya GITMEZ: yalnizca menude
+/// gosterilen alt menuleri degistirir. Sayfaya gecis, bir alt menu
+/// secilince olur.
+class _NavMenuSheet extends StatefulWidget {
   const _NavMenuSheet({
+    required this.animation,
+    required this.groups,
+    required this.sections,
+    required this.section,
+    required this.location,
+    this.recommendationCount = 0,
+  });
+
+  final Animation<double> animation;
+  final List<NavGroup> groups;
+  final List<NavSection> sections;
+  final AppSection section;
+  final String location;
+  final int recommendationCount;
+
+  @override
+  State<_NavMenuSheet> createState() => _NavMenuSheetState();
+}
+
+class _NavMenuSheetState extends State<_NavMenuSheet> {
+  late AppSection _secili = widget.section;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = session.user;
+    final groups = _secili == widget.section || user == null
+        ? widget.groups
+        : navGroupsFor(user, _secili);
+    return _NavMenuSheetBody(
+      animation: widget.animation,
+      groups: groups,
+      sections: widget.sections,
+      section: _secili,
+      location: widget.location,
+      onSection: (s) => setState(() => _secili = s.id),
+      recommendationCount: widget.recommendationCount,
+    );
+  }
+}
+
+class _NavMenuSheetBody extends StatelessWidget {
+  const _NavMenuSheetBody({
     required this.animation,
     required this.groups,
     required this.sections,
@@ -1392,10 +1447,7 @@ class _NavMenuSheet extends StatelessWidget {
                             child: SectionSwitcher(
                               sections: sections,
                               section: section,
-                              onSection: (s) {
-                                Navigator.pop(context);
-                                onSection(s);
-                              },
+                              onSection: onSection,
                             ),
                           ),
                         Divider(

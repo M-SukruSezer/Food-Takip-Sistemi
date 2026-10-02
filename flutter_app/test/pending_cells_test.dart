@@ -136,6 +136,8 @@ void main() {
       tall(tester);
       final api = installFakeApi({
         'GET /pdks/roster': _cizelge(),
+        // Sunucu /pdks/shifts'te active'i bool gonderiyor; 0/1 sanilip
+        // hepsi pasif okununca hucre listesinde vardiya cikmiyordu.
         'GET /pdks/shifts': [
           {
             'id': 10,
@@ -143,7 +145,7 @@ void main() {
             'start_time': '08:00',
             'end_time': '16:30',
             'break_duration_minutes': 60,
-            'active': 1,
+            'active': true,
           },
           {
             'id': 11,
@@ -151,7 +153,7 @@ void main() {
             'start_time': '22:00',
             'end_time': '06:00',
             'break_duration_minutes': 60,
-            'active': 1,
+            'active': true,
           },
         ],
       });

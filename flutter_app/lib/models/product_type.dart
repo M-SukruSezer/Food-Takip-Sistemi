@@ -6,6 +6,9 @@ num _num(dynamic v) {
 
 int _int(dynamic v) => _num(v).toInt();
 
+/// Sunucu kimi uclarda bool, kimilerinde 0/1 gonderiyor; ikisi de kabul.
+bool _aktif(dynamic v) => v is bool ? v : _int(v) == 1;
+
 class ProductType {
   const ProductType({
     required this.id,
@@ -34,7 +37,7 @@ class ProductType {
     id: _int(j['id']),
     name: j['name'] as String? ?? '',
     sktDays: _int(j['skt_days']),
-    active: _int(j['active']) == 1,
+    active: _aktif(j['active']),
     storeId: j['store_id'] == null ? null : _int(j['store_id']),
     storeName: j['store_name'] as String?,
     unitPrice: j['unit_price'] == null ? null : _num(j['unit_price']),

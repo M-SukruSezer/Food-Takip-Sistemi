@@ -1,4 +1,4 @@
-// Vardiya plani notlari: magaza + hafta basina; yalnizca yonetici yazar,
+// Vardiya plani notlari: magaza basina, haftalar arasinda sabit; yalnizca yonetici yazar,
 // cizelgeyi goren okur. TEST_DATABASE_URL yoksa atlanir.
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -51,7 +51,7 @@ async function call(who, method, path, body) {
   return { status: res.status, body: await res.json() };
 }
 
-test('müdür not ekler, düzenler, siler; hafta pazartesiye sabitlenir; kayıt düşer', { skip }, async () => {
+test('müdür not ekler, düzenler, siler; not her haftada görünür; kayıt düşer', { skip }, async () => {
   // 2026-10-07 carsamba -> hafta 2026-10-05.
   const r = await call('mudur', 'POST', '', { from: '2026-10-07', body: 'Pazar envanter sayımı' });
   assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -61,14 +61,22 @@ test('müdür not ekler, düzenler, siler; hafta pazartesiye sabitlenir; kayıt 
   assert.equal(list.body[0].created_by_name, 'mudur');
 
   assert.equal((await call('mudur', 'PUT', `/${r.body.id}`, { body: 'Cumartesi sayım' })).status, 200);
-  list = await call('mudur', 'GET', '?from=2026-10-11');
+  // Baska haftaya gecince de ayni not gorunur.
+  list = await call('mudur', 'GET', '?from=2026-11-16');
+  assert.equal(list.body.length, 1);
   assert.equal(list.body[0].body, 'Cumartesi sayım');
   assert.equal(list.body[0].updated_by_name, 'mudur');
 
   assert.equal((await call('mudur', 'DELETE', `/${r.body.id}`)).status, 200);
   assert.equal((await call('mudur', 'GET', '?from=2026-10-05')).body.length, 0);
+  // Tarihsiz not da eklenir; tarihsiz okuma da calisir.
+  const t = await call('mudur', 'POST', '', { body: 'Genel not' });
+  assert.equal(t.status, 201, JSON.stringify(t.body));
+  assert.equal((await call('barista', 'GET', '')).body.length, 1);
+  await call('mudur', 'DELETE', `/${t.body.id}`);
   const logs = await db.queryAll("SELECT action FROM activity_logs WHERE entity_type = 'roster_note' ORDER BY id");
-  assert.deepEqual(logs.map((l) => l.action), ['CIZELGE_NOT_EKLE', 'CIZELGE_NOT_DUZENLE', 'CIZELGE_NOT_SIL']);
+  assert.deepEqual(logs.map((l) => l.action),
+    ['CIZELGE_NOT_EKLE', 'CIZELGE_NOT_DUZENLE', 'CIZELGE_NOT_SIL', 'CIZELGE_NOT_EKLE', 'CIZELGE_NOT_SIL']);
 });
 
 test('barista yazamaz, boş not ve başka mağaza reddedilir', { skip }, async () => {

@@ -111,7 +111,7 @@ class _RosterScreenState extends State<RosterScreen> {
   String _gun = _iso(DateTime.now());
   Roster? _veri;
 
-  /// Haftalik planin altindaki notlar (magaza + hafta).
+  /// Planin altindaki notlar: magaza basina, haftalar arasinda sabit kalir.
   List<RosterNote> _notlar = const [];
   List<StoreOption> _magazalar = const [];
   int? _storeId;
@@ -296,8 +296,7 @@ class _RosterScreenState extends State<RosterScreen> {
         fields: (context, rebuild) => [
           LabeledField(
             label: 'Not',
-            hint:
-                'Notlar haftanın planıyla birlikte saklanır ve PDF\'e eklenir.',
+            hint: 'Not silinene kadar her haftanın planı altında görünür ve PDF\'e eklenir.',
             child: TextField(
               controller: ctrl,
               autofocus: true,
