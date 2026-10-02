@@ -23,6 +23,7 @@ const KIND = {
   requestCreated: 'REQUEST_CREATED',
   requestDecided: 'REQUEST_DECIDED',
   requestCancelled: 'REQUEST_CANCELLED',
+  deviceBlocked: 'DEVICE_BLOCKED',
 };
 
 /// Kayitli tasiyicilar. Her biri async (bildirim) => void.

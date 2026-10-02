@@ -1,4 +1,5 @@
 const express = require('express');
+const { requireBoundDevice } = require('../device');
 const { queryAll, queryOne, execute } = require('../db');
 const {
   requireAuth, requireRole, allowsStore, verifyPassword, NON_PERSONNEL_ROLES,
@@ -342,12 +343,12 @@ async function punch(req, res, type) {
   });
 }
 
-router.post('/check-in', (req, res) => punch(req, res, 'GIRIS'));
-router.post('/check-out', (req, res) => punch(req, res, 'CIKIS'));
+router.post('/check-in', requireBoundDevice, (req, res) => punch(req, res, 'GIRIS'));
+router.post('/check-out', requireBoundDevice, (req, res) => punch(req, res, 'CIKIS'));
 // Mola adimlari isin AYNI dogrulamasindan geciyor: mola giris/cikisi da QR
 // okutularak yapilir, molaya cikan personel de kodu okutmak zorunda.
-router.post('/break-start', (req, res) => punch(req, res, 'MOLA_BASLA'));
-router.post('/break-end', (req, res) => punch(req, res, 'MOLA_BITIR'));
+router.post('/break-start', requireBoundDevice, (req, res) => punch(req, res, 'MOLA_BASLA'));
+router.post('/break-end', requireBoundDevice, (req, res) => punch(req, res, 'MOLA_BITIR'));
 
 /// Personelin kendi durumu: iceride mi, bugunun vardiyasi, bugunun kayitlari.
 router.get('/me', async (req, res) => {

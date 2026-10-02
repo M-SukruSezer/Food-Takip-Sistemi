@@ -448,6 +448,23 @@ class Repository {
     );
   }
 
+  /// Telefon eslesmesini (ve varsa blokeyi) kaldirir; personel bir sonraki
+  /// girisinde actigi telefona yeniden eslesir.
+  Future<void> resetUserDevice(ManagedUser user) async {
+    await _client.dio.post(
+      '/users/${user.id}/device/reset',
+      options: apiOptions(successMessage: 'Cihaz eşleşmesi sıfırlandı'),
+    );
+  }
+
+  /// Blokeyi kaldirir; kayitli telefon ayni kalir.
+  Future<void> unblockUserDevice(ManagedUser user) async {
+    await _client.dio.post(
+      '/users/${user.id}/device/unblock',
+      options: apiOptions(successMessage: 'Hesabın blokesi kaldırıldı'),
+    );
+  }
+
   Future<void> resetUserPassword(int id, String password) async {
     await _client.dio.post(
       '/users/$id/password',

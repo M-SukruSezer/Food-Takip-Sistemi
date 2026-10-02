@@ -4,7 +4,7 @@ import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, Confirm, toast } from '../components/ui';
 import {
-  ROLE_LABELS, errorMessage, fmtDate, ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions, rolesBelow, MULTI_STORE_ROLES,
+  ROLE_LABELS, errorMessage, fmtDate, fmtDateTime, ALL_PERMISSIONS, PERMISSION_LABELS, DEFAULT_PERMISSIONS, grantablePermissions, rolesBelow, MULTI_STORE_ROLES,
 } from '../format';
 
 export default function Users() {
@@ -37,6 +37,25 @@ export default function Users() {
     }
   }
 
+  // Hesap-telefon eslestirmesi: bloke kaldirma (telefon ayni kalir) ve
+  // cihaz sifirlama (bir sonraki giriste yeni telefona eslesir).
+  const [cihaz, setCihaz] = useState(null); // { user, kind }
+
+  async function deviceAction() {
+    const { user: target, kind } = cihaz;
+    try {
+      await api.post(`/users/${target.id}/device/${kind}`, null, {
+        successMessage: kind === 'unblock' ? 'Hesabın blokesi kaldırıldı' : 'Cihaz eşleşmesi sıfırlandı',
+      });
+    } catch {
+      // Bildirim API katmaninda gosterilir.
+    }
+    setCihaz(null);
+    setReload((n) => n + 1);
+  }
+
+  const cihazli = (u) => u.role !== 'super_admin' && u.role !== 'store';
+
   return (
     <div className="page-shell">
       <div className="page-head">
@@ -48,7 +67,7 @@ export default function Users() {
         <div className="table-wrap">
           <table className="responsive users-table">
             <thead>
-              <tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Telefon</th><th>Rol</th><th>Mağaza</th><th>Yetkiler</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr>
+              <tr><th>Kullanıcı</th><th>Ad Soyad</th><th>Telefon</th><th>Rol</th><th>Mağaza</th><th>Yetkiler</th><th>Telefon Eşleşmesi</th><th>Durum</th><th>Kayıt</th><th>İşlemler</th></tr>
             </thead>
             <tbody>
               {users.map((u) => (
@@ -69,7 +88,20 @@ export default function Users() {
                           ? u.permissions.map((p) => PERMISSION_LABELS[p] || p).join(', ')
                           : 'Ek yetki yok')}
                   </td>
-                  <td data-label="Durum">{u.active ? <span className="badge sold">Aktif</span> : <span className="badge discarded">Pasif</span>}</td>
+                  <td data-label="Telefon Eşleşmesi" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
+                    {!cihazli(u) ? '—' : (u.device_bound ? (u.device_name || 'Kayıtlı') : 'Eşleşmedi')}
+                    {u.device_blocked && (
+                      <div className="text-danger" style={{ marginTop: 2 }}>
+                        Başka telefondan denendi{u.blocked_device_name ? ` (${u.blocked_device_name})` : ''}
+                        {u.device_blocked_at ? ` · ${fmtDateTime(u.device_blocked_at)}` : ''}
+                      </div>
+                    )}
+                  </td>
+                  <td data-label="Durum">
+                    {u.device_blocked
+                      ? <span className="badge discarded">Bloke</span>
+                      : (u.active ? <span className="badge sold">Aktif</span> : <span className="badge discarded">Pasif</span>)}
+                  </td>
                   <td data-label="Kayıt" className="muted" style={{ fontSize: 'var(--fs-body)' }}>{fmtDate(u.created_at)}</td>
                   <td data-label="İşlemler">
                     <div className="actions">
@@ -83,6 +115,12 @@ export default function Users() {
                           >
                             {u.active ? 'Pasife Al' : 'Aktifleştir'}
                           </button>
+                          {u.device_blocked && (
+                            <button className="btn btn-sm btn-success" onClick={() => setCihaz({ user: u, kind: 'unblock' })}>Blokeyi Kaldır</button>
+                          )}
+                          {cihazli(u) && u.device_bound && (
+                            <button className="btn btn-sm btn-secondary" onClick={() => setCihaz({ user: u, kind: 'reset' })}>Cihazı Sıfırla</button>
+                          )}
                           <button className="btn btn-sm btn-outline-danger" onClick={() => setDel(u)}>Sil</button>
                         </>
                       )}
@@ -117,6 +155,18 @@ export default function Users() {
           username={reset.username}
           onClose={() => setReset(null)}
           onDone={() => { setReset(null); setReload((n) => n + 1); }}
+        />
+      )}
+      {cihaz && (
+        <Confirm
+          title={cihaz.kind === 'unblock' ? 'Blokeyi Kaldır' : 'Cihazı Sıfırla'}
+          message={cihaz.kind === 'unblock'
+            ? `${cihaz.user.full_name} hesabı yeniden açılacak. Kayıtlı telefonu aynı kalır; yeni telefona geçecekse "Cihazı Sıfırla"yı kullanın.`
+            : `${cihaz.user.full_name} hesabının telefon eşleşmesi${cihaz.user.device_blocked ? ' ve blokesi' : ''} kaldırılacak. Bir sonraki girişte açtığı telefona eşleşir.`}
+          confirmLabel={cihaz.kind === 'unblock' ? 'Kaldır' : 'Sıfırla'}
+          onCancel={() => setCihaz(null)}
+          danger={cihaz.kind !== 'unblock'}
+          onConfirm={deviceAction}
         />
       )}
       {del && (

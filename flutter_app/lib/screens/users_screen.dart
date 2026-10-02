@@ -116,6 +116,45 @@ class _UsersScreenState extends State<UsersScreen> {
     await _load(silent: true);
   }
 
+  Future<void> _resetDevice(ManagedUser user) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Cihazı Sıfırla',
+      confirmLabel: 'Sıfırla',
+      body: Text(
+        '${user.fullName} hesabının telefon eşleşmesi kaldırılacak'
+        '${user.deviceBlocked ? ' ve blokesi açılacak' : ''}. '
+        'Personel bir sonraki girişinde açtığı telefona yeniden eşleşir.',
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await repo.resetUserDevice(user);
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
+    await _load(silent: true);
+  }
+
+  Future<void> _unblock(ManagedUser user) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Blokeyi Kaldır',
+      confirmLabel: 'Kaldır',
+      body: Text(
+        '${user.fullName} hesabı yeniden açılacak. Kayıtlı telefonu aynı '
+        'kalır; yeni telefona geçecekse "Cihazı Sıfırla"yı kullanın.',
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await repo.unblockUserDevice(user);
+    } catch (_) {
+      // Bildirim API katmanindan gelir.
+    }
+    await _load(silent: true);
+  }
+
   Future<void> _delete(ManagedUser user) async {
     final ok = await confirmDialog(
       context,
@@ -277,10 +316,15 @@ class _UsersScreenState extends State<UsersScreen> {
       children:
           visible.map<Widget>((user) {
             final perm = permissionsFor(session.user, user);
-            // Duzenle, Sifre, Pasife Al ve Sil satir soldan saga kaydirilinca
-            // acilir; yalnizca yetkili olunan islemler gorunur.
+            // Telefon eslestirmesi Ana Yonetici ve magaza hesabinda yok.
+            final cihazli =
+                perm.canEdit &&
+                !const ['super_admin', 'store'].contains(user.role);
+            final cihazSifirla = cihazli && user.deviceBound;
+            // Duzenle, Sifre, Pasife Al, Cihaz ve Sil satir soldan saga
+            // kaydirilinca acilir; yalnizca yetkili olunan islemler gorunur.
             return SwipeActions(
-              actionWidth: 72,
+              actionWidth: cihazSifirla ? 64 : 72,
               actions: [
                 if (perm.canEdit)
                   SwipeAction(
@@ -304,6 +348,13 @@ class _UsersScreenState extends State<UsersScreen> {
                         : Icons.person_outline,
                     color: t.warning,
                     onTap: () => _toggle(user),
+                  ),
+                if (cihazSifirla)
+                  SwipeAction(
+                    label: 'Cihaz',
+                    icon: Icons.phonelink_erase_outlined,
+                    color: t.ink,
+                    onTap: () => _resetDevice(user),
                   ),
                 if (perm.canDelete)
                   SwipeAction(
@@ -345,8 +396,12 @@ class _UsersScreenState extends State<UsersScreen> {
                           ),
                         ),
                         Pill(
-                          text: user.active ? 'aktif' : 'pasif',
-                          color: user.active ? t.success : t.danger,
+                          text: user.deviceBlocked
+                              ? 'bloke'
+                              : (user.active ? 'aktif' : 'pasif'),
+                          color: user.active && !user.deviceBlocked
+                              ? t.success
+                              : t.danger,
                         ),
                       ],
                     ),
@@ -381,6 +436,40 @@ class _UsersScreenState extends State<UsersScreen> {
                           fontSize: AppFontSize.label,
                           color: t.muted,
                         ),
+                      ),
+                    if (!const ['super_admin', 'store'].contains(user.role))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              user.deviceBound
+                                  ? Icons.smartphone_outlined
+                                  : Icons.phonelink_off_outlined,
+                              size: 14,
+                              color: t.muted,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                user.deviceBound
+                                    ? 'Telefon: ${user.deviceName ?? 'kayıtlı'}'
+                                    : 'Telefon eşleşmedi',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: AppFontSize.label,
+                                  color: t.muted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (user.deviceBlocked)
+                      _BlokeUyarisi(
+                        user: user,
+                        onUnblock: cihazli ? () => _unblock(user) : null,
+                        onReset: cihazli ? () => _resetDevice(user) : null,
                       ),
                     if (perm.reason != null) ...[
                       const SizedBox(height: 4),
@@ -787,6 +876,78 @@ class _Initials extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: t.primaryDark,
         ),
+      ),
+    );
+  }
+}
+
+/// Bloke hesabin kartindaki uyari: hangi telefondan denendigi ve yoneticinin
+/// iki secenegi (blokeyi kaldir / cihazi sifirla).
+class _BlokeUyarisi extends StatelessWidget {
+  const _BlokeUyarisi({required this.user, this.onUnblock, this.onReset});
+
+  final ManagedUser user;
+  final VoidCallback? onUnblock;
+  final VoidCallback? onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final cihaz = user.blockedDeviceName;
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.dangerSoft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: t.danger.withValues(alpha: .35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lock_outline, size: 18, color: t.danger),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Hesap bloke: başka bir telefondan'
+                  '${cihaz == null ? '' : ' ($cihaz)'} açılmaya çalışıldı'
+                  '${user.deviceBlockedAt == null ? '' : ' · ${fmtDateTime(user.deviceBlockedAt)}'}.',
+                  style: TextStyle(
+                    fontSize: AppFontSize.label,
+                    color: t.dangerText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (onUnblock != null || onReset != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (onReset != null)
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onReset,
+                      child: const Text('Cihazı Sıfırla'),
+                    ),
+                  ),
+                if (onReset != null && onUnblock != null)
+                  const SizedBox(width: 8),
+                if (onUnblock != null)
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: onUnblock,
+                      child: const Text('Blokeyi Kaldır'),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

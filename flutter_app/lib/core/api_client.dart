@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'busy.dart';
+import 'device_identity.dart';
 import 'notify.dart';
 import 'token_store.dart';
 
@@ -77,6 +78,8 @@ class ApiClient {
     if (_token != null) {
       options.headers['Authorization'] = 'Bearer $_token';
     }
+    // Hesap-telefon eslestirmesi: sunucu her istekte cihazi dogrular.
+    options.headers.addAll(deviceIdentity.headers);
     if (!_flag(options, 'silent')) {
       options.extra['__busy'] = true;
       busy.begin(message: options.extra['busyMessage'] as String?);
@@ -105,7 +108,14 @@ class ApiClient {
     final options = err.requestOptions;
     if (options.extra['__busy'] == true) busy.end();
 
-    final unauthorized = err.response?.statusCode == 401;
+    final body = err.response?.data;
+    // Hesap bloke edildiyse (baska telefondan giris denemesi) oturum duser;
+    // sunucunun mesaji bildirim olarak gosterilir.
+    final unauthorized =
+        err.response?.statusCode == 401 ||
+        (err.response?.statusCode == 403 &&
+            body is Map &&
+            body['code'] == 'DEVICE_BLOCKED');
     if (!_flag(options, 'silent') && !_flag(options, 'noToast')) {
       toast(errorMessage(err), kind: ToastKind.error);
     }

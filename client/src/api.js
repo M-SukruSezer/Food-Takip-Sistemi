@@ -69,7 +69,10 @@ api.interceptors.response.use(
   (err) => {
     if (err.config && err.config.__busy) endBusy();
     const config = err.config || {};
-    const unauthorized = err.response && err.response.status === 401;
+    // Bloke hesap (baska telefondan giris denemesi) da oturumu dusurur.
+    const unauthorized = err.response && (err.response.status === 401
+      || (err.response.status === 403 && err.response.data
+        && err.response.data.code === 'DEVICE_BLOCKED'));
 
     if (!config.silent && !config.noToast) {
       toast(errorMessage(err) || 'Hata oluştu');

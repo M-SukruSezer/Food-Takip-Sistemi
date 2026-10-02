@@ -42,14 +42,24 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _signingOut = false;
+
   Future<void> signOut() async {
-    // Jeton SUNUCUDAN once silinir: token gecersiz kilindiktan sonra silme
-    // istegi 401 alirdi ve cihaz onceki kullanicinin bildirimlerini almaya
-    // devam ederdi.
-    await unregisterDeviceToken();
-    await _authRepository.clearSession();
-    _user = null;
-    notifyListeners();
+    // Cikis sirasindaki istek de 401/bloke alip yeniden cikisi tetikleyebilir;
+    // ic ice cagri dongu kurmasin.
+    if (_signingOut) return;
+    _signingOut = true;
+    try {
+      // Jeton SUNUCUDAN once silinir: token gecersiz kilindiktan sonra silme
+      // istegi 401 alirdi ve cihaz onceki kullanicinin bildirimlerini almaya
+      // devam ederdi.
+      await unregisterDeviceToken();
+      await _authRepository.clearSession();
+      _user = null;
+      notifyListeners();
+    } finally {
+      _signingOut = false;
+    }
   }
 
   void updateUser(AppUser next) {

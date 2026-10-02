@@ -92,14 +92,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      addLabel: 'Yeni Talep',
-      onAdd: _new,
+      // Tek talep olusturma noktasi: sag altta yuzen dugme.
+      floatingActions: [
+        FloatingActionButton.extended(
+          heroTag: null,
+          onPressed: _new,
+          icon: const Icon(Icons.add),
+          label: const Text('Talep Oluştur'),
+        ),
+      ],
       emptyText: '',
       banner: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Uc kutu telefonda da tek sirada yan yana.
           EqualTileGrid(
+            minColumns: 3,
             maxColumns: 3,
+            minTileWidth: 0,
+            tileHeight: 84,
             children: [
               StatCard(label: 'Bekleyen', value: '$bekleyen'),
               StatCard(
@@ -108,17 +119,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     ? '—'
                     : '${_balance!.remainingDays} gün',
               ),
-              StatCard(label: 'Onayımı Bekleyen', value: '$onayimda'),
+              StatCard(label: 'Onayımda', value: '$onayimda'),
             ],
-          ),
-          const SizedBox(height: AppTokens.gap),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _new,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Yeni Talep Oluştur'),
-            ),
           ),
           const SizedBox(height: AppTokens.gap),
           SegmentedButton<String>(
@@ -138,7 +140,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
           AppCard(
             child: Text(
               _requests.isEmpty
-                  ? 'Henüz talebiniz yok. "Yeni Talep Oluştur" ile izin, '
+                  ? 'Henüz talebiniz yok. "Talep Oluştur" ile izin, '
                         'vardiya takası, OFF günü ya da rapor talebi '
                         'oluşturabilirsiniz.'
                   : 'Bu filtrede talep yok.',

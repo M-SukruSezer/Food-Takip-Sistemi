@@ -52,7 +52,9 @@ router.get('/', async (req, res) => {
   const f = storeFilter(scope, 'u.store_id');
   const rows = await queryAll(`
     SELECT u.id, u.username, u.full_name, u.role, u.active, u.store_id, u.permissions, u.created_at,
-           u.phone, s.name AS store_name
+           u.phone, s.name AS store_name,
+           (u.device_id IS NOT NULL) AS device_bound, u.device_name, u.device_bound_at,
+           u.device_blocked, u.device_blocked_at, u.blocked_device_name
     FROM users u LEFT JOIN stores s ON s.id = u.store_id
     WHERE u.role IN (${below.map(() => '?').join(',')}) ${f.sql}
     ORDER BY u.created_at DESC
@@ -62,6 +64,8 @@ router.get('/', async (req, res) => {
   // Cok magazali rollerin atamalari ayri tabloda.
   const withStores = await Promise.all(rows.map(async (r) => ({
     ...r,
+    device_bound: !!r.device_bound,
+    device_blocked: Number(r.device_blocked) === 1,
     permissions: permissionsOf(r),
     store_ids: isMultiStoreRole(r.role) ? await storeIdsOf(r.id) : [],
   })));
@@ -308,6 +312,47 @@ router.post('/:id/password', async (req, res) => {
   }
   await execute('UPDATE users SET password_hash = ? WHERE id = ?',hashPassword(String(password)), existing.id);
   await logActivity(req.user, 'SIFRE_SIFIRLA', 'user', existing.id, `${existing.username} şifresi sıfırlandı`);
+  res.json({ ok: true });
+});
+
+/// Cihaz sifirlama: hesabin telefon eslesmesi kaldirilir (ve varsa blokesi).
+/// Personel bir sonraki girisinde actigi telefona yeniden eslesir — telefon
+/// degistiren personel icin.
+router.post('/:id/device/reset', async (req, res) => {
+  const existing = await queryOne('SELECT * FROM users WHERE id = ?', Number(req.params.id));
+  if (!existing) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+  if (!canManageUser(req, existing)) {
+    return res.status(403).json({ error: 'Bu kullanıcıya erişim yetkiniz yok' });
+  }
+  await execute(`
+    UPDATE users SET device_id = NULL, device_name = NULL, device_bound_at = NULL,
+      device_blocked = 0, device_blocked_at = NULL, blocked_device_id = NULL,
+      blocked_device_name = NULL
+    WHERE id = ?`, existing.id);
+  await logActivity(req.user, 'CIHAZ_SIFIRLA', 'user', existing.id,
+    `${existing.full_name} hesabının telefon eşleşmesi sıfırlandı`
+    + (existing.device_name ? ` (önceki: ${existing.device_name})` : ''),
+    existing.store_id || null);
+  res.json({ ok: true });
+});
+
+/// Blokeyi kaldir: hesap yeniden acilir, kayitli telefonu AYNEN kalir. Yeni
+/// telefona gecmesi gerekiyorsa cihaz sifirlama kullanilir.
+router.post('/:id/device/unblock', async (req, res) => {
+  const existing = await queryOne('SELECT * FROM users WHERE id = ?', Number(req.params.id));
+  if (!existing) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+  if (!canManageUser(req, existing)) {
+    return res.status(403).json({ error: 'Bu kullanıcıya erişim yetkiniz yok' });
+  }
+  if (Number(existing.device_blocked) !== 1) {
+    return res.status(400).json({ error: 'Hesap bloke değil' });
+  }
+  await execute(`
+    UPDATE users SET device_blocked = 0, device_blocked_at = NULL,
+      blocked_device_id = NULL, blocked_device_name = NULL
+    WHERE id = ?`, existing.id);
+  await logActivity(req.user, 'CIHAZ_BLOKE_KALDIR', 'user', existing.id,
+    `${existing.full_name} hesabının blokesi kaldırıldı`, existing.store_id || null);
   res.json({ ok: true });
 });
 

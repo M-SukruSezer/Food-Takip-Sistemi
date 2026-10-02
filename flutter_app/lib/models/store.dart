@@ -57,6 +57,11 @@ class ManagedUser {
     this.storeName,
     this.permissions = const [],
     this.storeIds = const [],
+    this.deviceBound = false,
+    this.deviceName,
+    this.deviceBlocked = false,
+    this.deviceBlockedAt,
+    this.blockedDeviceName,
   });
 
   final int id;
@@ -75,6 +80,15 @@ class ManagedUser {
   /// magazalar; digerlerinde bos.
   final List<int> storeIds;
 
+  /// Hesap bir telefona eslesmis mi; eslesen telefonun adi.
+  final bool deviceBound;
+  final String? deviceName;
+
+  /// Baska telefondan giris denemesiyle bloke edildi mi; denenen telefon.
+  final bool deviceBlocked;
+  final String? deviceBlockedAt;
+  final String? blockedDeviceName;
+
   bool get isMultiStore =>
       const ['operations_manager', 'regional_manager'].contains(role);
 
@@ -90,5 +104,10 @@ class ManagedUser {
     storeIds: (j['store_ids'] as List<dynamic>? ?? const [])
         .map((e) => _int(e))
         .toList(),
+    deviceBound: j['device_bound'] == true,
+    deviceName: j['device_name'] as String?,
+    deviceBlocked: j['device_blocked'] == true || j['device_blocked'] == 1,
+    deviceBlockedAt: j['device_blocked_at'] as String?,
+    blockedDeviceName: j['blocked_device_name'] as String?,
   );
 }

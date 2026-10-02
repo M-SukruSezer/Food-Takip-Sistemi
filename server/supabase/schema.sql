@@ -21,6 +21,16 @@ CREATE TABLE IF NOT EXISTS users (
 -- WhatsApp ile ekibe gönderim icin: gercek API entegrasyonu yok, wa.me
 -- linki bu numaradan olusturuluyor.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+-- Hesap-telefon eslestirmesi: hesap ilk acildigi telefona baglanir, baska
+-- telefondan acilmaya calisilinca bloke edilir; yonetici sifirlar/kaldirir.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_bound_at TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_blocked INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_blocked_at TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_device_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS blocked_device_name TEXT;
+CREATE INDEX IF NOT EXISTS idx_users_device_id ON users(device_id);
 
 CREATE TABLE IF NOT EXISTS product_types (
   id BIGSERIAL PRIMARY KEY,
@@ -654,7 +664,8 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_kind_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check
   CHECK (kind IN (
     'SHIFT_PUBLISHED', 'SHIFT_CHANGED', 'SHIFT_REMOVED',
-    'REQUEST_CREATED', 'REQUEST_DECIDED', 'REQUEST_CANCELLED'
+    'REQUEST_CREATED', 'REQUEST_DECIDED', 'REQUEST_CANCELLED',
+    'DEVICE_BLOCKED'
   ));
 
 -- FCM cihaz jetonlari.

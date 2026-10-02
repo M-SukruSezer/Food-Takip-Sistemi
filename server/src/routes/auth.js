@@ -2,6 +2,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../db');
 const { sign, verifyPassword, requireAuth, permissionsOf, isMultiStoreRole } = require('../auth');
 const { logActivity } = require('../utils');
+const { checkDevice, deviceOf } = require('../device');
 
 const router = express.Router();
 
@@ -30,6 +31,10 @@ router.post('/login', async (req, res) => {
   if (user.store_id && !store) {
     return res.status(403).json({ error: 'Mağazanız bulunamadı' });
   }
+  // Hesap-telefon eslestirmesi: sifre dogrulandiktan SONRA. Yanlis sifreyle
+  // birinin hesabini bloke ettirmek mumkun olmasin.
+  const cihaz = await checkDevice(user, deviceOf(req));
+  if (!cihaz.ok) return res.status(cihaz.status).json({ error: cihaz.error, code: cihaz.code });
   await logActivity(user, 'GIRIS', 'auth', user.id, 'Sisteme giriş yapıldı');
   const token = sign(user);
   const profile = await queryOne('SELECT hired_at FROM pdks_profiles WHERE user_id = ?', user.id);

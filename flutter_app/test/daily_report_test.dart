@@ -189,17 +189,27 @@ void main() {
 
       await tester.pumpWidget(host(const DailyReportScreen()));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('İşlemler'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Dışa Aktar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Excel Tablosu'), findsOneWidget);
-      expect(find.text('Resmî PDF'), findsOneWidget);
-      expect(find.text('Aktif Lokasyon'), findsOneWidget);
+      // Standart form: bicim secimi + kapsam; islevsiz secenekler yok.
+      final form = find.byType(FormDialog);
+      expect(form, findsOneWidget);
       expect(
-        find.text('İşlem detayları ve kullanıcı IP logları'),
+        find.descendant(of: form, matching: find.text('Excel')),
         findsOneWidget,
       );
-      expect(find.text('Yönetici imza & resmî kaşe alanı'), findsOneWidget);
+      expect(
+        find.descendant(of: form, matching: find.text('PDF')),
+        findsOneWidget,
+      );
+      expect(find.text('Tarih aralığı'), findsOneWidget);
+      expect(
+        find.text('İşlem detayları ve kullanıcı IP logları'),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -210,7 +220,12 @@ void main() {
           'GET /daily-reports/fields': _fields,
         });
         signInAs(rol, storeId: 1);
+        await tester.pumpWidget(const SizedBox());
         await tester.pumpWidget(host(const DailyReportScreen()));
+        await tester.pumpAndSettle();
+        // Islemler tek yuzen dugmede; kapaliyken gorunmez.
+        expect(find.text('Gün Ekle'), findsNothing);
+        await tester.tap(find.byTooltip('İşlemler'));
         await tester.pumpAndSettle();
         expect(
           find.text('Gün Ekle'),
@@ -247,6 +262,8 @@ void main() {
       signInAs('store_manager', storeId: 1);
 
       await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('İşlemler'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();
@@ -330,6 +347,8 @@ void main() {
 
       await tester.pumpWidget(host(const DailyReportScreen()));
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('İşlemler'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();
 
@@ -369,6 +388,8 @@ void main() {
       signInAs('store_manager', storeId: 1);
 
       await tester.pumpWidget(host(const DailyReportScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('İşlemler'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Gün Ekle'));
       await tester.pumpAndSettle();

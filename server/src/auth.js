@@ -35,6 +35,11 @@ async function requireAuth(req, res, next) {
   } catch (e) {
     return res.status(401).json({ error: 'Oturum süresi doldu, lütfen tekrar giriş yapın' });
   }
+  // Hesap-telefon eslestirmesi: bloke hesap hicbir istek yapamaz; hesap
+  // kayitli telefonu disinda bir telefondan kullanilirsa bloke edilir.
+  const cihaz = await require('./device').checkRequestDevice(req);
+  if (!cihaz.ok) return res.status(cihaz.status).json({ error: cihaz.error, code: cihaz.code });
+
   // Erisilebilir magazalar istek basina bir kez cozulur; boylece rotalar
   // senkron kalir. Yalnizca cok magazali roller icin sorgu atilir.
   req.storeIds = await accessibleStoreIds(req.user);
