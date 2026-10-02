@@ -86,13 +86,22 @@ api.interceptors.response.use(
     //
     // Yonlendirme YALNIZCA sunucunun verdigi koda gore: istemcide mesai
     // durumunu tahmin etmek iki tarafin ayrismasi demekti.
+    // Yalnizca Operasyon sayfasindayken: PDKS sayfalarindaki (Cizelge, PIN
+    // Dogrulama...) arka plan istekleri (orn. oneri rozeti) mesaiye girmemis
+    // vardiya sorumlusunu bulundugu sayfadan atmamali.
     if (err.response && err.response.status === 403
         && err.response.data && err.response.data.code === 'SHIFT_REQUIRED'
-        && window.location.pathname !== '/pdks') {
+        && window.location.pathname !== '/pdks'
+        && isOperationsPath(window.location.pathname)) {
       window.location.href = '/pdks?shift=1';
     }
     return Promise.reject(err);
   }
 );
+
+/// Bir yolun Operasyon alanina ait olup olmadigi. Menu tanimi Layout'ta
+/// (api'yi import ettigi icin burada import edilemez); Layout kaydeder.
+let isOperationsPath = () => true;
+export function setOperationsPathCheck(fn) { isOperationsPath = fn; }
 
 export default api;

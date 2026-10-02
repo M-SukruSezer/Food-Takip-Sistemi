@@ -3653,3 +3653,87 @@ table.responsive tr { background: var(--card); }
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Esit ve duyarli kutucuklar ----------
+   Tum ozet kutulari ayni genislik ve ayni yukseklikte: kolon sayisi ekran
+   genisligine gore artar (telefonda 2, tablette 4-5, masaustunde fazlasi),
+   satirlar en yuksek kutuya esitlenir. Uzun deger tasmaz, kutu icinde kalir. */
+.grid.stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)) !important;
+  grid-auto-rows: 1fr;
+}
+.grid.stats > .stat { min-width: 0; }
+.grid.stats .stat .value,
+.grid.stats .stat .sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* PIN Dogrulama girisi ve kodu: rakamlar arasi bosluklu, ortali. */
+.field input.pin-input {
+  font-size: var(--fs-headline-lg);
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- PIN Dogrulama ---------- */
+.pin-panel {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.pin-kod {
+  font-size: var(--fs-display-lg);
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.pin-sayac {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  overflow: hidden;
+}
+.pin-sayac-dolgu {
+  height: 100%;
+  background: var(--primary);
+  transition: width 1s linear;
+}
+.pin-sayac-dolgu.az { background: var(--warning); }
+
+/* ---------- Talepler ---------- */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  font-size: var(--fs-body);
+}
+.rapor-onizleme {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.rapor-gorsel {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--radius);
+}
+.mola-haklari {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.mola-haklari .grid.stats { margin: 8px 0; }

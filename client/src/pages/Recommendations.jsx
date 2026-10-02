@@ -59,7 +59,7 @@ export default function Recommendations() {
       )}
 
       <div className="surface-panel tier-summary">
-        <div className="grid stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="grid stats">
           <div className="stat stat-card">
             <span className="icon-chip danger"><TriangleAlert size={16} /></span>
             <div className="label"><span>Son Gün</span></div>

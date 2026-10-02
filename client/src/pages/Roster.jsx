@@ -89,6 +89,8 @@ export default function Roster() {
   const [whatsapp, setWhatsapp] = useState(false);
   const bekleyenSayi = Object.keys(bekleyen).length;
 
+  // Paylasim, duzenleme ve disa aktarma yalnizca magaza mudurune acik.
+  const magazaMuduru = user.role === 'store_manager';
   // Cok magazali roller icin magaza secici; tek magazalida gereksiz.
   const cokMagaza = ['super_admin', 'operations_manager', 'regional_manager'].includes(user.role);
 
@@ -124,11 +126,11 @@ export default function Roster() {
   // Hucre duzenlemesi icin atanabilir vardiyalar. Yalnizca duzenleme yetkisi
   // olanlar icin cekiliyor; barista bu listeyi hic istemiyor.
   useEffect(() => {
-    if (!veri || !veri.can_edit) return;
+    if (!veri || !veri.can_edit || !magazaMuduru) return;
     api.get('/pdks/shifts', { silent: true })
       .then((r) => setVardiyalar(r.data.filter((v) => v.active)))
       .catch(() => {});
-  }, [veri && veri.can_edit]);
+  }, [veri && veri.can_edit, magazaMuduru]);
 
   function kaydir(yon) {
     // Hafta degistirmek bekleyenleri gorunmez kilar; once sorulur.
@@ -309,7 +311,7 @@ export default function Roster() {
             <button className={mod === 'hafta' ? 'active' : ''} onClick={() => setMod('hafta')}>Haftalık</button>
             <button className={mod === 'gun' ? 'active' : ''} onClick={() => setMod('gun')}>Günlük</button>
           </div>
-          {veri && veri.can_edit && mod === 'hafta' && (
+          {veri && veri.can_edit && magazaMuduru && mod === 'hafta' && (
             <>
               {/* Paylasim KAYDETMEDEN ayri bir adim: yonetici hafta boyunca
                   duzenleyip kaydedebilir, plan kesinlestiginde bir kez
@@ -422,7 +424,7 @@ export default function Roster() {
             <HaftaTablosu
               veri={veri}
               bekleyen={bekleyen}
-              onHucre={veri.can_edit ? (kisi, gun) => setHucre({ kisi, gun }) : null}
+              onHucre={veri.can_edit && magazaMuduru ? (kisi, gun) => setHucre({ kisi, gun }) : null}
             />
           )
           : <GunListesi veri={veri} gun={gun} />
@@ -702,6 +704,7 @@ function netDakika(v) {
 function hucreMetin(hucreler, tatil) {
   if (tatil && tatil.half !== true) return 'RT';
   if (!hucreler || hucreler.length === 0) return '-';
+  if (hucreler.some((c) => c.is_day_off && c.note === 'RAPOR')) return 'RAPOR';
   if (hucreler.some((c) => c.is_day_off)) return 'OFF';
   return hucreler
     .map((c) => `${(c.start_time || '').slice(0, 5)}-${(c.end_time || '').slice(0, 5)}`)
@@ -791,13 +794,6 @@ function HaftaTablosu({ veri, bekleyen = {}, onHucre }) {
           </table>
         </div>
       </div>
-      <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-        <strong>OFF</strong> hafta tatili · <strong>RT</strong> resmi tatil ·
-        {' '}<strong>Kapanış</strong> vardiyası ertesi güne sarkar
-        <br />
-        Planlı süreler <strong>net çalışmadır</strong>: ara dinlenmesi düşülmüştür (4857 m.68).
-        Kırmızı çerçeveli hücre yasal sınır uyarısı taşır.
-      </p>
     </>
   );
 }
@@ -831,7 +827,8 @@ function Hucre({ hucreler: gelen, tatil, bekleyen, duzenle }) {
   if (tamTatil) {
     govde = <span className="roster-rt">RT</span>;
   } else if (tatilKaydi) {
-    govde = <span className="roster-ht">OFF</span>;
+    // Onaylanan rapor gunleri tatil satiri olarak tutulur, notu RAPOR.
+    govde = <span className="roster-ht">{hucreler.some((c) => c.note === 'RAPOR') ? 'RAPOR' : 'OFF'}</span>;
   } else if (bos) {
     govde = <span className="roster-bos">{duzenle ? '+' : '-'}</span>;
   } else {

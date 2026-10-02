@@ -398,6 +398,11 @@ List<NavItem> navFor(AppUser? user) {
 ///
 /// Menu dugmesi navItem DEGIL: bir yola gitmiyor, alt cubugun ustunde menu
 /// tabakasini aciyor. Bu yuzden app_shell icinde ayri cizilir.
+/// Yol Operasyon alanina mi ait? Mesai sarti yalnizca orada yonlendirir.
+bool isOperationsPath(String path) => navSections
+    .where((s) => s.id == AppSection.operations)
+    .any((s) => s.groups.any((g) => g.items.any((i) => i.path == path)));
+
 List<NavItem> bottomBarFor(AppUser? user, AppSection section) {
   if (user == null) return const [];
   final groups = navGroupsFor(user, section);

@@ -3,7 +3,7 @@ import { User, Camera, Trash2, SunMedium, MoonStar } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../auth';
 import { toast, Avatar } from '../components/ui';
-import { ROLE_LABELS, errorMessage } from '../format';
+import { ROLE_LABELS, errorMessage, fmtDate } from '../format';
 import { getTheme, setTheme, subscribeTheme } from '../theme';
 
 export default function Profile() {
@@ -133,14 +133,13 @@ export default function Profile() {
           <div><dt>Ad Soyad</dt><dd>{user.full_name}</dd></div>
           <div><dt>Rol</dt><dd>{ROLE_LABELS[user.role]}</dd></div>
           <div><dt>Mağaza</dt><dd>{user.store_name || 'Merkezi'}</dd></div>
+          <div><dt>İşe Giriş Tarihi</dt><dd>{user.hired_at ? fmtDate(user.hired_at) : 'Tanımlı değil'}</dd></div>
+          <div><dt>Versiyon</dt><dd>v{__APP_VERSION__} (Build {__APP_BUILD__})</dd></div>
         </dl>
       </div>
 
       <div className="card">
         <h3>Görünüm</h3>
-        <p className="avatar-hint" style={{ marginTop: 0 }}>
-          Seçiminiz bu cihazda saklanır ve giriş ekranı dahil tüm ekranlarda geçerli olur.
-        </p>
         <div className="theme-choice">
           <button
             type="button"

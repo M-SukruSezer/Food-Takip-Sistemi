@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList, CalendarRange, ChevronRight, MapPin,
+  Home, Package, Flame, Cake, Banknote, ScrollText, Users, Store, Menu, LogOut, ClipboardCheck, UserCircle, PanelLeftClose, PanelLeftOpen, Receipt, BarChart3, Snowflake, Clock, UserCheck, X, Building2, ClipboardList, CalendarRange, ChevronRight, Hash,
 } from 'lucide-react';
 import { useAuth } from '../auth';
 import {
   ROLE_LABELS, sumRemaining, ALL_ROLES, MANAGER_ROLES, PETTY_CASH_ROLES, REPORT_PANEL_ROLES,
   HR_ROLES, PDKS_ROLES, OPERATIONS_ROLES,
 } from '../format';
-import api from '../api';
+import api, { setOperationsPathCheck } from '../api';
 import { Avatar, Confirm } from './ui';
 import NotificationBell from './NotificationBell';
 
@@ -35,10 +35,14 @@ export const NAV_SECTIONS = [
           // Cizelgeyi TUM ekip goruyor: kimin ne zaman calistigi ekibin
           // gunluk ihtiyaci. Duzenleme Devam Yonetimi'nde kaliyor.
           { to: '/roster', label: 'Vardiya Çizelgesi', short: 'Çizelge', ico: CalendarRange, roles: PDKS_ROLES, tab: true, desc: 'Haftalık nöbet planı ve çalışma saatleri', tone: 'muted' },
+          // Baristanin tum talepleri tek yerde; alt barda Cizelge'nin yaninda.
+          { to: '/requests', label: 'Taleplerim', short: 'Taleplerim', ico: ClipboardCheck, roles: ['barista'], tab: true, desc: 'İzin, vardiya takası, OFF günü ve rapor talepleri', tone: 'muted' },
           { to: '/pdks-admin', label: 'Devam Yönetimi', short: 'Yönetim', ico: UserCheck, roles: MANAGER_ROLES, tab: true, desc: 'Yıllık izin talepleri, mazeret ve onaylar', tone: 'muted' },
           // IK'ya ozel akis: magaza listesi -> o magazanin puantaji.
           // Yoneticiler ayni veriyi Devam Yonetimi'nin Puantaj sekmesinden
           // gordugu icin bu oge onlara cikmiyor; menu ikiye katlanmasin.
+          // QR okutamayan partner icin 60 sn'lik 6 haneli kod.
+          { to: '/pin', label: 'PIN Doğrulama', ico: Hash, roles: ['store_manager', 'shift_supervisor'], desc: 'QR okutamayan partner için 60 sn geçerli kod', tone: 'muted' },
           { to: '/timesheet', label: 'Puantaj', short: 'Puantaj', ico: ClipboardList, roles: HR_ROLES, tab: true, desc: 'Aylık çalışma saati dökümü', tone: 'muted' },
         ],
       },
@@ -116,6 +120,8 @@ export function sectionOfPath(path) {
   const hit = NAV_SECTIONS.find((s) => s.groups.some((g) => g.items.some((i) => i.to === path)));
   return hit ? hit.id : null;
 }
+
+setOperationsPathCheck((path) => sectionOfPath(path) === 'operations');
 
 // Girişte acilacak yol. Ilk ekran PDKS; IK gibi o ekranda farkli bir ilk
 // sayfasi olan roller icin dogru yolu veriyor.
@@ -356,9 +362,6 @@ export default function Layout() {
               <div className="nav-menu-id">
                 <strong>{user.full_name}</strong>
                 <span>{ROLE_LABELS[user.role]}</span>
-                {user.store_name && (
-                  <span className="nav-menu-store"><MapPin size={11} /> {user.store_name}</span>
-                )}
               </div>
               <button
                 type="button"

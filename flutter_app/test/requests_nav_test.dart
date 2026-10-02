@@ -74,4 +74,12 @@ void main() {
     });
     expect(requestSummary(off), 'OFF günü Cum 09.10 → Per 08.10');
   });
+
+  test('mesai yönlendirmesi yalnızca Operasyon sayfalarında', () {
+    expect(isOperationsPath('/dashboard'), isTrue);
+    expect(isOperationsPath('/sales'), isTrue);
+    for (final p in ['/pdks', '/roster', '/pin', '/requests', '/profile']) {
+      expect(isOperationsPath(p), isFalse, reason: p);
+    }
+  });
 }

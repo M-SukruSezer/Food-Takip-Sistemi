@@ -20,6 +20,8 @@ import Profile from './pages/Profile';
 import Approvals from './pages/Approvals';
 import Timesheet from './pages/Timesheet';
 import Roster from './pages/Roster';
+import Requests from './pages/Requests';
+import Pin from './pages/Pin';
 import { ToastHost, BusyHost } from './components/ui';
 
 function RequireAuth({ children }) {
@@ -90,6 +92,8 @@ export default function App() {
         <Route path="pdks" element={<Guard roles={PDKS_ROLES}><Pdks /></Guard>} />
         <Route path="roster" element={<Guard roles={PDKS_ROLES}><Roster /></Guard>} />
         <Route path="pdks-admin" element={<Guard roles={MANAGER_ROLES}><PdksAdmin /></Guard>} />
+        <Route path="requests" element={<NavGuard><Requests /></NavGuard>} />
+        <Route path="pin" element={<NavGuard><Pin /></NavGuard>} />
         <Route path="timesheet" element={<Guard roles={HR_ROLES}><Timesheet /></Guard>} />
         <Route path="users" element={<Guard roles={MANAGER_ROLES}><Users /></Guard>} />
         <Route path="stores" element={<Guard roles={['super_admin']}><Stores /></Guard>} />

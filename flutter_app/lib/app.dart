@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/api_client.dart';
+import 'core/nav.dart';
 import 'core/notify.dart';
 import 'core/session.dart';
 import 'core/theme_mode.dart';
@@ -41,9 +42,13 @@ class _FoodTakipAppState extends State<FoodTakipApp> {
     // Operasyon alani acik mesai istiyorsa Devam Takibi ekranina goturuluyor.
     // shift=1 sorgusu ekranda sebebi yazdiriyor; ayni ekranda zaten isek
     // gereksiz gezinme yapilmiyor.
+    //
+    // Yalnizca Operasyon sayfasindayken: PDKS sayfalarindaki (Cizelge, PIN
+    // Dogrulama...) arka plan istekleri (orn. oneri rozeti) mesaiye girmemis
+    // vardiya sorumlusunu bulundugu sayfadan atmamali.
     api.onShiftRequired = () {
       final yol = _router.routerDelegate.currentConfiguration.uri.path;
-      if (yol != '/pdks') _router.go('/pdks?shift=1');
+      if (yol != '/pdks' && isOperationsPath(yol)) _router.go('/pdks?shift=1');
     };
     _router = GoRouter(
       refreshListenable: session,

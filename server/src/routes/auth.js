@@ -32,9 +32,11 @@ router.post('/login', async (req, res) => {
   }
   await logActivity(user, 'GIRIS', 'auth', user.id, 'Sisteme giriş yapıldı');
   const token = sign(user);
+  const profile = await queryOne('SELECT hired_at FROM pdks_profiles WHERE user_id = ?', user.id);
   res.json({
     token,
     user: {
+      hired_at: profile ? profile.hired_at || null : null,
       id: user.id,
       username: user.username,
       full_name: user.full_name,

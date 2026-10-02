@@ -5,6 +5,10 @@ import {
   Wallet, FileSpreadsheet, FileText, Pencil,
 } from 'lucide-react';
 import api from '../api';
+import {
+  TALEP_ETIKET, talepOzet, durumEtiket, DURUM_SINIF, karsiTarafBekliyor, RaporGorselModal,
+  CIZELGEYI_DEGISTIRIR,
+} from '../components/pdks/Talepler';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
 import { PDF_FONT, pdfFontKur } from '../pdfFont';
@@ -26,12 +30,6 @@ const SEKMELER = [
 const saat = (dk) => {
   if (!dk) return '-';
   return `${Math.floor(dk / 60)}s ${dk % 60}dk`;
-};
-const TALEP_ETIKET = {
-  IZIN: 'Yıllık İzin',
-  SAATLIK_IZIN: 'Saatlik İzin',
-  VARDIYA_TAKAS: 'Vardiya Takas',
-  VARDIYA_DEVIR: 'Vardiya Devir',
 };
 
 // Cihaz butunluk bayraklari; sunucudaki FLAG_LABELS ile ayni anahtarlar.
@@ -184,6 +182,7 @@ function Talepler({ onChange }) {
   const [durum, setDurum] = useState('PENDING');
   const [ret, setRet] = useState(null);
   const [ata, setAta] = useState(null);
+  const [gorsel, setGorsel] = useState(null);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -212,8 +211,8 @@ function Talepler({ onChange }) {
             ))}
         </div>
         <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '10px 0 0' }}>
-          Onaylanan izin günlerine vardiya atanmaz ve o günler puantajda izin
-          olarak sayılır. Reddedilen talebin tutarı/günü personelin hakkına geri döner.
+          Vardiya takası, haftalık OFF ve rapor talepleri onaylandığında haftalık
+          çizelge otomatik güncellenir. Reddedilen talebin günü personelin hakkına geri döner.
         </p>
       </div>
 
@@ -230,17 +229,20 @@ function Talepler({ onChange }) {
               )}
               {liste.map((r) => {
                 const isShift = r.type === 'VARDIYA_TAKAS' || r.type === 'VARDIYA_DEVIR';
-                const bekliyorOnay = r.type === 'VARDIYA_TAKAS' && !r.target_confirmed_at;
+                const bekliyorOnay = karsiTarafBekliyor(r);
                 return (
                   <tr key={r.id}>
                     <td data-label="Personel"><strong>{r.full_name}</strong></td>
-                    <td data-label="Tür">{TALEP_ETIKET[r.type]}</td>
+                    <td data-label="Tür">{TALEP_ETIKET[r.type] || r.type}</td>
                     <td data-label="Detay">
-                      {r.type === 'IZIN'
-                        ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
-                        : r.type === 'SAATLIK_IZIN'
-                        ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
-                        : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
+                      {talepOzet(r)}{r.target_name ? ` · ${r.target_name}` : ''}
+                      {r.has_attachment && (
+                        <div>
+                          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setGorsel(r)}>
+                            Raporu Gör
+                          </button>
+                        </div>
+                      )}
                       {isShift && r.status === 'PENDING' && (
                         <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>
                           {r.type === 'VARDIYA_TAKAS'
@@ -251,12 +253,7 @@ function Talepler({ onChange }) {
                     </td>
                     <td data-label="Gerekçe" style={{ maxWidth: 200 }}>{r.reason}</td>
                     <td data-label="Durum">
-                      <span className={`badge ${r.status === 'PENDING' ? 'warning'
-                        : r.status === 'APPROVED' ? 'sold' : 'critical'}`}>
-                        {r.status === 'PENDING' ? 'Bekliyor'
-                          : r.status === 'APPROVED' ? 'Onaylandı'
-                          : r.status === 'REJECTED' ? 'Reddedildi' : 'İptal'}
-                      </span>
+                      <span className={`badge ${DURUM_SINIF[r.status] || 'critical'}`}>{durumEtiket(r)}</span>
                       {r.decision_note && (
                         <div className="muted" style={{ fontSize: 'var(--fs-caption)' }}>{r.decision_note}</div>
                       )}
@@ -268,7 +265,9 @@ function Talepler({ onChange }) {
                             <button className="btn btn-sm btn-primary" onClick={() => setAta(r)}>Ata &amp; Onayla</button>
                           ) : (
                             <button className="btn btn-sm btn-primary" disabled={bekliyorOnay}
-                              title={bekliyorOnay ? 'Karşı taraf henüz onaylamadı' : undefined}
+                              title={bekliyorOnay ? 'Karşı taraf henüz onaylamadı'
+                                : CIZELGEYI_DEGISTIRIR.includes(r.type)
+                                  ? 'Onayla birlikte haftalık çizelge otomatik güncellenir' : undefined}
                               onClick={() => karar(r, true)}>Onayla</button>
                           )}
                           <button className="btn btn-sm btn-danger" onClick={() => setRet(r)}>Reddet</button>
@@ -287,6 +286,7 @@ function Talepler({ onChange }) {
         <RetModal talep={ret} onClose={() => setRet(null)}
           onDone={(note) => { const t = ret; setRet(null); karar(t, false, { note }); }} />
       )}
+      {gorsel && <RaporGorselModal talep={gorsel} onClose={() => setGorsel(null)} />}
       {ata && (
         <AtaModal talep={ata} onClose={() => setAta(null)}
           onDone={(targetUserId) => { const t = ata; setAta(null); karar(t, true, { target_user_id: targetUserId }); }} />

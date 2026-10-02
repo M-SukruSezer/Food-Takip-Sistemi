@@ -42,7 +42,7 @@ export default function ProductTypes() {
       </div>
 
       <div className="surface-panel">
-        <div className="grid stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 12 }}>
+        <div className="grid stats" style={{ marginBottom: 12 }}>
           <div className="stat stat-card">
             <span className="icon-chip primary"><Layers size={16} /></span>
             <div className="label"><span>Kayıtlı Çeşit</span></div>

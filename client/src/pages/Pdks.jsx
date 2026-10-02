@@ -7,6 +7,7 @@ import api from '../api';
 import { useAuth } from '../auth';
 import { Modal, toast } from '../components/ui';
 import QrScanner from '../components/pdks/QrScanner';
+import { TalepModal, TalepListesi } from '../components/pdks/Talepler';
 import { fmtDate, fmtDateTime, errorMessage } from '../format';
 
 // Personel PDKS ekrani: durum, QR ile giris/cikis, bakiye, talepler, takvim.
@@ -16,14 +17,33 @@ import { fmtDate, fmtDateTime, errorMessage } from '../format';
 //
 // KVKK: konum yalnizca okutma aninda aliniyor, arka planda izleme yok.
 
-const TALEP_ETIKET = {
-  IZIN: 'Yıllık İzin',
-  SAATLIK_IZIN: 'Saatlik İzin',
-  VARDIYA_TAKAS: 'Vardiya Takas',
-  VARDIYA_DEVIR: 'Vardiya Devir',
+const LOG_ETIKET = {
+  GIRIS: ['Giriş', 'sold'],
+  CIKIS: ['Çıkış', 'discarded'],
+  MOLA_BASLA: ['Mola başladı', 'warning'],
+  MOLA_BITIR: ['Mola bitti', 'info'],
 };
-const DURUM_ETIKET = { PENDING: 'Bekliyor', APPROVED: 'Onaylandı', REJECTED: 'Reddedildi', CANCELLED: 'İptal' };
-const DURUM_SINIF = { PENDING: 'warning', APPROVED: 'sold', REJECTED: 'critical', CANCELLED: 'discarded' };
+
+/// Bugunku molalar: MOLA_BASLA acar, MOLA_BITIR ya da CIKIS kapatir.
+/// Kapanmamis mola "suruyor" olarak doner.
+export function molaParcalari(logs, simdi = new Date()) {
+  const sirali = [...logs].sort((a, b) => String(a.occurred_at).localeCompare(String(b.occurred_at)));
+  const out = [];
+  let acik = null;
+  for (const l of sirali) {
+    if (l.type === 'MOLA_BASLA') acik = new Date(l.occurred_at);
+    else if ((l.type === 'MOLA_BITIR' || l.type === 'CIKIS') && acik) {
+      out.push({ bas: acik, bit: new Date(l.occurred_at) });
+      acik = null;
+    }
+  }
+  if (acik) out.push({ bas: acik, bit: null });
+  return out.map((m) => ({
+    ...m,
+    dakika: Math.max(0, Math.floor(((m.bit || simdi) - m.bas) / 60000)),
+  }));
+}
+const saatDk = (d) => d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
 export default function Pdks() {
   const { user } = useAuth();
@@ -114,7 +134,13 @@ const ADIM = {
       // yerine burada net mesaj veriliyor.
       const konum = await konumAl();
       await api.post(`/pdks/${ADIM[tip].yol}`,
-        { method: 'QR', qr_token: token, ...konum, device_integrity: WEB_INTEGRITY },
+        {
+          method: 'QR',
+          // 6 haneli rakam: PIN Dogrulama kodu; aksi halde QR icerigi.
+          ...(/^\d{6}$/.test(token) ? { manager_pin: token } : { qr_token: token }),
+          ...konum,
+          device_integrity: WEB_INTEGRITY,
+        },
         { noToast: true, busyMessage: 'Konum doğrulanıyor...' });
       toast(ADIM[tip].mesaj);
       setReload((n) => n + 1);
@@ -269,8 +295,8 @@ const ADIM = {
           <ul className="pdks-log-list">
             {durum.logs.map((l) => (
               <li key={l.id}>
-                <span className={`badge ${l.type === 'GIRIS' ? 'sold' : 'discarded'}`}>
-                  {l.type === 'GIRIS' ? 'Giriş' : 'Çıkış'}
+                <span className={`badge ${(LOG_ETIKET[l.type] || [])[1] || 'discarded'}`}>
+                  {(LOG_ETIKET[l.type] || [l.type])[0]}
                 </span>
                 <strong>{fmtDateTime(l.occurred_at)}</strong>
                 <span className="muted">{l.method}</span>
@@ -281,6 +307,7 @@ const ADIM = {
             ))}
           </ul>
         )}
+        <MolaHaklari vardiyalar={durum.shifts} logs={durum.logs} />
       </section>
 
       {/* --- Bakiye --- */}
@@ -326,66 +353,7 @@ const ADIM = {
             <Plus size={14} /> Yeni Talep
           </button>
         </div>
-        {talepler.length === 0 ? (
-          <p className="empty">Henüz talebiniz yok.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="responsive">
-              <thead>
-                <tr><th>Tür</th><th>Detay</th><th>Durum</th><th>Karar</th><th>İşlem</th></tr>
-              </thead>
-              <tbody>
-                {talepler.map((r) => (
-                  <tr key={r.id}>
-                    <td data-label="Tür"><strong>{TALEP_ETIKET[r.type]}</strong></td>
-                    <td data-label="Detay">
-                      {r.type === 'IZIN'
-                        ? `${fmtDate(r.start_at)} – ${fmtDate(r.end_at)} (${r.days} gün)`
-                        : r.type === 'SAATLIK_IZIN'
-                        ? `${fmtDateTime(r.start_at)} · ${r.hours} saat`
-                        : `${fmtDate(r.shift_date)}${r.target_name ? ` · ${r.target_name}` : ''}`}
-                      <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>{r.reason}</div>
-                      {r.type === 'VARDIYA_TAKAS' && r.status === 'PENDING' && (
-                        <div className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                          {r.target_confirmed_at ? 'Karşı taraf onayladı · yönetici onayı bekleniyor'
-                            : 'Karşı taraf onayı bekleniyor'}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="Durum">
-                      <span className={`badge ${DURUM_SINIF[r.status]}`}>{DURUM_ETIKET[r.status]}</span>
-                    </td>
-                    <td data-label="Karar" className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                      {r.manager_name || '-'}
-                      {r.decision_note && <div>{r.decision_note}</div>}
-                    </td>
-                    <td data-label="İşlem">
-                      {r.status === 'PENDING' && r.type === 'VARDIYA_TAKAS'
-                        && Number(r.target_user_id) === Number(user.id) && !r.target_confirmed_at && (
-                        <button className="btn btn-sm btn-primary" onClick={async () => {
-                          try {
-                            await api.post(`/pdks/requests/${r.id}/confirm`, undefined,
-                              { successMessage: 'Takas talebi onaylandı' });
-                            setReload((n) => n + 1);
-                          } catch { /* bildirim api katmaninda */ }
-                        }}>Onayla</button>
-                      )}
-                      {r.status === 'PENDING' && Number(r.user_id) === Number(user.id) && (
-                        <button className="btn btn-sm btn-secondary" onClick={async () => {
-                          try {
-                            await api.post(`/pdks/requests/${r.id}/cancel`, undefined,
-                              { successMessage: 'Talep geri alındı' });
-                            setReload((n) => n + 1);
-                          } catch { /* bildirim api katmaninda */ }
-                        }}>Geri Al</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <TalepListesi talepler={talepler} user={user} onChange={() => setReload((n) => n + 1)} />
       </section>
 
       {/* --- Aylik vardiya takvimi --- */}
@@ -480,169 +448,40 @@ function Takvim({ ay, atamalar, tatiller = [] }) {
   );
 }
 
-/// Izin / saatlik izin / vardiya takas-devir talep formu.
-function TalepModal({ bakiye, onClose, onDone }) {
-  const [tur, setTur] = useState('IZIN');
-  const [baslangic, setBaslangic] = useState('');
-  const [bitis, setBitis] = useState('');
-  const [saatBas, setSaatBas] = useState('');
-  const [saatBit, setSaatBit] = useState('');
-  const [vardiyaTarih, setVardiyaTarih] = useState('');
-  const [hedefId, setHedefId] = useState('');
-  const [gerekce, setGerekce] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [vardiyalarim, setVardiyalarim] = useState([]);
-  const [meslektaslar, setMeslektaslar] = useState([]);
-
-  useEffect(() => {
-    if (tur !== 'VARDIYA_TAKAS' && tur !== 'VARDIYA_DEVIR') return;
-    const bugunIso = new Date().toISOString().slice(0, 10);
-    const ileriIso = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-    api.get(`/pdks/assignments?from=${bugunIso}&to=${ileriIso}`, { silent: true })
-      .then((r) => setVardiyalarim(r.data.filter((a) => !a.is_day_off)))
-      .catch(() => {});
-    if (tur === 'VARDIYA_TAKAS') {
-      api.get('/pdks/requests/colleagues', { silent: true })
-        .then((r) => setMeslektaslar(r.data)).catch(() => {});
-    }
-  }, [tur]);
-
-  async function gonder(e) {
-    e.preventDefault();
-    setErr('');
-    const govde = { type: tur, reason: gerekce.trim() };
-    if (!govde.reason) { setErr('Gerekçe zorunludur'); return; }
-    if (tur === 'IZIN') {
-      if (!baslangic || !bitis) { setErr('Tarih aralığı seçin'); return; }
-      govde.start_at = baslangic;
-      govde.end_at = bitis;
-    } else if (tur === 'SAATLIK_IZIN') {
-      if (!saatBas || !saatBit) { setErr('Saat aralığı seçin'); return; }
-      // datetime-local yerel saat verir; ISO'ya cevrilir.
-      govde.start_at = new Date(saatBas).toISOString();
-      govde.end_at = new Date(saatBit).toISOString();
-    } else {
-      if (!vardiyaTarih) { setErr('Bir vardiya seçin'); return; }
-      govde.shift_date = vardiyaTarih;
-      if (tur === 'VARDIYA_TAKAS') {
-        if (!hedefId) { setErr('Takas için bir personel seçin'); return; }
-        govde.target_user_id = Number(hedefId);
-      }
-    }
-    setBusy(true);
-    try {
-      await api.post('/pdks/requests', govde, { noToast: true, busyMessage: 'Talep gönderiliyor...' });
-      toast('Talep gönderildi, onay bekliyor');
-      onDone();
-    } catch (e2) {
-      setErr(errorMessage(e2));
-    } finally {
-      setBusy(false);
-    }
-  }
-
+/// Mola haklari ve kullanimi: hak bugunku vardiyanin tanimli mola suresi,
+/// kullanim bugunun gercek mola kayitlarindan hesaplanir.
+function MolaHaklari({ vardiyalar, logs }) {
+  const hak = vardiyalar
+    .filter((v) => !v.is_day_off)
+    .reduce((a, v) => a + (Number(v.break_duration_minutes) || 0), 0);
+  const molalar = molaParcalari(logs);
+  const kullanilan = molalar.reduce((a, m) => a + m.dakika, 0);
+  const kalan = Math.max(0, hak - kullanilan);
   return (
-    <Modal title="Yeni Talep" onClose={onClose}>
-      <form onSubmit={gonder}>
-        {err && <div className="alert error">{err}</div>}
-        <div className="field">
-          <label>Talep Türü</label>
-          <select value={tur} onChange={(e) => setTur(e.target.value)}>
-            <option value="IZIN">Yıllık İzin</option>
-            <option value="SAATLIK_IZIN">Saatlik İzin</option>
-            <option value="VARDIYA_TAKAS">Vardiya Takas</option>
-            <option value="VARDIYA_DEVIR">Vardiya Devir</option>
-          </select>
-        </div>
-
-        {(tur === 'VARDIYA_TAKAS' || tur === 'VARDIYA_DEVIR') && (
-          <>
-            <div className="field">
-              <label>Vardiya</label>
-              <select value={vardiyaTarih} onChange={(e) => setVardiyaTarih(e.target.value)} required>
-                <option value="">Seçin…</option>
-                {vardiyalarim.map((a) => (
-                  <option key={`${a.work_date}-${a.shift_id}`} value={a.work_date}>
-                    {fmtDate(a.work_date)} · {a.start_time}–{a.end_time}
-                  </option>
-                ))}
-              </select>
-              {vardiyalarim.length === 0 && (
-                <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
-                  Önümüzdeki 60 gün içinde size ait vardiya bulunamadı.
-                </p>
-              )}
-            </div>
-            {tur === 'VARDIYA_TAKAS' && (
-              <div className="field">
-                <label>Takas Edilecek Personel</label>
-                <select value={hedefId} onChange={(e) => setHedefId(e.target.value)} required>
-                  <option value="">Seçin…</option>
-                  {meslektaslar.map((m) => (
-                    <option key={m.id} value={m.id}>{m.full_name}</option>
-                  ))}
-                </select>
-                <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
-                  Seçilen personelin mobil onayı olmadan yönetici bu talebi onaylayamaz.
-                </p>
-              </div>
-            )}
-            {tur === 'VARDIYA_DEVIR' && (
-              <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                Yönetici, uygun bir personeli talebe atayarak onaylayacaktır.
-              </p>
-            )}
-          </>
-        )}
-
-        {tur === 'IZIN' && (
-          <>
-            <div className="field">
-              <label>Başlangıç</label>
-              <input type="date" value={baslangic} onChange={(e) => setBaslangic(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>Bitiş</label>
-              <input type="date" value={bitis} onChange={(e) => setBitis(e.target.value)} required />
-            </div>
-            {bakiye && (
-              <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-                Kalan hakkınız {bakiye.leave.remaining_days} gün. Hafta tatili günleri
-                düşülmez, resmi tatiller hesaba katılmaz.
-              </p>
-            )}
-          </>
-        )}
-
-        {tur === 'SAATLIK_IZIN' && (
-          <>
-            <div className="field">
-              <label>Başlangıç</label>
-              <input type="datetime-local" value={saatBas} onChange={(e) => setSaatBas(e.target.value)} required />
-            </div>
-            <div className="field">
-              <label>Bitiş</label>
-              <input type="datetime-local" value={saatBit} onChange={(e) => setSaatBit(e.target.value)} required />
-            </div>
-            <p className="muted" style={{ fontSize: 'var(--fs-label)' }}>
-              Aynı gün içinde ve en fazla 12 saat olabilir.
-            </p>
-          </>
-        )}
-
-        <div className="field">
-          <label>Gerekçe</label>
-          <input value={gerekce} onChange={(e) => setGerekce(e.target.value)} required />
-        </div>
-
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Vazgeç</button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Gönderiliyor...' : 'Gönder'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+    <div className="mola-haklari">
+      <div className="mo-head">
+        <h3 style={{ margin: 0, fontSize: 'var(--fs-base)' }}><Coffee size={16} /> Mola Hakları ve Kullanımı</h3>
+        <span className="muted">{hak > 0 ? `${hak} dk hak` : 'Hak tanımsız'}</span>
+      </div>
+      <div className="grid stats">
+        <div className="stat stat-card"><div className="label">Toplam Hak</div><div className="value">{hak > 0 ? `${hak} dk` : '—'}</div></div>
+        <div className="stat stat-card"><div className="label">Kullanılan</div><div className="value">{kullanilan} dk</div></div>
+        <div className="stat stat-card"><div className="label">Kalan</div><div className="value">{hak > 0 ? `${kalan} dk` : '—'}</div></div>
+      </div>
+      {molalar.length === 0 ? (
+        <p className="muted" style={{ fontSize: 'var(--fs-body)', margin: '8px 0 0' }}>Bugün henüz mola kullanılmadı.</p>
+      ) : (
+        <ul className="pdks-log-list">
+          {molalar.map((m, i) => (
+            <li key={i}>
+              <strong>{i + 1}. Mola</strong>
+              <span>{saatDk(m.bas)} – {m.bit ? saatDk(m.bit) : '…'}</span>
+              <span className="muted">{m.dakika} dk</span>
+              <span className={`badge ${m.bit ? 'sold' : 'warning'}`}>{m.bit ? 'Tamamlandı' : 'Sürüyor'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

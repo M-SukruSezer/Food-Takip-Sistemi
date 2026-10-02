@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, X, Keyboard } from 'lucide-react';
+import { X, Keyboard, Hash, ScanLine } from 'lucide-react';
 
 // Kamera ile QR okuyucu.
 //
 // Kamera erisimi reddedilirse ya da cihazda kamera yoksa elle giris secenegi
 // kaliyor: kiosk ekranindaki kod okunabilir bicimde de yaziliyor.
+//
+// QR okutulamazsa "PIN ile Giriş": magaza muduru / vardiya sorumlusunun
+// PIN Dogrulama ekranindaki 60 sn'lik 6 haneli kod girilir.
 export default function QrScanner({ onResult, onClose }) {
+  const [pinMode, setPinMode] = useState(false);
+  const [pin, setPin] = useState('');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [err, setErr] = useState('');
@@ -14,7 +19,7 @@ export default function QrScanner({ onResult, onClose }) {
   const [tarama, setTarama] = useState(false);
 
   useEffect(() => {
-    if (manual) return undefined;
+    if (manual || pinMode) return undefined;
     let stream = null;
     let raf = null;
     let iptal = false;
@@ -70,7 +75,38 @@ export default function QrScanner({ onResult, onClose }) {
       if (raf) cancelAnimationFrame(raf);
       if (stream) stream.getTracks().forEach((t) => t.stop());
     };
-  }, [manual, onResult]);
+  }, [manual, pinMode, onResult]);
+
+  if (pinMode) {
+    return (
+      <div className="qr-scanner">
+        <div className="field">
+          <label>PIN Doğrulama</label>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="______"
+            className="pin-input"
+            autoFocus
+          />
+          <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: '4px 0 0' }}>
+            Mağaza müdürü veya vardiya sorumlusunun ekranındaki 60 sn’lik kodu girin.
+          </p>
+        </div>
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => setPinMode(false)}>
+            <ScanLine size={16} /> QR ile Giriş
+          </button>
+          <button type="button" className="btn btn-primary" disabled={pin.length !== 6}
+            onClick={() => onResult(pin)}>
+            PIN ile Onayla
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="qr-scanner">
@@ -107,6 +143,9 @@ export default function QrScanner({ onResult, onClose }) {
         <button type="button" className="btn btn-secondary" onClick={onClose}>
           <X size={16} /> Vazgeç
         </button>
+        <button type="button" className="btn btn-secondary" onClick={() => setPinMode(true)}>
+          <Hash size={16} /> PIN ile Giriş
+        </button>
         {manual ? (
           <button type="button" className="btn btn-primary" disabled={!text.trim()}
             onClick={() => onResult(text.trim())}>
@@ -118,11 +157,6 @@ export default function QrScanner({ onResult, onClose }) {
           </button>
         )}
       </div>
-      {!manual && !err && (
-        <p className="muted" style={{ fontSize: 'var(--fs-label)', margin: 0, display: 'flex', gap: 6 }}>
-          <Camera size={14} /> Kamera görüntüsü cihazdan çıkmıyor, sunucuya gönderilmiyor.
-        </p>
-      )}
     </div>
   );
 }

@@ -24,6 +24,9 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2021,
+        // vite.config.js define ile derlemede yerine konur.
+        __APP_VERSION__: 'readonly',
+        __APP_BUILD__: 'readonly',
       },
     },
     settings: {
