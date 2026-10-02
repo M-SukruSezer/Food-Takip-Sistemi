@@ -19,7 +19,8 @@ Future<void> performPdksQr(BuildContext context, PdksPunch adim) async {
   };
   final token = await Navigator.of(context).push<String>(
     MaterialPageRoute(
-      builder: (_) => QrScanScreen(title: basliklar[adim] ?? 'QR Okut'),
+      builder: (_) =>
+          QrScanScreen(title: basliklar[adim] ?? 'QR Okut', pdks: true),
     ),
   );
   if (token == null || !context.mounted) return;

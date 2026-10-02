@@ -8,6 +8,8 @@ import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/dashboard.dart';
 import '../models/product_type.dart';
+import '../widgets/search_field.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
@@ -27,7 +29,13 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
   String? _error;
   bool _loaded = false;
   String _query = '';
-  String _status = 'all';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   // Ana Yonetici ya da "Pasta cesidi yonetimi" yetkisi verilmis kullanici.
   bool get _canManage => session.user?.can('manage_product_types') ?? false;
@@ -103,16 +111,9 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
     // Fiyati tanimsiz aktif cesitler satildiginda ciroya 0 yazar.
     final missingPrice = _items.where((e) => e.active && !e.hasPrice).toList();
     final q = normalizeSearch(_query.trim());
-    final visible = _items.where((type) {
-      final matchesQuery = q.isEmpty || normalizeSearch(type.name).contains(q);
-      final matchesStatus = switch (_status) {
-        'active' => type.active,
-        'passive' => !type.active,
-        'skt3' => type.sktDays == 3,
-        _ => true,
-      };
-      return matchesQuery && matchesStatus;
-    }).toList();
+    final visible = _items
+        .where((type) => q.isEmpty || normalizeSearch(type.name).contains(q))
+        .toList();
 
     return CrudScaffold(
       title: 'Pasta Çeşitleri ve SKT Süreleri',
@@ -120,44 +121,29 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      addLabel: 'Yeni Çeşit',
-      onAdd: _canManage ? () => _edit() : null,
+      floatingActions: [
+        if (_canManage)
+          FloatingActionButton.extended(
+            heroTag: null,
+            onPressed: () => _edit(),
+            icon: const Icon(Icons.add),
+            label: const Text('Yeni Çeşit'),
+          ),
+      ],
       emptyText: 'Henüz ürün çeşidi eklenmemiş.',
       grid: true,
       banner: Column(
         children: [
-          SearchBar(
+          // Oneri Satis Listesi'ndeki arama kutusunun aynisi.
+          ProductSearchField(
+            controller: _searchController,
+            hintText: 'Pasta çeşidi ara...',
             onChanged: (value) => setState(() => _query = value),
-            hintText: 'Pasta çeşidi ara…',
-            leading: const Icon(Icons.search_rounded, size: 20),
-            elevation: const WidgetStatePropertyAll(0),
-            side: WidgetStatePropertyAll(BorderSide(color: t.border)),
-            backgroundColor: WidgetStatePropertyAll(t.card),
-          ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final item in [
-                  ('all', 'Tümü (${_items.length})'),
-                  ('active', 'Aktif (${_items.where((e) => e.active).length})'),
-                  ('skt3', 'SKT: 3 Gün'),
-                  (
-                    'passive',
-                    'Pasif (${_items.where((e) => !e.active).length})',
-                  ),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(item.$2),
-                      selected: _status == item.$1,
-                      onSelected: (_) => setState(() => _status = item.$1),
-                    ),
-                  ),
-              ],
-            ),
+            onClear: () {
+              _searchController.clear();
+              setState(() => _query = '');
+            },
+            filtering: _query.trim().isNotEmpty,
           ),
           if (_canManage && missingPrice.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -172,76 +158,79 @@ class _ProductTypesScreenState extends State<ProductTypesScreen> {
       ),
       children: visible
           .map(
-            (type) => AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          type.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: AppFontSize.title,
-                            fontWeight: FontWeight.w700,
-                            color: t.ink,
-                          ),
-                        ),
-                      ),
-                      if (!type.active) Pill(text: 'pasif', color: t.danger),
-                    ],
+            // Duzenle / Sil satir soldan saga kaydirilinca acilir.
+            (type) => SwipeActions(
+              actions: [
+                if (_canManage) ...[
+                  SwipeAction(
+                    label: 'Düzenle',
+                    icon: Icons.edit_outlined,
+                    color: t.primary,
+                    onTap: () => _edit(type),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    type.description?.isNotEmpty == true
-                        ? type.description!
-                        : 'Açıklama yok',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: AppFontSize.body,
-                      color: t.muted,
-                    ),
+                  SwipeAction(
+                    label: 'Sil',
+                    icon: Icons.delete_outline,
+                    color: t.danger,
+                    onTap: () => _delete(type),
                   ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      Pill(text: 'SKT: ${type.sktDays} gün', color: t.warning),
-                      type.hasPrice
-                          ? Pill(
-                              text: fmtMoney(type.unitPrice),
-                              color: t.success,
-                            )
-                          : Pill(text: 'Fiyat yok', color: t.danger),
-                      if (type.isGlobal)
-                        Pill(text: 'Genel', color: t.info)
-                      else if (_canManage && type.storeName != null)
-                        Pill(text: type.storeName!, color: t.info),
-                    ],
-                  ),
-                  if (_canManage) ...[
-                    const SizedBox(height: 10),
-                    CardActions(
+                ],
+              ],
+              child: AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        OutlinedButton(
-                          onPressed: () => _edit(type),
-                          child: const Text('Düzenle'),
-                        ),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: t.danger,
-                            side: BorderSide(color: t.danger),
+                        Expanded(
+                          child: Text(
+                            type.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: AppFontSize.title,
+                              fontWeight: FontWeight.w700,
+                              color: t.ink,
+                            ),
                           ),
-                          onPressed: () => _delete(type),
-                          child: const Text('Sil'),
                         ),
+                        if (!type.active) Pill(text: 'pasif', color: t.danger),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      type.description?.isNotEmpty == true
+                          ? type.description!
+                          : 'Açıklama yok',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        color: t.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        Pill(
+                          text: 'SKT: ${type.sktDays} gün',
+                          color: t.warning,
+                        ),
+                        type.hasPrice
+                            ? Pill(
+                                text: fmtMoney(type.unitPrice),
+                                color: t.success,
+                              )
+                            : Pill(text: 'Fiyat yok', color: t.danger),
+                        if (type.isGlobal)
+                          Pill(text: 'Genel', color: t.info)
+                        else if (_canManage && type.storeName != null)
+                          Pill(text: type.storeName!, color: t.info),
                       ],
                     ),
                   ],
-                ],
+                ),
               ),
             ),
           )

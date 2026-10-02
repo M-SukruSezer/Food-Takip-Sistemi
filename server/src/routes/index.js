@@ -44,6 +44,7 @@ router.use('/pdks', pdksRoutes);
 // Ayni on ek: Express eslesmeyen yolda sonraki yonlendiriciyi dener.
 router.use('/pdks', pdksAdminRoutes);
 router.use('/pdks', pdksRequestRoutes);
+router.use('/pdks', require('./rosterNotes'));
 router.use('/pdks', pdksTimesheetRoutes);
 
 module.exports = router;

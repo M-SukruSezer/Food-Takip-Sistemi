@@ -10,6 +10,8 @@ import '../core/user_rules.dart';
 import '../models/dashboard.dart';
 import '../models/store.dart';
 import '../models/user.dart';
+import '../widgets/search_field.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
@@ -27,7 +29,14 @@ class _UsersScreenState extends State<UsersScreen> {
   List<ManagedUser> _items = const [];
   List<StoreOption> _stores = const [];
   String _search = '';
-  String _roleFilter = 'all';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   String? _error;
   bool _loaded = false;
 
@@ -195,14 +204,7 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final visible = filterUsers(_items, _search)
-        .where(
-          (u) =>
-              _roleFilter == 'all' ||
-              u.role == _roleFilter ||
-              (_roleFilter == 'passive' && !u.active),
-        )
-        .toList();
+    final visible = filterUsers(_items, _search);
     final active = _items.where((u) => u.active).length;
     final supervisors = _items
         .where((u) => u.role == 'shift_supervisor')
@@ -214,8 +216,14 @@ class _UsersScreenState extends State<UsersScreen> {
       error: _error,
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
-      addLabel: 'Yeni Kullanıcı',
-      onAdd: _create,
+      floatingActions: [
+        FloatingActionButton.extended(
+          heroTag: null,
+          onPressed: _create,
+          icon: const Icon(Icons.person_add_alt_1_outlined),
+          label: const Text('Yeni Kullanıcı'),
+        ),
+      ],
       emptyText: _search.isEmpty
           ? 'Kullanıcı bulunamadı.'
           : 'Aramanıza uyan kullanıcı yok.',
@@ -253,159 +261,139 @@ class _UsersScreenState extends State<UsersScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          AppCard(
-            padding: const EdgeInsets.all(10),
-            child: TextField(
-              onChanged: (v) => setState(() => _search = v),
-              style: const TextStyle(fontSize: AppFontSize.title),
-              // Oneri listesindeki arama kutusuyla ayni gorunum: gomulu
-              // zemin ve marka renginde ikon.
-              decoration: InputDecoration(
-                hintText: 'Personel, kullanıcı adı veya unvan ara…',
-                fillColor: t.bg,
-                prefixIcon: Icon(Icons.search, color: t.primary),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final f in const [
-                  ('all', 'Tümü'),
-                  ('barista', 'Barista'),
-                  ('shift_supervisor', 'Supervisor'),
-                  ('store', 'Mağaza'),
-                  ('passive', 'Pasifler'),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(f.$2),
-                      selected: _roleFilter == f.$1,
-                      onSelected: (_) => setState(() => _roleFilter = f.$1),
-                    ),
-                  ),
-              ],
-            ),
+          // Oneri Satis Listesi'ndeki arama kutusunun aynisi.
+          ProductSearchField(
+            controller: _searchController,
+            hintText: 'Personel veya kullanıcı adı ara...',
+            onChanged: (v) => setState(() => _search = v),
+            onClear: () {
+              _searchController.clear();
+              setState(() => _search = '');
+            },
+            filtering: _search.trim().isNotEmpty,
           ),
         ],
       ),
       children:
-          visible.map((user) {
+          visible.map<Widget>((user) {
             final perm = permissionsFor(session.user, user);
-            return AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _Initials(name: user.fullName),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.fullName,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: AppFontSize.title,
-                                fontWeight: FontWeight.w700,
-                                color: t.ink,
-                              ),
-                            ),
-                            Text(
-                              '@${user.username}',
-                              style: TextStyle(
-                                fontSize: AppFontSize.body,
-                                color: t.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Pill(
-                        text: user.active ? 'aktif' : 'pasif',
-                        color: user.active ? t.success : t.danger,
-                      ),
-                    ],
+            // Duzenle, Sifre, Pasife Al ve Sil satir soldan saga kaydirilinca
+            // acilir; yalnizca yetkili olunan islemler gorunur.
+            return SwipeActions(
+              actionWidth: 72,
+              actions: [
+                if (perm.canEdit)
+                  SwipeAction(
+                    label: 'Düzenle',
+                    icon: Icons.edit_outlined,
+                    color: t.primary,
+                    onTap: () => _edit(user),
                   ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      Pill(
-                        text: roleLabels[user.role] ?? user.role,
-                        color: t.info,
-                      ),
-                      Pill(
-                        text: user.isMultiStore
-                            ? '${user.storeIds.length} mağaza sorumlusu'
-                            : (user.storeName ??
-                                  (user.role == 'super_admin'
-                                      ? 'Tüm mağazalar'
-                                      : 'Mağaza atanmamış')),
-                        color: t.warning,
-                      ),
-                    ],
+                if (perm.canResetPassword)
+                  SwipeAction(
+                    label: 'Şifre',
+                    icon: Icons.key_outlined,
+                    color: t.info,
+                    onTap: () => _resetPassword(user),
                   ),
-                  const SizedBox(height: 8),
-                  // Ana Yoneticide yetkiler rolden gelir, listelemek gurultu olur.
-                  if (user.role != 'super_admin')
-                    Text(
-                      user.permissions.isEmpty
-                          ? 'Ek yetki verilmemiş'
-                          : 'Yetkiler: ${user.permissions.map((p) => permissionLabels[p] ?? p).join(', ')}',
-                      style: TextStyle(
-                        fontSize: AppFontSize.label,
-                        color: t.muted,
-                      ),
-                    ),
-                  if (perm.reason != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      perm.reason!,
-                      style: TextStyle(
-                        fontSize: AppFontSize.label,
-                        color: t.muted,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  CardActions(
-                    children: [
-                      OutlinedButton(
-                        onPressed: perm.canEdit ? () => _edit(user) : null,
-                        child: const Text('Düzenle'),
-                      ),
-                      OutlinedButton(
-                        onPressed: perm.canResetPassword
-                            ? () => _resetPassword(user)
-                            : null,
-                        child: const Text('Şifre'),
-                      ),
-                      OutlinedButton(
-                        onPressed: perm.canToggleActive
-                            ? () => _toggle(user)
-                            : null,
-                        child: Text(user.active ? 'Pasife Al' : 'Aktifleştir'),
-                      ),
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: perm.canDelete ? t.danger : t.muted,
-                          side: BorderSide(
-                            color: perm.canDelete ? t.danger : t.border,
+                if (perm.canToggleActive)
+                  SwipeAction(
+                    label: user.active ? 'Pasife Al' : 'Aktifleştir',
+                    icon: user.active
+                        ? Icons.person_off_outlined
+                        : Icons.person_outline,
+                    color: t.warning,
+                    onTap: () => _toggle(user),
+                  ),
+                if (perm.canDelete)
+                  SwipeAction(
+                    label: 'Sil',
+                    icon: Icons.delete_outline,
+                    color: t.danger,
+                    onTap: () => _delete(user),
+                  ),
+              ],
+              child: AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _Initials(name: user.fullName),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.fullName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: AppFontSize.title,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.ink,
+                                ),
+                              ),
+                              Text(
+                                '@${user.username}',
+                                style: TextStyle(
+                                  fontSize: AppFontSize.body,
+                                  color: t.muted,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        onPressed: perm.canDelete ? () => _delete(user) : null,
-                        child: const Text('Sil'),
+                        Pill(
+                          text: user.active ? 'aktif' : 'pasif',
+                          color: user.active ? t.success : t.danger,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        Pill(
+                          text: roleLabels[user.role] ?? user.role,
+                          color: t.info,
+                        ),
+                        Pill(
+                          text: user.isMultiStore
+                              ? '${user.storeIds.length} mağaza sorumlusu'
+                              : (user.storeName ??
+                                    (user.role == 'super_admin'
+                                        ? 'Tüm mağazalar'
+                                        : 'Mağaza atanmamış')),
+                          color: t.warning,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Ana Yoneticide yetkiler rolden gelir, listelemek gurultu olur.
+                    if (user.role != 'super_admin')
+                      Text(
+                        user.permissions.isEmpty
+                            ? 'Ek yetki verilmemiş'
+                            : 'Yetkiler: ${user.permissions.map((p) => permissionLabels[p] ?? p).join(', ')}',
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
+                      ),
+                    if (perm.reason != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        perm.reason!,
+                        style: TextStyle(
+                          fontSize: AppFontSize.label,
+                          color: t.muted,
+                        ),
                       ),
                     ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }).toList()..add(

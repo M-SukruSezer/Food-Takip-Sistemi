@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../core/repository.dart';
 import '../core/session.dart';
 import '../core/tokens.dart';
+import '../models/pdks.dart';
+import '../widgets/live_distance.dart';
 
 /// Kamera ile QR okuma sayfası.
 ///
@@ -15,9 +18,12 @@ import '../core/tokens.dart';
 /// - Animasyonlu yeşil tarama lazeri
 /// QR okutulamazsa üst bardaki "PIN ile Giriş" ile 6 haneli PIN girilir.
 class QrScanScreen extends StatefulWidget {
-  const QrScanScreen({super.key, required this.title});
+  const QrScanScreen({super.key, required this.title, this.pdks = false});
 
   final String title;
+
+  /// PDKS okutmasi: ust barda magaza ve magazaya canli uzaklik gosterilir.
+  final bool pdks;
 
   @override
   State<QrScanScreen> createState() => _QrScanScreenState();
@@ -35,10 +41,19 @@ class _QrScanScreenState extends State<QrScanScreen>
   bool _done = false;
   bool _typing = false;
   String? _error;
+  PdksStore? _store;
 
   @override
   void initState() {
     super.initState();
+    if (widget.pdks) {
+      repo
+          .pdksStatus(silent: true)
+          .then((s) {
+            if (mounted) setState(() => _store = s.store);
+          })
+          .onError((Object _, StackTrace _) {});
+    }
     _laserAnim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
@@ -83,38 +98,65 @@ class _QrScanScreenState extends State<QrScanScreen>
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(width: 11),
-                  Text(
-                    'QR ile Giriş',
-                    style: TextStyle(
-                      fontSize: AppFontSize.title,
-                      fontWeight: FontWeight.w800,
-                      color: t.ink,
-                      letterSpacing: -0.35,
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.pdks ? 'QR ile Giriş' : widget.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: AppFontSize.title,
+                            fontWeight: FontWeight.w800,
+                            color: t.ink,
+                            letterSpacing: -0.35,
+                          ),
+                        ),
+                        if (widget.pdks)
+                          // Magaza ve magazaya CANLI uzaklik.
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 13,
+                                color: t.primary,
+                              ),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  _store?.name ??
+                                      session.user?.storeName ??
+                                      'Mağaza',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: AppFontSize.caption,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.muted,
+                                  ),
+                                ),
+                              ),
+                              if (_store != null) ...[
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: LiveDistanceLabel(
+                                    latitude: _store!.latitude,
+                                    longitude: _store!.longitude,
+                                    radiusM: _store!.geofenceRadiusM,
+                                    prefix: '',
+                                    showRadius: false,
+                                    fontSize: AppFontSize.caption,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 7),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.primarySoft,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(
-                        color: t.primary.withValues(alpha: .4),
-                      ),
-                    ),
-                    child: Text(
-                      'PDKS',
-                      style: TextStyle(
-                        color: t.primaryDark,
-                        fontSize: AppFontSize.micro,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   _HeaderPillButton(
                     icon: _typing
                         ? Icons.qr_code_scanner_rounded
@@ -136,50 +178,8 @@ class _QrScanScreenState extends State<QrScanScreen>
   }
 
   Widget _camera(AppTokens t) {
-    final storeName = session.user?.storeName ?? 'Düzce Merkez Colombia Coffee';
-
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 13),
-            decoration: BoxDecoration(
-              color: t.primarySoft,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: t.primary.withValues(alpha: .5)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.location_on_outlined, size: 15, color: t.primary),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    storeName,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: AppFontSize.label,
-                      fontWeight: FontWeight.w600,
-                      color: t.ink,
-                    ),
-                  ),
-                ),
-                const _PulsingDot(),
-                const SizedBox(width: 6),
-                Text(
-                  'CANLI (8m)',
-                  style: TextStyle(
-                    fontSize: AppFontSize.micro,
-                    fontWeight: FontWeight.w800,
-                    color: t.primaryDark,
-                    letterSpacing: .3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
         Expanded(
           child: CustomPaint(
             painter: _GridBackgroundPainter(

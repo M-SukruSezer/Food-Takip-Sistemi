@@ -10,6 +10,7 @@ import '../core/session.dart';
 import '../core/tokens.dart';
 import '../models/dashboard.dart';
 import '../models/pdks.dart';
+import '../widgets/swipe_actions.dart';
 import '../widgets/crud_scaffold.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/panels.dart';
@@ -50,26 +51,8 @@ String _initials(String name) {
   return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
 }
 
-/// Rol adını Türkçe okunabilir formata çevirir.
-String _formatRole(String role) {
-  switch (role.toLowerCase()) {
-    case 'store_manager':
-      return 'Müdür';
-    case 'supervisor':
-      return 'Supervisor';
-    case 'senior_barista':
-      return 'Kıdemli Barista';
-    case 'barista':
-      return 'Barista';
-    case 'kitchen':
-      return 'Mutfak';
-    case 'service':
-      return 'Servis';
-    default:
-      if (role.isEmpty) return 'Personel';
-      return role[0].toUpperCase() + role.substring(1).toLowerCase();
-  }
-}
+/// Rol adı: PDF ile aynı etiket.
+String _formatRole(String role) => rosterRoleLabel(role);
 
 /// Role göre avatar arka plan rengi.
 Color _avatarBg(String role, AppTokens t) {
@@ -127,6 +110,9 @@ class _RosterScreenState extends State<RosterScreen> {
   DateTime _anchor = _haftaBasi(DateTime.now());
   String _gun = _iso(DateTime.now());
   Roster? _veri;
+
+  /// Haftalik planin altindaki notlar (magaza + hafta).
+  List<RosterNote> _notlar = const [];
   List<StoreOption> _magazalar = const [];
   int? _storeId;
   bool _loaded = false;
@@ -272,6 +258,7 @@ class _RosterScreenState extends State<RosterScreen> {
         _error = '';
         _loaded = true;
       });
+      _loadNotlar();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -280,6 +267,86 @@ class _RosterScreenState extends State<RosterScreen> {
         _loaded = true;
       });
     }
+  }
+
+  /// Notlarin magazasi: secili magaza ya da kullanicinin kendi magazasi.
+  int? get _notMagaza => _storeId ?? session.user?.storeId;
+
+  Future<void> _loadNotlar() async {
+    if (!_haftalik || _notMagaza == null) {
+      if (_notlar.isNotEmpty && mounted) setState(() => _notlar = const []);
+      return;
+    }
+    try {
+      final n = await repo.rosterNotes(from: _from, storeId: _storeId);
+      if (mounted) setState(() => _notlar = n);
+    } catch (_) {
+      // Notlar ikincil: gelmezse cizelge yine gorunur.
+    }
+  }
+
+  Future<void> _notYaz([RosterNote? not]) async {
+    final ctrl = TextEditingController(text: not?.body ?? '');
+    final ok = await showAppSheet<bool>(
+      context: context,
+      builder: (ctx) => FormDialog(
+        title: not == null ? 'Plan Notu Ekle' : 'Notu Düzenle',
+        headerIcon: Icons.sticky_note_2_outlined,
+        submitLabel: 'Kaydet',
+        fields: (context, rebuild) => [
+          LabeledField(
+            label: 'Not',
+            hint:
+                'Notlar haftanın planıyla birlikte saklanır ve PDF\'e eklenir.',
+            child: TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 4,
+              maxLength: 1000,
+              style: const TextStyle(fontSize: AppFontSize.title),
+            ),
+          ),
+        ],
+        onSubmit: () async {
+          final text = ctrl.text.trim();
+          if (text.isEmpty) return 'Not boş olamaz';
+          try {
+            if (not == null) {
+              await repo.addRosterNote(
+                from: _from,
+                body: text,
+                storeId: _storeId,
+              );
+            } else {
+              await repo.updateRosterNote(not.id, text);
+            }
+            return null;
+          } catch (e) {
+            return errorMessage(e);
+          }
+        },
+      ),
+    );
+    if (ok == true) {
+      toastSaved(not == null ? 'Not eklendi' : 'Not güncellendi');
+      await _loadNotlar();
+    }
+  }
+
+  Future<void> _notSil(RosterNote not) async {
+    final ok = await confirmDialog(
+      context,
+      title: 'Notu Sil',
+      confirmLabel: 'Sil',
+      body: Text(not.body),
+    );
+    if (ok != true) return;
+    try {
+      await repo.deleteRosterNote(not.id);
+    } catch (_) {
+      return;
+    }
+    await _loadNotlar();
   }
 
   Future<void> _kaydir(int yon) async {
@@ -347,66 +414,12 @@ class _RosterScreenState extends State<RosterScreen> {
     }
     setState(() => _disa = true);
     try {
-      await exportRosterPdf(v);
+      await exportRosterPdf(v, notes: [for (final n in _notlar) n.body]);
     } catch (e) {
       toast('Dışa aktarılamadı', kind: ToastKind.error);
     } finally {
       if (mounted) setState(() => _disa = false);
     }
-  }
-
-  void _vardiyaDuzenleSheet() {
-    final v = _veri;
-    if (v == null || !v.canEdit || v.people.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Vardiya Düzenle',
-                    style: TextStyle(
-                      fontSize: AppFontSize.title,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Düzenlemek istediğiniz personelin tablodaki gün hücresine dokunarak vardiya atayabilir veya tatil tanımlayabilirsiniz.',
-                style: TextStyle(
-                  fontSize: AppFontSize.body,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  if (v.people.isNotEmpty && v.dates.isNotEmpty) {
-                    _hucreDuzenle(v.people.first, v.dates.first);
-                  }
-                },
-                icon: const Icon(Icons.edit_calendar),
-                label: const Text('İlk Hücreyi Düzenle'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   /// Paylaşım, düzenleme ve dışa aktarma yalnızca mağaza müdürüne açık.
@@ -428,12 +441,6 @@ class _RosterScreenState extends State<RosterScreen> {
       onRetry: () => _load(),
       onRefresh: () => _load(silent: true),
       emptyText: '',
-      addLabel: v != null && v.canEdit && _magazaMuduru && _haftalik
-          ? 'PDF'
-          : null,
-      onAdd: v != null && v.canEdit && _magazaMuduru && _haftalik && !_disa
-          ? _pdf
-          : null,
       banner: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -574,198 +581,51 @@ class _RosterScreenState extends State<RosterScreen> {
           ),
           const SizedBox(height: 6),
 
-          // 3. Quick Action Chips: Kadro: 5/5 Aktif, Dışa Aktar, Ekibe Duyur
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.tokens.card,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.tokens.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.groups_rounded,
-                        size: 16,
-                        color: context.tokens.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            color: context.tokens.ink,
-                          ),
-                          children: [
-                            const TextSpan(text: 'Kadro: '),
-                            TextSpan(
-                              text: v != null
-                                  ? '${v.people.where((p) => p.plannedMinutes > 0).length}/${v.people.length} Aktif'
-                                  : '5/5 Aktif',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.tune_rounded,
-                        size: 14,
-                        color: context.tokens.muted,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                InkWell(
-                  onTap: _pdf,
+          // Cok magazali rollerde magaza secici.
+          if (_cokMagaza && _magazalar.isNotEmpty) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: context.tokens.card,
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.tokens.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: context.tokens.border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
+                  border: Border.all(color: context.tokens.border),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int?>(
+                    value: _storeId,
+                    isDense: true,
+                    icon: const Icon(Icons.arrow_drop_down, size: 18),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text(
+                          'Tüm Mağazalar',
+                          style: TextStyle(fontSize: AppFontSize.caption),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.download_rounded,
-                          size: 16,
-                          color: context.tokens.muted,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Dışa Aktar',
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            fontWeight: FontWeight.w600,
-                            color: context.tokens.muted,
+                      ),
+                      for (final m in _magazalar)
+                        DropdownMenuItem(
+                          value: m.id,
+                          child: Text(
+                            m.name,
+                            style: const TextStyle(
+                              fontSize: AppFontSize.caption,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                    ],
+                    onChanged: (id) {
+                      setState(() => _storeId = id);
+                      _load(silent: true);
+                    },
                   ),
                 ),
-                if (_magazaMuduru) ...[
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: (_paylasiyor || _bekleyen.isNotEmpty)
-                        ? null
-                        : _paylas,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.tokens.card,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: context.tokens.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.campaign_rounded,
-                            size: 16,
-                            color: context.tokens.muted,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Ekibe Duyur',
-                            style: TextStyle(
-                              fontSize: AppFontSize.caption,
-                              fontWeight: FontWeight.w600,
-                              color: context.tokens.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                if (_cokMagaza && _magazalar.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: context.tokens.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: context.tokens.border),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int?>(
-                        value: _storeId,
-                        isDense: true,
-                        icon: const Icon(Icons.arrow_drop_down, size: 18),
-                        items: [
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text(
-                              'Tüm Mağazalar',
-                              style: TextStyle(fontSize: AppFontSize.caption),
-                            ),
-                          ),
-                          for (final m in _magazalar)
-                            DropdownMenuItem(
-                              value: m.id,
-                              child: Text(
-                                m.name,
-                                style: const TextStyle(
-                                  fontSize: AppFontSize.caption,
-                                ),
-                              ),
-                            ),
-                        ],
-                        onChanged: (id) {
-                          setState(() => _storeId = id);
-                          _load(silent: true);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
 
           // 4. Quick KPI Metric Bar: Toplam, Ortalama, Açık Vardiya, Değişim/İzin
           if (v != null) _KpiMetricBar(veri: v),
@@ -860,15 +720,28 @@ class _RosterScreenState extends State<RosterScreen> {
 
           const SizedBox(height: 12),
 
-          // 8. Bottom Action Buttons: "Whatsapp ile paylaş", "+ Vardiya Düzenle", "Excel İndir (.xlsx)"
+          // Plan notlari: herkes okur, yonetici ekler; kayit soldan saga
+          // kaydirilinca Duzenle / Sil acilir.
+          if (_haftalik) ...[
+            _NotlarKarti(
+              notlar: _notlar,
+              magazaSecili: _notMagaza != null,
+              duzenlenebilir: v.canEdit,
+              onEkle: () => _notYaz(),
+              onDuzenle: _notYaz,
+              onSil: _notSil,
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Ekiple Paylas + PDF Indir (yalnizca magaza muduru).
           if (_magazaMuduru)
             _BottomActions(
-              canEdit: v.canEdit,
               paylasiyor: _paylasiyor,
+              disaAktariyor: _disa,
               bekleyenVar: _bekleyen.isNotEmpty,
               onPaylas: _paylas,
-              onVardiyaDuzenle: _vardiyaDuzenleSheet,
-              onExcelIndir: _pdf,
+              onPdf: _pdf,
             ),
           const SizedBox(height: 8),
         ],
@@ -1394,11 +1267,7 @@ class _HaftaTablosu extends StatelessWidget {
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                veri.gunToplam(d).working >= 4
-                                    ? 'Yeterli'
-                                    : (veri.gunToplam(d).working >= 3
-                                          ? 'Min. Kadro'
-                                          : 'Dengeli'),
+                                rosterStaffingLabel(veri.gunToplam(d).working),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: AppFontSize.micro,
@@ -1726,124 +1595,187 @@ class _VardiyaEtiketi extends StatelessWidget {
 
 class _BottomActions extends StatelessWidget {
   const _BottomActions({
-    required this.canEdit,
     required this.paylasiyor,
+    required this.disaAktariyor,
     required this.bekleyenVar,
     required this.onPaylas,
-    required this.onVardiyaDuzenle,
-    required this.onExcelIndir,
+    required this.onPdf,
   });
 
-  final bool canEdit;
   final bool paylasiyor;
+  final bool disaAktariyor;
   final bool bekleyenVar;
   final VoidCallback onPaylas;
-  final VoidCallback onVardiyaDuzenle;
-  final VoidCallback onExcelIndir;
+  final VoidCallback onPdf;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Whatsapp ile paylaş
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: (paylasiyor || bekleyenVar) ? null : onPaylas,
-            icon: Icon(
-              paylasiyor
-                  ? Icons.hourglass_top
-                  : Icons.chat_bubble_outline_rounded,
-              size: 20,
-              color: context.tokens.onPrimary,
-            ),
-            label: Text(
-              paylasiyor
-                  ? 'Paylaşılıyor...'
-                  : bekleyenVar
-                  ? 'Önce değişiklikleri kaydedin'
-                  : 'Whatsapp ile paylaş',
-              style: TextStyle(
-                fontSize: AppFontSize.bodyLarge,
-                fontWeight: FontWeight.w700,
-                color: context.tokens.onPrimary,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        // İkili aksiyon butonları: + Vardiya Düzenle & Excel İndir (.xlsx)
         Row(
           children: [
             Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: canEdit ? onVardiyaDuzenle : null,
-                  icon: Icon(
-                    Icons.edit_calendar_outlined,
-                    size: 18,
-                    color: context.tokens.primary,
-                  ),
-                  label: Text(
-                    '+ Vardiya Düzenle',
-                    style: TextStyle(
-                      fontSize: AppFontSize.label,
-                      fontWeight: FontWeight.w700,
-                      color: context.tokens.primary,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: context.tokens.card,
-                    side: BorderSide(color: context.tokens.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+              flex: 3,
+              child: FilledButton.icon(
+                onPressed: (paylasiyor || bekleyenVar) ? null : onPaylas,
+                icon: Icon(
+                  paylasiyor ? Icons.hourglass_top : Icons.groups_outlined,
+                  size: 20,
+                ),
+                label: Text(paylasiyor ? 'Paylaşılıyor...' : 'Ekiple Paylaş'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: onExcelIndir,
-                  icon: Icon(
-                    Icons.table_view_outlined,
-                    size: 18,
-                    color: context.tokens.muted,
-                  ),
-                  label: Text(
-                    'Excel İndir (.xlsx)',
-                    style: TextStyle(
-                      fontSize: AppFontSize.label,
-                      fontWeight: FontWeight.w700,
-                      color: context.tokens.muted,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: context.tokens.card,
-                    side: BorderSide(color: context.tokens.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: disaAktariyor ? null : onPdf,
+                icon: const Icon(Icons.picture_as_pdf_outlined, size: 20),
+                label: Text(disaAktariyor ? 'Hazırlanıyor...' : 'PDF İndir'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
                 ),
               ),
             ),
           ],
         ),
+        if (bekleyenVar)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Paylaşmadan önce değişiklikleri kaydedin.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: AppFontSize.label,
+                color: context.tokens.muted,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// Haftalik plan notlari karti.
+class _NotlarKarti extends StatelessWidget {
+  const _NotlarKarti({
+    required this.notlar,
+    required this.magazaSecili,
+    required this.duzenlenebilir,
+    required this.onEkle,
+    required this.onDuzenle,
+    required this.onSil,
+  });
+
+  final List<RosterNote> notlar;
+  final bool magazaSecili;
+  final bool duzenlenebilir;
+  final VoidCallback onEkle;
+  final ValueChanged<RosterNote> onDuzenle;
+  final ValueChanged<RosterNote> onSil;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sticky_note_2_outlined, size: 20, color: t.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Plan Notları',
+                  style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w700,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+              if (duzenlenebilir && magazaSecili)
+                TextButton.icon(
+                  onPressed: onEkle,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Not Ekle'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (!magazaSecili)
+            Text(
+              'Notları görmek için bir mağaza seçin.',
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
+            )
+          else if (notlar.isEmpty)
+            Text(
+              'Bu hafta için not yok.',
+              style: TextStyle(fontSize: AppFontSize.body, color: t.muted),
+            )
+          else
+            for (final n in notlar)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: SwipeActions(
+                  actions: [
+                    if (duzenlenebilir) ...[
+                      SwipeAction(
+                        label: 'Düzenle',
+                        icon: Icons.edit_outlined,
+                        color: t.primary,
+                        onTap: () => onDuzenle(n),
+                      ),
+                      SwipeAction(
+                        label: 'Sil',
+                        icon: Icons.delete_outline,
+                        color: t.danger,
+                        onTap: () => onSil(n),
+                      ),
+                    ],
+                  ],
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: t.bg,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: t.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          n.body,
+                          style: TextStyle(
+                            fontSize: AppFontSize.body,
+                            color: t.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          [
+                            n.createdByName ?? 'bilinmiyor',
+                            if (n.createdAt != null) fmtDateTime(n.createdAt),
+                            if (n.updatedAt != null) 'düzenlendi',
+                          ].join(' · '),
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: t.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+        ],
+      ),
     );
   }
 }

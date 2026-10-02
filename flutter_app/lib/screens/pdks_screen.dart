@@ -8,6 +8,7 @@ import '../core/repository.dart';
 import '../core/tokens.dart';
 import '../models/pdks.dart';
 import '../widgets/crud_scaffold.dart';
+import '../widgets/live_distance.dart';
 import '../widgets/panels.dart';
 import 'requests_screen.dart';
 import '../widgets/pdks_qr_action.dart';
@@ -410,20 +411,11 @@ class _PunchCard extends StatelessWidget {
               ),
               if (store?.hasLocation == true) ...[
                 const SizedBox(height: 11),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.gps_fixed, size: 15, color: t.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'GPS: (${store!.geofenceRadiusM}m)',
-                      style: TextStyle(
-                        fontSize: AppFontSize.label,
-                        fontWeight: FontWeight.w700,
-                        color: t.primary,
-                      ),
-                    ),
-                  ],
+                // Canli: cihaz konumundan magazaya anlik uzaklik.
+                LiveDistanceLabel(
+                  latitude: store!.latitude,
+                  longitude: store.longitude,
+                  radiusM: store.geofenceRadiusM,
                 ),
               ],
             ],

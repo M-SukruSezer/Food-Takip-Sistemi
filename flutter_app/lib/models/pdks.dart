@@ -29,11 +29,17 @@ class PdksStore {
     required this.hasQr,
     required this.geofenceRadiusM,
     required this.hasLocation,
+    this.latitude,
+    this.longitude,
   });
 
   final int id;
   final String name;
   final bool pdksEnabled;
+
+  /// Magaza konumu; canli uzaklik bu noktaya gore hesaplanir.
+  final double? latitude;
+  final double? longitude;
 
   /// 'rotating' (sureli) ya da 'static' (sabit). Magaza yoneticisi seciyor.
   final String qrMode;
@@ -58,6 +64,8 @@ class PdksStore {
     hasQr: j['has_qr'] == true,
     geofenceRadiusM: _int(j['geofence_radius_m']),
     hasLocation: j['has_location'] == true,
+    latitude: (j['latitude'] as num?)?.toDouble(),
+    longitude: (j['longitude'] as num?)?.toDouble(),
   );
 }
 
@@ -1404,4 +1412,32 @@ double? shiftProgress(String start, String end, DateTime now) {
   var simdi = now.hour * 60 + now.minute;
   if (simdi < s && e < s) simdi += 1440; // gece yarısını geçmiş vardiya
   return ((simdi - s) / uzunluk).clamp(0.0, 1.0);
+}
+
+/// Haftalik vardiya planinin altindaki not (magaza + hafta basina).
+class RosterNote {
+  const RosterNote({
+    required this.id,
+    required this.body,
+    this.createdByName,
+    this.createdAt,
+    this.updatedByName,
+    this.updatedAt,
+  });
+
+  final int id;
+  final String body;
+  final String? createdByName;
+  final String? createdAt;
+  final String? updatedByName;
+  final String? updatedAt;
+
+  factory RosterNote.fromJson(Map<String, dynamic> j) => RosterNote(
+    id: _int(j['id']),
+    body: j['body'] as String? ?? '',
+    createdByName: j['created_by_name'] as String?,
+    createdAt: j['created_at'] as String?,
+    updatedByName: j['updated_by_name'] as String?,
+    updatedAt: j['updated_at'] as String?,
+  );
 }

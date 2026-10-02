@@ -550,6 +550,26 @@ CREATE INDEX IF NOT EXISTS idx_personnel_requests_pending
 CREATE INDEX IF NOT EXISTS idx_personnel_requests_target
   ON personnel_requests(target_user_id) WHERE target_user_id IS NOT NULL;
 
+-- Haftalik vardiya planinin altindaki notlar. Magaza + hafta (pazartesi)
+-- basina; her degisiklik activity_logs'a da yazilir.
+CREATE TABLE IF NOT EXISTS roster_notes (
+  id BIGSERIAL PRIMARY KEY,
+  store_id BIGINT NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+  week_start TEXT NOT NULL,                             -- YYYY-MM-DD (pazartesi)
+  body TEXT NOT NULL,
+  created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TEXT
+);
+ALTER TABLE roster_notes DROP CONSTRAINT IF EXISTS roster_notes_week_check;
+ALTER TABLE roster_notes ADD CONSTRAINT roster_notes_week_check
+  CHECK (week_start ~ '^\d{4}-\d{2}-\d{2}$');
+ALTER TABLE roster_notes DROP CONSTRAINT IF EXISTS roster_notes_body_check;
+ALTER TABLE roster_notes ADD CONSTRAINT roster_notes_body_check
+  CHECK (length(body) BETWEEN 1 AND 1000);
+CREATE INDEX IF NOT EXISTS idx_roster_notes_week ON roster_notes(store_id, week_start);
+
 -- Resmi tatiller.
 --
 -- Yillik izin calisma gunu uzerinden sayilir: hafta tatili ve resmi tatil

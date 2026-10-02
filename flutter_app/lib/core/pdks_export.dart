@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/painting.dart' show Color;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
@@ -7,6 +8,7 @@ import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import '../models/pdks.dart';
 import 'format.dart';
 import 'pdf_font.dart';
+import 'tokens.dart';
 import 'report_export.dart' show sharePdksFile;
 
 // PDKS ciktilari: haftalik vardiya plani (PDF) ve aylik puantaj (Excel + PDF).
@@ -40,151 +42,245 @@ String rosterCellText(List<RosterCell> hucreler, PublicHoliday? tatil) {
   return hucreler.map((c) => c.saatAraligi).join(' / ');
 }
 
-/// PDF hucre renkleri. Ekrandaki kategori renkleriyle AYNI aile; cikti beyaz
-/// kagida basildigi icin ACIK tema tonlari kullaniliyor.
-///
-/// Metin rengi de veriliyor: yalnizca zemini boyayip siyah metin birakmak
-/// bazi tonlarda kucuk metin kontrast esiginin altina duserdi.
-({PdfColor zemin, PdfColor metin})? _hucreRenk(
-  List<RosterCell> hucreler,
-  PublicHoliday? tatil,
-) {
-  if (tatil != null && !tatil.isHalfDay) {
-    return (
-      zemin: PdfColor.fromInt(0xFFFEE2E2),
-      metin: PdfColor.fromInt(0xFF991B1B),
-    );
-  }
-  if (hucreler.isEmpty) return null;
-  if (hucreler.any((c) => c.isDayOff)) {
-    // Isletmenin kendi cizelgesinde OFF gunu macenta; ayni gosterim.
-    // Metin SIYAH: olculdu, beyaz metin bu zeminde 3.14 kontrast veriyor ve
-    // kucuk metin esigi olan 4.5'in altinda kaliyor; siyah 6.70.
-    return (
-      zemin: PdfColor.fromInt(0xFFFF00FF),
-      metin: PdfColor.fromInt(0xFF000000),
-    );
-  }
-  final k = hucreler
-      .firstWhere(
-        (c) => c.category != ShiftCategory.bilinmiyor,
-        orElse: () => hucreler.first,
-      )
-      .category;
-  return switch (k) {
-    ShiftCategory.sabah => (
-      zemin: PdfColor.fromInt(0xFFDBEAFE),
-      metin: PdfColor.fromInt(0xFF1E40AF),
-    ),
-    ShiftCategory.gunduz => (
-      zemin: PdfColor.fromInt(0xFFDCFCE7),
-      metin: PdfColor.fromInt(0xFF166534),
-    ),
-    ShiftCategory.aksam => (
-      zemin: PdfColor.fromInt(0xFFFEF3C7),
-      metin: PdfColor.fromInt(0xFF92400E),
-    ),
-    ShiftCategory.kapanis => (
-      zemin: PdfColor.fromInt(0xFFEDE9FE),
-      metin: PdfColor.fromInt(0xFF5B21B6),
-    ),
-    ShiftCategory.bilinmiyor => null,
-  };
+/// Cizelgedeki rol etiketi. Ekran ve PDF ayni metni gostersin diye burada.
+String rosterRoleLabel(String role) => switch (role.toLowerCase()) {
+  'store_manager' => 'Müdür',
+  'shift_supervisor' || 'supervisor' => 'Supervisor',
+  'senior_barista' => 'Kıdemli Barista',
+  'barista' => 'Barista',
+  'kitchen' => 'Mutfak',
+  'service' => 'Servis',
+  '' => 'Personel',
+  _ => role[0].toUpperCase() + role.substring(1).toLowerCase(),
+};
+
+/// Kadro gucu etiketi (gunluk calisan sayisina gore). Ekran ve PDF ortak.
+String rosterStaffingLabel(int working) => working >= 4
+    ? 'Yeterli'
+    : working >= 3
+    ? 'Min. Kadro'
+    : 'Dengeli';
+
+/// Ekrandaki (acik tema) renk -> PDF rengi.
+PdfColor _pdf(Color c) => PdfColor.fromInt(c.toARGB32());
+
+/// Haftalik vardiya plani PDF'i — ekrandaki "Haftalik Personel Matrisi" ile
+/// AYNI duzen ve renkler: Personel & Rol, gun sutunlari (saat + kategori),
+/// OFF / RAPOR / RT hucreleri, Planli toplam ve Kadro Gucu satiri. Haftanin
+/// plan notlari tablonun altina eklenir.
+Future<void> exportRosterPdf(Roster r, {List<String> notes = const []}) async {
+  await sharePdksFile(
+    await buildRosterPdf(r, notes: notes),
+    'vardiya-plani-${r.from}.pdf',
+    'application/pdf',
+  );
 }
 
-/// Haftalik vardiya plani PDF'i.
-Future<void> exportRosterPdf(Roster r) async {
+/// [exportRosterPdf]'in PDF baytlari (paylasimdan ayri; test edilebilir).
+Future<Uint8List> buildRosterPdf(
+  Roster r, {
+  List<String> notes = const [],
+}) async {
   final doc = pw.Document(theme: await pdfTurkishTheme());
-  // Basili cizelgenin sutun duzeni: calisma sekli ve gorev de yaziyor.
-  final basliklar = <String>[
-    'ÇALIŞMA ŞEKLİ',
-    'GÖREV',
-    'AD SOYAD',
-    ...r.dates.map(
-      (d) =>
-          '${_gunAdi(d, uzun: true)}\n'
-          '${d.substring(8)}.${d.substring(5, 7)}.${d.substring(0, 4)}',
-    ),
-    'PLANLI',
-  ];
-  final satirlar = r.people
-      .map(
-        (p) => <String>[
-          p.employmentLabel,
-          p.duty,
-          p.fullName,
-          ...r.dates.map((d) => rosterCellText(p.gun(d), r.holidays[d])),
-          fmtDuration(p.plannedMinutes),
-        ],
-      )
-      .toList();
-  final toplam = <String>[
-    '',
-    '',
-    'TOPLAM',
-    ...r.dates.map((d) => '${r.gunToplam(d).working} kişi'),
-    fmtDuration(r.totalPlannedMinutes),
-  ];
+  // Kagida basildigi icin her zaman acik tema renkleri.
+  const t = AppTokens.light;
+  final kenar = pw.BorderSide(width: 0.5, color: _pdf(t.border));
 
-  // Gun sutunlari isim sutunlarindan SONRA basliyor.
-  const ilkGun = 3;
-  const kenar = pw.BorderSide(width: 0.5, color: PdfColors.grey500);
-
-  /// Tek hucre. Gun sutunlarinda zemin rengi kategoriden geliyor.
-  pw.Widget kutu(
-    String metin, {
-    PdfColor? zemin,
-    PdfColor? yazi,
-    bool kalin = false,
-    pw.Alignment hiza = pw.Alignment.center,
-  }) => pw.Container(
-    alignment: hiza,
-    padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-    decoration: pw.BoxDecoration(
-      color: zemin,
-      border: const pw.Border(right: kenar, bottom: kenar),
-    ),
-    child: pw.Text(
-      metin,
-      textAlign: pw.TextAlign.center,
-      style: pw.TextStyle(
-        fontSize: 8,
-        color: yazi,
-        fontWeight: kalin ? pw.FontWeight.bold : pw.FontWeight.normal,
-      ),
+  pw.Widget yazi(
+    String s, {
+    double size = 7,
+    PdfColor? color,
+    bool bold = false,
+    pw.TextAlign align = pw.TextAlign.center,
+  }) => pw.Text(
+    s,
+    textAlign: align,
+    style: pw.TextStyle(
+      fontSize: size,
+      color: color ?? _pdf(t.ink),
+      fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
     ),
   );
 
-  final tabloSatirlari = <pw.TableRow>[
-    pw.TableRow(
+  /// Ekrandaki hucre rozeti: renkli kutu + iki satir.
+  pw.Widget rozet(String ust, String alt, PdfColor zemin, PdfColor metin) =>
+      pw.Container(
+        margin: const pw.EdgeInsets.symmetric(vertical: 1),
+        padding: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        decoration: pw.BoxDecoration(
+          color: zemin,
+          borderRadius: pw.BorderRadius.circular(3),
+        ),
+        child: pw.Column(
+          mainAxisSize: pw.MainAxisSize.min,
+          children: [
+            yazi(ust, color: metin, bold: true),
+            if (alt.isNotEmpty) yazi(alt, size: 6, color: metin),
+          ],
+        ),
+      );
+
+  pw.Widget hucre(List<RosterCell> cells, PublicHoliday? tatil) {
+    if (tatil != null && !tatil.isHalfDay) {
+      return rozet('RT', 'Tatil', _pdf(t.dangerSoft), _pdf(t.danger));
+    }
+    if (cells.isEmpty) {
+      return pw.Center(child: yazi('-', color: _pdf(t.borderStrong)));
+    }
+    if (cells.any((c) => c.isDayOff)) {
+      final rapor = cells.any((c) => c.isRapor);
+      return rozet(
+        rapor ? 'RAPOR' : 'OFF',
+        rapor ? 'Raporlu' : 'Hafta Tatili',
+        _pdf(t.dangerSoft),
+        _pdf(t.dangerText),
+      );
+    }
+    return pw.Column(
+      mainAxisSize: pw.MainAxisSize.min,
       children: [
-        for (final b in basliklar)
-          kutu(b, zemin: PdfColor.fromInt(0xFFA6A6A6), kalin: true),
+        for (final c in cells)
+          () {
+            final (zemin, metin, etiket) = switch (c.category) {
+              ShiftCategory.sabah => (t.infoSoft, t.infoText, 'Sabah'),
+              ShiftCategory.gunduz => (t.successSoft, t.okText, 'Gündüz'),
+              ShiftCategory.aksam => (t.warningSoft, t.warningText, 'Akşam'),
+              ShiftCategory.kapanis => (t.ink, t.card, 'Kapanış'),
+              ShiftCategory.bilinmiyor => (t.bg, t.ink, ''),
+            };
+            // Gece yarisini gecen vardiya ekrandaki gibi koyu zeminde.
+            return c.crossesMidnight
+                ? rozet(c.saatAraligi, etiket, _pdf(t.ink), _pdf(t.card))
+                : rozet(c.saatAraligi, etiket, _pdf(zemin), _pdf(metin));
+          }(),
+      ],
+    );
+  }
+
+  pw.Widget pad(pw.Widget child, {double v = 4}) => pw.Padding(
+    padding: pw.EdgeInsets.symmetric(vertical: v, horizontal: 3),
+    child: child,
+  );
+
+  final rows = <pw.TableRow>[
+    // Baslik satiri.
+    pw.TableRow(
+      decoration: pw.BoxDecoration(color: _pdf(t.bg)),
+      children: [
+        pad(
+          yazi('Personel & Rol', size: 8, bold: true, align: pw.TextAlign.left),
+          v: 6,
+        ),
+        for (final d in r.dates)
+          pw.Container(
+            color: r.holidays[d] != null ? _pdf(t.dangerSoft) : null,
+            padding: const pw.EdgeInsets.symmetric(vertical: 4),
+            child: pw.Column(
+              children: [
+                yazi(
+                  _gunAdi(d),
+                  size: 8,
+                  bold: true,
+                  color: r.holidays[d] != null ? _pdf(t.danger) : null,
+                ),
+                yazi(
+                  '${d.substring(8)}.${d.substring(5, 7)}',
+                  color: _pdf(t.muted),
+                ),
+              ],
+            ),
+          ),
+        pad(yazi('Planlı', size: 8, bold: true, color: _pdf(t.muted)), v: 6),
       ],
     ),
-    for (var i = 0; i < satirlar.length; i++)
+    // Personel satirlari (zebra).
+    for (var i = 0; i < r.people.length; i++)
       pw.TableRow(
+        decoration: pw.BoxDecoration(color: i.isOdd ? _pdf(t.bg) : null),
+        verticalAlignment: pw.TableCellVerticalAlignment.middle,
         children: [
-          for (var j = 0; j < satirlar[i].length; j++)
-            () {
-              final gun = j - ilkGun;
-              final renk = (gun >= 0 && gun < r.dates.length)
-                  ? _hucreRenk(
-                      r.people[i].gun(r.dates[gun]),
-                      r.holidays[r.dates[gun]],
-                    )
-                  : null;
-              return kutu(
-                satirlar[i][j],
-                zemin: renk?.zemin,
-                yazi: renk?.metin,
-                kalin: renk != null,
-                hiza: j == 2 ? pw.Alignment.centerLeft : pw.Alignment.center,
-              );
-            }(),
+          pad(
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                yazi(
+                  r.people[i].fullName,
+                  size: 8,
+                  bold: true,
+                  align: pw.TextAlign.left,
+                ),
+                yazi(
+                  rosterRoleLabel(r.people[i].role),
+                  size: 6.5,
+                  color: _pdf(t.muted),
+                  align: pw.TextAlign.left,
+                ),
+              ],
+            ),
+          ),
+          for (final d in r.dates)
+            pad(hucre(r.people[i].gun(d), r.holidays[d]), v: 2),
+          pad(
+            yazi(fmtDuration(r.people[i].plannedMinutes), size: 8, bold: true),
+          ),
         ],
       ),
-    pw.TableRow(children: [for (final c in toplam) kutu(c, kalin: true)]),
+    // Kadro gucu satiri.
+    pw.TableRow(
+      decoration: pw.BoxDecoration(
+        color: _pdf(t.border.withValues(alpha: 0.6)),
+      ),
+      verticalAlignment: pw.TableCellVerticalAlignment.middle,
+      children: [
+        pad(
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              yazi('Kadro Gücü', size: 8, bold: true, align: pw.TextAlign.left),
+              yazi(
+                'Çalışan sayısı',
+                size: 6.5,
+                color: _pdf(t.primary),
+                align: pw.TextAlign.left,
+              ),
+            ],
+          ),
+        ),
+        for (final d in r.dates)
+          pad(
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(vertical: 2),
+              decoration: pw.BoxDecoration(
+                color: _pdf(t.card),
+                borderRadius: pw.BorderRadius.circular(3),
+              ),
+              child: pw.Column(
+                children: [
+                  yazi(
+                    '${r.gunToplam(d).working} Kişi',
+                    bold: true,
+                    color: _pdf(t.primary),
+                  ),
+                  yazi(
+                    rosterStaffingLabel(r.gunToplam(d).working),
+                    size: 6,
+                    color: _pdf(t.okText),
+                  ),
+                ],
+              ),
+            ),
+            v: 3,
+          ),
+        pad(
+          yazi(
+            fmtDuration(r.totalPlannedMinutes),
+            size: 8,
+            bold: true,
+            color: _pdf(t.primary),
+          ),
+        ),
+      ],
+    ),
   ];
 
   doc.addPage(
@@ -193,55 +289,82 @@ Future<void> exportRosterPdf(Roster r) async {
       pageFormat: PdfPageFormat.a4.landscape,
       margin: const pw.EdgeInsets.all(24),
       header: (context) => pw.Padding(
-        padding: const pw.EdgeInsets.only(bottom: 12),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
+        padding: const pw.EdgeInsets.only(bottom: 10),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text(
-              'Haftalık Vardiya Planı',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Haftalık Vardiya Planı',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                      color: _pdf(t.ink),
+                    ),
+                  ),
+                  pw.Text(
+                    '${r.storeName != null ? '${r.storeName} · ' : ''}'
+                    '${fmtDate(r.from)} – ${fmtDate(r.to)}',
+                    style: pw.TextStyle(fontSize: 10, color: _pdf(t.muted)),
+                  ),
+                ],
+              ),
             ),
             pw.Text(
-              '${r.storeName != null ? '${r.storeName} · ' : ''}'
-              '${fmtDate(r.from)} – ${fmtDate(r.to)}',
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+              '${r.people.length} personel',
+              style: pw.TextStyle(fontSize: 9, color: _pdf(t.muted)),
             ),
           ],
         ),
       ),
       build: (context) => [
-        // TableHelper.fromTextArray hucre BASINA zemin rengi vermiyor;
-        // renklendirme istendigi icin tablo elle kuruluyor.
-        pw.Table(
-          border: const pw.TableBorder(left: kenar, top: kenar),
-          columnWidths: {
-            0: const pw.FixedColumnWidth(58),
-            1: const pw.FixedColumnWidth(44),
-            2: const pw.FixedColumnWidth(120),
-          },
-          children: tabloSatirlari,
+        pw.Container(
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: _pdf(t.border), width: 0.8),
+            borderRadius: pw.BorderRadius.circular(6),
+          ),
+          child: pw.Table(
+            border: pw.TableBorder(horizontalInside: kenar),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(120),
+              for (var i = 1; i <= r.dates.length; i++)
+                i: const pw.FlexColumnWidth(),
+              r.dates.length + 1: const pw.FixedColumnWidth(48),
+            },
+            children: rows,
+          ),
         ),
+        if (notes.isNotEmpty) ...[
+          pw.SizedBox(height: 14),
+          pw.Text(
+            'Plan Notları',
+            style: pw.TextStyle(
+              fontSize: 11,
+              fontWeight: pw.FontWeight.bold,
+              color: _pdf(t.ink),
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          for (final n in notes)
+            pw.Bullet(
+              text: n,
+              style: pw.TextStyle(fontSize: 9, color: _pdf(t.ink)),
+            ),
+        ],
         pw.SizedBox(height: 10),
-        pw.Text(
-          'Hafta tatili "OFF", resmi tatil "RT" olarak işaretlenir. '
-          'Hücre rengi vardiya kategorisini gösterir '
-          '(sabah, gündüz, akşam, kapanış).',
-          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
-        ),
         pw.Text(
           'Planlı süreler NET çalışmadır: ara dinlenmesi (4857 m.68) '
           'düşülmüştür.',
-          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+          style: pw.TextStyle(fontSize: 7, color: _pdf(t.muted)),
         ),
       ],
     ),
   );
 
-  await sharePdksFile(
-    await doc.save(),
-    'vardiya-plani-${r.from}.pdf',
-    'application/pdf',
-  );
+  return doc.save();
 }
 
 /// Puantaj tablosu. Excel ve PDF ayni veriyi kullanir.

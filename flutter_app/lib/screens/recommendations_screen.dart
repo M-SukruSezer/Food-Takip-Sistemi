@@ -87,7 +87,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     await _load(silent: true);
   }
 
-  // İkram, zayi ile aynı kayıt formunu kullanır (sebep, not, onay); öneri
+  // İkram, zayi ile aynı kayıt formunu kullanır (sebep, onay); öneri
   // listesinden yapılan ikram her zaman tek adettir, adet kilitlidir.
   Future<void> _ikram(Batch b) async {
     final ok = await showDiscardDialog(
@@ -99,8 +99,10 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     if (ok == true) await _load(silent: true);
   }
 
+  // Oneri listesinden zayi de tek adettir: satir basina bir urun dusulur,
+  // adet kilitlidir.
   Future<void> _discard(Batch b) async {
-    final ok = await showDiscardDialog(context, b);
+    final ok = await showDiscardDialog(context, b, fixedQuantity: 1);
     if (ok == true) {
       await _load(silent: true);
     }

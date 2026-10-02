@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodtakip/widgets/live_distance.dart';
 import 'package:foodtakip/core/format.dart';
 import 'package:foodtakip/core/nav.dart';
 import 'package:foodtakip/models/pdks.dart';
@@ -210,7 +211,7 @@ void main() {
       expect(find.text('QR ile İşi Bitir'), findsNothing);
     });
 
-    testWidgets('konum kartında GPS yarıçapı gösterilir', (tester) async {
+    testWidgets('konum kartında canlı GPS uzaklığı gösterilir', (tester) async {
       tall(tester);
       installFakeApi(_routes());
       signInAs('barista', storeId: 1);
@@ -218,7 +219,10 @@ void main() {
       await tester.pumpWidget(host(const PdksScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('GPS: (100m)'), findsOneWidget);
+      // Sabit yaricap yerine canli konum gosterilir; test ortaminda konum
+      // eklentisi olmadigi icin "alınamadı" durumuna duser.
+      expect(find.text('GPS: (100m)'), findsNothing);
+      expect(find.byType(LiveDistanceLabel), findsOneWidget);
       expect(find.textContaining('Kodumu Göster'), findsNothing);
     });
 

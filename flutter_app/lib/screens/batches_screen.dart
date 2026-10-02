@@ -137,7 +137,9 @@ class _BatchesScreenState extends State<BatchesScreen> {
     final t = context.tokens;
     final isSuper = session.user?.isSuperAdmin ?? false;
     final mobile = AppShellScope.isMobile(context);
-    final sidePadding = context.isNarrowPhone ? 4.0 : 8.0;
+    // Yatay bosluk uygulama kabugundan gelir; burada tekrar verilirse liste
+    // iki kat iceriden baslar ve kenarlardan sikismis gorunur.
+    const sidePadding = 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -873,7 +875,7 @@ class _AramaBasligi extends SliverPersistentHeaderDelegate {
       height: _yukseklik,
       child: Container(
         color: zemin,
-        padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+        padding: const EdgeInsets.only(top: 8),
         alignment: Alignment.topCenter,
         child: child,
       ),

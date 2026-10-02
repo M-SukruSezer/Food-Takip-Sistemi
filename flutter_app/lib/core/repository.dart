@@ -711,6 +711,48 @@ class Repository {
     return ((r.data ?? const {})['notified'] as num?)?.toInt() ?? 0;
   }
 
+  /// Haftalik plan notlari. [from] haftanin herhangi bir gunu olabilir.
+  Future<List<RosterNote>> rosterNotes({
+    required String from,
+    int? storeId,
+  }) async {
+    final r = await _client.dio.get<List<dynamic>>(
+      '/pdks/roster/notes',
+      queryParameters: {'from': from, 'storeId': ?storeId?.toString()},
+      options: apiOptions(silent: true),
+    );
+    return (r.data ?? [])
+        .map((e) => RosterNote.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> addRosterNote({
+    required String from,
+    required String body,
+    int? storeId,
+  }) async {
+    await _client.dio.post(
+      '/pdks/roster/notes',
+      data: {'from': from, 'body': body, 'storeId': ?storeId},
+      options: apiOptions(noToast: true, busyMessage: 'Not kaydediliyor...'),
+    );
+  }
+
+  Future<void> updateRosterNote(int id, String body) async {
+    await _client.dio.put(
+      '/pdks/roster/notes/$id',
+      data: {'body': body},
+      options: apiOptions(noToast: true, busyMessage: 'Not güncelleniyor...'),
+    );
+  }
+
+  Future<void> deleteRosterNote(int id) async {
+    await _client.dio.delete(
+      '/pdks/roster/notes/$id',
+      options: apiOptions(successMessage: 'Not silindi'),
+    );
+  }
+
   /// Toplu vardiya cizelgesi: magazanin TUM ekibi x tarih araligi.
   Future<Roster> pdksRoster({
     required String from,
@@ -1103,7 +1145,10 @@ class Repository {
         'receipt': ?receipt,
         'spent_at': ?spentAt?.toUtc().toIso8601String(),
       },
-      options: apiOptions(noToast: true, busyMessage: 'Masraf güncelleniyor...'),
+      options: apiOptions(
+        noToast: true,
+        busyMessage: 'Masraf güncelleniyor...',
+      ),
     );
   }
 

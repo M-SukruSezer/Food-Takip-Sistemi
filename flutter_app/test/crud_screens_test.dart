@@ -13,24 +13,81 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'support/fake_api.dart';
 
 final _productTypes = [
-  {'id': 1, 'name': 'Çikolatalı Pasta', 'skt_days': 3, 'unit_price': 250, 'active': 1, 'store_id': null},
-  {'id': 2, 'name': 'Poğaça', 'skt_days': 2, 'unit_price': null, 'active': 1, 'store_id': 4, 'store_name': 'Merkez'},
-  {'id': 3, 'name': 'Eski Ürün', 'skt_days': 5, 'unit_price': 100, 'active': 0, 'store_id': null},
+  {
+    'id': 1,
+    'name': 'Çikolatalı Pasta',
+    'skt_days': 3,
+    'unit_price': 250,
+    'active': 1,
+    'store_id': null,
+  },
+  {
+    'id': 2,
+    'name': 'Poğaça',
+    'skt_days': 2,
+    'unit_price': null,
+    'active': 1,
+    'store_id': 4,
+    'store_name': 'Merkez',
+  },
+  {
+    'id': 3,
+    'name': 'Eski Ürün',
+    'skt_days': 5,
+    'unit_price': 100,
+    'active': 0,
+    'store_id': null,
+  },
 ];
 
 final _stores = [
-  {'id': 4, 'name': 'Merkez', 'active': 1, 'address': 'Atatürk Cad. 1', 'phone': '0212 000 00 00',
-   'user_count': 3, 'active_batch_count': 12},
-  {'id': 5, 'name': 'Şube', 'active': 0, 'address': null, 'phone': null,
-   'user_count': 0, 'active_batch_count': 0},
+  {
+    'id': 4,
+    'name': 'Merkez',
+    'active': 1,
+    'address': 'Atatürk Cad. 1',
+    'phone': '0212 000 00 00',
+    'user_count': 3,
+    'active_batch_count': 12,
+  },
+  {
+    'id': 5,
+    'name': 'Şube',
+    'active': 0,
+    'address': null,
+    'phone': null,
+    'user_count': 0,
+    'active_batch_count': 0,
+  },
 ];
 
 final _users = [
-  {'id': 1, 'username': 'test', 'full_name': 'Test Kullanici', 'role': 'super_admin', 'active': 1, 'store_id': null},
-  {'id': 2, 'username': 'ayse', 'full_name': 'Ayşe Çiftçi', 'role': 'store_manager', 'active': 1,
-   'store_id': 4, 'store_name': 'Merkez'},
-  {'id': 3, 'username': 'ali', 'full_name': 'Ali Gündüz', 'role': 'barista', 'active': 0,
-   'store_id': 4, 'store_name': 'Merkez'},
+  {
+    'id': 1,
+    'username': 'test',
+    'full_name': 'Test Kullanici',
+    'role': 'super_admin',
+    'active': 1,
+    'store_id': null,
+  },
+  {
+    'id': 2,
+    'username': 'ayse',
+    'full_name': 'Ayşe Çiftçi',
+    'role': 'store_manager',
+    'active': 1,
+    'store_id': 4,
+    'store_name': 'Merkez',
+  },
+  {
+    'id': 3,
+    'username': 'ali',
+    'full_name': 'Ali Gündüz',
+    'role': 'barista',
+    'active': 0,
+    'store_id': 4,
+    'store_name': 'Merkez',
+  },
 ];
 
 void main() {
@@ -54,7 +111,9 @@ void main() {
   });
 
   group('Pasta Çeşitleri', () {
-    testWidgets('liste, fiyat ve fiyatsız çeşit uyarısı gösterilir', (tester) async {
+    testWidgets('liste, fiyat ve fiyatsız çeşit uyarısı gösterilir', (
+      tester,
+    ) async {
       signInAs('super_admin');
       await tester.pumpWidget(host(const ProductTypesScreen()));
       await tester.pumpAndSettle();
@@ -72,37 +131,55 @@ void main() {
       expect(find.text('SKT: 3 gün'), findsOneWidget);
     });
 
-    testWidgets('ana yönetici düzenleyebilir, mağaza yöneticisi yalnızca görür', (tester) async {
-      signInAs('super_admin');
-      await tester.pumpWidget(host(const ProductTypesScreen()));
-      await tester.pumpAndSettle();
-      expect(find.text('Yeni Çeşit'), findsOneWidget);
-      expect(find.text('Düzenle'), findsNWidgets(3));
+    testWidgets(
+      'ana yönetici düzenleyebilir, mağaza yöneticisi yalnızca görür',
+      (tester) async {
+        signInAs('super_admin');
+        await tester.pumpWidget(host(const ProductTypesScreen()));
+        await tester.pumpAndSettle();
+        expect(find.text('Yeni Çeşit'), findsOneWidget);
+        // Duzenle / Sil kart soldan saga kaydirilinca acilir.
+        expect(find.text('Düzenle'), findsNothing);
+        await tester.drag(find.text('Çikolatalı Pasta'), const Offset(300, 0));
+        await tester.pumpAndSettle();
+        expect(find.text('Düzenle'), findsOneWidget);
+        expect(find.text('Sil'), findsOneWidget);
 
-      signInAs('store_manager', storeId: 4);
-      adapter.calls.clear();
-      await tester.pumpWidget(host(const ProductTypesScreen()));
-      await tester.pumpAndSettle();
-      expect(find.text('Yeni Çeşit'), findsNothing);
-      expect(find.text('Düzenle'), findsNothing);
-      expect(find.text('Sil'), findsNothing);
-      // Magaza listesi super_admin'e kapali oldugu icin hic istenmez.
-      expect(adapter.calls.where((c) => c == 'GET /stores'), isEmpty);
-    });
+        signInAs('store_manager', storeId: 4);
+        adapter.calls.clear();
+        await tester.pumpWidget(host(const ProductTypesScreen()));
+        await tester.pumpAndSettle();
+        expect(find.text('Yeni Çeşit'), findsNothing);
+        await tester.drag(find.text('Çikolatalı Pasta'), const Offset(300, 0));
+        await tester.pumpAndSettle();
+        expect(find.text('Düzenle'), findsNothing);
+        expect(find.text('Sil'), findsNothing);
+        // Magaza listesi super_admin'e kapali oldugu icin hic istenmez.
+        expect(adapter.calls.where((c) => c == 'GET /stores'), isEmpty);
+      },
+    );
 
     testWidgets('düzenleme penceresi mevcut değerlerle açılır', (tester) async {
       signInAs('super_admin');
       await tester.pumpWidget(host(const ProductTypesScreen()));
       await tester.pumpAndSettle();
 
+      await tester.drag(find.text('Çikolatalı Pasta'), const Offset(300, 0));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Düzenle').first);
       await tester.pumpAndSettle();
 
       expect(find.text('Çeşidi Düzenle'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'Çikolatalı Pasta'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Çikolatalı Pasta'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(TextField, '250'), findsOneWidget);
       // Fiyat alaninin ciro etkisi kullaniciya yaziyla anlatilir.
-      expect(find.textContaining('ciro bu fiyattan otomatik hesaplanır'), findsOneWidget);
+      expect(
+        find.textContaining('ciro bu fiyattan otomatik hesaplanır'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('boş ürün adı sunucuya gitmeden reddedilir', (tester) async {
@@ -135,13 +212,18 @@ void main() {
       await tester.tap(find.text('Kaydet'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SKT süresi 1-14 gün arasında olmalıdır'), findsOneWidget);
+      expect(
+        find.text('SKT süresi 1-14 gün arasında olmalıdır'),
+        findsOneWidget,
+      );
       expect(adapter.calls.where((c) => c.startsWith('POST')), isEmpty);
     });
   });
 
   group('Mağazalar', () {
-    testWidgets('sayaçlar gösterilir, bağlı kaydı olan mağaza silinemez', (tester) async {
+    testWidgets('sayaçlar gösterilir, bağlı kaydı olan mağaza silinemez', (
+      tester,
+    ) async {
       signInAs('super_admin');
       await tester.pumpWidget(host(const StoresScreen()));
       await tester.pumpAndSettle();
@@ -151,12 +233,16 @@ void main() {
       expect(find.text('12 aktif ürün'), findsOneWidget);
       expect(find.text('Adres girilmemiş'), findsOneWidget);
 
-      final buttons = tester.widgetList<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Sil'));
+      final buttons = tester.widgetList<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, 'Sil'),
+      );
       // Merkez'in kaydi var -> kapali; Sube bos -> acik.
       expect(buttons.map((b) => b.onPressed != null).toList(), [false, true]);
     });
 
-    testWidgets('yeni mağaza penceresinde aktiflik anahtarı çıkmaz', (tester) async {
+    testWidgets('yeni mağaza penceresinde aktiflik anahtarı çıkmaz', (
+      tester,
+    ) async {
       signInAs('super_admin');
       await tester.pumpWidget(host(const StoresScreen()));
       await tester.pumpAndSettle();
@@ -188,26 +274,35 @@ void main() {
       expect(find.text('Store Manager'), findsOneWidget);
       // Pasif kullanici hem etiketle hem aktifleştirme dugmesiyle ayrisir.
       expect(find.text('pasif'), findsOneWidget);
+      // Islemler kart soldan saga kaydirilinca acilir.
+      await tester.ensureVisible(find.text('@ali'));
+      await tester.pumpAndSettle();
+      await tester.drag(find.text('@ali'), const Offset(320, 0));
+      await tester.pumpAndSettle();
       expect(find.text('Aktifleştir'), findsOneWidget);
     });
 
-    testWidgets('kendi hesabında pasife alma ve silme kapalıdır', (tester) async {
+    testWidgets('kendi hesabında pasife alma ve silme kapalıdır', (
+      tester,
+    ) async {
       signInAs('super_admin');
       await tester.pumpWidget(host(const UsersScreen()));
       await tester.pumpAndSettle();
 
-      // Ilk kart oturumdaki kullanici (id 1).
-      final toggles = tester
-          .widgetList<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Pasife Al'))
-          .toList();
-      expect(toggles.first.onPressed, isNull);
-      final deletes = tester
-          .widgetList<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Sil'))
-          .toList();
-      expect(deletes.first.onPressed, isNull);
+      // Oturumdaki kullanicinin (id 1) kartinda pasife alma ve silme yok.
+      await tester.drag(find.text('@test'), const Offset(320, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Pasife Al'), findsNothing);
+      expect(find.text('Sil'), findsNothing);
       // Baskalarinin kaydinda acik.
-      expect(deletes[1].onPressed, isNotNull);
-      expect(find.textContaining('Kendi hesabınızı pasife alamaz'), findsOneWidget);
+      await tester.drag(find.text('@ayse'), const Offset(320, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Pasife Al'), findsOneWidget);
+      expect(find.text('Sil'), findsOneWidget);
+      expect(
+        find.textContaining('Kendi hesabınızı pasife alamaz'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('mağaza yöneticisi ana yönetici rolü atayamaz', (tester) async {
@@ -229,6 +324,8 @@ void main() {
       await tester.pumpWidget(host(const UsersScreen()));
       await tester.pumpAndSettle();
 
+      await tester.drag(find.text('@ayse'), const Offset(320, 0));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Şifre').first);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, '123');
@@ -245,6 +342,8 @@ void main() {
       await tester.pumpWidget(host(const UsersScreen()));
       await tester.pumpAndSettle();
 
+      await tester.drag(find.text('@ayse'), const Offset(320, 0));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Şifre').first);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'gizli123');
@@ -258,7 +357,9 @@ void main() {
   });
 
   group('Telefon yerleşimi', () {
-    testWidgets('kartlar tek kolona düşer ve dokunma hedefleri 44px', (tester) async {
+    testWidgets('kartlar tek kolona düşer ve dokunma hedefleri 44px', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
@@ -273,15 +374,18 @@ void main() {
       expect(second.top, greaterThan(first.bottom));
 
       final cards = find.byType(Card);
-      final widths = tester.widgetList<Card>(cards).map((c) => tester.getSize(find.byWidget(c)).width);
+      final widths = tester
+          .widgetList<Card>(cards)
+          .map((c) => tester.getSize(find.byWidget(c)).width);
       for (final w in widths) {
         // Ekran 390, sayfa kenar boslugu 2x12 -> 366.
         expect(w, closeTo(366, 1));
       }
 
-      for (final size in tester
-          .widgetList<OutlinedButton>(find.byType(OutlinedButton))
-          .map((b) => tester.getSize(find.byWidget(b)))) {
+      for (final size
+          in tester
+              .widgetList<OutlinedButton>(find.byType(OutlinedButton))
+              .map((b) => tester.getSize(find.byWidget(b)))) {
         expect(size.height, greaterThanOrEqualTo(44.0));
       }
     });
@@ -307,5 +411,4 @@ void main() {
       expect(gridColumnsFor(1920), 4);
     });
   });
-
 }

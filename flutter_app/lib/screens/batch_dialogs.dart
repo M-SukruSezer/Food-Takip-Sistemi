@@ -813,8 +813,6 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
   late String _activeType; // 'zayi' or 'ikram'
   late int _quantity;
   late String _selectedReasonKey;
-  final TextEditingController _notes = TextEditingController();
-  bool _hasPhoto = false;
   bool _saving = false;
 
   static const _zayiReasons = [
@@ -871,12 +869,6 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
     _selectedReasonKey = _activeType == 'zayi' ? 'skt' : 'memnuniyet';
   }
 
-  @override
-  void dispose() {
-    _notes.dispose();
-    super.dispose();
-  }
-
   Future<void> _submit() async {
     if (_saving) return;
     setState(() => _saving = true);
@@ -889,10 +881,7 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
         )
         .label;
 
-    final noteText = _notes.text.trim();
-    final fullReason = noteText.isEmpty
-        ? reasonLabel
-        : '$reasonLabel: $noteText';
+    final fullReason = reasonLabel;
 
     try {
       if (_activeType == 'zayi') {
@@ -976,10 +965,6 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
           _buildQuantityStepper(formattedTotal),
           const SizedBox(height: AppSpacing.md),
           _buildReasonSelector(),
-          const SizedBox(height: AppSpacing.md),
-          _buildCameraAndProof(timeStr),
-          const SizedBox(height: AppSpacing.md),
-          _buildNotesField(),
           const SizedBox(height: AppSpacing.md),
           _buildSignatureStamp(fullName, initials, roleName, idStr, dateStr),
           const SizedBox(height: AppSpacing.lg),
@@ -1563,178 +1548,6 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             ),
           );
         }),
-      ],
-    );
-  }
-
-  Widget _buildCameraAndProof(String timeStr) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.tokens.bg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.videocam_rounded,
-                    size: 18,
-                    color: context.tokens.primary,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Kamera & Kasa Kaydı',
-                    style: TextStyle(
-                      fontSize: AppFontSize.body,
-                      fontWeight: FontWeight.bold,
-                      color: context.tokens.ink,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: context.tokens.infoSoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'POS-01 ($timeStr)',
-                  style: TextStyle(
-                    fontSize: AppFontSize.caption,
-                    fontWeight: FontWeight.bold,
-                    color: context.tokens.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Material(
-            color: context.tokens.card,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () {
-                setState(() => _hasPhoto = !_hasPhoto);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _hasPhoto
-                          ? 'Fotoğraf kanıtı eklendi.'
-                          : 'Fotoğraf kanıtı kaldırıldı.',
-                    ),
-                    duration: const Duration(seconds: 1),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _hasPhoto
-                        ? context.tokens.success
-                        : context.tokens.border,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _hasPhoto
-                          ? Icons.check_circle
-                          : Icons.photo_camera_rounded,
-                      size: 22,
-                      color: _hasPhoto
-                          ? context.tokens.success
-                          : context.tokens.primary,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _hasPhoto
-                                ? 'Fotoğraf / Kanıt Eklendi ✓'
-                                : 'Fotoğraf / Kanıt Ekle',
-                            style: TextStyle(
-                              fontSize: AppFontSize.label,
-                              fontWeight: FontWeight.bold,
-                              color: _hasPhoto
-                                  ? context.tokens.okText
-                                  : context.tokens.ink,
-                            ),
-                          ),
-                          Text(
-                            _hasPhoto
-                                ? '1 görsel iliştirildi (kaldırmak için dokunun)'
-                                : 'Tutanak veya ürün görseli (opsiyonel)',
-                            style: TextStyle(
-                              fontSize: AppFontSize.caption,
-                              color: context.tokens.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Operasyonel Açıklama & Not',
-          style: TextStyle(
-            fontSize: AppFontSize.body,
-            fontWeight: FontWeight.bold,
-            color: context.tokens.ink,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: context.tokens.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.tokens.border),
-          ),
-          child: TextField(
-            controller: _notes,
-            maxLines: 2,
-            style: TextStyle(
-              fontSize: AppFontSize.body,
-              color: context.tokens.ink,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Örn: Dolap sıcaklık dalgalanması sebebiyle krema formu bozulmuştur.',
-              hintStyle: TextStyle(
-                fontSize: AppFontSize.label,
-                color: context.tokens.muted,
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.all(12),
-            ),
-          ),
-        ),
       ],
     );
   }
