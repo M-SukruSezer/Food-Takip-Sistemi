@@ -59,7 +59,7 @@ void main() {
     expect(find.text('Zayi'), findsNWidgets(2));
   });
 
-  testWidgets('ikram onayı ciroya girmeyeceğini söyler ve kind gönderir', (tester) async {
+  testWidgets('ikram zayi formunu açar, adet 1 ve kilitli, kind gönderir', (tester) async {
     signInAs('staff', storeId: 4);
     await tester.pumpWidget(host(const RecommendationsScreen()));
     await tester.pumpAndSettle();
@@ -67,11 +67,18 @@ void main() {
     await tester.tap(find.text('İkram'));
     await tester.pumpAndSettle();
 
-    expect(find.text('İkramı Onayla'), findsOneWidget);
-    expect(find.textContaining('satış adedine sayılmaz'), findsOneWidget);
-    expect(find.textContaining('İkram değeri olarak 250,00 TL'), findsOneWidget);
+    // Zayi ile aynı kayıt formu, İkram sekmesi seçili açılır.
+    expect(find.text('Zayi & İkram Kayıt Formu'), findsOneWidget);
+    // Üründe 4 adet kalmasına rağmen adet 1'e kilitlidir: artı/eksi yok.
+    expect(find.text('1 Adet'), findsWidgets);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.add_rounded), findsNothing);
+    expect(find.byIcon(Icons.remove_rounded), findsNothing);
 
-    await tester.tap(find.text('1 Adet İkram Et'));
+    final onay = find.textContaining('İkramı Onayla');
+    await tester.ensureVisible(onay);
+    await tester.pumpAndSettle();
+    await tester.tap(onay);
     await tester.pumpAndSettle();
 
     expect(adapter.bodies['POST /batches/101/sell'], {'quantity': 1, 'kind': 'ikram'});

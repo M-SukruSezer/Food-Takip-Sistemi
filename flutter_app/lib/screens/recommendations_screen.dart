@@ -128,20 +128,16 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     await _load(silent: true);
   }
 
+  // İkram, zayi ile aynı kayıt formunu kullanır (sebep, not, onay); öneri
+  // listesinden yapılan ikram her zaman tek adettir, adet kilitlidir.
   Future<void> _ikram(Batch b) async {
-    final ok = await _confirm(
-      title: 'İkramı Onayla',
-      confirmLabel: '1 Adet İkram Et',
-      danger: false,
-      body: _ikramMessage(b),
+    final ok = await showDiscardDialog(
+      context,
+      b,
+      isIkram: true,
+      fixedQuantity: 1,
     );
-    if (ok != true) return;
-    try {
-      await repo.ikramOne(b);
-    } catch (_) {
-      // Bildirim API katmanında gösterilir.
-    }
-    await _load(silent: true);
+    if (ok == true) await _load(silent: true);
   }
 
   Future<void> _discard(Batch b) async {
@@ -170,61 +166,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
       }
     }
     await _load(silent: true);
-  }
-
-  /// İkram stoktan düşer ama satış sayılmaz. Personel ikisini karıştırmasın
-  /// diye onay metni bunu açıkça yazar.
-  Widget _ikramMessage(Batch b) {
-    final t = context.tokens;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: b.productName,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: ' ürününden '),
-              const TextSpan(
-                text: '1 adet ikram',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              TextSpan(
-                text:
-                    ' edilecek. Kalan ${b.remaining} adetten ${b.remaining - 1} adede düşecek.',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text.rich(
-          TextSpan(
-            children: [
-              const TextSpan(text: 'Ciroya '),
-              const TextSpan(
-                text: 'eklenmez',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: ' ve satış adedine sayılmaz.'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (b.hasPrice)
-          Text(
-            'İkram değeri olarak ${fmtMoney(b.productUnitPrice)} kaydedilir.',
-            style: TextStyle(color: t.muted, fontSize: AppFontSize.body),
-          )
-        else
-          Text(
-            'Bu çeşit için fiyat tanımlı olmadığı için ikram değeri kaydedilemez.',
-            style: TextStyle(color: t.warning, fontSize: AppFontSize.body),
-          ),
-      ],
-    );
   }
 
   Future<bool?> _confirm({

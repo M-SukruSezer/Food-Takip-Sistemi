@@ -17,7 +17,7 @@ import 'batch_dialogs.dart';
 
 /// Ürünler / Stok ekranı.
 /// 4 özet gösterge kartı, 4 sekme (Donuk Depo, Çözünme, Satışa Hazır, Geçmiş),
-/// kategori çipleri, protokol bilgi kutusu ve modern ürün kartları.
+/// arama ve ürün kartları.
 class BatchesScreen extends StatefulWidget {
   const BatchesScreen({super.key, this.initialTab});
 
@@ -37,19 +37,9 @@ class _BatchesScreenState extends State<BatchesScreen> {
     (id: 'sold,discarded', label: 'Geçmiş', icon: Icons.history_rounded),
   ];
 
-  static const _categories = [
-    'Tümü',
-    'Kruvasan & Açma',
-    'Cheesecake',
-    'Pasta & Kek',
-    'Sandviç',
-    'Börek & Poğaça',
-  ];
-
   final _searchController = TextEditingController();
   int _tab = 0;
   String _search = '';
-  String _selectedCategory = 'Tümü';
   List<Batch> _items = const [];
   DashboardCounts? _counts;
   String? _error;
@@ -97,41 +87,7 @@ class _BatchesScreenState extends State<BatchesScreen> {
         .catchError((_) {});
   }
 
-  bool _matchesCategory(Batch b, String category) {
-    if (category == 'Tümü') return true;
-    final name = b.productName.toLowerCase();
-    switch (category) {
-      case 'Kruvasan & Açma':
-        return name.contains('kruvasan') ||
-            name.contains('açma') ||
-            name.contains('acma');
-      case 'Cheesecake':
-        return name.contains('cheesecake') || name.contains('kek');
-      case 'Pasta & Kek':
-        return name.contains('pasta') ||
-            name.contains('kek') ||
-            name.contains('tart');
-      case 'Sandviç':
-        return name.contains('sandviç') ||
-            name.contains('sandvic') ||
-            name.contains('tost');
-      case 'Börek & Poğaça':
-        return name.contains('börek') ||
-            name.contains('borek') ||
-            name.contains('poğaça') ||
-            name.contains('pogaca');
-      default:
-        return true;
-    }
-  }
-
-  List<Batch> get _shown {
-    final searchFiltered = filterBatches(_items, _search);
-    if (_selectedCategory == 'Tümü') return searchFiltered;
-    return searchFiltered
-        .where((b) => _matchesCategory(b, _selectedCategory))
-        .toList();
-  }
+  List<Batch> get _shown => filterBatches(_items, _search);
 
   Future<void> _after(Future<bool?> action) async {
     final ok = await action;
@@ -277,99 +233,6 @@ class _BatchesScreenState extends State<BatchesScreen> {
                             filtering: _search.trim().isNotEmpty,
                           ),
                           zemin: t.bg,
-                        ),
-                      ),
-
-                      // 3. Kategori Filtre Çipleri
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            sidePadding,
-                            6,
-                            sidePadding,
-                            10,
-                          ),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            child: Row(
-                              children: _categories.map((cat) {
-                                final selected = _selectedCategory == cat;
-                                final count = cat == 'Tümü'
-                                    ? _items.length
-                                    : _items
-                                          .where(
-                                            (b) => _matchesCategory(b, cat),
-                                          )
-                                          .length;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(999),
-                                    onTap: () =>
-                                        setState(() => _selectedCategory = cat),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 180,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: selected ? t.primary : t.card,
-                                        border: Border.all(
-                                          color: selected
-                                              ? t.primary
-                                              : t.border,
-                                          width: 1.2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                        boxShadow: selected
-                                            ? [
-                                                BoxShadow(
-                                                  color: t.primary.withValues(
-                                                    alpha: 0.2,
-                                                  ),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ]
-                                            : null,
-                                      ),
-                                      child: Text(
-                                        '$cat ($count)',
-                                        style: TextStyle(
-                                          fontSize: AppFontSize.label,
-                                          fontWeight: selected
-                                              ? FontWeight.w700
-                                              : FontWeight.w600,
-                                          color: selected
-                                              ? t.onPrimary
-                                              : t.muted,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 4. Protokol Bilgi Kutusu
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            sidePadding,
-                            0,
-                            sidePadding,
-                            12,
-                          ),
-                          child: _ProtocolBanner(tabIndex: _tab),
                         ),
                       ),
 
@@ -790,84 +653,6 @@ class _TabBar extends StatelessWidget {
   }
 }
 
-/// Otomatik Çözünme / Süreç Bilgi Panosu
-class _ProtocolBanner extends StatelessWidget {
-  const _ProtocolBanner({required this.tabIndex});
-
-  final int tabIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    String title;
-    String desc;
-
-    switch (tabIndex) {
-      case 0:
-        title = 'Otomatik Çözünme Protokolü';
-        desc = '“Çözülmeye Al” işlemiyle seçilen adet Donuk Depo\'dan düşülür; 72 saatlik geri sayım sayacı başlar.';
-        break;
-      case 1:
-        title = 'Çözünme Takip Protokolü';
-        desc = 'Çözünme süresi tamamlanan ürünleri "Food Dolabına Al" butonuyla vitrine aktarabilirsiniz.';
-        break;
-      case 2:
-        title = 'Vitrin & Dolap Takip Protokolü';
-        desc = 'Satışa hazır ürünlerin SKT takibi anlık yapılır. Satışlar Öneri Satış ekranından gerçekleştirilir.';
-        break;
-      default:
-        title = 'Geçmiş Satış & Zayi Kayıtları';
-        desc =
-            'Daha önce satılan veya zayi girişi yapılan partilerin arşividir.';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: t.infoSoft,
-        border: Border.all(color: t.info.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(Icons.info_outline_rounded, size: 18, color: t.info),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: AppFontSize.body,
-                    fontWeight: FontWeight.w700,
-                    color: t.info,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: AppFontSize.caption,
-                    height: 1.35,
-                    color: t.ink,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Yenilenmiş Modern Ürün Kartı
 class _BatchCard extends StatelessWidget {
   const _BatchCard({
     required this.batch,

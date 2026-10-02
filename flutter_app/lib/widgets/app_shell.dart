@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/format.dart';
@@ -185,98 +186,137 @@ class _AppShellState extends State<AppShell> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && _qrOpen) setState(() => _qrOpen = false);
         },
-        child: Scaffold(
-          backgroundColor: t.bg,
-          // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
-          // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
-          // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
-          bottomNavigationBar: wide
-              ? null
-              : _BottomBar(
-                  qrOpen: _qrOpen,
-                  onQr: _qrBusy ? null : _toggleQr,
-                  onNavigate: () => setState(() => _qrOpen = false),
-                  location: location,
-                  section: section,
-                  sections: sections,
-                  groups: groups,
-                  recommendationCount: _recommendationCount,
-                  onSection: _goSection,
-                ),
-          body: SafeArea(
-            child: Row(
-              children: [
-                if (wide)
-                  _SideNav(
-                    groups: groups,
-                    sections: sections,
-                    section: section,
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          // Sistem çubuğu saydam; altındaki şerit üst bar rengiyle boyanır.
+          // İkonlar temaya göre: açık temada koyu, koyu temada açık.
+          value:
+              (Theme.of(context).brightness == Brightness.dark
+                      ? SystemUiOverlayStyle.light
+                      : SystemUiOverlayStyle.dark)
+                  .copyWith(statusBarColor: Colors.transparent),
+          child: Scaffold(
+            backgroundColor: t.bg,
+            // Cekmece KALDIRILDI: menu artik alt cubugun kendi alaninda aciliyor.
+            // Yan cekmece telefonda ekranin karsi kenarindan geliyordu; parmak alt
+            // cubuktayken menunun ust solda belirmesi hedefi kaybettiriyordu.
+            bottomNavigationBar: wide
+                ? null
+                : _BottomBar(
+                    qrOpen: _qrOpen,
+                    onQr: _qrBusy ? null : _toggleQr,
+                    onNavigate: () => setState(() => _qrOpen = false),
                     location: location,
-                    rail: _isRail(width),
+                    section: section,
+                    sections: sections,
+                    groups: groups,
+                    recommendationCount: _recommendationCount,
                     onSection: _goSection,
-                    onToggleRail: () =>
-                        setState(() => _railOverride = !_isRail(width)),
                   ),
+            // Sistem çubuğu (saat/pil) şeridi üst barla aynı renkte boyanır;
+            // eskiden sayfa zemini görünüyordu ve iki şerit ayrı renkteydi.
+            body: Column(
+              children: [
+                ColoredBox(
+                  color: t.card,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: MediaQuery.paddingOf(context).top,
+                  ),
+                ),
                 Expanded(
-                  child: Column(
-                    children: [
-                      _TopBar(
-                        okunmamis: _bildirimler.okunmamis,
-                        // Telefonda hamburger yok: menu alt cubuktan aciliyor.
-                        // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
-                        // arasinda nerede oldugun belli olsun.
-                        sectionLabel: wide
-                            ? null
-                            : (pageTitle ??
-                                  sections
-                                      .where((s) => s.id == section)
-                                      .map((s) => s.label)
-                                      .firstOrNull),
-                      ),
-                      Expanded(
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Align(
-                              alignment: Alignment.topCenter,
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: switch (Breakpoints.of(width)) {
-                                    _ when width < Breakpoints.narrowPhone =>
-                                      AppSpacing.sm,
-                                    WindowSize.compact => 10,
-                                    WindowSize.medium => AppSpacing.lg,
-                                    _ => 18,
-                                  },
-                                  // Mobil içerik üst bar ile alt menü arasındaki
-                                  // alanı tam kullanır. Dikey dış boşluk yalnızca
-                                  // masaüstü yerleşiminde gerekir.
-                                  vertical: wide ? 18 : 0,
-                                ),
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 1440,
+                  child: SafeArea(
+                    top: false,
+                    child: Row(
+                      children: [
+                        if (wide)
+                          _SideNav(
+                            groups: groups,
+                            sections: sections,
+                            section: section,
+                            location: location,
+                            rail: _isRail(width),
+                            onSection: _goSection,
+                            onToggleRail: () =>
+                                setState(() => _railOverride = !_isRail(width)),
+                          ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _TopBar(
+                                okunmamis: _bildirimler.okunmamis,
+                                // Telefonda hamburger yok: menu alt cubuktan aciliyor.
+                                // Bunun yerine bulundugun ekranin adi yaziyor ki iki ekran
+                                // arasinda nerede oldugun belli olsun.
+                                sectionLabel: wide
+                                    ? null
+                                    : (pageTitle ??
+                                          sections
+                                              .where((s) => s.id == section)
+                                              .map((s) => s.label)
+                                              .firstOrNull),
+                              ),
+                              // İçerik kendi alanına kırpılır: Android'in esneme
+                              // (stretch) kaydırma efekti içeriği dönüştürerek çizdiği
+                              // için Stack bunu taşma saymıyor, kaydırırken kartlar
+                              // üst barın üzerinde görünüyordu.
+                              Expanded(
+                                child: ClipRect(
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.topCenter,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: switch (Breakpoints.of(
+                                              width,
+                                            )) {
+                                              _
+                                                  when width <
+                                                      Breakpoints.narrowPhone =>
+                                                AppSpacing.sm,
+                                              WindowSize.compact => 10,
+                                              WindowSize.medium =>
+                                                AppSpacing.lg,
+                                              _ => 18,
+                                            },
+                                            // Mobil içerik üst bar ile alt menü arasındaki
+                                            // alanı tam kullanır. Dikey dış boşluk yalnızca
+                                            // masaüstü yerleşiminde gerekir.
+                                            vertical: wide ? 18 : 0,
+                                          ),
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 1440,
+                                            ),
+                                            child: SizedBox.expand(
+                                              child: widget.child,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (_qrOpen && !wide)
+                                        QrActionMenu(
+                                          status: _qrStatus,
+                                          error: _qrError,
+                                          onClose: () =>
+                                              setState(() => _qrOpen = false),
+                                          onShift: () => _chooseQr(false),
+                                          onBreak: () => _chooseQr(true),
+                                          onRetry: () {
+                                            setState(() => _qrOpen = false);
+                                            _toggleQr();
+                                          },
+                                        ),
+                                    ],
                                   ),
-                                  child: SizedBox.expand(child: widget.child),
                                 ),
                               ),
-                            ),
-                            if (_qrOpen && !wide)
-                              QrActionMenu(
-                                status: _qrStatus,
-                                error: _qrError,
-                                onClose: () => setState(() => _qrOpen = false),
-                                onShift: () => _chooseQr(false),
-                                onBreak: () => _chooseQr(true),
-                                onRetry: () {
-                                  setState(() => _qrOpen = false);
-                                  _toggleQr();
-                                },
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -796,8 +836,8 @@ class _MobileTopBar extends StatelessWidget {
         ? user!.storeName!.toUpperCase()
         : 'MERKEZ ŞUBE';
     return Container(
-      height: 118,
-      padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 13, compact ? 8 : 13, 12),
+      height: 92,
+      padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 12, compact ? 8 : 13, 12),
       decoration: BoxDecoration(
         color: t.card,
         border: Border(bottom: BorderSide(color: t.border)),
@@ -840,13 +880,18 @@ class _MobileTopBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (!compact)
-                      Text(
-                        '  · Online',
-                        style: TextStyle(
-                          color: t.muted,
-                          fontSize: AppFontSize.micro,
-                          fontWeight: FontWeight.w500,
+                    // Mağaza adının yanında oturum açan kullanıcının rolü.
+                    if ((roleLabels[user?.role] ?? '').isNotEmpty)
+                      Flexible(
+                        child: Text(
+                          '  · ${roleLabels[user?.role]}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: t.muted,
+                            fontSize: AppFontSize.micro,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                   ],
@@ -865,48 +910,6 @@ class _MobileTopBar extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                     letterSpacing: -.7,
                   ),
-                ),
-                const SizedBox(height: 7),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        user?.fullName ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: t.muted,
-                          fontSize: compact
-                              ? AppFontSize.label
-                              : AppFontSize.body,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (!compact)
-                      Container(
-                        width: 5,
-                        height: 5,
-                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                        decoration: BoxDecoration(
-                          color: t.border,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    if (!compact)
-                      Flexible(
-                        child: Text(
-                          roleLabels[user?.role] ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: t.primary,
-                            fontSize: AppFontSize.body,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
                 ),
               ],
             ),

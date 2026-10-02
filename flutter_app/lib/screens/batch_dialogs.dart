@@ -775,22 +775,35 @@ Future<bool?> showThawDialog(BuildContext context, Batch batch) {
 }
 
 /// Zayi: adet ve sebep - modern Zayi & İkram Kayıt Formu.
+///
+/// [fixedQuantity] verilirse adet o değere kilitlenir ve değiştirilemez
+/// (öneri listesindeki ikram her zaman tek adettir).
 Future<bool?> showDiscardDialog(
   BuildContext context,
   Batch batch, {
   bool isIkram = false,
+  int? fixedQuantity,
 }) {
   return showAppSheet<bool>(
     context: context,
-    builder: (ctx) => _ZayiIkramSheet(batch: batch, initialIsIkram: isIkram),
+    builder: (ctx) => _ZayiIkramSheet(
+      batch: batch,
+      initialIsIkram: isIkram,
+      fixedQuantity: fixedQuantity,
+    ),
   );
 }
 
 class _ZayiIkramSheet extends StatefulWidget {
-  const _ZayiIkramSheet({required this.batch, this.initialIsIkram = false});
+  const _ZayiIkramSheet({
+    required this.batch,
+    this.initialIsIkram = false,
+    this.fixedQuantity,
+  });
 
   final Batch batch;
   final bool initialIsIkram;
+  final int? fixedQuantity;
 
   @override
   State<_ZayiIkramSheet> createState() => _ZayiIkramSheetState();
@@ -852,7 +865,9 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
   void initState() {
     super.initState();
     _activeType = widget.initialIsIkram ? 'ikram' : 'zayi';
-    _quantity = widget.batch.remaining > 0 ? widget.batch.remaining : 1;
+    _quantity =
+        widget.fixedQuantity ??
+        (widget.batch.remaining > 0 ? widget.batch.remaining : 1);
     _selectedReasonKey = _activeType == 'zayi' ? 'skt' : 'memnuniyet';
   }
 
@@ -1323,75 +1338,113 @@ class _ZayiIkramSheetState extends State<_ZayiIkramSheet> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: context.tokens.bg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  onTap: _quantity > 1
-                      ? () => setState(() => _quantity -= 1)
-                      : null,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
+          if (widget.fixedQuantity != null)
+            _lockedQuantity()
+          else
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: context.tokens.bg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: _quantity > 1
+                        ? () => setState(() => _quantity -= 1)
+                        : null,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _quantity > 1
+                            ? context.tokens.card
+                            : context.tokens.card.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.remove_rounded,
+                        size: 20,
+                        color: _quantity > 1
+                            ? context.tokens.ink
+                            : context.tokens.border,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
                     width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _quantity > 1
-                          ? context.tokens.card
-                          : context.tokens.card.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.remove_rounded,
-                      size: 20,
-                      color: _quantity > 1
-                          ? context.tokens.ink
-                          : context.tokens.border,
+                    child: Text(
+                      '$_quantity',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: AppFontSize.titleLarge,
+                        fontWeight: FontWeight.w800,
+                        color: context.tokens.primary,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 36,
-                  child: Text(
-                    '$_quantity',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: AppFontSize.titleLarge,
-                      fontWeight: FontWeight.w800,
-                      color: context.tokens.primary,
+                  InkWell(
+                    onTap: _quantity < maxQty
+                        ? () => setState(() => _quantity += 1)
+                        : null,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _quantity < maxQty
+                            ? context.tokens.primary
+                            : context.tokens.primary.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: context.tokens.onPrimary,
+                      ),
                     ),
                   ),
-                ),
-                InkWell(
-                  onTap: _quantity < maxQty
-                      ? () => setState(() => _quantity += 1)
-                      : null,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _quantity < maxQty
-                          ? context.tokens.primary
-                          : context.tokens.primary.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.add_rounded,
-                      size: 20,
-                      color: context.tokens.onPrimary,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  /// Sabit adet: düğmeler yerine kilitli rozet. Kullanıcı neden
+  /// değiştiremediğini görsün diye kilit simgesi var.
+  Widget _lockedQuantity() {
+    final t = context.tokens;
+    return Semantics(
+      label: '$_quantity adet, değiştirilemez',
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: t.bg,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: t.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 16, color: t.muted),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              '$_quantity Adet',
+              style: TextStyle(
+                fontSize: AppFontSize.title,
+                fontWeight: FontWeight.w800,
+                color: t.ink,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
